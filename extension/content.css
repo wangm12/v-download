@@ -1,0 +1,29 @@
+.ytdl-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  color: #fff;
+  margin-left: 8px;
+  transition: background 0.2s, transform 0.15s;
+  vertical-align: middle;
+}
+
+.ytdl-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.1);
+}
+
+.ytdl-btn:active {
+  transform: scale(0.95);
+}
+
+.ytdl-btn-active {
+  color: #32D583;
+  background: rgba(50, 213, 131, 0.15);
+}

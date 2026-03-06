@@ -1,0 +1,43 @@
+{
+  "manifest_version": 3,
+  "name": "YT Download",
+  "version": "1.0.0",
+  "description": "Send YouTube videos to YT Download app for downloading",
+  "permissions": [
+    "cookies",
+    "activeTab",
+    "tabs",
+    "alarms"
+  ],
+  "host_permissions": [
+    "*://*.youtube.com/*",
+    "*://youtu.be/*",
+    "*://music.youtube.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.youtube.com/*",
+        "*://music.youtube.com/*"
+      ],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_icon": {
+      "16": "icons/icon16-gray.png",
+      "48": "icons/icon48-gray.png"
+    },
+    "default_title": "YT Download"
+  }
+}

@@ -1,0 +1,23 @@
+appId: com.ytdownload.app
+productName: YT Download
+directories:
+  buildResources: resources
+  output: dist
+files:
+  - out/**/*
+  - resources/**/*
+mac:
+  icon: resources/icon.icns
+  category: public.app-category.utilities
+  target:
+    - dmg
+    - zip
+win:
+  icon: resources/icon.png
+  target:
+    - nsis
+linux:
+  icon: resources/icon.png
+  target:
+    - AppImage
+    - deb
