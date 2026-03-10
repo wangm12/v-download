@@ -63,6 +63,8 @@ export interface DownloadOptions {
   referer?: string
   customHeaders?: Record<string, string>
   outputTitle?: string
+  mediaType?: string
+  concurrentFragments?: number
   onProgress?: (progress: DownloadProgress) => void
 }
 
@@ -314,6 +316,8 @@ export function download(
     referer,
     customHeaders,
     outputTitle,
+    mediaType,
+    concurrentFragments,
     onProgress: progressCb
   } = options
 
@@ -350,8 +354,12 @@ export function download(
     args.push('--cookies', cookiesPath)
   }
 
-  if (sleepInterval > 0) {
+  if (sleepInterval > 0 && !mediaType) {
     args.push('--sleep-interval', String(sleepInterval))
+  }
+
+  if (concurrentFragments && concurrentFragments > 1) {
+    args.push('--concurrent-fragments', String(concurrentFragments))
   }
 
   if (format === 'audio' || format === 'mp3') {

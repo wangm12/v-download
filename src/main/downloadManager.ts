@@ -176,7 +176,9 @@ async function runTask(task: DownloadTask): Promise<void> {
       playlistTitle: undefined,
       referer,
       customHeaders,
-      outputTitle: mediaType ? task.title : undefined
+      outputTitle: mediaType ? task.title : undefined,
+      mediaType,
+      concurrentFragments: mediaType ? 5 : undefined
     },
     ytdlpPath
   )
