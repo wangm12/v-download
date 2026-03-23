@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "YT Download",
+  "name": "V-Download",
   "version": "1.1.0",
-  "description": "Download YouTube videos and detect media streams on any website",
+  "description": "Download videos and detect media streams on any website",
   "permissions": [
     "cookies",
     "activeTab",
@@ -26,6 +26,31 @@
       "js": ["content.js"],
       "css": ["content.css"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": ["*://*.douyin.com/*"],
+      "js": ["content-douyin-bridge.js"],
+      "run_at": "document_idle",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["*://*.douyin.com/*"],
+      "js": ["content-douyin.js"],
+      "css": ["content-douyin.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content-video-overlay.js"],
+      "css": ["content-video-overlay.css"],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["content-douyin-bridge.js"],
+      "matches": ["*://*.douyin.com/*"]
     }
   ],
   "icons": {
@@ -38,7 +63,7 @@
       "16": "icons/icon16-gray.png",
       "48": "icons/icon48-gray.png"
     },
-    "default_title": "YT Download",
+    "default_title": "V-Download",
     "default_popup": "popup.html"
   }
 }

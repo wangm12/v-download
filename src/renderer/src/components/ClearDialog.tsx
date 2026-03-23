@@ -40,7 +40,7 @@ export function ClearDialog({ onClose, onClearCompleted, onClearAll }: ClearDial
         <div className="flex flex-col gap-2">
           <button
             onClick={handleClearCompleted}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-accent-indigo text-white font-medium hover:bg-accent-indigo/90 transition-colors"
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-accent-indigo text-background font-medium hover:bg-accent-indigo-dark transition-colors"
           >
             <CircleCheck className="w-4 h-4" />
             Remove Completed Tasks

@@ -38,8 +38,8 @@ body {
 }
 
 .count {
-  background: #7c3aed;
-  color: white;
+  background: #FFFFFF;
+  color: #1a1a1e;
   font-size: 11px;
   font-weight: 600;
   padding: 1px 7px;
@@ -73,7 +73,7 @@ body {
 
 .media-item input[type='checkbox'] {
   margin-top: 3px;
-  accent-color: #7c3aed;
+  accent-color: #FFFFFF;
   flex-shrink: 0;
   cursor: pointer;
 }
@@ -118,8 +118,8 @@ body {
 }
 
 .type-hls {
-  background: rgba(124, 58, 237, 0.2);
-  color: #a78bfa;
+  background: rgba(255, 255, 255, 0.12);
+  color: #A1A1AA;
 }
 
 .type-mp4 {
@@ -171,8 +171,8 @@ body {
 .download-btn {
   width: 100%;
   padding: 8px 16px;
-  background: #7c3aed;
-  color: white;
+  background: #FFFFFF;
+  color: #1a1a1e;
   border: none;
   border-radius: 8px;
   font-size: 13px;
@@ -182,7 +182,7 @@ body {
 }
 
 .download-btn:hover {
-  background: #6d28d9;
+  background: #D4D4D8;
 }
 
 .download-btn:disabled {

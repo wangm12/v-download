@@ -142,7 +142,7 @@ export function SettingsPage() {
               <select
                 value={settings.defaultVideoQuality}
                 onChange={(e) => onUpdate('defaultVideoQuality', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent-indigo/50"
+                className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-white/30"
               >
                 {VIDEO_QUALITIES.map((q) => (
                   <option key={q} value={q}>{q}p</option>
@@ -154,7 +154,7 @@ export function SettingsPage() {
               <select
                 value={settings.defaultAudioQuality}
                 onChange={(e) => onUpdate('defaultAudioQuality', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent-indigo/50"
+                className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-white/30"
               >
                 {AUDIO_QUALITIES.map((q) => (
                   <option key={q} value={q}>{q}kbps</option>
@@ -173,7 +173,7 @@ export function SettingsPage() {
                 type="text"
                 value={settings.ytdlpPath ?? ''}
                 readOnly
-                className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-sm text-muted-foreground"
+                className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-white/30"
               />
             </div>
             <div>
@@ -182,7 +182,7 @@ export function SettingsPage() {
                 type="text"
                 value={settings.ffmpegPath ?? ''}
                 readOnly
-                className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-sm text-muted-foreground"
+                className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-white/30"
               />
             </div>
             <div>
@@ -199,7 +199,7 @@ export function SettingsPage() {
       >
         <button
           onClick={handleDone}
-          className="w-full py-2.5 rounded-lg bg-accent-indigo text-white font-medium hover:bg-accent-indigo/90 transition-colors"
+          className="w-full py-2.5 rounded-lg bg-accent-indigo text-background font-medium hover:bg-accent-indigo-dark transition-colors"
         >
           Done
         </button>
@@ -214,11 +214,11 @@ function ToggleRow({ label, checked, onChange }: { label: string; checked: boole
       <label className="text-sm text-foreground">{label}</label>
       <button
         onClick={() => onChange(!checked)}
-        className={cn('w-11 h-6 rounded-full transition-colors', checked ? 'bg-accent-indigo' : 'bg-border')}
+        className={cn('w-11 h-6 rounded-full transition-colors', checked ? 'bg-foreground' : 'bg-border')}
       >
         <span
           className={cn(
-            'block w-5 h-5 rounded-full bg-white shadow transition-transform',
+            'block w-5 h-5 rounded-full bg-background shadow transition-transform',
             checked ? 'translate-x-5' : 'translate-x-0.5'
           )}
         />

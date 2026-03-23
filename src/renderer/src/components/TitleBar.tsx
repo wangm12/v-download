@@ -5,7 +5,7 @@ export function TitleBar() {
       style={{ WebkitAppRegion: 'drag' }}
     >
       <span className="absolute inset-0 flex items-center justify-center text-sm font-semibold text-foreground pointer-events-none">
-        YT Download
+        V-Download
       </span>
     </header>
   )

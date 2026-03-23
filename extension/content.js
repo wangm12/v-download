@@ -10,7 +10,7 @@
     const btn = document.createElement('button')
     btn.id = BUTTON_ID
     btn.className = 'ytdl-btn'
-    btn.title = 'Download with YT Download'
+    btn.title = 'Download with V-Download'
     btn.innerHTML = SVG_DOWNLOAD
 
     btn.addEventListener('click', (e) => {

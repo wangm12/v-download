@@ -3,6 +3,7 @@ import { BrowserWindow } from 'electron'
 import * as db from './database'
 import * as settings from './settings'
 import * as ytdlp from './ytdlp'
+import * as dockProgress from './dockProgress'
 import { dirname } from 'path'
 import { stat, readdir, unlink } from 'fs/promises'
 import { join } from 'path'
@@ -48,6 +49,8 @@ interface AddTaskOptions {
 
 let activeDownloads = new Map<string, { cancel: () => void; getStderr?: () => string; getDestinations?: () => string[] }>()
 const taskExtraMeta = new Map<string, { mediaType?: string; referer?: string; customHeaders?: Record<string, string> }>()
+const taskSpeedBytes = new Map<string, number>()
+const taskProgress = new Map<string, number>()
 let mainWindow: BrowserWindow | null = null
 
 export function setMainWindow(win: BrowserWindow | null): void {
@@ -79,6 +82,39 @@ function taskFromRecord(r: db.DownloadRecord): DownloadTask {
     createdAt: r.created_at,
     updatedAt: r.updated_at
   }
+}
+
+function parseSpeedToBytes(speedStr: string): number {
+  if (!speedStr) return 0
+  const m = speedStr.match(/([\d.]+)\s*(GiB|MiB|KiB|B)\/s/i)
+  if (!m) return 0
+  const val = parseFloat(m[1])
+  switch (m[2]) {
+    case 'GiB': return val * 1024 * 1024 * 1024
+    case 'MiB': return val * 1024 * 1024
+    case 'KiB': return val * 1024
+    default: return val
+  }
+}
+
+function updateDockProgress(): void {
+  if (activeDownloads.size === 0) {
+    dockProgress.reset()
+    return
+  }
+
+  let totalProgress = 0
+  let count = 0
+  let totalSpeed = 0
+
+  for (const [id] of activeDownloads) {
+    totalProgress += taskProgress.get(id) ?? 0
+    totalSpeed += taskSpeedBytes.get(id) ?? 0
+    count++
+  }
+
+  const avgProgress = count > 0 ? totalProgress / count : 0
+  dockProgress.updateProgress(avgProgress, totalSpeed)
 }
 
 function emitProgress(task: DownloadTask): void {
@@ -189,6 +225,11 @@ async function runTask(task: DownloadTask): Promise<void> {
     task.status = 'downloading'
     task.updatedAt = new Date().toISOString()
     db.updateDownload(task.id, { status: 'downloading', progress: progress.percent })
+
+    taskProgress.set(task.id, progress.percent)
+    taskSpeedBytes.set(task.id, parseSpeedToBytes(progress.speed))
+    updateDockProgress()
+
     emitToRenderer('download-progress', {
       ...task,
       speed: progress.speed,
@@ -201,6 +242,9 @@ async function runTask(task: DownloadTask): Promise<void> {
   return new Promise((resolve) => {
     dp.process.on('close', async (code, signal) => {
       activeDownloads.delete(task.id)
+      taskSpeedBytes.delete(task.id)
+      taskProgress.delete(task.id)
+      updateDockProgress()
 
       if (signal === 'SIGTERM' || signal === 'SIGKILL') {
         const current = db.getDownloads().find((r) => r.id === task.id)
@@ -283,6 +327,9 @@ async function runTask(task: DownloadTask): Promise<void> {
 
     dp.process.on('error', (err) => {
       activeDownloads.delete(task.id)
+      taskSpeedBytes.delete(task.id)
+      taskProgress.delete(task.id)
+      updateDockProgress()
       task.status = 'error'
       task.error = err.message
       db.updateDownload(task.id, { status: 'error', error: err.message })
@@ -327,6 +374,9 @@ export function cancelTask(id: string): boolean {
   if (active) {
     active.cancel()
     activeDownloads.delete(id)
+    taskSpeedBytes.delete(id)
+    taskProgress.delete(id)
+    updateDockProgress()
   }
 
   const tasks = db.getDownloads()
@@ -353,6 +403,9 @@ export function pauseTask(id: string): boolean {
     if (active) {
       active.cancel()
       activeDownloads.delete(id)
+      taskSpeedBytes.delete(id)
+      taskProgress.delete(id)
+      updateDockProgress()
     }
     const updated = db.getDownloads().find((r) => r.id === id)
     if (updated) {

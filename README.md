@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="resources/icon.png" alt="YT Download" width="128" height="128" />
+  <img src="resources/icon.png" alt="V-Download" width="128" height="128" />
 </p>
 
-<h1 align="center">YT Download</h1>
+<h1 align="center">V-Download</h1>
 
 <p align="center">
-  A Downie-style desktop app for downloading videos from YouTube and any website, powered by <code>yt-dlp</code>.
+  A Downie-style desktop app + Chrome extension for downloading videos from YouTube, Douyin, and any website, powered by <code>yt-dlp</code>.
 </p>
 
 <p align="center">
@@ -20,16 +20,19 @@
 
 - **One-click download** — Paste any URL with `Cmd+V` or click the companion Chrome extension
 - **Universal media detection** — Sniffs HLS (m3u8), MP4, WebM, and FLV streams from any website
+- **Video overlay button** — An in-page download button appears on any detected video element (similar to AIX Downloader)
 - **Chrome extension** — Detects media streams on every page; shows a picker when multiple streams are found
 - **YouTube integration** — One-click download on YouTube pages with format selection (4K to 144p, MP3)
+- **Douyin integration** — Dedicated download panel with full quality options, cover images, and music extraction via React fiber inspection
 - **App-side sniffer** — For sites yt-dlp doesn't support, the app loads the page in a hidden browser and detects streams automatically
 - **Playlist & channel support** — Download entire playlists or channels with organized subfolders
-- **Concurrent downloads** — Configurable parallel download queue (1–10 simultaneous)
+- **Concurrent downloads** — Configurable parallel download queue (1-10 simultaneous)
+- **Dock progress animation** — macOS dock icon fills top-to-bottom during downloads with live speed display (e.g. `12 MB/s`)
 - **Real-time progress** — Live progress bar, network speed, ETA, and download phase (video/audio/merging)
 - **Download management** — Pause, resume, retry, cancel, and delete individual or all tasks
 - **Cookie sync** — Automatically syncs YouTube cookies from Chrome for authenticated downloads
 - **Crash recovery** — Interrupted downloads are detected and can be resumed on restart
-- **Dark UI** — Clean, minimal dark theme inspired by Downie
+- **Dark UI** — Clean, minimal dark theme with black and white accents
 
 ## Screenshots
 
@@ -39,7 +42,7 @@
 
 ## Prerequisites
 
-Before using YT Download, install these dependencies:
+Before using V-Download, install these dependencies:
 
 ```bash
 # Install yt-dlp and ffmpeg via Homebrew
@@ -56,7 +59,7 @@ brew install yt-dlp ffmpeg
 ### From DMG (recommended)
 
 1. Download the latest `.dmg` from [Releases](https://github.com/mingjie-yt-download-ext/releases)
-2. Open the DMG and drag **YT Download** to your Applications folder
+2. Open the DMG and drag **V-Download** to your Applications folder
 3. Right-click → Open (first launch only, since the app is unsigned)
 
 ### Build from source
@@ -68,7 +71,7 @@ npm install
 npm run build:mac
 ```
 
-The built app will be in `dist/mac-arm64/YT Download.app` and a DMG installer in `dist/`.
+The built app will be in `dist/mac-arm64/V-Download.app` and a DMG installer in `dist/`.
 
 ## Usage
 
@@ -85,8 +88,9 @@ The built app will be in `dist/mac-arm64/YT Download.app` and a DMG installer in
 1. Load the `extension/` folder in Chrome via `chrome://extensions` (Developer mode → Load unpacked)
 2. The extension icon is always active on every page
 3. **YouTube pages** — Click the icon to send the URL directly to the app
-4. **Other pages** — Click the icon to open a popup showing all detected media streams (HLS, MP4, WebM, FLV); select streams and click Download
-5. Cookies are synced automatically every 5 minutes for authenticated access
+4. **Douyin pages** — A download button appears on the active video with full quality selection, cover image, and music download
+5. **Other pages** — A download overlay appears on detected video elements; click the extension icon to open a popup showing all detected media streams (HLS, MP4, WebM, FLV)
+6. Cookies are synced automatically every 5 minutes for authenticated access
 
 ### Keyboard Shortcuts
 
@@ -122,6 +126,7 @@ The built app will be in `dist/mac-arm64/YT Download.app` and a DMG installer in
 │  │ • Settings     │              │ • Radix UI      │  │
 │  │ • HTTP Server  │              │ • Three.js      │  │
 │  │ • Media Sniffer│              │ • Media Picker  │  │
+│  │ • Dock Progress│              │                 │  │
 │  └───────┬────────┘              └─────────────────┘  │
 │          │                                            │
 └──────────┼────────────────────────────────────────────┘
@@ -155,6 +160,7 @@ src/
 ├── main/                   # Electron main process
 │   ├── index.ts            # App entry, windows, IPC handlers
 │   ├── downloadManager.ts  # Queue, concurrency, task lifecycle
+│   ├── dockProgress.ts     # macOS dock icon animation + speed badge
 │   ├── ytdlp.ts            # yt-dlp CLI wrapper
 │   ├── mediaSniffer.ts     # Hidden browser media stream detection
 │   ├── database.ts         # SQLite persistence
@@ -180,12 +186,14 @@ src/
             ├── useDownloads.ts
             └── useUrlHandler.ts
 
-extension/                  # Chrome Extension (Manifest V3)
+extension/                      # Chrome Extension (Manifest V3)
 ├── manifest.json
-├── background.js           # Media sniffing, URL dispatch, cookie sync
-├── popup.html/js/css       # Media stream picker popup
-├── content.js              # Download button injection on YouTube
-└── content.css
+├── background.js               # Media sniffing, URL dispatch, cookie sync
+├── popup.html/js/css           # Media stream picker popup
+├── content.js/css              # YouTube download button injection
+├── content-video-overlay.js/css # Universal video overlay for any site
+├── content-douyin.js/css       # Douyin-specific download panel
+└── content-douyin-bridge.js    # Douyin main-world script (React fiber extraction)
 ```
 
 ## Development

@@ -1,7 +1,7 @@
 {
-  "name": "yt-download",
+  "name": "v-download",
   "version": "1.0.0",
-  "description": "A Downie-style YouTube video downloader powered by yt-dlp",
+  "description": "A Downie-style video downloader for YouTube, Douyin, and any website, powered by yt-dlp",
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",

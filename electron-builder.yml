@@ -1,5 +1,5 @@
 appId: com.ytdownload.app
-productName: YT Download
+productName: V-Download
 directories:
   buildResources: resources
   output: dist
@@ -7,7 +7,7 @@ files:
   - out/**/*
   - resources/**/*
 protocols:
-  - name: YT Download
+  - name: V-Download
     schemes:
       - ytdl
 mac:

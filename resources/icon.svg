@@ -1,14 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#7C3AED"/>
-      <stop offset="100%" style="stop-color:#4F46E5"/>
+      <stop offset="0%" style="stop-color:#27272A"/>
+      <stop offset="100%" style="stop-color:#18181B"/>
     </linearGradient>
   </defs>
-  <!-- Rounded square background -->
   <rect x="0" y="0" width="1024" height="1024" rx="220" ry="220" fill="url(#bg)"/>
-  <!-- Rotated YouTube shape: tall rounded rectangle (white) -->
-  <rect x="302" y="152" width="420" height="720" rx="90" ry="90" fill="white" opacity="0.95"/>
-  <!-- Downward-pointing triangle (centered in the white rect) -->
-  <polygon points="380,370 644,370 512,650" fill="url(#bg)"/>
+  <!-- Single unified arrow path: shaft + chevron head, no gap -->
+  <path d="M448,200 L576,200 Q596,200 596,220 L596,500 L700,500 Q730,500 710,530 L532,740 Q512,764 492,740 L314,530 Q294,500 324,500 L428,500 L428,220 Q428,200 448,200 Z" fill="white" opacity="0.95"/>
+  <!-- Base line -->
+  <rect x="280" y="800" width="464" height="76" rx="38" fill="white" opacity="0.95"/>
 </svg>

@@ -16,8 +16,8 @@ const config: Config = {
         'subtle-foreground': '#8E8E93',
         'accent-green': '#32D583',
         'accent-green-dark': '#059669',
-        'accent-indigo': '#6366F1',
-        'accent-indigo-dark': '#4F46E5',
+        'accent-indigo': '#FFFFFF',
+        'accent-indigo-dark': '#D4D4D8',
         'accent-coral': '#E85A4F',
         'accent-amber': '#FFB547'
       },

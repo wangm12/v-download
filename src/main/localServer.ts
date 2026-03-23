@@ -51,7 +51,7 @@ function saveCookiesFile(cookies: Cookie[]): string {
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
   const cookiesPath = join(dir, 'cookies.txt')
 
-  const header = '# Netscape HTTP Cookie File\n# This file is auto-synced from Chrome via YT Download extension\n\n'
+  const header = '# Netscape HTTP Cookie File\n# This file is auto-synced from Chrome via V-Download extension\n\n'
   const lines = cookies.map(toNetscapeLine).join('\n')
   writeFileSync(cookiesPath, header + lines + '\n', 'utf-8')
 

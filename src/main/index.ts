@@ -1,8 +1,9 @@
-import { app, BrowserWindow, protocol, Menu, nativeImage } from 'electron'
+import { app, BrowserWindow, protocol, Menu } from 'electron'
 import { join } from 'path'
 import { optimizer, is } from '@electron-toolkit/utils'
 import * as database from './database'
 import * as downloadManager from './downloadManager'
+import * as dockProgress from './dockProgress'
 import { startPoTokenServer } from './poTokenServer'
 import { startLocalServer, stopLocalServer, setDownloadHandler, setMediaDownloadHandler, DownloadRequest } from './localServer'
 import * as settings from './settings'
@@ -144,13 +145,7 @@ app.whenReady().then(() => {
   ]
   Menu.setApplicationMenu(Menu.buildFromTemplate(template))
 
-  if (process.platform === 'darwin') {
-    const iconPath = join(__dirname, '../../resources/icon.png')
-    const dockIcon = nativeImage.createFromPath(iconPath)
-    if (!dockIcon.isEmpty()) {
-      app.dock.setIcon(dockIcon)
-    }
-  }
+  dockProgress.init()
 
   database.initDB()
   downloadManager.loadFromDbAndRecover()

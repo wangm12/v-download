@@ -15,9 +15,57 @@ const MEDIA_PATTERNS = [
 ]
 const MIN_VIDEO_SIZE = 100000
 const SIZE_EXEMPT_TYPES = new Set(['hls'])
+const FRAME_BUCKET_MAX = 50
 
+// tabMedia: Map<tabId, Map<frameId, Map<url, mediaEntry>>>
 const tabMedia = new Map()
 let lastClickTime = 0
+
+// --- Frame-aware storage helpers ---
+
+function getFrameBucket(tabId, frameId) {
+  if (!tabMedia.has(tabId)) tabMedia.set(tabId, new Map())
+  const tab = tabMedia.get(tabId)
+  if (!tab.has(frameId)) tab.set(frameId, new Map())
+  return tab.get(frameId)
+}
+
+function addMediaEntry(tabId, frameId, url, entry) {
+  const bucket = getFrameBucket(tabId, frameId)
+  if (bucket.has(url)) return
+  bucket.set(url, entry)
+  // Evict oldest entries if over cap
+  if (bucket.size > FRAME_BUCKET_MAX) {
+    const sorted = Array.from(bucket.entries()).sort((a, b) => a[1].timestamp - b[1].timestamp)
+    const toRemove = sorted.slice(0, bucket.size - FRAME_BUCKET_MAX)
+    for (const [k] of toRemove) bucket.delete(k)
+  }
+}
+
+function getFrameMedia(tabId, frameId) {
+  const tab = tabMedia.get(tabId)
+  if (!tab) return []
+  const bucket = tab.get(frameId)
+  return bucket ? Array.from(bucket.values()) : []
+}
+
+function getAllTabMedia(tabId) {
+  const tab = tabMedia.get(tabId)
+  if (!tab) return []
+  const seen = new Set()
+  const result = []
+  for (const bucket of tab.values()) {
+    for (const [url, entry] of bucket) {
+      if (!seen.has(url)) {
+        seen.add(url)
+        result.push(entry)
+      }
+    }
+  }
+  return result
+}
+
+// --- Action / tab event handlers ---
 
 chrome.action.onClicked.addListener(async (tab) => {
   if (!tab.url) return
@@ -54,12 +102,14 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 function updateTabUI(tab) {
   if (!tab.active || !tab.id) return
   const isYT = tab.url && isYouTubeUrl(tab.url)
+  const isDouyin = tab.url && isDouyinUrl(tab.url)
 
   chrome.action.setPopup({ tabId: tab.id, popup: isYT ? '' : 'popup.html' })
   chrome.action.setIcon({ tabId: tab.id, path: ICON_ACTIVE })
 
   if (!isYT) {
-    const count = tabMedia.get(tab.id)?.size || 0
+    // Douyin uses its own overlay; suppress the badge to avoid noise
+    const count = isDouyin ? 0 : getAllTabMedia(tab.id).length
     updateBadge(tab.id, count)
   }
 }
@@ -67,17 +117,21 @@ function updateTabUI(tab) {
 function updateBadge(tabId, count) {
   if (count > 0) {
     chrome.action.setBadgeText({ tabId, text: String(count) })
-    chrome.action.setBadgeBackgroundColor({ tabId, color: '#7C3AED' })
+    chrome.action.setBadgeBackgroundColor({ tabId, color: '#27272A' })
     chrome.action.setIcon({ tabId, path: ICON_ACTIVE })
   } else {
     chrome.action.setBadgeText({ tabId, text: '' })
   }
 }
 
+// --- webRequest sniffer (frame-aware) ---
+
 chrome.webRequest.onCompleted.addListener(
   (details) => {
     if (details.tabId < 0) return
     if (isYouTubeUrl(details.url)) return
+    // Douyin uses React fiber for media extraction; skip network sniffing to avoid noise
+    if (isDouyinUrl(details.initiator || '') || isDouyinUrl(details.url)) return
     if (details.statusCode < 200 || details.statusCode >= 400) return
 
     let mediaType = null
@@ -109,14 +163,9 @@ chrome.webRequest.onCompleted.addListener(
       if (contentLength && parseInt(contentLength) < MIN_VIDEO_SIZE) return
     }
 
-    if (!tabMedia.has(details.tabId)) {
-      tabMedia.set(details.tabId, new Map())
-    }
-    const mediaMap = tabMedia.get(details.tabId)
-    if (mediaMap.has(details.url)) return
-
     const contentLength = getHeader(details.responseHeaders, 'content-length')
-    mediaMap.set(details.url, {
+    const frameId = details.frameId ?? 0
+    addMediaEntry(details.tabId, frameId, details.url, {
       url: details.url,
       type: mediaType,
       size: contentLength ? parseInt(contentLength) : null,
@@ -124,7 +173,7 @@ chrome.webRequest.onCompleted.addListener(
       timestamp: Date.now()
     })
 
-    updateBadge(details.tabId, mediaMap.size)
+    updateBadge(details.tabId, getAllTabMedia(details.tabId).length)
   },
   { urls: ['<all_urls>'], types: ['media', 'xmlhttprequest', 'other'] },
   ['responseHeaders']
@@ -136,7 +185,10 @@ function getHeader(headers, name) {
   return header ? header.value : null
 }
 
+// --- Message handlers ---
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // Existing: YouTube content.js download button
   if (message.type === 'DOWNLOAD_VIDEO') {
     sendDownloadRequest({ url: message.url }, sender.tab?.id)
       .then(() => sendResponse({ ok: true }))
@@ -144,6 +196,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true
   }
 
+  // Existing: popup queries all media for the active tab
   if (message.type === 'GET_MEDIA') {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const tabId = tabs[0]?.id
@@ -151,13 +204,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ media: [], tabUrl: '', tabTitle: '' })
         return
       }
-      const mediaMap = tabMedia.get(tabId)
-      const media = mediaMap ? Array.from(mediaMap.values()) : []
+      const media = getAllTabMedia(tabId)
       sendResponse({ media, tabUrl: tabs[0].url || '', tabTitle: tabs[0].title || '' })
     })
     return true
   }
 
+  // Existing: popup triggers multi-item download
   if (message.type === 'DOWNLOAD_MEDIA') {
     const { items, tabUrl, tabTitle } = message
     const baseTitle = tabTitle || 'download'
@@ -221,11 +274,84 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true
   }
 
+  // New: content overlay queries media for its specific frame, with tab-level fallback
+  if (message.type === 'GET_FRAME_MEDIA') {
+    const tabId = sender.tab?.id
+    const frameId = sender.frameId ?? 0
+    if (!tabId) {
+      sendResponse({ media: [], source: 'none', frameId })
+      return true
+    }
+    let media = getFrameMedia(tabId, frameId)
+    let source = 'frame'
+    if (media.length === 0) {
+      media = getAllTabMedia(tabId)
+      source = 'tab-fallback'
+    }
+    sendResponse({
+      media,
+      source,
+      frameId,
+      isYouTube: isYouTubeUrl(sender.tab.url || ''),
+      pageTitle: sender.tab.title || ''
+    })
+    return true
+  }
+
+  // New: content overlay triggers single-item download using sender context
+  if (message.type === 'DOWNLOAD_MEDIA_FROM_CONTENT') {
+    const { item } = message
+    const tabId = sender.tab?.id
+    const tabUrl = sender.tab?.url || ''
+    const tabTitle = sender.tab?.title || 'download'
+
+    if (!item || !item.url) {
+      sendResponse({ ok: false, error: 'Missing item or url' })
+      return true
+    }
+
+    const request = {
+      url: item.url,
+      type: item.type,
+      referer: item.initiator || tabUrl,
+      title: tabTitle
+    }
+
+    ;(async () => {
+      try {
+        await syncCookies()
+        const res = await fetch(`${APP_URL}/download`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(request)
+        })
+        if (res.ok) {
+          sendResponse({ ok: true })
+          return
+        }
+        throw new Error(`HTTP ${res.status}`)
+      } catch {
+        // App not running — launch via protocol
+        try {
+          launchViaProtocol(request, tabId)
+          sendResponse({ ok: true })
+        } catch (err) {
+          sendResponse({ ok: false, error: String(err) })
+        }
+      }
+    })()
+    return true
+  }
+
   return false
 })
 
 function isYouTubeUrl(url) {
   return /^https?:\/\/(www\.)?(youtube\.com|youtu\.be|music\.youtube\.com)/.test(url)
+}
+
+function isDouyinUrl(url) {
+  return /^https?:\/\/([a-z0-9-]+\.)?douyin\.com/.test(url)
 }
 
 async function sendDownloadRequest(request, tabId) {
@@ -238,7 +364,7 @@ async function sendDownloadRequest(request, tabId) {
     })
     return res.ok
   } catch {
-    console.warn('YT Download app is not running, launching via protocol')
+    console.warn('V-Download app is not running, launching via protocol')
     launchViaProtocol(request, tabId)
     return false
   }
@@ -301,7 +427,7 @@ async function syncCookies() {
     })
 
     if (res.ok) {
-      console.log(`Synced ${mapped.length} cookies to YT Download app`)
+      console.log(`Synced ${mapped.length} cookies to V-Download app`)
     }
   } catch {
     // App not running, silently ignore

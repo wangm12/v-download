@@ -127,7 +127,7 @@ export function FormatDialog({ videoInfo, settings, onClose, onDownload }: Forma
                   <div className="flex-1 flex justify-end">
                     <button
                       onClick={() => handleDownload('mp4', fmt.quality)}
-                      className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-accent-indigo text-white text-xs font-semibold hover:bg-accent-indigo-dark transition-all"
+                      className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-accent-indigo text-background text-xs font-semibold hover:bg-accent-indigo-dark transition-all"
                     >
                       <Download size={13} />
                       Download
@@ -147,7 +147,7 @@ export function FormatDialog({ videoInfo, settings, onClose, onDownload }: Forma
                   <div className="flex-1 flex justify-end">
                     <button
                       onClick={() => handleDownload('mp3', fmt.quality)}
-                      className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-accent-indigo text-white text-xs font-semibold hover:bg-accent-indigo-dark transition-all"
+                      className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-accent-indigo text-background text-xs font-semibold hover:bg-accent-indigo-dark transition-all"
                     >
                       <Download size={13} />
                       Download
