@@ -93,6 +93,18 @@ chrome.action.onClicked.addListener(async (tab) => {
       await sendDownloadRequest({ url: downloadUrl }, tab.id)
     }
   }
+
+  if (isDouyinUrl(tab.url)) {
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => {
+          const btn = document.getElementById('dy-dl-btn')
+          if (btn) btn.click()
+        }
+      })
+    } catch {}
+  }
 })
 
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
@@ -121,11 +133,11 @@ function updateTabUI(tab) {
   const isYT = tab.url && isYouTubeUrl(tab.url)
   const isDouyin = tab.url && isDouyinUrl(tab.url)
 
-  chrome.action.setPopup({ tabId: tab.id, popup: isYT ? '' : 'popup.html' })
+  const noPopup = isYT || isDouyin
+  chrome.action.setPopup({ tabId: tab.id, popup: noPopup ? '' : 'popup.html' })
   chrome.action.setIcon({ tabId: tab.id, path: ICON_ACTIVE })
 
   if (!isYT) {
-    // Douyin uses its own overlay; suppress the badge to avoid noise
     const count = isDouyin ? 0 : getAllTabMedia(tab.id).length
     updateBadge(tab.id, count)
   }
