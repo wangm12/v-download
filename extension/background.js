@@ -105,6 +105,13 @@ chrome.action.onClicked.addListener(async (tab) => {
       })
     } catch {}
   }
+
+  if (isXUrl(tab.url)) {
+    const statusUrl = getXStatusUrl(tab.url)
+    if (statusUrl) {
+      await sendDownloadRequest({ url: statusUrl }, tab.id)
+    }
+  }
 })
 
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
@@ -132,13 +139,14 @@ function updateTabUI(tab) {
   if (!tab.active || !tab.id) return
   const isYT = tab.url && isYouTubeUrl(tab.url)
   const isDouyin = tab.url && isDouyinUrl(tab.url)
+  const isX = tab.url && isXUrl(tab.url)
 
-  const noPopup = isYT || isDouyin
+  const noPopup = isYT || isDouyin || isX
   chrome.action.setPopup({ tabId: tab.id, popup: noPopup ? '' : 'popup.html' })
   chrome.action.setIcon({ tabId: tab.id, path: ICON_ACTIVE })
 
   if (!isYT) {
-    const count = isDouyin ? 0 : getAllTabMedia(tab.id).length
+    const count = (isDouyin || isX) ? 0 : getAllTabMedia(tab.id).length
     updateBadge(tab.id, count)
   }
 }
@@ -159,8 +167,8 @@ chrome.webRequest.onCompleted.addListener(
   (details) => {
     if (details.tabId < 0) return
     if (isYouTubeUrl(details.url)) return
-    // Douyin uses React fiber for media extraction; skip network sniffing to avoid noise
     if (isDouyinUrl(details.initiator || '') || isDouyinUrl(details.url)) return
+    if (isXUrl(details.initiator || '') || /video\.twimg\.com/.test(details.url)) return
     if (details.statusCode < 200 || details.statusCode >= 400) return
 
     let mediaType = null
@@ -381,6 +389,15 @@ function isYouTubeUrl(url) {
 
 function isDouyinUrl(url) {
   return /^https?:\/\/([a-z0-9-]+\.)?douyin\.com/.test(url)
+}
+
+function isXUrl(url) {
+  return /^https?:\/\/(www\.)?(x\.com|twitter\.com)/.test(url)
+}
+
+function getXStatusUrl(url) {
+  const m = url.match(/https:\/\/(x|twitter)\.com\/[^/]+\/status\/\d+/)
+  return m ? m[0] : null
 }
 
 async function sendDownloadRequest(request, tabId) {

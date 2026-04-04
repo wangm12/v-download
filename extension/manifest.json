@@ -40,6 +40,15 @@
       "run_at": "document_idle"
     },
     {
+      "matches": [
+        "*://*.x.com/*",
+        "*://*.twitter.com/*"
+      ],
+      "js": ["content-x.js"],
+      "css": ["content-x.css"],
+      "run_at": "document_idle"
+    },
+    {
       "matches": ["<all_urls>"],
       "js": ["content-video-overlay.js"],
       "css": ["content-video-overlay.css"],

@@ -1,0 +1,100 @@
+/* ── X/Twitter download button in tweet action bar ─────────────────────── */
+
+.vdl-x-btn-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.vdl-x-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34.75px;
+  height: 34.75px;
+  border-radius: 9999px;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  color: rgb(113, 118, 123);
+  padding: 0;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.vdl-x-btn svg {
+  width: 18.75px;
+  height: 18.75px;
+}
+
+.vdl-x-btn:hover {
+  background-color: rgba(29, 155, 240, 0.1);
+  color: rgb(29, 155, 240);
+}
+
+.vdl-x-btn:active {
+  transform: scale(0.92);
+}
+
+.vdl-x-btn.vdl-x-sending {
+  color: rgb(29, 155, 240);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.vdl-x-btn.vdl-x-sent {
+  color: rgb(0, 186, 124);
+}
+
+/* ── Download button on video player overlay ───────────────────────────── */
+
+.vdl-x-video-btn {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  padding: 0;
+  opacity: 0;
+  transition: opacity 0.2s, background-color 0.2s, transform 0.15s;
+  pointer-events: auto;
+}
+
+.vdl-x-video-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+[data-testid="videoComponent"]:hover .vdl-x-video-btn,
+.vdl-x-video-btn:hover {
+  opacity: 1;
+}
+
+.vdl-x-video-btn:hover {
+  background: rgba(29, 155, 240, 0.85);
+  transform: scale(1.1);
+}
+
+.vdl-x-video-btn:active {
+  transform: scale(0.92);
+}
+
+.vdl-x-video-btn.vdl-x-sending {
+  opacity: 1;
+  background: rgba(29, 155, 240, 0.6);
+  pointer-events: none;
+}
+
+.vdl-x-video-btn.vdl-x-sent {
+  opacity: 1;
+  background: rgba(0, 186, 124, 0.85);
+}

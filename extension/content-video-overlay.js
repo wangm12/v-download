@@ -35,6 +35,10 @@
     return /^https?:\/\/(www\.)?douyin\.com/.test(location.href)
   }
 
+  function isXPage() {
+    return /^https?:\/\/(www\.)?(x\.com|twitter\.com)/.test(location.href)
+  }
+
   function isYouTubeWatchPage() {
     try {
       const u = new URL(location.href)
@@ -596,8 +600,8 @@
 
   function isEligibleVideo(video) {
     if (processed.has(video)) return false
-    // Douyin has its own dedicated overlay; skip to avoid duplicates
     if (isDouyinPage()) return false
+    if (isXPage()) return false
     // On YouTube, only inject on the main watch page and only on actual player videos
     if (isYouTubePage() && !isYouTubeWatchPage()) return false
 
