@@ -34,6 +34,16 @@
     return document.querySelector('[data-e2e="feed-active-video"]')
   }
 
+  function getPlayerRect() {
+    const anchor = getAnchor()
+    if (!anchor) return null
+    const player = anchor.querySelector('.xgplayer') || anchor.querySelector('video')
+    const el = player || anchor
+    const r = el.getBoundingClientRect()
+    if (r.width < 10 || r.height < 10) return null
+    return r
+  }
+
   // ── Download button ────────────────────────────────────────────────────────
 
   function ensureButton() {
@@ -61,14 +71,8 @@
   }
 
   function positionButton(btn) {
-    const anchor = getAnchor()
-    if (!anchor) {
-      btn.classList.remove('dy-dl-visible')
-      btn.classList.add('dy-dl-hidden')
-      return
-    }
-    const rect = anchor.getBoundingClientRect()
-    if (rect.width < 10 || rect.height < 10) {
+    const rect = getPlayerRect()
+    if (!rect) {
       btn.classList.remove('dy-dl-visible')
       btn.classList.add('dy-dl-hidden')
       return
@@ -303,10 +307,9 @@
   }
 
   function positionPanelRelativeTo(panel, _btn) {
-    const anchor = getAnchor()
-    if (!anchor) return
+    const rect = getPlayerRect()
+    if (!rect) return
 
-    const rect = anchor.getBoundingClientRect()
     const panelW = panel.offsetWidth || 260
     const panelH = panel.offsetHeight || 200
     const vw = window.innerWidth
@@ -327,10 +330,9 @@
   function repositionPanel() {
     const panel = document.getElementById(PANEL_ID)
     if (!panel) return
-    const anchor = getAnchor()
-    if (!anchor) return
+    const rect = getPlayerRect()
+    if (!rect) return
 
-    const rect = anchor.getBoundingClientRect()
     const panelW = panel.offsetWidth || 260
     const panelH = panel.offsetHeight || 200
     const vw = window.innerWidth
@@ -373,21 +375,26 @@
     startRaf()
   })
 
-  // ── Eager button init ─────────────────────────────────────────────────────
-  // Show button immediately when the anchor exists, even before bridge data arrives
+  // ── Periodic anchor check ──────────────────────────────────────────────────
+  // Detect when feed-active-video appears (e.g. modal opened on profile page)
 
-  function eagerInit() {
-    if (document.getElementById(BTN_ID)) return  // Already created
-    if (!getAnchor()) return
-    const btn = ensureButton()
-    positionButton(btn)
-    startRaf()
+  function checkAnchor() {
+    const anchor = getAnchor()
+    const btn = document.getElementById(BTN_ID)
+
+    if (anchor) {
+      const b = btn || ensureButton()
+      positionButton(b)
+      startRaf()
+    } else if (btn) {
+      btn.classList.remove('dy-dl-visible')
+      btn.classList.add('dy-dl-hidden')
+    }
   }
 
-  // Try immediately and retry a few times until anchor appears
-  setTimeout(eagerInit, 500)
-  setTimeout(eagerInit, 1500)
-  setTimeout(eagerInit, 3000)
+  setInterval(checkAnchor, 500)
+  setTimeout(checkAnchor, 300)
+  setTimeout(checkAnchor, 1000)
 
   // ── Panel / button dismissal ───────────────────────────────────────────────
 
@@ -413,13 +420,15 @@
     lastHref = location.href
     closePanel()
     currentData = null
-    const btn = document.getElementById(BTN_ID)
-    if (btn) {
-      btn.classList.remove('dy-dl-visible')
-      btn.classList.add('dy-dl-hidden')
-    }
-    // Stop rAF until bridge sends new data on the new page
-    stopRaf()
+
+    setTimeout(() => {
+      if (getAnchor()) return
+      const btn = document.getElementById(BTN_ID)
+      if (btn) {
+        btn.classList.remove('dy-dl-visible')
+        btn.classList.add('dy-dl-hidden')
+      }
+    }, 300)
   })
 
   navObserver.observe(document.documentElement, { subtree: false, childList: true })

@@ -8,6 +8,8 @@ interface FormatDialogProps {
   settings: SettingsData
   onClose: () => void
   onDownload: (url: string, format: string, quality: string) => void
+  queueCount?: number
+  onSkipAll?: () => void
 }
 
 const VIDEO_FORMATS = [
@@ -25,7 +27,7 @@ const AUDIO_FORMATS = [
 
 type TabType = 'audio' | 'video' | 'other'
 
-export function FormatDialog({ videoInfo, settings, onClose, onDownload }: FormatDialogProps) {
+export function FormatDialog({ videoInfo, settings, onClose, onDownload, queueCount = 0, onSkipAll }: FormatDialogProps) {
   const [activeTab, setActiveTab] = useState<TabType>('video')
   const [downloadDir, setDownloadDir] = useState(settings.downloadDir)
 
@@ -166,15 +168,32 @@ export function FormatDialog({ videoInfo, settings, onClose, onDownload }: Forma
         </div>
 
         {/* Footer */}
-        <div className="flex items-center gap-2 h-10 bg-elevated px-5">
-          <Folder size={14} className="text-muted-foreground" />
-          <span className="text-[11px] text-muted-foreground">{downloadDir}</span>
-          <button
-            onClick={handleChangeFolder}
-            className="text-[11px] font-medium text-accent-indigo hover:underline"
-          >
-            Change
-          </button>
+        <div className="bg-elevated px-5">
+          <div className="flex items-center gap-2 h-10">
+            <Folder size={14} className="text-muted-foreground" />
+            <span className="text-[11px] text-muted-foreground truncate">{downloadDir}</span>
+            <button
+              onClick={handleChangeFolder}
+              className="text-[11px] font-medium text-accent-indigo hover:underline flex-shrink-0"
+            >
+              Change
+            </button>
+          </div>
+          {queueCount > 0 && (
+            <div className="flex items-center justify-between pb-3 pt-1">
+              <span className="text-[13px] font-medium text-foreground">
+                +{queueCount} more video{queueCount > 1 ? 's' : ''} queued
+              </span>
+              {onSkipAll && (
+                <button
+                  onClick={onSkipAll}
+                  className="text-[13px] font-medium text-accent-coral hover:underline"
+                >
+                  Skip All
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

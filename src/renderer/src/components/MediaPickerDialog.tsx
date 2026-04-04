@@ -14,6 +14,8 @@ interface MediaPickerDialogProps {
   pageTitle?: string
   onClose: () => void
   onDownload: (items: DetectedMedia[]) => void
+  queueCount?: number
+  onSkipAll?: () => void
 }
 
 const TYPE_STYLES: Record<string, string> = {
@@ -50,7 +52,7 @@ function formatSize(bytes: number): string {
   return `${(bytes / 1073741824).toFixed(2)} GB`
 }
 
-export function MediaPickerDialog({ media, pageUrl, pageTitle, onClose, onDownload }: MediaPickerDialogProps) {
+export function MediaPickerDialog({ media, pageUrl, pageTitle, onClose, onDownload, queueCount = 0, onSkipAll }: MediaPickerDialogProps) {
   const [selected, setSelected] = useState<Set<number>>(() => new Set(media.map((_, i) => i)))
 
   const toggle = (index: number) => {
@@ -136,7 +138,7 @@ export function MediaPickerDialog({ media, pageUrl, pageTitle, onClose, onDownlo
           ))}
         </div>
 
-        <div className="p-3 bg-elevated border-t border-border">
+        <div className="p-3 bg-elevated border-t border-border space-y-2">
           <button
             onClick={handleDownload}
             disabled={selected.size === 0}
@@ -145,6 +147,21 @@ export function MediaPickerDialog({ media, pageUrl, pageTitle, onClose, onDownlo
             <Download size={14} />
             Download {selected.size > 0 ? `(${selected.size})` : ''}
           </button>
+          {queueCount > 0 && (
+            <div className="flex items-center justify-between">
+              <span className="text-[13px] font-medium text-foreground">
+                +{queueCount} more video{queueCount > 1 ? 's' : ''} queued
+              </span>
+              {onSkipAll && (
+                <button
+                  onClick={onSkipAll}
+                  className="text-[13px] font-medium text-accent-coral hover:underline"
+                >
+                  Skip All
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

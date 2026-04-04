@@ -53,10 +53,12 @@ function MainApp() {
     sniffedMedia,
     sniffedPageUrl,
     sniffedPageTitle,
+    queueCount,
     handlePaste,
     handleExternalUrl,
     clearPending,
     clearSniffed,
+    clearQueue,
     setShowFormatDialog
   } = useUrlHandler(settings)
 
@@ -240,6 +242,12 @@ function MainApp() {
             }}
             onDownload={handleDownload}
             settings={settings}
+            queueCount={queueCount}
+            onSkipAll={() => {
+              clearQueue()
+              setShowFormatDialog(false)
+              clearPending()
+            }}
           />
         )}
 
@@ -250,6 +258,11 @@ function MainApp() {
             pageTitle={sniffedPageTitle}
             onClose={clearSniffed}
             onDownload={handleMediaDownload}
+            queueCount={queueCount}
+            onSkipAll={() => {
+              clearQueue()
+              clearSniffed()
+            }}
           />
         )}
 

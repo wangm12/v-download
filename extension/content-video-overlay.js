@@ -397,6 +397,46 @@
     }
   }
 
+  // ── Page-level suppression for YouTube non-watch pages ──────────────────
+
+  let suppressed = false
+
+  function updateSuppression() {
+    if (isYouTubePage() && !isYouTubeWatchPage()) {
+      if (!suppressed) {
+        suppressed = true
+        hideAllOverlays()
+      }
+    } else {
+      if (suppressed) {
+        suppressed = false
+        showEligibleOverlays()
+      }
+    }
+  }
+
+  function hideAllOverlays() {
+    for (const video of document.querySelectorAll('video')) {
+      const state = videoState.get(video)
+      if (!state) continue
+      state.btn.classList.remove('ytdl-visible')
+      state.btn.classList.add('ytdl-hidden')
+    }
+    closeActivePanel()
+  }
+
+  function showEligibleOverlays() {
+    for (const video of document.querySelectorAll('video')) {
+      const state = videoState.get(video)
+      if (!state) continue
+      const rect = video.getBoundingClientRect()
+      if (rect.width >= MIN_VIDEO_WIDTH && rect.height >= MIN_VIDEO_HEIGHT) {
+        state.btn.classList.remove('ytdl-hidden')
+        state.btn.classList.add('ytdl-visible')
+      }
+    }
+  }
+
   // ── Overlay button per video ─────────────────────────────────────────────
 
   function createOverlayForVideo(video) {
@@ -404,7 +444,7 @@
     processed.add(video)
 
     const BTN_SIZE = 32
-    const BTN_INSET = 10 // pixels from video edge
+    const BTN_INSET = 10
 
     const btn = document.createElement('button')
     btn.className = 'ytdl-overlay-btn ytdl-hidden'
@@ -417,17 +457,16 @@
     let isInViewport = false
     let prevRect = null
 
-    // Track when this video last loaded a new source.
-    // Used to filter sniffed media to only the current video on scroll-heavy sites.
     let videoLoadTime = Date.now()
     const onSourceChange = () => { videoLoadTime = Date.now() }
     video.addEventListener('loadstart', onSourceChange)
     video.addEventListener('loadeddata', onSourceChange)
 
     function syncPosition() {
+      if (suppressed) return
+
       const rect = video.getBoundingClientRect()
 
-      // Auto-dismiss panel if video moved significantly or became invisible
       if (activePanel && activePanelVideo === video) {
         const gone = rect.width < 10 || rect.height < 10 ||
           rect.bottom < 0 || rect.top > window.innerHeight
@@ -445,8 +484,7 @@
 
       if (rect.width < 10 || rect.height < 10) return
 
-      // Position inside the video, top-right corner with inset
-      btn.style.top = `${rect.top + BTN_INSET}px`
+      btn.style.top = `${rect.top + (rect.height - BTN_SIZE) / 2}px`
       btn.style.left = `${rect.right - BTN_SIZE - BTN_INSET}px`
     }
 
@@ -471,15 +509,10 @@
       }
     }
 
-    // IntersectionObserver: show/hide button as video enters/leaves viewport
-    // Button is ALWAYS visible (low opacity) when video is in viewport.
-    // Many players have overlay layers that block mouseenter on <video>,
-    // so we don't rely on hover-to-show. The button itself (position:fixed)
-    // is always clickable above any player overlays.
     const observer = new IntersectionObserver((entries) => {
       for (const entry of entries) {
         isInViewport = entry.isIntersecting
-        if (isInViewport) {
+        if (isInViewport && !suppressed) {
           btn.classList.remove('ytdl-hidden')
           btn.classList.add('ytdl-visible')
           syncPosition()
@@ -495,17 +528,15 @@
 
     observer.observe(video)
 
-    // Click: open format panel
     btn.addEventListener('click', async (e) => {
+      e.preventDefault()
       e.stopPropagation()
 
-      // Toggle: clicking again closes
       if (activePanel && activePanelVideo === video) {
         closeActivePanel()
         return
       }
 
-      // Show loading state briefly
       closeActivePanel()
 
       let sniffed = []
@@ -544,13 +575,11 @@
         return
       }
 
-      // Detect blob/mediastream currentSrc
       const blobDetected = isBlobOrStream(video.currentSrc)
 
       showPanel(video, btn, sniffed, isYouTube, blobDetected, sourceLabel, videoLoadTime)
     })
 
-    // Cleanup
     const cleanup = () => {
       observer.disconnect()
       stopRaf()
@@ -638,15 +667,15 @@
   const navObserver = new MutationObserver(() => {
     if (location.href !== lastHref) {
       lastHref = location.href
-      // Clean up panels from previous page
       closeActivePanel()
-      // Re-scan after short delay for new content to render
+      updateSuppression()
       setTimeout(scanVideos, 800)
       setTimeout(scanVideos, 2000)
     }
   })
 
   function init() {
+    updateSuppression()
     scanVideos()
 
     mutationObserver.observe(document.body || document.documentElement, {

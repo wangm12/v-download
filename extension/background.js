@@ -74,7 +74,24 @@ chrome.action.onClicked.addListener(async (tab) => {
   lastClickTime = now
 
   if (isYouTubeUrl(tab.url)) {
-    await sendDownloadRequest({ url: tab.url }, tab.id)
+    let downloadUrl = tab.url
+
+    if (!/[?&]v=/.test(tab.url)) {
+      try {
+        const [result] = await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: () => {
+            const player = document.querySelector('#movie_player')
+            return player?.getVideoUrl?.() || null
+          }
+        })
+        if (result?.result) downloadUrl = result.result
+      } catch {}
+    }
+
+    if (/[?&]v=/.test(downloadUrl)) {
+      await sendDownloadRequest({ url: downloadUrl }, tab.id)
+    }
   }
 })
 

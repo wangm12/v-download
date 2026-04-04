@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import type { VideoInfo, SettingsData } from '@/types'
 import { extractUrlFromClipboard, isMediaUrl, isYouTubeUrl, filenameFromUrl } from '@/utils/youtube'
 import type { DetectedMedia } from '@/components/MediaPickerDialog'
@@ -9,6 +9,11 @@ interface PendingPlaylistMeta {
 }
 
 export type LoadingPhase = '' | 'info' | 'sniffing'
+
+interface QueuedUrl {
+  url: string
+  meta?: { type?: string; referer?: string; title?: string; headers?: Record<string, string> }
+}
 
 export function useUrlHandler(settings: SettingsData) {
   const [loading, setLoading] = useState(false)
@@ -23,29 +28,80 @@ export function useUrlHandler(settings: SettingsData) {
   const [sniffedPageUrl, setSniffedPageUrl] = useState('')
   const [sniffedPageTitle, setSniffedPageTitle] = useState('')
 
+  const [pendingUrls, setPendingUrls] = useState<QueuedUrl[]>([])
+  const pendingUrlsRef = useRef<QueuedUrl[]>([])
+  const busyRef = useRef(false)
+  const dialogOpenRef = useRef(false)
+  const sniffOpenRef = useRef(false)
+  const autoAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const fetchAndShowRef = useRef<((url: string, meta?: { type?: string; referer?: string; title?: string; headers?: Record<string, string> }) => Promise<void>) | null>(null)
+
+  const updatePendingUrls = useCallback((updater: QueuedUrl[] | ((prev: QueuedUrl[]) => QueuedUrl[])) => {
+    setPendingUrls((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : updater
+      pendingUrlsRef.current = next
+      return next
+    })
+  }, [])
+
+  const advanceQueue = useCallback(() => {
+    updatePendingUrls((prev) => {
+      if (prev.length === 0) return prev
+      const [next, ...rest] = prev
+      setTimeout(() => fetchAndShowRef.current?.(next.url, next.meta), 0)
+      return rest
+    })
+  }, [updatePendingUrls])
+
+  const scheduleAutoAdvance = useCallback((msg: string) => {
+    setErrorMsg(msg)
+    if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current)
+    autoAdvanceTimer.current = setTimeout(() => {
+      autoAdvanceTimer.current = null
+      setErrorMsg('')
+      advanceQueue()
+    }, 2000)
+  }, [advanceQueue])
+
+  const isBusy = useCallback(() => {
+    return busyRef.current || dialogOpenRef.current || sniffOpenRef.current
+  }, [])
+
   const clearPending = useCallback(() => {
     setShowFormatDialog(false)
     setPendingVideoInfo(null)
     setPendingEntries(null)
     setPendingPlaylistMeta(null)
-  }, [])
+    dialogOpenRef.current = false
+    advanceQueue()
+  }, [advanceQueue])
 
   const clearSniffed = useCallback(() => {
     setSniffedMedia(null)
     setSniffedPageUrl('')
     setSniffedPageTitle('')
-  }, [])
+    sniffOpenRef.current = false
+    advanceQueue()
+  }, [advanceQueue])
 
-  const handleUrl = useCallback(async (url: string, meta?: { type?: string; referer?: string; title?: string; headers?: Record<string, string> }) => {
-    if (loading) return
+  const clearQueue = useCallback(() => {
+    updatePendingUrls([])
+  }, [updatePendingUrls])
+
+  const fetchAndShow = useCallback(async (url: string, meta?: { type?: string; referer?: string; title?: string; headers?: Record<string, string> }) => {
     if (!window.api) {
       setErrorMsg('App API not available')
       return
     }
 
     setErrorMsg('')
+    if (autoAdvanceTimer.current) {
+      clearTimeout(autoAdvanceTimer.current)
+      autoAdvanceTimer.current = null
+    }
     setLoading(true)
     setLoadingPhase('info')
+    busyRef.current = true
     try {
       if (isMediaUrl(url) && !isYouTubeUrl(url)) {
         const title = meta?.title || filenameFromUrl(url)
@@ -58,8 +114,6 @@ export function useUrlHandler(settings: SettingsData) {
           customHeaders: meta?.headers,
           mediaType: meta?.type
         })
-        setLoading(false)
-        setLoadingPhase('')
         return
       }
 
@@ -76,27 +130,38 @@ export function useUrlHandler(settings: SettingsData) {
               setSniffedMedia(sniffData.media)
               setSniffedPageUrl(url)
               setSniffedPageTitle(sniffData.pageTitle || '')
+              sniffOpenRef.current = true
             } else {
-              setErrorMsg('No media streams found on this page')
+              const msg = 'No media streams found on this page'
+              if (pendingUrlsRef.current.length > 0) scheduleAutoAdvance(msg)
+              else setErrorMsg(msg)
             }
           } catch {
-            setErrorMsg('Failed to scan page for media')
+            const msg = 'Failed to scan page for media'
+            if (pendingUrlsRef.current.length > 0) scheduleAutoAdvance(msg)
+            else setErrorMsg(msg)
           }
           setLoading(false)
           setLoadingPhase('')
+          busyRef.current = false
           return
         } else {
-          setErrorMsg(err)
+          if (pendingUrlsRef.current.length > 0) scheduleAutoAdvance(err)
+          else setErrorMsg(err)
         }
         setLoading(false)
         setLoadingPhase('')
+        busyRef.current = false
         return
       }
       const info = resObj?.data ?? res
       if (!info) {
-        setErrorMsg('Failed to fetch video info')
+        const msg = 'Failed to fetch video info'
+        if (pendingUrlsRef.current.length > 0) scheduleAutoAdvance(msg)
+        else setErrorMsg(msg)
         setLoading(false)
         setLoadingPhase('')
+        busyRef.current = false
         return
       }
 
@@ -131,6 +196,7 @@ export function useUrlHandler(settings: SettingsData) {
           setPendingEntries(allEntries)
           setPendingPlaylistMeta({ title: playlistTitle, url })
           setShowFormatDialog(true)
+          dialogOpenRef.current = true
         } else {
           for (let i = 0; i < allEntries.length; i++) {
             const entry = allEntries[i]
@@ -164,6 +230,7 @@ export function useUrlHandler(settings: SettingsData) {
           setPendingEntries(null)
           setPendingPlaylistMeta(null)
           setShowFormatDialog(true)
+          dialogOpenRef.current = true
         } else {
           await window.api.startDownload({
             url,
@@ -176,15 +243,32 @@ export function useUrlHandler(settings: SettingsData) {
         }
       }
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : String(err))
+      const msg = err instanceof Error ? err.message : String(err)
+      if (pendingUrlsRef.current.length > 0) scheduleAutoAdvance(msg)
+      else setErrorMsg(msg)
     } finally {
       setLoading(false)
       setLoadingPhase('')
+      busyRef.current = false
     }
-  }, [loading, settings.showFormatDialog, settings.defaultVideoQuality])
+  }, [settings.showFormatDialog, settings.defaultVideoQuality, scheduleAutoAdvance])
+
+  fetchAndShowRef.current = fetchAndShow
+
+  const handleUrl = useCallback(async (url: string, meta?: { type?: string; referer?: string; title?: string; headers?: Record<string, string> }) => {
+    if (isBusy()) {
+      updatePendingUrls((prev) => {
+        const isDuplicate = prev.some((p) => p.url === url)
+        if (isDuplicate) return prev
+        return [...prev, { url, meta }]
+      })
+      return
+    }
+    await fetchAndShow(url, meta)
+  }, [isBusy, fetchAndShow])
 
   const handlePaste = useCallback(async () => {
-    if (loading || !window.api) return
+    if (!window.api) return
     const text = await window.api.readClipboard()
     const url = extractUrlFromClipboard(text)
     if (!url) {
@@ -192,7 +276,7 @@ export function useUrlHandler(settings: SettingsData) {
       return
     }
     await handleUrl(url)
-  }, [loading, handleUrl])
+  }, [handleUrl])
 
   const handleExternalUrl = useCallback(async (rawUrl: string) => {
     let url = rawUrl
@@ -230,11 +314,13 @@ export function useUrlHandler(settings: SettingsData) {
     sniffedMedia,
     sniffedPageUrl,
     sniffedPageTitle,
+    queueCount: pendingUrls.length,
     handleUrl,
     handlePaste,
     handleExternalUrl,
     clearPending,
     clearSniffed,
+    clearQueue,
     setShowFormatDialog
   }
 }

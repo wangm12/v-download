@@ -1,3 +1,5 @@
+/* ── Watch page download button ────────────────────────────────────────── */
+
 .ytdl-btn {
   display: inline-flex;
   align-items: center;
@@ -8,14 +10,14 @@
   border: none;
   cursor: pointer;
   background: transparent;
-  color: #fff;
+  color: #030303;
   margin-left: 8px;
   transition: background 0.2s, transform 0.15s;
   vertical-align: middle;
 }
 
 .ytdl-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.1);
   transform: scale(1.1);
 }
 
@@ -23,7 +25,111 @@
   transform: scale(0.95);
 }
 
+html[dark] .ytdl-btn {
+  color: #fff;
+}
+
+html[dark] .ytdl-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
 .ytdl-btn-active {
-  color: #32D583;
-  background: rgba(50, 213, 131, 0.15);
+  color: #32D583 !important;
+  background: rgba(50, 213, 131, 0.15) !important;
+}
+
+/* ── Card download button (homepage / shorts / search) ─────────────────── */
+
+.ytdl-card-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  color: #606060;
+  padding: 0;
+  transition: background 0.15s, color 0.15s, transform 0.12s;
+}
+
+.ytdl-card-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: #030303;
+  transform: scale(1.1);
+}
+
+.ytdl-card-btn:active {
+  transform: scale(0.92);
+}
+
+html[dark] .ytdl-card-btn {
+  color: #aaa;
+}
+
+html[dark] .ytdl-card-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+/* ── Shorts detail page download button ────────────────────────────────── */
+
+.ytdl-shorts-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin: 0 !important;
+  padding-bottom: 8px;
+}
+
+.ytdl-shorts-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.05);
+  color: #030303;
+  padding: 0;
+  transition: background 0.15s, transform 0.12s;
+}
+
+.ytdl-shorts-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+  transform: scale(1.08);
+}
+
+.ytdl-shorts-btn:active {
+  transform: scale(0.92);
+}
+
+html[dark] .ytdl-shorts-btn {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+html[dark] .ytdl-shorts-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.ytdl-shorts-btn.ytdl-btn-active {
+  background: rgba(50, 213, 131, 0.3);
+}
+
+.ytdl-shorts-label {
+  font-size: 12px;
+  color: #030303;
+  text-align: center;
+  line-height: 1;
+  font-family: 'Roboto', 'Arial', sans-serif;
+}
+
+html[dark] .ytdl-shorts-label {
+  color: #fff;
 }
