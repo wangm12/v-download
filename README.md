@@ -1,11 +1,15 @@
 <p align="center">
+  <a href="README.md">English</a> | <a href="README-CN.md">中文</a>
+</p>
+
+<p align="center">
   <img src="resources/icon.png" alt="V-Download" width="128" height="128" />
 </p>
 
 <h1 align="center">V-Download</h1>
 
 <p align="center">
-  A Downie-style desktop app + Chrome extension for downloading videos from YouTube, Douyin, and any website, powered by <code>yt-dlp</code>.
+  A Downie-style desktop app + Chrome extension for downloading videos from YouTube, X/Twitter, Douyin, and any website, powered by <code>yt-dlp</code>.
 </p>
 
 <p align="center">
@@ -23,6 +27,7 @@
 - **Video overlay button** — An in-page download button appears on any detected video element (similar to AIX Downloader)
 - **Chrome extension** — Detects media streams on every page; shows a picker when multiple streams are found
 - **YouTube integration** — One-click download on YouTube pages with format selection (4K to 144p, MP3)
+- **X/Twitter integration** — Download buttons on tweets with video (action bar + video overlay); sends tweet URL to yt-dlp for full quality download
 - **Douyin integration** — Dedicated download panel with full quality options, cover images, and music extraction via React fiber inspection
 - **App-side sniffer** — For sites yt-dlp doesn't support, the app loads the page in a hidden browser and detects streams automatically
 - **Playlist & channel support** — Download entire playlists or channels with organized subfolders
@@ -58,15 +63,15 @@ brew install yt-dlp ffmpeg
 
 ### From DMG (recommended)
 
-1. Download the latest `.dmg` from [Releases](https://github.com/mingjie-yt-download-ext/releases)
+1. Download the latest `.dmg` from [Releases](https://github.com/wangm12/v-download/releases)
 2. Open the DMG and drag **V-Download** to your Applications folder
 3. Right-click → Open (first launch only, since the app is unsigned)
 
 ### Build from source
 
 ```bash
-git clone https://github.com/user/yt-download-ext.git
-cd yt-download-ext
+git clone https://github.com/wangm12/v-download.git
+cd v-download
 npm install
 npm run build:mac
 ```
@@ -88,8 +93,9 @@ The built app will be in `dist/mac-arm64/V-Download.app` and a DMG installer in 
 1. Load the `extension/` folder in Chrome via `chrome://extensions` (Developer mode → Load unpacked)
 2. The extension icon is always active on every page
 3. **YouTube pages** — Click the icon to send the URL directly to the app
-4. **Douyin pages** — A download button appears on the active video with full quality selection, cover image, and music download
-5. **Other pages** — A download overlay appears on detected video elements; click the extension icon to open a popup showing all detected media streams (HLS, MP4, WebM, FLV)
+4. **X/Twitter pages** — Download buttons appear on tweets with video (in the action bar and on the video player); click to send to yt-dlp
+5. **Douyin pages** — A download button appears on the active video with full quality selection, cover image, and music download
+6. **Other pages** — A download overlay appears on detected video elements; click the extension icon to open a popup showing all detected media streams (HLS, MP4, WebM, FLV)
 6. Cookies are synced automatically every 5 minutes for authenticated access
 
 ### Keyboard Shortcuts
@@ -192,6 +198,7 @@ extension/                      # Chrome Extension (Manifest V3)
 ├── popup.html/js/css           # Media stream picker popup
 ├── content.js/css              # YouTube download button injection
 ├── content-video-overlay.js/css # Universal video overlay for any site
+├── content-x.js/css            # X/Twitter download buttons
 ├── content-douyin.js/css       # Douyin-specific download panel
 └── content-douyin-bridge.js    # Douyin main-world script (React fiber extraction)
 ```
