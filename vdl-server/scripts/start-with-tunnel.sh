@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
+# Load .env if present (shell doesn't get dotenv automatically)
+if [ -f .env ]; then
+  set -a
+  source .env
+  set +a
+fi
+
 PORT="${PORT:-30010}"
 TUNNEL_NAME="${TUNNEL_NAME:-vdl}"
 BASE_URL="${BASE_URL:?BASE_URL must be set in .env or environment}"
