@@ -36,10 +36,75 @@ export function filenameFromUrl(url: string): string {
   return 'download'
 }
 
+/** Trailing punctuation / CJK closers often glued to copied links (e.g. Douyin share text). */
+const TRAILING_URL_JUNK = /[，。！？；：、）》」』\]\)>,.]+$/u
+
+/** v.douyin short links (single path segment); avoids grabbing junk after the code when pasted in share blobs. */
+const V_DOUYIN_SHORT = /https:\/\/v\.douyin\.com\/[a-zA-Z0-9_-]+\/?/gi
+
+function extractAllEmbeddedHttpUrls(text: string): string[] {
+  const re = /https?:\/\/[^\s<>"']+/gi
+  const out: string[] = []
+  let m: RegExpExecArray | null
+  while ((m = re.exec(text)) !== null) {
+    out.push(m[0])
+  }
+  return out
+}
+
+/** Normalize pasted URL fragments (trailing punctuation, `:6pm` glued to v.douyin path, etc.). */
+function scrubUrlCandidate(raw: string): string {
+  let s = raw.replace(TRAILING_URL_JUNK, '').trim()
+  try {
+    const u = new URL(s)
+    if (/v\.douyin\.com$/i.test(u.hostname) && /\/:[^/]+$/.test(u.pathname)) {
+      u.pathname = u.pathname.replace(/\/:[^/]+$/, '/')
+      return u.toString()
+    }
+  } catch {
+    /* keep s */
+  }
+  return s
+}
+
 export function extractUrlFromClipboard(text: string): string | null {
   const trimmed = text.trim()
+  if (!trimmed) return null
+
+  const shortHits = trimmed.match(V_DOUYIN_SHORT)
+  if (shortHits?.length) {
+    const normalized = shortHits[0].endsWith('/') ? shortHits[0] : `${shortHits[0]}/`
+    try {
+      const url = new URL(normalized)
+      if (url.protocol === 'http:' || url.protocol === 'https:') {
+        return url.toString()
+      }
+    } catch {
+      /* fall through */
+    }
+  }
+
+  const embeddedList = extractAllEmbeddedHttpUrls(trimmed)
+  const douyinFirst = [
+    ...embeddedList.filter((u) => /douyin/i.test(u)),
+    ...embeddedList.filter((u) => !/douyin/i.test(u)),
+  ]
+
+  for (const raw of douyinFirst) {
+    const candidate = scrubUrlCandidate(raw)
+    try {
+      const url = new URL(candidate)
+      if (url.protocol === 'http:' || url.protocol === 'https:') {
+        return url.toString()
+      }
+    } catch {
+      /* next */
+    }
+  }
+
   try {
-    const url = new URL(trimmed.startsWith('http') ? trimmed : `https://${trimmed}`)
+    const candidate = trimmed.startsWith('http') ? scrubUrlCandidate(trimmed) : `https://${trimmed}`
+    const url = new URL(candidate)
     if (url.protocol === 'http:' || url.protocol === 'https:') {
       return url.toString()
     }

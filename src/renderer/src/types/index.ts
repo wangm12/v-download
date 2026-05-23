@@ -66,6 +66,8 @@ export interface SettingsData {
   defaultAudioQuality: string
   sleepInterval: number
   cookiesPath?: string
+  /** yt-dlp `--cookies-from-browser` value for Douyin (chrome, brave, edge, …). */
+  cookiesFromBrowser?: string
   ytdlpPath?: string
   ffmpegPath?: string
 }

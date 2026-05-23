@@ -50,6 +50,11 @@ const api = {
     ipcRenderer.on('settings-changed', sub)
     return () => ipcRenderer.removeListener('settings-changed', sub)
   },
+  onCookiesSynced: (callback: (data: { count: number }) => void) => {
+    const sub = (_event: Electron.IpcRendererEvent, data: { count: number }) => callback(data)
+    ipcRenderer.on('cookies-synced', sub)
+    return () => ipcRenderer.removeListener('cookies-synced', sub)
+  },
   onYtdlUrl: (callback: (url: string) => void) => {
     const sub = (_event: Electron.IpcRendererEvent, url: string) => callback(url)
     ipcRenderer.on('ytdl-url', sub)
@@ -58,6 +63,7 @@ const api = {
   sniffMedia: (url: string) => ipcRenderer.invoke('sniff-media', url),
   readClipboard: () => ipcRenderer.invoke('read-clipboard'),
   installChromeExtension: () => ipcRenderer.invoke('install-chrome-extension'),
+  requestBrowserCookieSync: () => ipcRenderer.invoke('request-browser-cookie-sync'),
   platform: process.platform
 }
 

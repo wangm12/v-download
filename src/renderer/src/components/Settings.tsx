@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
-import { Folder } from 'lucide-react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { Folder, RefreshCw, Loader2, X } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { Stepper } from './Stepper'
 import type { SettingsData } from '@/types'
@@ -8,6 +8,10 @@ const VIDEO_QUALITIES = ['2160', '1080', '720', '360', '240', '144']
 const AUDIO_QUALITIES = ['320', '256', '128']
 
 export function SettingsPage() {
+  const [cookieSyncNote, setCookieSyncNote] = useState('')
+  const [cookieSyncBusy, setCookieSyncBusy] = useState(false)
+  const cookieSyncWaitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const awaitingCookiePushRef = useRef(false)
   const [settings, setSettings] = useState<SettingsData>({
     downloadDir: '',
     concurrency: 3,
@@ -16,8 +20,10 @@ export function SettingsPage() {
     defaultVideoQuality: '1080',
     defaultAudioQuality: '320',
     sleepInterval: 3,
+    cookiesPath: '',
+    cookiesFromBrowser: 'chrome',
     ytdlpPath: '',
-    ffmpegPath: ''
+    ffmpegPath: '',
   })
 
   useEffect(() => {
@@ -28,10 +34,86 @@ export function SettingsPage() {
     })
   }, [])
 
+  useEffect(() => {
+    if (!window.api?.onSettingsChanged) return
+    const unsub = window.api.onSettingsChanged(() => {
+      window.api?.getSettings().then((res) => {
+        const data = (res as { data?: SettingsData })?.data ?? res
+        if (data) setSettings((prev) => ({ ...prev, ...data }))
+      })
+    })
+    return unsub
+  }, [])
+
+  useEffect(() => {
+    if (!window.api?.onCookiesSynced) return
+    const unsub = window.api.onCookiesSynced((data) => {
+      if (!awaitingCookiePushRef.current) {
+        window.api?.getSettings().then((res) => {
+          const d = (res as { data?: SettingsData })?.data ?? res
+          if (d) setSettings((prev) => ({ ...prev, ...d }))
+        })
+        return
+      }
+      awaitingCookiePushRef.current = false
+      if (cookieSyncWaitTimerRef.current) {
+        window.clearTimeout(cookieSyncWaitTimerRef.current)
+        cookieSyncWaitTimerRef.current = null
+      }
+      setCookieSyncBusy(false)
+      setCookieSyncNote(`Cookies saved (${data.count} entries). You can retry your download in the main window.`)
+      window.setTimeout(() => setCookieSyncNote(''), 6000)
+      window.api?.getSettings().then((res) => {
+        const d = (res as { data?: SettingsData })?.data ?? res
+        if (d) setSettings((prev) => ({ ...prev, ...d }))
+      })
+    })
+    return unsub
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (cookieSyncWaitTimerRef.current) window.clearTimeout(cookieSyncWaitTimerRef.current)
+    }
+  }, [])
+
   const onUpdate = useCallback(async (key: string, value: unknown) => {
     setSettings((prev) => ({ ...prev, [key]: value }))
     if (window.api) await window.api.updateSettings(key, value)
   }, [])
+
+  const handleForceCookieSync = async () => {
+    if (!window.api?.requestBrowserCookieSync || cookieSyncBusy) return
+    if (cookieSyncWaitTimerRef.current) {
+      window.clearTimeout(cookieSyncWaitTimerRef.current)
+      cookieSyncWaitTimerRef.current = null
+    }
+    awaitingCookiePushRef.current = true
+    setCookieSyncBusy(true)
+    setCookieSyncNote('Opening your browser — you will see progress here when cookies arrive.')
+
+    try {
+      const res = await window.api.requestBrowserCookieSync()
+      setCookieSyncNote(
+        res.openedBrowser
+          ? 'Waiting for Chrome: use the new tab and wait for “Saved”. If it opened in Safari or another browser, paste http://127.0.0.1:18765/cookie-sync-landing into Chrome. Background sync can take up to ~2 minutes — keep this window open.'
+          : res.message ||
+            'Open http://127.0.0.1:18765/cookie-sync-landing in Chrome with the V-Download extension.',
+      )
+      cookieSyncWaitTimerRef.current = window.setTimeout(() => {
+        cookieSyncWaitTimerRef.current = null
+        awaitingCookiePushRef.current = false
+        setCookieSyncBusy(false)
+        setCookieSyncNote(
+          'Still waiting. Open the sync URL in Chrome with the extension (not Safari). Visit the site you need, then click Sync cookies again.',
+        )
+      }, 125000)
+    } catch (err) {
+      awaitingCookiePushRef.current = false
+      setCookieSyncBusy(false)
+      setCookieSyncNote(err instanceof Error ? err.message : String(err))
+    }
+  }
 
   const handleBrowse = async () => {
     if (!window.api?.selectDownloadFolder) return
@@ -103,11 +185,43 @@ export function SettingsPage() {
               onChange={(v) => onUpdate('playlistSubfolder', v)}
             />
 
+            {(cookieSyncBusy || cookieSyncNote) && (
+              <div
+                className={cn(
+                  'rounded-lg border px-3 py-3 flex gap-3 items-start',
+                  cookieSyncBusy
+                    ? 'border-accent-indigo/40 bg-accent-indigo/10'
+                    : 'border-border bg-surface',
+                )}
+                role="status"
+              >
+                {cookieSyncBusy && (
+                  <Loader2
+                    className="w-5 h-5 shrink-0 mt-0.5 animate-spin text-accent-indigo"
+                    aria-hidden
+                  />
+                )}
+                <p className="text-sm text-foreground leading-relaxed flex-1 min-w-0">{cookieSyncNote}</p>
+                {!cookieSyncBusy && cookieSyncNote && (
+                  <button
+                    type="button"
+                    onClick={() => setCookieSyncNote('')}
+                    className="shrink-0 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-elevated transition-colors"
+                    aria-label="Dismiss message"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            )}
+
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-foreground">Chrome Extension</p>
                 <p className="text-xs text-muted-foreground">
                   {settings.cookiesPath ? 'Connected — cookies synced' : 'Detect videos & sync cookies'}
+                  {' '}
+                  Douyin uses your real browser profile (see “Browser for Douyin” below), not only this file.
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -117,12 +231,62 @@ export function SettingsPage() {
                   </span>
                 )}
                 <button
+                  type="button"
+                  onClick={handleForceCookieSync}
+                  disabled={cookieSyncBusy}
+                  className={cn(
+                    'min-w-[7.75rem] justify-center px-3 py-1.5 rounded-lg border text-xs font-medium inline-flex items-center gap-2 transition-colors',
+                    cookieSyncBusy
+                      ? 'border-accent-indigo/40 bg-accent-indigo/10 text-accent-indigo cursor-wait ring-1 ring-inset ring-accent-indigo/25'
+                      : 'bg-elevated border-border text-foreground hover:bg-surface',
+                  )}
+                  title="Push fresh cookies from Chrome into V-Download"
+                  aria-busy={cookieSyncBusy}
+                >
+                  {cookieSyncBusy ? (
+                    <Loader2 className="w-3.5 h-3.5 shrink-0 animate-spin" aria-hidden />
+                  ) : (
+                    <RefreshCw className="w-3.5 h-3.5 shrink-0" aria-hidden />
+                  )}
+                  {cookieSyncBusy ? 'Syncing…' : 'Sync cookies'}
+                </button>
+                <button
+                  type="button"
                   onClick={() => window.api?.installChromeExtension?.()}
-                  className="px-3 py-1.5 rounded-lg bg-elevated border border-border text-xs font-medium text-foreground hover:bg-surface transition-colors"
+                  disabled={cookieSyncBusy}
+                  className={cn(
+                    'px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors',
+                    cookieSyncBusy
+                      ? 'border-border/50 text-muted-foreground/50 cursor-not-allowed'
+                      : 'bg-elevated border-border text-foreground hover:bg-surface',
+                  )}
+                  title={cookieSyncBusy ? 'Wait until cookie sync finishes' : undefined}
                 >
                   Install Guide
                 </button>
               </div>
+            </div>
+
+            <div>
+              <label className="block text-xs text-muted-foreground mb-2">Browser for Douyin (yt-dlp)</label>
+              <select
+                value={settings.cookiesFromBrowser ?? 'chrome'}
+                onChange={(e) => onUpdate('cookiesFromBrowser', e.target.value)}
+                className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-white/30"
+              >
+                <option value="chrome">Google Chrome</option>
+                <option value="chromium">Chromium</option>
+                <option value="brave">Brave</option>
+                <option value="edge">Microsoft Edge</option>
+                <option value="opera">Opera</option>
+                <option value="vivaldi">Vivaldi</option>
+                <option value="firefox">Firefox</option>
+                <option value="safari">Safari (macOS)</option>
+              </select>
+              <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                Open Douyin in this browser at least once so cookies exist. Update yt-dlp (<code className="text-foreground/90">brew upgrade yt-dlp</code> or{' '}
+                <code className="text-foreground/90">yt-dlp -U</code>) if errors persist.
+              </p>
             </div>
 
             <div>
@@ -202,10 +366,18 @@ export function SettingsPage() {
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
         <button
+          type="button"
           onClick={handleDone}
-          className="w-full py-2.5 rounded-lg bg-accent-indigo text-background font-medium hover:bg-accent-indigo-dark transition-colors"
+          disabled={cookieSyncBusy}
+          title={cookieSyncBusy ? 'Wait until cookie sync finishes' : undefined}
+          className={cn(
+            'w-full py-2.5 rounded-lg font-medium transition-colors',
+            cookieSyncBusy
+              ? 'bg-muted-foreground/25 text-muted-foreground cursor-not-allowed'
+              : 'bg-accent-indigo text-background hover:bg-accent-indigo-dark',
+          )}
         >
-          Done
+          {cookieSyncBusy ? 'Syncing cookies…' : 'Done'}
         </button>
       </footer>
     </div>

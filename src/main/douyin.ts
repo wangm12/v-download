@@ -2,8 +2,8 @@ import { createWriteStream, existsSync, mkdirSync, readFileSync } from 'fs'
 import { join, resolve } from 'path'
 import { pipeline } from 'stream/promises'
 import { Readable } from 'stream'
-import { sanitizeDownloadBasename } from './sanitizeFilename.js'
-import { config } from './config.js'
+import { sanitizeDownloadBasename } from './sanitizeDownloadBasename'
+import { fetchDouyinHtmlWithChromium, isDouyinAntiBotShell } from './douyinBrowserFetch'
 
 const MOBILE_UA =
   'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1'
@@ -20,14 +20,14 @@ export interface DouyinVideoInfo {
   cover: string
 }
 
-/** Last failure reason from `getDouyinInfo` (for queue / bot messages). */
+/** Set when getDouyinInfo returns null — for clearer UI / task errors */
 let lastGetDouyinInfoError = ''
 
 export function getLastDouyinInfoError(): string {
   return lastGetDouyinInfoError
 }
 
-function isDouyinUrl(url: string): boolean {
+export function isDouyinUrl(url: string): boolean {
   return /douyin\.com/i.test(url)
 }
 
@@ -70,7 +70,11 @@ function buildCookieHeaderFromNetscapeFile(cookiePath: string): string {
 
 type FetchUaMode = 'mobile' | 'desktop'
 
-async function fetchDouyinHtml(pageUrl: string, uaMode: FetchUaMode): Promise<string> {
+async function fetchDouyinHtml(
+  pageUrl: string,
+  cookiesFilePath: string | undefined,
+  uaMode: FetchUaMode
+): Promise<string> {
   const ua = uaMode === 'desktop' ? DESKTOP_UA : MOBILE_UA
   const headers: Record<string, string> = {
     'User-Agent': ua,
@@ -78,9 +82,11 @@ async function fetchDouyinHtml(pageUrl: string, uaMode: FetchUaMode): Promise<st
     'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
     Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
   }
-  const cookiePath = resolve(config.cookiesFilePath)
-  const cookieHeader = buildCookieHeaderFromNetscapeFile(cookiePath)
-  if (cookieHeader) headers.Cookie = cookieHeader
+  if (cookiesFilePath && cookiesFilePath.trim()) {
+    const abs = resolve(cookiesFilePath.trim())
+    const cookieHeader = buildCookieHeaderFromNetscapeFile(abs)
+    if (cookieHeader) headers.Cookie = cookieHeader
+  }
 
   const res = await fetch(pageUrl, { headers, redirect: 'follow' })
   if (!res.ok) throw new Error(`Page fetch failed: ${res.status}`)
@@ -286,8 +292,8 @@ function tryLoosePlayAddrInHtml(html: string, videoId: string): DouyinVideoInfo 
     ]
     for (const re of patterns) {
       const um = chunk.match(re)
-      const vid = um?.[1]
-      if (vid && isLikelyAwemeVideoId(vid)) return vid
+      const id = um?.[1]
+      if (id && isLikelyAwemeVideoId(id)) return id
     }
     return null
   }
@@ -387,7 +393,7 @@ function parseDouyinPageHtml(html: string, videoId: string): DouyinVideoInfo {
   throw new Error('No video item in page data (layout not recognized or empty item_list)')
 }
 
-export async function getDouyinInfo(url: string): Promise<DouyinVideoInfo | null> {
+export async function getDouyinInfo(url: string, cookiesFilePath?: string): Promise<DouyinVideoInfo | null> {
   if (!isDouyinUrl(url)) return null
 
   lastGetDouyinInfoError = ''
@@ -405,7 +411,7 @@ export async function getDouyinInfo(url: string): Promise<DouyinVideoInfo | null
     }
     console.log(`[douyin] Video ID: ${videoId}`)
 
-    const resolvedNoHash = resolved.split('#')[0].trim()
+    /** Mobile share often returns parseable HTML without Chromium; `www.douyin.com/video` frequently serves an acrawler shell from non-CN IPs that Electron rarely hydrates before timeout. */
     const canonical = `https://www.douyin.com/video/${videoId}`
     const mShare = `https://m.douyin.com/share/video/${videoId}`
     const pageUrls: string[] = [
@@ -414,6 +420,7 @@ export async function getDouyinInfo(url: string): Promise<DouyinVideoInfo | null
       `https://www.iesdouyin.com/share/video/${videoId}`,
       `https://m.iesdouyin.com/share/video/${videoId}`,
     ]
+    const resolvedNoHash = resolved.split('#')[0].trim()
     if (
       /^https?:\/\//i.test(resolvedNoHash) &&
       /douyin/i.test(resolvedNoHash) &&
@@ -424,72 +431,105 @@ export async function getDouyinInfo(url: string): Promise<DouyinVideoInfo | null
 
     let lastErr = ''
     for (const pageUrl of pageUrls) {
+      let chromiumReturnedForThisUrl = false
       for (const uaMode of ['mobile', 'desktop'] as FetchUaMode[]) {
         try {
-          const html = await fetchDouyinHtml(pageUrl, uaMode)
+          let html = await fetchDouyinHtml(pageUrl, cookiesFilePath, uaMode)
+          if (isDouyinAntiBotShell(html)) {
+            if (/^https:\/\/www\.douyin\.com\/video\//i.test(pageUrl)) {
+              lastErr =
+                'www.douyin.com/video returned anti-bot shell (skipped Electron hydrate; trying other hosts)'
+              console.warn(
+                `[douyin] Anti-bot shell from Node fetch (${html.length} bytes) on ${pageUrl}; skipping Chromium (often times out here)…`
+              )
+              break
+            }
+            if (chromiumReturnedForThisUrl) {
+              throw new Error('Anti-bot shell: Chromium already fetched HTML for this URL')
+            }
+            console.warn(
+              `[douyin] Anti-bot shell from Node fetch (${html.length} bytes); hydrating ${pageUrl} in Chromium…`
+            )
+            html = await fetchDouyinHtmlWithChromium(pageUrl, {
+              cookiesFilePath,
+              preferredUa: uaMode === 'mobile' ? 'mobile' : 'desktop',
+            })
+            chromiumReturnedForThisUrl = true
+          }
           console.log(`[douyin] Fetched ${pageUrl} (${uaMode}, ${html.length} bytes)`)
-          const info = parseDouyinPageHtml(html, videoId)
+          let info: DouyinVideoInfo
+          try {
+            info = parseDouyinPageHtml(html, videoId)
+          } catch (parseErr) {
+            const shareLike = /iesdouyin\.com|\/share\/video\//i.test(pageUrl)
+            const onMShare = /\/\/m\.douyin\.com\/share\/video\//i.test(pageUrl)
+            const eligible = !!cookiesFilePath?.trim() && shareLike && (pageUrl !== canonical || onMShare)
+            if (eligible) {
+              const retryUrl = onMShare ? mShare : canonical
+              const retryUa = onMShare && uaMode === 'mobile' ? 'desktop' : uaMode === 'mobile' ? 'mobile' : 'desktop'
+              console.warn(
+                `[douyin] Parse failed on ${pageUrl} (${uaMode}): ${parseErr instanceof Error ? parseErr.message : String(parseErr)}; Chromium on ${retryUrl} (${retryUa})…`
+              )
+              const htmlRetry = await fetchDouyinHtmlWithChromium(retryUrl, {
+                cookiesFilePath,
+                timeoutMs: 88_000,
+                preferredUa: retryUa,
+              })
+              info = parseDouyinPageHtml(htmlRetry, videoId)
+            } else {
+              throw parseErr
+            }
+          }
           console.log(`[douyin] Parsed: title="${info.title}", author="${info.author}", duration=${info.duration}s`)
           lastGetDouyinInfoError = ''
           return info
         } catch (e) {
           lastErr = e instanceof Error ? e.message : String(e)
-          lastGetDouyinInfoError = lastErr
           console.warn(`[douyin] ${pageUrl} (${uaMode}) failed:`, lastErr)
         }
       }
     }
 
-    if (config.douyinPlaywright) {
-      const cookiePath = resolve(config.cookiesFilePath)
-      if (!existsSync(cookiePath)) {
-        console.warn('[douyin] Cookie file not found; Playwright runs without Netscape jar:', cookiePath)
-      }
+    try {
+      let html: string
       try {
-        console.warn(`[douyin] Fetch loop exhausted; Playwright hydrate on ${mShare}…`)
-        const { fetchDouyinHtmlWithPlaywright } = await import('./douyinPlaywright.js')
-        let html: string
+        console.warn('[douyin] Plain fetches failed; Chromium on mobile share URL…')
+        html = await fetchDouyinHtmlWithChromium(mShare, {
+          cookiesFilePath,
+          timeoutMs: 88_000,
+          preferredUa: 'mobile',
+        })
+      } catch (shareChErr) {
+        console.warn('[douyin] Mobile share Chromium failed; trying canonical (mobile UA)…', shareChErr)
         try {
-          html = await fetchDouyinHtmlWithPlaywright(mShare, { cookiesFilePath: cookiePath })
-        } catch (pw1) {
-          console.warn('[douyin] Playwright m-share load failed; trying canonical…', pw1)
-          html = await fetchDouyinHtmlWithPlaywright(canonical, { cookiesFilePath: cookiePath })
+          html = await fetchDouyinHtmlWithChromium(canonical, {
+            cookiesFilePath,
+            timeoutMs: 88_000,
+            preferredUa: 'mobile',
+          })
+        } catch (firstCh) {
+          console.warn('[douyin] Canonical Chromium (mobile UA) failed, retrying with desktop UA…', firstCh)
+          html = await fetchDouyinHtmlWithChromium(canonical, {
+            cookiesFilePath,
+            timeoutMs: 88_000,
+            preferredUa: 'desktop',
+          })
         }
-        let info: DouyinVideoInfo
-        try {
-          info = parseDouyinPageHtml(html, videoId)
-        } catch (parseErr) {
-          console.warn(
-            '[douyin] Playwright m-share HTML did not parse; hydrating canonical…',
-            parseErr instanceof Error ? parseErr.message : parseErr
-          )
-          html = await fetchDouyinHtmlWithPlaywright(canonical, { cookiesFilePath: cookiePath })
-          info = parseDouyinPageHtml(html, videoId)
-        }
-        console.log(`[douyin] Parsed (Playwright): title="${info.title}", author="${info.author}", duration=${info.duration}s`)
-        lastGetDouyinInfoError = ''
-        return info
-      } catch (e) {
-        lastErr = e instanceof Error ? e.message : String(e)
-        lastGetDouyinInfoError = lastErr
-        console.warn('[douyin] Playwright hydrate failed:', lastErr)
       }
-    } else {
-      console.warn(
-        '[douyin] Playwright disabled (DOUYIN_PLAYWRIGHT=0). Hard Douyin links often need it: install chromium (`npx playwright install chromium`) and remove DOUYIN_PLAYWRIGHT=0 or unset it.'
-      )
+      const info = parseDouyinPageHtml(html, videoId)
+      console.log(`[douyin] Parsed (Chromium): title="${info.title}", author="${info.author}", duration=${info.duration}s`)
+      lastGetDouyinInfoError = ''
+      return info
+    } catch (e) {
+      lastErr = e instanceof Error ? e.message : String(e)
+      console.warn('[douyin] Chromium fallback failed:', lastErr)
     }
 
-    lastGetDouyinInfoError =
-      lastErr ||
-      'All Douyin page fetches failed or HTML was not parseable'
-    if (!config.douyinPlaywright) {
-      lastGetDouyinInfoError += ` (Playwright off: remove DOUYIN_PLAYWRIGHT=0 or run npx playwright install chromium when re-enabled)`
-    }
+    lastGetDouyinInfoError = lastErr || 'All Douyin page sources failed'
     return null
   } catch (err) {
     lastGetDouyinInfoError = err instanceof Error ? err.message : String(err)
-    console.warn('[douyin] Fallback failed:', lastGetDouyinInfoError)
+    console.warn('[douyin] getDouyinInfo failed:', lastGetDouyinInfoError)
     return null
   }
 }

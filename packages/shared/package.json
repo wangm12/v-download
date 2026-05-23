@@ -1,0 +1,24 @@
+{
+  "name": "@v-download/shared",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Shared constants and cookie helpers for V-Download (Electron) and vdl-server",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepack": "npm run build"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}

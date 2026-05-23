@@ -15,6 +15,15 @@ function optionalInt(key: string, fallback: number): number {
   return val ? parseInt(val, 10) : fallback
 }
 
+/** Default on: hard Douyin links need headless Chromium after plain `fetch`. Set `DOUYIN_PLAYWRIGHT=0` to disable (e.g. minimal Docker). */
+function envDouyinPlaywrightEnabled(): boolean {
+  const raw = process.env.DOUYIN_PLAYWRIGHT
+  if (raw === undefined) return true
+  const v = raw.trim().toLowerCase()
+  if (['0', 'false', 'no', 'off'].includes(v)) return false
+  return true
+}
+
 export const config = {
   port: optionalInt('PORT', 3000),
   host: optional('HOST', '0.0.0.0'),
@@ -29,6 +38,9 @@ export const config = {
 
   cookieMode: optional('COOKIE_MODE', 'browser') as 'browser' | 'file',
   cookiesFilePath: optional('COOKIES_FILE_PATH', './cookies.txt'),
+
+  /** After plain `fetch` fails on Douyin, hydrate with Playwright (default on; set `DOUYIN_PLAYWRIGHT=0` to skip). */
+  douyinPlaywright: envDouyinPlaywrightEnabled(),
 
   maxFileSizeMb: optionalInt('MAX_FILE_SIZE_MB', 500),
 

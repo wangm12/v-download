@@ -15,6 +15,49 @@ interface QueuedUrl {
   meta?: { type?: string; referer?: string; title?: string; headers?: Record<string, string> }
 }
 
+/** Page sniff looks for raw .m3u8/.mp4 — useless on major video sites yt-dlp handles. */
+function shouldSniffAfterUnsupportedUrl(url: string, err: string): boolean {
+  if (!/unsupported url/i.test(err)) return false
+  const bundle = `${url}\n${err}`.toLowerCase()
+  // Block by URL and by error text (yt-dlp often repeats the target URL in the message).
+  if (
+    /douyin|iesdouyin|tiktok|youtu\.be|youtube|music\.youtube|bilibili|b23\.tv|instagram|twitter\.com|:\/\/x\.com\/|facebook\.com|fb\.watch|reddit\.com|vimeo\.com|twitch\.tv|xiaohongshu\.com|xhslink\.com|snapchat\.com|dailymotion|rumble\.com/i.test(
+      bundle
+    )
+  ) {
+    return false
+  }
+  try {
+    const host = new URL(url).hostname.toLowerCase()
+    const blockedHosts = [
+      'douyin.com',
+      'iesdouyin.com',
+      'tiktok.com',
+      'youtube.com',
+      'youtu.be',
+      'music.youtube.com',
+      'bilibili.com',
+      'b23.tv',
+      'instagram.com',
+      'twitter.com',
+      'x.com',
+      'facebook.com',
+      'fb.watch',
+      'reddit.com',
+      'vimeo.com',
+      'twitch.tv',
+      'xiaohongshu.com',
+      'xhslink.com',
+    ]
+    for (const suffix of blockedHosts) {
+      if (host === suffix || host.endsWith(`.${suffix}`)) return false
+    }
+  } catch {
+    return false
+  }
+  return true
+}
+
 export function useUrlHandler(settings: SettingsData) {
   const [loading, setLoading] = useState(false)
   const [loadingPhase, setLoadingPhase] = useState<LoadingPhase>('')
@@ -121,7 +164,8 @@ export function useUrlHandler(settings: SettingsData) {
       const resObj = res as { data?: unknown; error?: string }
       if (resObj?.error) {
         const err = resObj.error
-        if (err.includes('Unsupported URL')) {
+        const trySniff = shouldSniffAfterUnsupportedUrl(url, err)
+        if (trySniff) {
           setLoadingPhase('sniffing')
           try {
             const sniffRes = await (window.api as { sniffMedia: (url: string) => Promise<{ data?: { media: DetectedMedia[]; pageTitle: string }; error?: string }> }).sniffMedia(url)
@@ -132,7 +176,8 @@ export function useUrlHandler(settings: SettingsData) {
               setSniffedPageTitle(sniffData.pageTitle || '')
               sniffOpenRef.current = true
             } else {
-              const msg = 'No media streams found on this page'
+              const tail = err.length > 220 ? `${err.slice(0, 220)}…` : err
+              const msg = `No direct media URLs found in the page load. yt-dlp said: ${tail}`
               if (pendingUrlsRef.current.length > 0) scheduleAutoAdvance(msg)
               else setErrorMsg(msg)
             }
@@ -272,7 +317,7 @@ export function useUrlHandler(settings: SettingsData) {
     const text = await window.api.readClipboard()
     const url = extractUrlFromClipboard(text)
     if (!url) {
-      if (text.trim()) setErrorMsg('Not a valid URL (paste an HTTP link)')
+      if (text.trim()) setErrorMsg('No http(s) link found in clipboard')
       return
     }
     await handleUrl(url)

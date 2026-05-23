@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron'
 import * as downloadManager from '../downloadManager'
 import * as ytdlp from '../ytdlp'
+import { getDouyinInfo, getLastDouyinInfoError } from '../douyin'
 import * as settings from '../settings'
 import { sniffMedia } from '../mediaSniffer'
 
@@ -12,8 +13,35 @@ export function registerDownloadHandlers(): void {
       }
       const cookiesPath = settings.getCookiesPath()
       const ytdlpPath = settings.get('ytdlpPath')
-      const info = await ytdlp.getVideoInfo(url, cookiesPath || undefined, ytdlpPath)
-      return { data: info }
+      try {
+        const info = await ytdlp.getVideoInfo(url, cookiesPath || undefined, ytdlpPath)
+        return { data: info }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        if (/douyin\.com/i.test(url)) {
+          const douyin = await getDouyinInfo(url, cookiesPath || undefined)
+          if (douyin) {
+            return {
+              data: {
+                id: douyin.id,
+                title: douyin.title,
+                thumbnail: douyin.cover,
+                duration: douyin.duration,
+                channel: douyin.author,
+                view_count: 0,
+                formats: [],
+                webpage_url: url,
+                _type: 'video'
+              }
+            }
+          }
+          const hint = getLastDouyinInfoError()
+          if (hint) {
+            return { error: `${msg} | ${hint}` }
+          }
+        }
+        return { error: msg }
+      }
     } catch (err) {
       return { error: err instanceof Error ? err.message : String(err) }
     }

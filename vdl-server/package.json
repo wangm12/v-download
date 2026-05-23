@@ -4,22 +4,26 @@
   "description": "Video download Telegram bot — downloads via yt-dlp, sends directly in chat",
   "type": "module",
   "scripts": {
+    "postinstall": "npm install --prefix ../packages/shared && npm run build --prefix ../packages/shared",
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "clean": "rm -rf tmp/serve/* tmp/dl/* && echo 'Cleaned all temp files'",
-    "server": "bash scripts/start-with-tunnel.sh"
+    "server": "bash scripts/start-with-tunnel.sh",
+    "test:douyin": "tsx scripts/test-douyin-urls.ts"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
+    "@v-download/shared": "file:../packages/shared",
     "@fastify/static": "^9.1.0",
     "better-sqlite3": "^12.8.0",
     "dotenv": "^17.4.1",
     "fastify": "^5.8.4",
     "grammy": "^1.42.0",
-    "nanoid": "^5.1.7"
+    "nanoid": "^5.1.7",
+    "playwright": "^1.51.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",

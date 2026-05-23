@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
+import { Loader2, CheckCircle2, Info, X } from 'lucide-react'
 import { TitleBar } from '@/components/TitleBar'
 import { BottomBar } from '@/components/BottomBar'
 import { DownloadItem } from '@/components/DownloadItem'
@@ -18,6 +19,7 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { groupDownloadsByPlaylist } from '@/utils/downloads'
 import { parseSpeedToBytes, formatSpeed } from '@/utils/format'
 import { useThrottledValue } from '@/hooks/useThrottledValue'
+import { cn } from '@/lib/cn'
 import type { Download, Playlist } from '@/types'
 
 export default function App() {
@@ -39,6 +41,14 @@ export default function App() {
     </ErrorBoundary>
   )
 }
+
+type CookieSyncBanner =
+  | null
+  | {
+      kind: 'progress' | 'wait' | 'ok' | 'warn'
+      title: string
+      detail?: string
+    }
 
 function MainApp() {
   const { downloads, removeDownload, updateDownload, refreshDownloads } = useDownloads()
@@ -64,6 +74,120 @@ function MainApp() {
   } = useUrlHandler(settings)
 
   const [showClearDialog, setShowClearDialog] = useState(false)
+  const [cookieSyncBanner, setCookieSyncBanner] = useState<CookieSyncBanner>(null)
+  const cookieSyncWaitRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const cookieSyncDismissRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const cookieSyncSessionRef = useRef(false)
+  const cookieSyncInFlightRef = useRef(false)
+
+  const clearCookieSyncTimers = useCallback(() => {
+    if (cookieSyncWaitRef.current) {
+      window.clearTimeout(cookieSyncWaitRef.current)
+      cookieSyncWaitRef.current = null
+    }
+    if (cookieSyncDismissRef.current) {
+      window.clearTimeout(cookieSyncDismissRef.current)
+      cookieSyncDismissRef.current = null
+    }
+  }, [])
+
+  const dismissCookieSyncBanner = useCallback(() => {
+    cookieSyncSessionRef.current = false
+    cookieSyncInFlightRef.current = false
+    clearCookieSyncTimers()
+    setCookieSyncBanner(null)
+  }, [clearCookieSyncTimers])
+
+  const scheduleBannerDismiss = useCallback(
+    (ms: number) => {
+      if (cookieSyncDismissRef.current) window.clearTimeout(cookieSyncDismissRef.current)
+      cookieSyncDismissRef.current = window.setTimeout(() => {
+        setCookieSyncBanner(null)
+        cookieSyncDismissRef.current = null
+      }, ms)
+    },
+    [],
+  )
+
+  useEffect(() => {
+    return () => clearCookieSyncTimers()
+  }, [clearCookieSyncTimers])
+
+  useEffect(() => {
+    if (!window.api?.onCookiesSynced) return
+    const unsub = window.api.onCookiesSynced((data) => {
+      loadSettings()
+      if (!cookieSyncSessionRef.current) return
+      cookieSyncSessionRef.current = false
+      cookieSyncInFlightRef.current = false
+      clearCookieSyncTimers()
+      setCookieSyncBanner({
+        kind: 'ok',
+        title: 'Cookies saved',
+        detail: `Chrome sent ${data.count} cookie entries. You can retry your download now.`,
+      })
+      scheduleBannerDismiss(6000)
+    })
+    return unsub
+  }, [loadSettings, clearCookieSyncTimers, scheduleBannerDismiss])
+
+  const handleBrowserCookieSync = useCallback(async () => {
+    if (!window.api?.requestBrowserCookieSync || cookieSyncInFlightRef.current) return
+    cookieSyncInFlightRef.current = true
+    clearCookieSyncTimers()
+    cookieSyncSessionRef.current = true
+    setCookieSyncBanner({
+      kind: 'progress',
+      title: 'Syncing cookies…',
+      detail: 'Opening your browser and contacting the V-Download extension.',
+    })
+
+    try {
+      const res = await window.api.requestBrowserCookieSync()
+      if (!cookieSyncSessionRef.current) {
+        cookieSyncInFlightRef.current = false
+        return
+      }
+      setCookieSyncBanner({
+        kind: 'wait',
+        title: 'Waiting for Chrome',
+        detail: res.openedBrowser
+          ? 'Switch to the new tab — it should show “Saved” when finished. If the tab opened in a browser that is not Chrome, copy http://127.0.0.1:18765/cookie-sync-landing into Chrome. Keep V-Download running (we wait up to ~2 min for the extension’s background sync).'
+          : res.message ||
+            'Open http://127.0.0.1:18765/cookie-sync-landing in Chrome with the V-Download extension, or leave Chrome open — background sync can take up to about 2 minutes.',
+      })
+      cookieSyncWaitRef.current = window.setTimeout(() => {
+        cookieSyncWaitRef.current = null
+        if (!cookieSyncSessionRef.current) return
+        cookieSyncSessionRef.current = false
+        cookieSyncInFlightRef.current = false
+        setCookieSyncBanner({
+          kind: 'warn',
+          title: 'Still no cookies from Chrome',
+          detail:
+            'Open http://127.0.0.1:18765/cookie-sync-landing in Chrome (with the V-Download extension). If your default browser is not Chrome, the first tab may be the wrong app. Then browse the site you need (e.g. Douyin) and click Sync cookies again.',
+        })
+      }, 125000)
+    } catch (err) {
+      cookieSyncSessionRef.current = false
+      cookieSyncInFlightRef.current = false
+      clearCookieSyncTimers()
+      setCookieSyncBanner({
+        kind: 'warn',
+        title: 'Could not start sync',
+        detail: err instanceof Error ? err.message : String(err),
+      })
+    }
+  }, [clearCookieSyncTimers])
+
+  const cookieSyncBusy =
+    cookieSyncBanner?.kind === 'progress' || cookieSyncBanner?.kind === 'wait'
+  const syncCookiesPhase =
+    cookieSyncBanner?.kind === 'progress'
+      ? ('opening' as const)
+      : cookieSyncBanner?.kind === 'wait'
+        ? ('waiting' as const)
+        : null
 
   useKeyboardShortcuts({ onPaste: handlePaste })
 
@@ -185,6 +309,47 @@ function MainApp() {
       <div className="h-screen flex flex-col bg-background">
         <TitleBar />
 
+        {cookieSyncBanner && (
+          <div
+            className={cn(
+              'flex-shrink-0 flex items-start gap-3 px-4 py-3 border-b',
+              cookieSyncBanner.kind === 'ok' && 'bg-accent-green/12 border-accent-green/30',
+              (cookieSyncBanner.kind === 'progress' || cookieSyncBanner.kind === 'wait') &&
+                'bg-accent-indigo/12 border-accent-indigo/35',
+              cookieSyncBanner.kind === 'warn' && 'bg-accent-amber/10 border-accent-amber/25',
+            )}
+            style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+            role="status"
+          >
+            {(cookieSyncBanner.kind === 'progress' || cookieSyncBanner.kind === 'wait') && (
+              <Loader2
+                className="w-5 h-5 shrink-0 mt-0.5 animate-spin text-accent-indigo"
+                aria-hidden
+              />
+            )}
+            {cookieSyncBanner.kind === 'ok' && (
+              <CheckCircle2 className="w-5 h-5 shrink-0 text-accent-green" aria-hidden />
+            )}
+            {cookieSyncBanner.kind === 'warn' && (
+              <Info className="w-5 h-5 shrink-0 text-accent-amber" aria-hidden />
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground">{cookieSyncBanner.title}</p>
+              {cookieSyncBanner.detail && (
+                <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{cookieSyncBanner.detail}</p>
+              )}
+            </div>
+            <button
+              type="button"
+              className="shrink-0 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-surface/80 transition-colors"
+              onClick={dismissCookieSyncBanner}
+              aria-label="Dismiss cookie sync message"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         <main className="flex-1 overflow-y-auto min-h-0 relative">
           {loading && (
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
@@ -231,6 +396,9 @@ function MainApp() {
           hasDownloads={downloads.length > 0}
           onResumeAll={handleResumeAll}
           onPauseAll={handlePauseAll}
+          onSyncCookies={handleBrowserCookieSync}
+          syncCookiesBusy={cookieSyncBusy}
+          syncCookiesPhase={syncCookiesPhase}
           onSettings={() => window.api?.openSettings()}
           onClear={() => setShowClearDialog(true)}
         />

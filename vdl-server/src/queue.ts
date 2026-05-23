@@ -6,7 +6,7 @@ import { config } from './config.js'
 import * as db from './db.js'
 import * as ytdlp from './ytdlp.js'
 import { needsCompression, canCompressWithDecentQuality, compressToSize } from './compress.js'
-import { getDouyinInfo, downloadDouyinVideo } from './douyin.js'
+import { getDouyinInfo, getLastDouyinInfoError, downloadDouyinVideo } from './douyin.js'
 
 const MAX_CONCURRENT = 3
 const activeDownloads = new Map<string, { cancel: () => void }>()
@@ -154,7 +154,14 @@ async function runTask(task: db.TaskRow): Promise<void> {
         onProgressCb(task.id, { percent: 0, speed: '', eta: '', phase: 'resolving' }, title)
 
         const douyinInfo = await getDouyinInfo(task.url)
-        if (!douyinInfo) throw new Error('Douyin fallback failed: could not extract video info from mobile page')
+        if (!douyinInfo) {
+          const hint = getLastDouyinInfoError()
+          throw new Error(
+            hint
+              ? `Douyin fallback failed: ${hint}`
+              : 'Douyin fallback failed: no video metadata (see vdl-server README Douyin troubleshooting; refresh cookies and yt-dlp).'
+          )
+        }
 
         title = douyinInfo.title || title
         db.updateTask(task.id, { title })

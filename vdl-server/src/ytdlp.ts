@@ -53,6 +53,22 @@ function getYtdlpPath(): string {
   }
 }
 
+function isDouyinUrl(url: string): boolean {
+  return /douyin\.com/i.test(url)
+}
+
+/** Match desktop `src/main/ytdlp.ts` — Douyin extractor expects main-site client hints. */
+function appendDouyinYtdlpArgs(url: string, args: string[], explicitReferer?: string): void {
+  if (!isDouyinUrl(url)) return
+  const flat = args.join('\n')
+  if (!explicitReferer && !/--referer\b/.test(flat)) {
+    args.push('--referer', 'https://www.douyin.com/')
+  }
+  if (!flat.includes('Origin:https://www.douyin.com')) {
+    args.push('--add-header', 'Origin:https://www.douyin.com')
+  }
+}
+
 function cookieArgs(): string[] {
   if (config.cookieMode === 'browser') {
     return ['--cookies-from-browser', 'chrome']
@@ -137,8 +153,9 @@ export async function getVideoInfo(url: string): Promise<VideoInfo> {
     '--no-playlist',
     '--remote-components', 'ejs:github',
     ...cookieArgs(),
-    url,
   ]
+  appendDouyinYtdlpArgs(url, args)
+  args.push(url)
 
   return new Promise((resolve, reject) => {
     const proc = spawn(ytdlp, args, { stdio: ['ignore', 'pipe', 'pipe'], env: spawnEnv() })
@@ -219,8 +236,9 @@ export function download(
     '--no-playlist',
     '--remote-components', 'ejs:github',
     ...cookieArgs(),
-    url,
   ]
+  appendDouyinYtdlpArgs(url, args)
+  args.push(url)
 
   const proc = spawn(ytdlp, args, { stdio: ['ignore', 'pipe', 'pipe'], env: spawnEnv() })
   let currentPhase = 'video'

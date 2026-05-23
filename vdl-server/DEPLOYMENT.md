@@ -25,12 +25,16 @@ brew install ffmpeg
 
 ## Local Development
 
+**From the repository root** (with `vdl-server/.env` in place): `make vdl-install`, `make vdl-build`, `make vdl-dev` — same as the steps below from `vdl-server/`. Run `make help` at the root for all `vdl-*` targets.
+
 ### 1. Clone and install
 
 ```bash
 cd vdl-server
 npm install
 ```
+
+`npm install` builds the local dependency `@v-download/shared` (`../packages/shared`) via `postinstall` so TypeScript can resolve it.
 
 ### 2. Configure environment
 

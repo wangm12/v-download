@@ -12,6 +12,8 @@ export interface SettingsSchema {
   defaultAudioQuality: string
   sleepInterval: number
   cookiesPath: string
+  /** Passed to yt-dlp `--cookies-from-browser` for Douyin (e.g. chrome, brave, edge). */
+  cookiesFromBrowser: string
   ytdlpPath: string
   ffmpegPath: string
 }
@@ -45,6 +47,7 @@ const defaults: SettingsSchema = {
   defaultAudioQuality: '320',
   sleepInterval: 3,
   cookiesPath: '',
+  cookiesFromBrowser: 'chrome',
   ytdlpPath: findBinary('yt-dlp'),
   ffmpegPath: findBinary('ffmpeg')
 }

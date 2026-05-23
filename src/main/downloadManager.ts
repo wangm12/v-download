@@ -3,6 +3,7 @@ import { BrowserWindow } from 'electron'
 import * as db from './database'
 import * as settings from './settings'
 import * as ytdlp from './ytdlp'
+import { getDouyinInfo, downloadDouyinVideo, isDouyinUrl, getLastDouyinInfoError } from './douyin'
 import * as dockProgress from './dockProgress'
 import { dirname } from 'path'
 import { stat, readdir, unlink } from 'fs/promises'
@@ -286,12 +287,77 @@ async function runTask(task: DownloadTask): Promise<void> {
       }
 
       if (code !== 0) {
-        task.status = 'error'
         const stderr = dp.getStderr().trim()
-        const errorLine = stderr.split('\n').filter((l) => l.includes('ERROR:')).pop()
-        task.error = errorLine || `yt-dlp exited with code ${code}`
-        db.updateDownload(task.id, { status: 'error', error: task.error })
-        emitProgress(task)
+        const isAudio = task.format === 'audio' || task.format === 'mp3'
+        let recovered = false
+        if (!isAudio && isDouyinUrl(task.url)) {
+          try {
+            console.log('[runTask] yt-dlp failed for Douyin; trying mobile share fallback')
+            const douyinInfo = await getDouyinInfo(task.url, cookiesPath || undefined)
+            if (douyinInfo) {
+              const filePath = await downloadDouyinVideo(
+                douyinInfo.videoUrl,
+                outDir,
+                task.title,
+                (pct) => {
+                  const p = Math.min(99, Math.round(10 + pct * 0.89))
+                  task.progress = p
+                  task.status = 'downloading'
+                  task.updatedAt = new Date().toISOString()
+                  db.updateDownload(task.id, { status: 'downloading', progress: p })
+                  taskProgress.set(task.id, p)
+                  updateDockProgress()
+                  emitToRenderer('download-progress', {
+                    ...task,
+                    speed: '',
+                    eta: '',
+                    totalSize: null,
+                    phase: 'video'
+                  })
+                }
+              )
+              let fileSize: number | null = null
+              try {
+                const st = await stat(filePath)
+                fileSize = st.size
+              } catch {
+                /* ignore */
+              }
+              task.filePath = filePath
+              task.status = 'complete'
+              task.progress = 100
+              task.error = null
+              task.updatedAt = new Date().toISOString()
+              taskExtraMeta.delete(task.id)
+              db.updateDownload(task.id, {
+                status: 'complete',
+                progress: 100,
+                file_path: filePath,
+                file_size: fileSize
+              })
+              emitProgress(task)
+              recovered = true
+            }
+          } catch (e) {
+            console.warn('[runTask] Douyin mobile fallback failed:', e instanceof Error ? e.message : e)
+          }
+        }
+        if (!recovered) {
+          task.status = 'error'
+          const errorLine = stderr.split('\n').filter((l) => l.includes('ERROR:')).pop()
+          let taskError = errorLine || `yt-dlp exited with code ${code}`
+          if (!isAudio && isDouyinUrl(task.url)) {
+            const hint = getLastDouyinInfoError()
+            if (hint) {
+              taskError = `${taskError} — Douyin fallback: ${hint}`
+            } else {
+              taskError = `${taskError} — Douyin fallback did not recover this link`
+            }
+          }
+          task.error = taskError
+          db.updateDownload(task.id, { status: 'error', error: task.error })
+          emitProgress(task)
+        }
         resolve()
         processQueue()
         return

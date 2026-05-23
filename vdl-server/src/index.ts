@@ -2,6 +2,7 @@ import Fastify from 'fastify'
 import fastifyStatic from '@fastify/static'
 import { resolve } from 'path'
 import { mkdirSync, writeFileSync, renameSync } from 'fs'
+import { buildNetscapeCookieFile, type ChromeSyncedCookie } from '@v-download/shared'
 
 import { config } from './config.js'
 import { initDB } from './db.js'
@@ -9,24 +10,6 @@ import { bot, getTelegramWebhookCallback } from './bot/index.js'
 import { recoverOnStartup } from './queue.js'
 import { getServeDir, getFilePath, consumeOneTimeToken } from './storage/temp-link.js'
 import { startCleanupJob, stopCleanupJob } from './cleanup.js'
-
-interface CookieEntry {
-  domain: string
-  path: string
-  secure: boolean
-  httpOnly?: boolean
-  expirationDate?: number
-  name: string
-  value: string
-}
-
-function toNetscapeLine(c: CookieEntry): string {
-  const domain = c.domain.startsWith('.') ? c.domain : `.${c.domain}`
-  const includeSubdomains = domain.startsWith('.') ? 'TRUE' : 'FALSE'
-  const secure = c.secure ? 'TRUE' : 'FALSE'
-  const expiry = c.expirationDate ? Math.floor(c.expirationDate) : 0
-  return `${domain}\t${includeSubdomains}\t${c.path}\t${secure}\t${expiry}\t${c.name}\t${c.value}`
-}
 
 async function main() {
   console.log('Starting VDL Server...')
@@ -72,14 +55,14 @@ async function main() {
   })
 
   app.post('/api/cookies', async (request, reply) => {
-    const cookies = request.body as CookieEntry[]
+    const cookies = request.body as ChromeSyncedCookie[]
     if (!Array.isArray(cookies)) {
       return reply.code(400).send({ error: 'Expected array of cookies' })
     }
 
-    const header = '# Netscape HTTP Cookie File\n# Auto-synced from Chrome via V-Download extension\n\n'
-    const lines = cookies.map(toNetscapeLine).join('\n')
-    const content = header + lines + '\n'
+    const content = buildNetscapeCookieFile(cookies, {
+      headerNote: 'Auto-synced from Chrome via V-Download extension',
+    })
 
     const cookiesPath = resolve(config.cookiesFilePath)
     const tmpPath = cookiesPath + '.tmp'

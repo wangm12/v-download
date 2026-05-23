@@ -9,6 +9,7 @@ const DEFAULT_SETTINGS: SettingsData = {
   defaultVideoQuality: '1080',
   defaultAudioQuality: '320',
   sleepInterval: 3,
+  cookiesFromBrowser: 'chrome',
   ytdlpPath: '',
   ffmpegPath: ''
 }

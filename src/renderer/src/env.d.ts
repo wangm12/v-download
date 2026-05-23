@@ -33,10 +33,19 @@ interface WindowApi {
   onNewDownload: (callback: (data: Record<string, unknown>) => void) => () => void
   onYtdlUrl: (callback: (url: string) => void) => () => void
   onSettingsChanged: (callback: () => void) => () => void
+  onCookiesSynced: (callback: (data: { count: number }) => void) => () => void
   selectDownloadFolder: () => Promise<string | undefined>
   readClipboard: () => Promise<string>
   openSettings: () => Promise<void>
   closeWindow: () => Promise<void>
+  installChromeExtension?: () => Promise<{ ok: boolean }>
+  requestBrowserCookieSync?: () => Promise<{
+    ok: boolean
+    openedBrowser?: boolean
+    landingUrl?: string
+    message?: string
+    error?: string
+  }>
   platform: NodeJS.Platform
 }
 

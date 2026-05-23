@@ -8,6 +8,7 @@ import * as queue from '../queue.js'
 import { storeForServing } from '../storage/temp-link.js'
 import { getVideoInfo, type CompactOption } from '../ytdlp.js'
 import { getDouyinInfo } from '../douyin.js'
+import { sanitizeDownloadBasename } from '../sanitizeFilename.js'
 
 export const bot = new Bot(config.telegramBotToken)
 
@@ -36,10 +37,62 @@ const SUPPORTED_PLATFORMS = [
   /twitch\.tv/i,
 ]
 
+/** Trailing punctuation / CJK closers often glued to copied links (e.g. Douyin share text). */
+const TRAILING_URL_JUNK = /[，。！？；：、）》」『\]\)>,."']+$/u
+
+/** v.douyin short links (single path segment). */
+const V_DOUYIN_SHORT = /https:\/\/v\.douyin\.com\/[a-zA-Z0-9_-]+\/?/gi
+
+function scrubUrlCandidate(raw: string): string {
+  let s = raw.replace(TRAILING_URL_JUNK, '').trim()
+  try {
+    const u = new URL(s)
+    if (/v\.douyin\.com$/i.test(u.hostname) && /\/:[^/]+$/.test(u.pathname)) {
+      u.pathname = u.pathname.replace(/\/:[^/]+$/, '/')
+      return u.toString()
+    }
+  } catch {
+    /* keep s */
+  }
+  return s
+}
+
+function extractAllHttpUrls(text: string): string[] {
+  const re = /https?:\/\/[^\s<>"']+/gi
+  const out: string[] = []
+  let m: RegExpExecArray | null
+  while ((m = re.exec(text)) !== null) {
+    const cleaned = scrubUrlCandidate(m[0])
+    if (cleaned) out.push(cleaned)
+  }
+  return out
+}
+
+/**
+ * Douyin share lines are prose + one or more URLs; prefer any douyin.com link so we do not
+ * grab the first unrelated https:// in the message.
+ */
 function extractUrl(text: string): string | null {
-  const urlMatch = text.match(/https?:\/\/[^\s]+/i)
-  if (!urlMatch) return null
-  return urlMatch[0].replace(/[，。！？；：、）》」』\]\)>]+$/, '').trim()
+  const shortHits = text.match(V_DOUYIN_SHORT)
+  if (shortHits?.length) {
+    const normalized = shortHits[0].endsWith('/') ? shortHits[0] : `${shortHits[0]}/`
+    try {
+      return new URL(normalized).toString()
+    } catch {
+      /* fall through */
+    }
+  }
+
+  const urls = extractAllHttpUrls(text)
+  if (urls.length === 0) return null
+
+  const douyin = urls.find((u) => /douyin\.com/i.test(u))
+  const chosen = douyin ?? urls[0]
+  try {
+    return new URL(chosen).toString()
+  } catch {
+    return chosen
+  }
 }
 
 function isSupportedUrl(url: string): boolean {
@@ -64,7 +117,7 @@ bot.command('start', async (ctx) => {
 
   await ctx.reply(
     'Welcome! Send me a video link and I\'ll download it for you.\n\n' +
-    'Supported: YouTube, TikTok, Instagram, Twitter/X, Bilibili, Xiaohongshu, and more.'
+    'Supported: YouTube, TikTok, Douyin, Instagram, Twitter/X, Bilibili, Xiaohongshu, and more.'
   )
 })
 
@@ -480,7 +533,8 @@ queue.onComplete(async (taskId, filePath, title) => {
       console.log(`[bot] Task ${taskId}: sending video directly via Telegram...`)
       await bot.api.editMessageText(msg.chatId, msg.messageId, `📤 Sending *${esc(title)}*\\.\\.\\.`, { parse_mode: 'MarkdownV2' }).catch(() => {})
 
-      await bot.api.sendVideo(msg.chatId, new InputFile(filePath), {
+      const uploadName = `${sanitizeDownloadBasename(title)}.mp4`
+      await bot.api.sendVideo(msg.chatId, new InputFile(filePath, uploadName), {
         caption: title,
         supports_streaming: true,
       })
@@ -491,7 +545,7 @@ queue.onComplete(async (taskId, filePath, title) => {
       console.log(`[bot] Task ${taskId}: file too large for Telegram, creating temp link...`)
       await bot.api.editMessageText(msg.chatId, msg.messageId, `📤 File too large for Telegram \\(${esc(formatBytes(fileSize))}\\), creating download link\\.\\.\\.`, { parse_mode: 'MarkdownV2' }).catch(() => {})
 
-      const fileName = `${title.replace(/[/\\?*:|"<>]/g, '-')}.mp4`
+      const fileName = `${sanitizeDownloadBasename(title)}.mp4`
       const { shareUrl, downloadUrl } = await storeForServing(filePath, fileName)
       console.log(`[bot] Task ${taskId}: temp link created: ${shareUrl}, one-time download: ${downloadUrl}`)
 

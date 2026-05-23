@@ -1,16 +1,9 @@
+importScripts('cookie-sync-domains.js')
+const COOKIE_SYNC_DOMAINS = globalThis.COOKIE_SYNC_DOMAINS
+
 const APP_URL = 'http://127.0.0.1:18765'
 const VDL_SERVER_URL = 'http://127.0.0.1:30010'
 
-const COOKIE_SYNC_DOMAINS = [
-  '.youtube.com',
-  '.douyin.com',
-  '.tiktok.com',
-  '.xiaohongshu.com',
-  '.bilibili.com',
-  '.x.com',
-  '.twitter.com',
-  '.instagram.com',
-]
 const DEBOUNCE_MS = 2000
 
 const ICON_ACTIVE = {
@@ -107,6 +100,7 @@ chrome.action.onClicked.addListener(async (tab) => {
 
   if (isDouyinUrl(tab.url)) {
     try {
+      await syncCookies()
       await chrome.scripting.executeScript({
         target: { tabId: tab.id },
         func: () => {
@@ -236,6 +230,28 @@ function getHeader(headers, name) {
 // --- Message handlers ---
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'FORCE_COOKIE_SYNC') {
+    ;(async () => {
+      const ok = await syncCookies()
+      sendResponse({
+        ok,
+        error: ok ? undefined : 'App did not accept cookies (is V-Download running on this machine?)',
+      })
+      const tabId = sender.tab?.id
+      const url = sender.tab?.url ?? ''
+      if (
+        ok &&
+        tabId !== undefined &&
+        url.startsWith(`${APP_URL}/cookie-sync-landing`)
+      ) {
+        setTimeout(() => {
+          chrome.tabs.remove(tabId, () => void chrome.runtime.lastError)
+        }, 450)
+      }
+    })()
+    return true
+  }
+
   // Existing: YouTube content.js download button
   if (message.type === 'DOWNLOAD_VIDEO') {
     sendDownloadRequest({ url: message.url }, sender.tab?.id)
@@ -483,14 +499,35 @@ async function syncCookies() {
     const body = JSON.stringify(allCookies)
     const headers = { 'Content-Type': 'application/json' }
 
+    let appOk = false
+    const appFetch = fetch(`${APP_URL}/cookies`, { method: 'POST', headers, body })
+      .then((r) => {
+        appOk = r.ok
+        return r
+      })
+      .catch(() => {})
+
     await Promise.allSettled([
-      fetch(`${APP_URL}/cookies`, { method: 'POST', headers, body }).catch(() => {}),
+      appFetch,
       fetch(`${VDL_SERVER_URL}/api/cookies`, { method: 'POST', headers, body }).catch(() => {}),
     ])
 
     console.log(`Synced ${allCookies.length} cookies across ${COOKIE_SYNC_DOMAINS.length} domains`)
+    return appOk
   } catch {
-    // Extension context error, silently ignore
+    return false
+  }
+}
+
+async function pollPendingCookieSync() {
+  try {
+    const poll = await fetch(`${APP_URL}/cookie-sync-poll`)
+    if (!poll.ok) return
+    const data = await poll.json()
+    if (!data.pending) return
+    await syncCookies()
+  } catch {
+    // app not running
   }
 }
 
@@ -503,8 +540,11 @@ chrome.runtime.onStartup.addListener(() => {
 })
 
 chrome.alarms.create('sync-cookies', { periodInMinutes: 5 })
+chrome.alarms.create('cookie-sync-force-poll', { periodInMinutes: 1 })
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === 'sync-cookies') {
     syncCookies()
+  } else if (alarm.name === 'cookie-sync-force-poll') {
+    void pollPendingCookieSync()
   }
 })

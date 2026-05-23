@@ -20,6 +20,18 @@
 
 ---
 
+## 仓库概览
+
+本仓库包含 **两个相关产品** 和一个 **共享库**：
+
+| 部分 | 作用 |
+|------|------|
+| **V-Download** | macOS **Electron** 应用 + **React** 界面 + [Chrome 扩展](extension/)，本地下载（`Cmd+V`、格式选择、媒体嗅探）。 |
+| **vdl-server** | 可选的 **Telegram 机器人**（[vdl-server/](vdl-server/)）：Fastify HTTP、下载队列、临时链接、抖音回退 — 同样依赖 **yt-dlp** / **ffmpeg**。 |
+| **@v-download/shared** | [packages/shared](packages/shared)：Netscape Cookie 与域名列表；在仓库根目录执行 `npm install` 会构建该包并运行 [`sync:extension-constants`](package.json)，以更新 [extension/cookie-sync-domains.js](extension/cookie-sync-domains.js)。 |
+
+**延伸阅读：** [vdl-server/README.md](vdl-server/README.md)（机器人快速开始与环境变量）、[vdl-server/DEPLOYMENT.md](vdl-server/DEPLOYMENT.md)（隧道/生产部署）、[docs/MANUAL_TESTING.md](docs/MANUAL_TESTING.md)（手动与 E2E 测试清单）、[docs/CLI_AND_SHARED_CORE.md](docs/CLI_AND_SHARED_CORE.md)（下载核心 / CLI 规划）、[docs/FUTURE_ENHANCEMENTS.md](docs/FUTURE_ENHANCEMENTS.md)（抖音 / 无头浏览器后续改进与调研，英文）。
+
 ## 功能特性
 
 - **一键下载** — 使用 `Cmd+V` 粘贴任意 URL 或通过 Chrome 扩展一键发送
@@ -76,9 +88,9 @@ npm install
 npm run build:mac
 ```
 
-构建产物在 `dist/mac-arm64/V-Download.app`，DMG 安装包在 `dist/` 目录下。
+`npm install` 会构建 workspace 包 `@v-download/shared` 并重新生成 Chrome 扩展所需的 `extension/cookie-sync-domains.js`。
 
-## 使用方法
+构建产物位于 `dist/mac-arm64/V-Download.app`，DMG 在 `dist/` 目录。
 
 ### 粘贴 URL
 
@@ -120,104 +132,149 @@ npm run build:mac
 
 ## 架构
 
+扩展可同时连接 **本机桌面应用** 与 **可选的 vdl-server**（若已启动）：
+
+```mermaid
+flowchart TB
+  subgraph browser [Chrome]
+    ext[Extension_MV3]
+  end
+  subgraph desktop [V_Download_Electron]
+    main[Main_process]
+    renderer[Renderer_React]
+    http[HTTP_localhost_18765]
+    main <-->|IPC| renderer
+    main --- http
+  end
+  subgraph optional [vdl_server_optional]
+    api[Fastify]
+    queue[Download_queue]
+    gram[grammY_bot]
+    api --> queue
+    queue --> gram
+  end
+  subgraph external [Host_machine]
+    ytdlp[yt_dlp_and_ffmpeg]
+  end
+  tg[Telegram_Cloud]
+  ext -->|"POST_/cookies_/download"| http
+  ext -->|"optional_POST_/api/cookies"| api
+  main -->|spawn| ytdlp
+  queue -->|spawn| ytdlp
+  queue --> douyin[Douyin_HTTP_fallback]
+  gram <-->|Bot_API| tg
 ```
-┌──────────────────────────────────────────────────────┐
-│                    Electron 应用                      │
-│                                                       │
-│  ┌────────────────┐     IPC      ┌────────────────┐  │
-│  │   主进程       │◄────────────►│    渲染进程     │  │
-│  │                │              │    (React)      │  │
-│  │ • yt-dlp       │              │ • UI 界面      │  │
-│  │ • SQLite 数据库│              │ • Tailwind     │  │
-│  │ • 设置管理     │              │ • Radix UI     │  │
-│  │ • HTTP 服务器  │              │ • Three.js     │  │
-│  │ • 媒体嗅探器   │              │ • 媒体选择器   │  │
-│  │ • Dock 进度    │              │                 │  │
-│  └───────┬────────┘              └─────────────────┘  │
-│          │                                            │
-└──────────┼────────────────────────────────────────────┘
-           │ HTTP :18765
-┌──────────▼──────────┐
-│   Chrome 扩展       │
-│ • 媒体嗅探          │
-│ • 流选择器 UI       │
-│ • Cookie 同步       │
-│ • URL 分发          │
-└─────────────────────┘
-```
+
+- **桌面路径：** 渲染进程负责 UI；主进程运行 [ytdlp.ts](src/main/ytdlp.ts)、[downloadManager.ts](src/main/downloadManager.ts)、[localServer.ts](src/main/localServer.ts)，在 **18765** 端口为扩展提供 HTTP。
+- **扩展：** 内容脚本做媒体检测与页面 UI；[background.js](extension/background.js) 转发 URL，并按域名列表定期同步 Cookie（通过 `importScripts('cookie-sync-domains.js')`）。
+- **vdl-server：** [index.ts](vdl-server/src/index.ts) 提供健康检查、Cookie 上传、静态文件与 Telegram Webhook；[queue.ts](vdl-server/src/queue.ts) 调用 yt-dlp 或 [douyin.ts](vdl-server/src/douyin.ts) 回退；[bot/index.ts](vdl-server/src/bot/index.ts) 发送视频或临时链接。当 `BASE_URL` 为 `https://...` 时使用 **Webhook**，否则为 **长轮询**。
+- **机器人 Cookie：** 若要让扩展同步的 Netscape Cookie 以 `--cookies` 传给 yt-dlp，请将服务器 **`COOKIE_MODE=file`**（详见 [vdl-server/README.md](vdl-server/README.md)）；默认 `browser` 读取的是 **服务器本机** Chrome 配置，而非上传的文件。
 
 ### 技术栈
 
 | 层级 | 技术 |
 |------|------|
-| 运行时 | Electron 33 |
-| 构建工具 | electron-vite, Vite |
+| 桌面运行时 | Electron 33 |
+| 桌面构建 | electron-vite, Vite |
 | 前端 | React 19, TypeScript |
 | 样式 | Tailwind CSS, Radix UI, Lucide React |
-| 3D 图形 | Three.js, React Three Fiber |
-| 数据库 | better-sqlite3 (SQLite) |
+| 3D | Three.js, React Three Fiber |
+| 桌面数据库 | better-sqlite3 (SQLite) |
 | 打包 | electron-builder |
-| 下载引擎 | yt-dlp (外部依赖) |
+| 下载引擎 | yt-dlp + ffmpeg（外部依赖，两应用共用） |
+| vdl-server | Node 20+, Fastify, grammY, better-sqlite3 |
+| 共享包 | TypeScript [packages/shared](packages/shared)，npm workspaces |
 
 ### 项目结构
 
 ```
-src/
-├── main/                   # Electron 主进程
-│   ├── index.ts            # 应用入口、窗口管理、IPC 处理
-│   ├── downloadManager.ts  # 队列、并发、任务生命周期
-│   ├── dockProgress.ts     # macOS Dock 图标动画 + 速度标记
-│   ├── ytdlp.ts            # yt-dlp CLI 封装
-│   ├── mediaSniffer.ts     # 隐藏浏览器媒体流检测
-│   ├── database.ts         # SQLite 持久化
-│   ├── settings.ts         # JSON 设置存储
-│   └── localServer.ts      # Chrome 扩展通信 HTTP 服务器
-├── preload/                # 上下文桥接（IPC 暴露）
-│   ├── index.ts
-│   └── index.d.ts
-└── renderer/               # React 前端
-    └── src/
-        ├── App.tsx         # 主应用逻辑
-        ├── components/     # UI 组件
-        │   ├── DownloadItem.tsx
-        │   ├── PlaylistGroup.tsx
-        │   ├── FormatDialog.tsx
-        │   ├── MediaPickerDialog.tsx
-        │   ├── Settings.tsx
-        │   ├── BottomBar.tsx
-        │   ├── TitleBar.tsx
-        │   ├── ClearDialog.tsx
-        │   └── CoinLoader.tsx
-        └── hooks/
-            ├── useDownloads.ts
-            └── useUrlHandler.ts
+vdl-server/                 # Telegram 机器人 + Fastify（详见 vdl-server/README.md）
+├── src/
+├── scripts/
+├── Dockerfile
+├── docker-compose.yml
+└── Makefile
 
-extension/                      # Chrome 扩展 (Manifest V3)
+packages/shared/            # @v-download/shared — Cookie 与域名列表（应用 + 服务端 + 扩展生成）
+├── src/
+└── README.md
+
+docs/
+├── MANUAL_TESTING.md          # 回归与 E2E 清单
+├── CLI_AND_SHARED_CORE.md     # 下载核心 / CLI 规划
+└── FUTURE_ENHANCEMENTS.md     # 抖音 / Chromium / CloakBrowser 后续规划（英文正文）
+
+scripts/
+└── write-extension-cookie-sync.mjs   # 由 npm run sync:extension-constants 调用
+
+src/                        # Electron 应用（主进程 + 渲染进程）
+├── main/
+│   ├── index.ts
+│   ├── downloadManager.ts
+│   ├── dockProgress.ts
+│   ├── ytdlp.ts
+│   ├── mediaSniffer.ts
+│   ├── database.ts
+│   ├── settings.ts
+│   └── localServer.ts      # 扩展 HTTP 服务 :18765
+├── preload/
+└── renderer/
+    └── src/
+        ├── App.tsx
+        ├── components/
+        └── hooks/
+
+extension/                  # Chrome 扩展 (Manifest V3)
+├── cookie-sync-domains.js  # 自动生成，勿手改（运行 sync:extension-constants）
 ├── manifest.json
-├── background.js               # 媒体嗅探、URL 分发、Cookie 同步
-├── popup.html/js/css           # 媒体流选择器弹窗
-├── content.js/css              # YouTube 下载按钮注入
-├── content-video-overlay.js/css # 通用视频悬浮下载按钮
-├── content-x.js/css            # X/Twitter 下载按钮
-├── content-douyin.js/css       # 抖音专用下载面板
-└── content-douyin-bridge.js    # 抖音主世界脚本（React Fiber 提取）
+├── background.js
+├── popup.html / popup.js / popup.css
+├── content*.js / content*.css
+└── content-douyin-bridge.js
 ```
+
+## 如何使用本仓库
+
+| 目标 | 操作 |
+|------|------|
+| **运行 macOS 应用** | 安装 [前置依赖](#前置依赖)，再按 [安装](#安装) 或开发使用 `npm run dev`。 |
+| **使用扩展** | 在 Chrome 中加载 [`extension/`](extension/) 目录；桌面应用需运行以提供 `127.0.0.1:18765`。 |
+| **修改 Cookie 同步域名** | 编辑 [packages/shared/src/cookie-sync-domains.ts](packages/shared/src/cookie-sync-domains.ts)，在仓库根目录执行 `npm run sync:extension-constants`，然后重新加载扩展。 |
+| **从仓库根目录运行 vdl（Make）** | 执行 `make help` 查看列表。常用：`make vdl-install`、`make vdl-build`、`make vdl-dev`（轮询）、`make vdl-server`（Cloudflare 隧道 + 服务）、`make vdl-docker-build` / `make vdl-docker-up`（Docker；compose 工作目录仍在 `vdl-server/`）。 |
+| **运行 Telegram 机器人** | 将 `.env` 放在 [`vdl-server/`](vdl-server/)（见 [vdl-server/README.md](vdl-server/README.md)）。可在**仓库根目录**使用 **`make vdl-*`**，或 **`cd vdl-server`** 按该 README 操作（`make server`、Docker）。扩展向机器人同步 Cookie 且希望 yt-dlp 使用该文件时，请使用 **`COOKIE_MODE=file`**。 |
+| **部署机器人** | 见 [vdl-server/DEPLOYMENT.md](vdl-server/DEPLOYMENT.md)。 |
+| **发版前测试** | 见 [docs/MANUAL_TESTING.md](docs/MANUAL_TESTING.md)。 |
+| **后续改进 / 调研** | 见 [docs/FUTURE_ENHANCEMENTS.md](docs/FUTURE_ENHANCEMENTS.md)（抖音 hydration、URL/解析、可选 CloakBrowser）。 |
+
+粘贴 URL、快捷键、设置等日常用法见下文 [使用方法](#使用方法) 与 [设置](#设置)。
 
 ## 开发
 
 ```bash
-# 安装依赖
+# 安装依赖（构建 @v-download/shared、重新生成 extension/cookie-sync-domains.js、electron-builder 原生依赖）
 npm install
 
-# 开发模式启动（热重载）
+# 桌面 — 热重载
 npm run dev
 
-# 生产构建
+# 桌面 — 生产构建（输出在 out/）
 npm run build
 
-# 打包 macOS 应用
+# 桌面 — 打包 macOS .app + DMG
 npm run build:mac
+
+# 仅重新生成扩展域名列表（修改 packages/shared 后）
+npm run sync:extension-constants
+
+# 查看所有 Makefile 目标（桌面 + vdl-server）
+make help
+
+# 在仓库根目录操作 vdl-server（等价于 cd vdl-server && …）
+make vdl-install
+make vdl-dev
 ```
+
+**Telegram 机器人：**在仓库根目录使用 **`make vdl-*`**（见 `make help`），或 `cd vdl-server && npm install && npm run dev` — 完整步骤见 [vdl-server/README.md](vdl-server/README.md)。
 
 ## Chrome 扩展开发
 

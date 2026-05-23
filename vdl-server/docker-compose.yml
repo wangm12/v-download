@@ -1,6 +1,8 @@
 services:
   vdl-server:
-    build: .
+    build:
+      context: ..
+      dockerfile: vdl-server/Dockerfile
     container_name: vdl-server
     restart: unless-stopped
     ports:

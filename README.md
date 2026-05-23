@@ -20,6 +20,18 @@
 
 ---
 
+## Repository overview
+
+This repository ships **two related products** and a small **shared library**:
+
+| Part | Role |
+|------|------|
+| **V-Download** | macOS **Electron** app + **React** UI + [Chrome extension](extension/) for local downloads (`Cmd+V`, format picker, media sniffer). |
+| **vdl-server** | Optional **Telegram bot** ([vdl-server/](vdl-server/)): Fastify HTTP API, download queue, temp links, Douyin fallback — uses the same **yt-dlp** / **ffmpeg** toolchain. |
+| **@v-download/shared** | [packages/shared](packages/shared): Netscape cookie helpers + domain list for cookie sync; root `npm install` builds it and runs [`sync:extension-constants`](package.json) so [extension/cookie-sync-domains.js](extension/cookie-sync-domains.js) stays in sync. |
+
+**Read next:** [vdl-server/README.md](vdl-server/README.md) (bot quick start & env), [vdl-server/DEPLOYMENT.md](vdl-server/DEPLOYMENT.md) (tunnel / production), [docs/MANUAL_TESTING.md](docs/MANUAL_TESTING.md) (manual & E2E checklist), [docs/CLI_AND_SHARED_CORE.md](docs/CLI_AND_SHARED_CORE.md) (roadmap for a shared downloader / CLI), [docs/FUTURE_ENHANCEMENTS.md](docs/FUTURE_ENHANCEMENTS.md) (Douyin / headless research backlog).
+
 ## Features
 
 - **One-click download** — Paste any URL with `Cmd+V` or click the companion Chrome extension
@@ -76,6 +88,8 @@ npm install
 npm run build:mac
 ```
 
+`npm install` builds the workspace package `@v-download/shared` and regenerates `extension/cookie-sync-domains.js` for the Chrome extension.
+
 The built app will be in `dist/mac-arm64/V-Download.app` and a DMG installer in `dist/`.
 
 ## Usage
@@ -96,7 +110,7 @@ The built app will be in `dist/mac-arm64/V-Download.app` and a DMG installer in 
 4. **X/Twitter pages** — Download buttons appear on tweets with video (in the action bar and on the video player); click to send to yt-dlp
 5. **Douyin pages** — A download button appears on the active video with full quality selection, cover image, and music download
 6. **Other pages** — A download overlay appears on detected video elements; click the extension icon to open a popup showing all detected media streams (HLS, MP4, WebM, FLV)
-6. Cookies are synced automatically every 5 minutes for authenticated access
+7. Cookies are synced automatically every 5 minutes for authenticated access
 
 ### Keyboard Shortcuts
 
@@ -120,50 +134,83 @@ The built app will be in `dist/mac-arm64/V-Download.app` and a DMG installer in 
 
 ## Architecture
 
-```
-┌──────────────────────────────────────────────────────┐
-│                    Electron App                       │
-│                                                       │
-│  ┌────────────────┐     IPC      ┌────────────────┐  │
-│  │  Main Process  │◄────────────►│    Renderer     │  │
-│  │                │              │    (React)      │  │
-│  │ • yt-dlp       │              │ • UI            │  │
-│  │ • SQLite DB    │              │ • Tailwind      │  │
-│  │ • Settings     │              │ • Radix UI      │  │
-│  │ • HTTP Server  │              │ • Three.js      │  │
-│  │ • Media Sniffer│              │ • Media Picker  │  │
-│  │ • Dock Progress│              │                 │  │
-│  └───────┬────────┘              └─────────────────┘  │
-│          │                                            │
-└──────────┼────────────────────────────────────────────┘
-           │ HTTP :18765
-┌──────────▼──────────┐
-│  Chrome Extension   │
-│ • Media sniffing    │
-│ • Stream picker UI  │
-│ • Cookie sync       │
-│ • URL dispatch      │
-└─────────────────────┘
+High-level data flow (extension can talk to **both** the desktop app and vdl-server when the latter is running):
+
+```mermaid
+flowchart TB
+  subgraph browser [Chrome]
+    ext[Extension_MV3]
+  end
+  subgraph desktop [V_Download_Electron]
+    main[Main_process]
+    renderer[Renderer_React]
+    http[HTTP_localhost_18765]
+    main <-->|IPC| renderer
+    main --- http
+  end
+  subgraph optional [vdl_server_optional]
+    api[Fastify]
+    queue[Download_queue]
+    gram[grammY_bot]
+    api --> queue
+    queue --> gram
+  end
+  subgraph external [Host_machine]
+    ytdlp[yt_dlp_and_ffmpeg]
+  end
+  tg[Telegram_Cloud]
+  ext -->|"POST_/cookies_/download"| http
+  ext -->|"optional_POST_/api/cookies"| api
+  main -->|spawn| ytdlp
+  queue -->|spawn| ytdlp
+  queue --> douyin[Douyin_HTTP_fallback]
+  gram <-->|Bot_API| tg
 ```
 
-### Tech Stack
+- **Desktop path:** Renderer controls UI; main process runs [ytdlp.ts](src/main/ytdlp.ts), [downloadManager.ts](src/main/downloadManager.ts), [localServer.ts](src/main/localServer.ts) on port **18765** for the extension.
+- **Extension:** Content scripts detect media / inject UI; [background.js](extension/background.js) forwards URLs and periodically syncs cookies (see `COOKIE_SYNC_DOMAINS` via `importScripts('cookie-sync-domains.js')`).
+- **vdl-server path:** [index.ts](vdl-server/src/index.ts) serves health, cookie upload, static files, and Telegram webhook; [queue.ts](vdl-server/src/queue.ts) runs yt-dlp or [douyin.ts](vdl-server/src/douyin.ts) fallback; [bot/index.ts](vdl-server/src/bot/index.ts) sends videos or temp links. When `BASE_URL` is `https://...`, the bot uses **webhooks**; otherwise **polling**.
+- **Cookies on the bot:** For extension-synced Netscape cookies to be passed to yt-dlp as `--cookies`, set **`COOKIE_MODE=file`** on the server (see [vdl-server/README.md](vdl-server/README.md)); default `browser` reads Chrome on the **server host**, not the uploaded file.
+
+### Tech stack
 
 | Layer | Technology |
 |-------|-----------|
-| Runtime | Electron 33 |
-| Build | electron-vite, Vite |
+| Desktop runtime | Electron 33 |
+| Desktop build | electron-vite, Vite |
 | Frontend | React 19, TypeScript |
 | Styling | Tailwind CSS, Radix UI, Lucide React |
-| 3D Graphics | Three.js, React Three Fiber |
-| Database | better-sqlite3 (SQLite) |
+| 3D | Three.js, React Three Fiber |
+| Desktop DB | better-sqlite3 (SQLite) |
 | Packaging | electron-builder |
-| Download Engine | yt-dlp (external) |
+| Download engine | yt-dlp + ffmpeg (external, both apps) |
+| vdl-server | Node 20+, Fastify, grammY, better-sqlite3 |
+| Shared package | TypeScript [packages/shared](packages/shared), npm workspaces |
 
-### Project Structure
+### Project structure
 
 ```
-src/
-├── main/                   # Electron main process
+vdl-server/                 # Telegram bot + Fastify (see vdl-server/README.md)
+├── src/
+├── scripts/
+├── Dockerfile
+├── docker-compose.yml
+└── Makefile
+
+packages/shared/            # @v-download/shared — cookies + domain list for app + server + extension gen
+├── src/
+└── README.md
+
+docs/
+├── MANUAL_TESTING.md          # Regression & E2E checklist
+├── CLI_AND_SHARED_CORE.md     # Downloader / CLI roadmap
+└── FUTURE_ENHANCEMENTS.md     # Douyin / Chromium / CloakBrowser backlog
+
+scripts/
+└── write-extension-cookie-sync.mjs   # Called from npm run sync:extension-constants
+
+src/                        # Electron app (main + renderer)
+├── main/
 │   ├── index.ts            # App entry, windows, IPC handlers
 │   ├── downloadManager.ts  # Queue, concurrency, task lifecycle
 │   ├── dockProgress.ts     # macOS dock icon animation + speed badge
@@ -171,53 +218,67 @@ src/
 │   ├── mediaSniffer.ts     # Hidden browser media stream detection
 │   ├── database.ts         # SQLite persistence
 │   ├── settings.ts         # JSON settings store
-│   └── localServer.ts      # HTTP server for Chrome extension
-├── preload/                # Context bridge (IPC exposure)
+│   └── localServer.ts      # HTTP server for Chrome extension (:18765)
+├── preload/
 │   ├── index.ts
 │   └── index.d.ts
-└── renderer/               # React frontend
+└── renderer/
     └── src/
-        ├── App.tsx         # Main app logic
-        ├── components/     # UI components
-        │   ├── DownloadItem.tsx
-        │   ├── PlaylistGroup.tsx
-        │   ├── FormatDialog.tsx
-        │   ├── MediaPickerDialog.tsx
-        │   ├── Settings.tsx
-        │   ├── BottomBar.tsx
-        │   ├── TitleBar.tsx
-        │   ├── ClearDialog.tsx
-        │   └── CoinLoader.tsx
+        ├── App.tsx
+        ├── components/     # UI: DownloadItem, FormatDialog, Settings, …
         └── hooks/
-            ├── useDownloads.ts
-            └── useUrlHandler.ts
 
-extension/                      # Chrome Extension (Manifest V3)
+extension/                  # Chrome Extension (Manifest V3)
+├── cookie-sync-domains.js  # Generated — do not hand-edit (run sync:extension-constants)
 ├── manifest.json
-├── background.js               # Media sniffing, URL dispatch, cookie sync
-├── popup.html/js/css           # Media stream picker popup
-├── content.js/css              # YouTube download button injection
-├── content-video-overlay.js/css # Universal video overlay for any site
-├── content-x.js/css            # X/Twitter download buttons
-├── content-douyin.js/css       # Douyin-specific download panel
-└── content-douyin-bridge.js    # Douyin main-world script (React fiber extraction)
+├── background.js
+├── popup.html / popup.js / popup.css
+├── content*.js / content*.css
+└── content-douyin-bridge.js
 ```
+
+## How to use this repository
+
+| Goal | What to do |
+|------|----------------|
+| **Run the macOS app** | Install [Prerequisites](#prerequisites), then [Installation](#installation) / `npm run dev` for development. |
+| **Use the extension** | Load the [`extension/`](extension/) folder in Chrome; keep the desktop app running for `127.0.0.1:18765`. |
+| **Change cookie sync domains** | Edit [packages/shared/src/cookie-sync-domains.ts](packages/shared/src/cookie-sync-domains.ts), then run `npm run sync:extension-constants` at the repo root and reload the extension. |
+| **vdl-server from repo root (Make)** | Run `make help` for a list. Common: `make vdl-install`, `make vdl-build`, `make vdl-dev` (polling), `make vdl-server` (Cloudflare tunnel + server), `make vdl-docker-build` / `make vdl-docker-up` (Docker; compose cwd is still `vdl-server/`). |
+| **Run the Telegram bot** | Put `.env` in [`vdl-server/`](vdl-server/) (see [vdl-server/README.md](vdl-server/README.md)). Use **`make vdl-*`** from the repo root **or** `cd vdl-server` and follow that README (`make server`, Docker). Use **`COOKIE_MODE=file`** if the extension posts cookies to the bot and you want yt-dlp to use that file. |
+| **Deploy the bot** | See [vdl-server/DEPLOYMENT.md](vdl-server/DEPLOYMENT.md) (tunnel, webhook, database). |
+| **Test releases** | See [docs/MANUAL_TESTING.md](docs/MANUAL_TESTING.md). |
+| **Future / research backlog** | See [docs/FUTURE_ENHANCEMENTS.md](docs/FUTURE_ENHANCEMENTS.md) (Douyin hydration, URL/parser work, optional CloakBrowser). |
+
+Desktop usage details (paste URL, shortcuts, settings) are in [Usage](#usage) and [Settings](#settings) below.
 
 ## Development
 
 ```bash
-# Install dependencies
+# Install dependencies (builds @v-download/shared + regenerates extension/cookie-sync-domains.js, then electron-builder native deps)
 npm install
 
-# Start in development mode (hot reload)
+# Desktop — hot reload
 npm run dev
 
-# Build for production
+# Desktop — production build (output in out/)
 npm run build
 
-# Package macOS app
+# Desktop — package macOS .app + DMG
 npm run build:mac
+
+# Regenerate extension domain list only (after editing packages/shared)
+npm run sync:extension-constants
+
+# All Makefile targets (desktop + vdl-server)
+make help
+
+# vdl-server from repo root (same as cd vdl-server && …)
+make vdl-install
+make vdl-dev
 ```
+
+**Telegram bot:** either use **`make vdl-*`** from the repo root (see `make help`) or `cd vdl-server && npm install && npm run dev` — full steps in [vdl-server/README.md](vdl-server/README.md).
 
 ## Chrome Extension Development
 

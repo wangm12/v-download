@@ -123,6 +123,46 @@ export function getYtdlpPath(customPath?: string): string {
   }
 }
 
+function isDouyinUrl(url: string): boolean {
+  return /douyin\.com/i.test(url)
+}
+
+/** Douyin extractor often needs main-site client hints in addition to cookies. */
+function appendDouyinYtdlpArgs(url: string, args: string[], explicitReferer?: string): void {
+  if (!isDouyinUrl(url)) return
+  const flat = args.join('\n')
+  if (!explicitReferer && !/--referer\b/.test(flat)) {
+    args.push('--referer', 'https://www.douyin.com/')
+  }
+  if (!flat.includes('Origin:https://www.douyin.com')) {
+    args.push('--add-header', 'Origin:https://www.douyin.com')
+  }
+}
+
+/** yt-dlp `--cookies-from-browser` value; sanitized so argv cannot be abused via settings.json. */
+function resolvedCookiesBrowser(): string {
+  const raw = settings.get('cookiesFromBrowser')
+  const s = typeof raw === 'string' ? raw.trim() : ''
+  if (!s || s.length > 120) return 'chrome'
+  if (!/^[a-zA-Z0-9_.\-: ]+$/.test(s)) return 'chrome'
+  return s
+}
+
+/**
+ * Douyin: live browser cookies only — merging a Netscape export often leaves stale douyin.com
+ * entries and yt-dlp still reports “Fresh cookies needed”.
+ * Other sites: extension-synced cookies.txt when present.
+ */
+function addYtdlpCookieArgs(url: string, args: string[], cookiesPath?: string): void {
+  if (isDouyinUrl(url)) {
+    args.push('--cookies-from-browser', resolvedCookiesBrowser())
+    return
+  }
+  if (cookiesPath && existsSync(cookiesPath)) {
+    args.push('--cookies', cookiesPath)
+  }
+}
+
 function parseVideoInfoFromJson(json: Record<string, unknown>): VideoInfo {
   const thumbnails = json.thumbnails as Array<{ url: string }> | undefined
   const thumbnail = thumbnails?.[0]?.url ?? (json.thumbnail as string) ?? ''
@@ -168,13 +208,13 @@ export async function getVideoInfo(
     '--no-check-certificate'
   ]
 
-  if (cookiesPath && existsSync(cookiesPath)) {
-    args.push('--cookies', cookiesPath)
-  }
+  addYtdlpCookieArgs(url, args, cookiesPath)
 
   if (isPlaylist) {
     args.push('--flat-playlist')
   }
+
+  appendDouyinYtdlpArgs(url, args)
 
   args.push(url)
 
@@ -350,9 +390,7 @@ export function download(
     '--no-check-certificate'
   ]
 
-  if (cookiesPath && existsSync(cookiesPath)) {
-    args.push('--cookies', cookiesPath)
-  }
+  addYtdlpCookieArgs(url, args, cookiesPath)
 
   if (sleepInterval > 0 && !mediaType) {
     args.push('--sleep-interval', String(sleepInterval))
@@ -375,6 +413,8 @@ export function download(
       args.push('--add-header', `${key}: ${value}`)
     }
   }
+
+  appendDouyinYtdlpArgs(url, args, referer)
 
   args.push(url)
 

@@ -3,14 +3,19 @@
   "version": "1.0.0",
   "description": "A Downie-style video downloader for YouTube, Douyin, and any website, powered by yt-dlp",
   "main": "./out/main/index.js",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "build:mac": "electron-vite build && electron-builder --mac",
     "preview": "electron-vite preview",
-    "postinstall": "electron-builder install-app-deps"
+    "postinstall": "npm run build --workspace=@v-download/shared && node scripts/write-extension-cookie-sync.mjs && electron-builder install-app-deps",
+    "sync:extension-constants": "npm run build --workspace=@v-download/shared && node scripts/write-extension-cookie-sync.mjs"
   },
   "dependencies": {
+    "@v-download/shared": "*",
     "better-sqlite3": "^11.0.0",
     "uuid": "^11.0.0"
   },
