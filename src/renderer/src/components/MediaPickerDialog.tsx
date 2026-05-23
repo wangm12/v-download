@@ -19,10 +19,10 @@ interface MediaPickerDialogProps {
 }
 
 const TYPE_STYLES: Record<string, string> = {
-  hls: 'bg-accent-indigo/20 text-accent-indigo',
-  mp4: 'bg-blue-500/20 text-blue-400',
-  webm: 'bg-emerald-500/20 text-emerald-400',
-  flv: 'bg-amber-500/20 text-amber-400'
+  hls: 'bg-control text-foreground border border-border',
+  mp4: 'bg-control text-muted-foreground border border-border',
+  webm: 'bg-control text-muted-foreground border border-border',
+  flv: 'bg-control text-muted-foreground border border-border'
 }
 
 function getDisplayName(url: string): string {
@@ -90,7 +90,7 @@ export function MediaPickerDialog({ media, pageUrl, pageTitle, onClose, onDownlo
               <h2 className="text-sm font-semibold text-foreground truncate">
                 {pageTitle || 'Detected Media'}
               </h2>
-              <span className="bg-accent-indigo text-background text-[11px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0">
+              <span className="bg-action text-action-fg text-[11px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0">
                 {media.length}
               </span>
             </div>
@@ -116,7 +116,7 @@ export function MediaPickerDialog({ media, pageUrl, pageTitle, onClose, onDownlo
                 type="checkbox"
                 checked={selected.has(index)}
                 onChange={() => toggle(index)}
-                className="mt-0.5 accent-accent-indigo flex-shrink-0 cursor-pointer"
+                className="mt-0.5 accent-white flex-shrink-0 cursor-pointer"
               />
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-medium text-foreground truncate" title={item.url}>
@@ -142,7 +142,7 @@ export function MediaPickerDialog({ media, pageUrl, pageTitle, onClose, onDownlo
           <button
             onClick={handleDownload}
             disabled={selected.size === 0}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-accent-indigo text-background text-sm font-semibold hover:bg-accent-indigo-dark transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-action text-action-fg text-sm font-semibold hover:bg-action-hover transition-all disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
           >
             <Download size={14} />
             Download {selected.size > 0 ? `(${selected.size})` : ''}
@@ -155,7 +155,7 @@ export function MediaPickerDialog({ media, pageUrl, pageTitle, onClose, onDownlo
               {onSkipAll && (
                 <button
                   onClick={onSkipAll}
-                  className="text-[13px] font-medium text-accent-coral hover:underline"
+                  className="text-[13px] font-medium text-muted-foreground hover:text-foreground hover:underline"
                 >
                   Skip All
                 </button>

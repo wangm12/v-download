@@ -10,6 +10,7 @@ const DEFAULT_SETTINGS: SettingsData = {
   defaultAudioQuality: '320',
   sleepInterval: 3,
   cookiesFromBrowser: 'chrome',
+  douyinUseCloakBrowser: false,
   ytdlpPath: '',
   ffmpegPath: ''
 }

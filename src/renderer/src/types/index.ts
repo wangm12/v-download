@@ -68,6 +68,8 @@ export interface SettingsData {
   cookiesPath?: string
   /** yt-dlp `--cookies-from-browser` value for Douyin (chrome, brave, edge, …). */
   cookiesFromBrowser?: string
+  /** Patched Chromium (CloakBrowser) for Douyin page hydration instead of Electron. */
+  douyinUseCloakBrowser?: boolean
   ytdlpPath?: string
   ffmpegPath?: string
 }

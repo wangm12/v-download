@@ -190,7 +190,7 @@ function buildDouyinInfoFromItem(item: Record<string, unknown>, fallbackId: stri
   }
 }
 
-const JSON_MARKERS = ['_ROUTER_DATA', '__MODERN_ROUTER_DATA__', 'SIGI_STATE'] as const
+const JSON_MARKERS = ['_ROUTER_DATA', '__MODERN_ROUTER_DATA__', 'SIGI_STATE', 'SUPER_DATA'] as const
 
 function tryParseEmbeddedJsonMarkers(html: string, videoId: string): DouyinVideoInfo | null {
   for (const marker of JSON_MARKERS) {
@@ -218,6 +218,20 @@ function tryRenderDataScript(html: string, videoId: string): DouyinVideoInfo | n
   } catch {
     return null
   }
+  try {
+    const data = JSON.parse(raw) as Record<string, unknown>
+    const item = findAwemeItemDeep(data)
+    if (item) return buildDouyinInfoFromItem(item, videoId)
+  } catch {
+    return null
+  }
+  return null
+}
+
+function tryNextDataScript(html: string, videoId: string): DouyinVideoInfo | null {
+  const m = html.match(/<script[^>]*\bid=["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/i)
+  if (!m?.[1]) return null
+  const raw = m[1].trim()
   try {
     const data = JSON.parse(raw) as Record<string, unknown>
     const item = findAwemeItemDeep(data)
@@ -355,6 +369,9 @@ function parseDouyinPageHtml(html: string, videoId: string): DouyinVideoInfo {
 
   const fromRender = tryRenderDataScript(html, videoId)
   if (fromRender) return fromRender
+
+  const fromNext = tryNextDataScript(html, videoId)
+  if (fromNext) return fromNext
 
   const loose = tryLoosePlayAddrInHtml(html, videoId)
   if (loose) return loose

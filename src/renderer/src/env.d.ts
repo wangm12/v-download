@@ -37,6 +37,7 @@ interface WindowApi {
   selectDownloadFolder: () => Promise<string | undefined>
   readClipboard: () => Promise<string>
   openSettings: () => Promise<void>
+  onOpenPreferences: (callback: () => void) => () => void
   closeWindow: () => Promise<void>
   installChromeExtension?: () => Promise<{ ok: boolean }>
   requestBrowserCookieSync?: () => Promise<{

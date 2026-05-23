@@ -17,14 +17,17 @@ import { useDownloadActions } from '@/contexts/DownloadActionsContext'
 import { PlaylistDeleteDialog } from './PlaylistDeleteDialog'
 import { ActionButton } from './ActionButton'
 import { formatFileSize } from '@/utils/format'
+import { cn } from '@/lib/cn'
 
 const VISIBLE_ITEMS = 5
 
 interface PlaylistGroupProps {
   playlist: Playlist
+  selectedId: string | null
+  onSelectDownload: (id: string) => void
 }
 
-export function PlaylistGroup({ playlist }: PlaylistGroupProps) {
+export function PlaylistGroup({ playlist, selectedId, onSelectDownload }: PlaylistGroupProps) {
   const actions = useDownloadActions()
   const [expanded, setExpanded] = useState(true)
   const [showAll, setShowAll] = useState(false)
@@ -59,7 +62,7 @@ export function PlaylistGroup({ playlist }: PlaylistGroupProps) {
           }}
         />
       )}
-    <div className="border-b border-border overflow-hidden" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+    <div className="mx-1 mb-1 rounded-lg border border-border overflow-hidden bg-surface" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
       <div
         role="button"
         tabIndex={0}
@@ -75,26 +78,26 @@ export function PlaylistGroup({ playlist }: PlaylistGroupProps) {
             if (!next) setShowAll(false)
           }
         }}
-        className="w-full flex items-center gap-3 px-4 py-3 bg-surface hover:bg-surface/80 transition-colors text-left cursor-pointer"
+        className="w-full flex items-center gap-3 px-4 py-3 bg-surface hover:bg-control transition-colors text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-border-focus"
       >
         {expanded ? (
           <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
         ) : (
           <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
         )}
-        <div className="w-8 h-8 rounded flex items-center justify-center bg-accent-indigo/20 text-accent-indigo flex-shrink-0">
+        <div className="w-8 h-8 rounded flex items-center justify-center bg-control text-foreground flex-shrink-0 border border-border">
           <ListVideo className="w-4 h-4" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-foreground truncate">{playlist.title}</p>
+          <p className="text-sm font-semibold text-foreground truncate">{playlist.title}</p>
           <p className="text-xs text-muted-foreground">
             {playlist.type} · {playlist.total_count} videos · {playlist.output_dir}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <div className="w-24 h-1.5 rounded-full bg-elevated overflow-hidden">
+          <div className="w-24 h-1.5 rounded-full bg-control overflow-hidden border border-border/50">
             <div
-              className="h-full rounded-full bg-accent-indigo transition-all duration-300"
+              className="h-full rounded-full bg-progress transition-all duration-300"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
@@ -107,7 +110,7 @@ export function PlaylistGroup({ playlist }: PlaylistGroupProps) {
                 e.stopPropagation()
                 resumableItems.forEach((d) => actions.retry(d.id))
               }}
-              className="p-1 rounded text-muted-foreground hover:text-accent-green hover:bg-elevated transition-colors"
+              className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-control transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
               title="Resume all"
             >
               <Play className="w-4 h-4" />
@@ -121,7 +124,7 @@ export function PlaylistGroup({ playlist }: PlaylistGroupProps) {
                   .filter((d) => d.status === 'downloading' || d.status === 'queued')
                   .forEach((d) => actions.pause(d.id))
               }}
-              className="p-1 rounded text-muted-foreground hover:text-accent-amber hover:bg-elevated transition-colors"
+              className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-control transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
               title="Pause all"
             >
               <Pause className="w-4 h-4" />
@@ -133,7 +136,7 @@ export function PlaylistGroup({ playlist }: PlaylistGroupProps) {
               e.stopPropagation()
               setDeleteDialogOpen(true)
             }}
-            className="p-1 rounded text-muted-foreground hover:text-accent-coral hover:bg-elevated transition-colors"
+            className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-control transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
             title="Remove playlist"
             aria-label="Remove playlist"
           >
@@ -143,20 +146,40 @@ export function PlaylistGroup({ playlist }: PlaylistGroupProps) {
       </div>
 
       {expanded && (
-        <div className="bg-background">
+        <div className="bg-background border-t border-border/50">
           {visibleDownloads.map((d, idx) => (
             <div
               key={d.id}
-              className="h-11 flex items-center gap-3 pl-14 pr-4 border-t border-border/30 hover:bg-surface/30 transition-colors"
+              role="button"
+              tabIndex={0}
+              onClick={() => onSelectDownload(d.id)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  onSelectDownload(d.id)
+                }
+              }}
+              onDoubleClick={() => {
+                if (d.status === 'complete' && d.file_path) actions.openFile(d.file_path)
+              }}
+              className={cn(
+                'h-11 flex items-center gap-3 pl-14 pr-4 mx-1 mb-1 rounded-md border transition-colors cursor-default focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-border-focus',
+                selectedId === d.id
+                  ? 'bg-state-active-bg border-white/[0.18]'
+                  : 'border-transparent hover:bg-control'
+              )}
             >
               <span className="w-5 text-xs text-tertiary-foreground flex-shrink-0">
                 {d.playlist_index ?? idx + 1}.
               </span>
-              {d.status === 'complete' && <CircleCheckBig className="w-4 h-4 text-accent-green flex-shrink-0" />}
-              {d.status === 'downloading' && <Loader className="w-4 h-4 text-accent-indigo animate-spin flex-shrink-0" />}
-              {d.status === 'paused' && <Pause className="w-4 h-4 text-accent-amber flex-shrink-0" />}
-              {(d.status === 'queued' || d.status === 'error' || d.status === 'interrupted' || d.status === 'cancelled') && (
-                <Timer className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              {d.status === 'complete' && <CircleCheckBig className="w-4 h-4 text-emerald-400 flex-shrink-0" aria-hidden />}
+              {d.status === 'downloading' && <Loader className="w-4 h-4 text-foreground animate-spin flex-shrink-0" aria-hidden />}
+              {d.status === 'paused' && <Pause className="w-4 h-4 text-muted-foreground flex-shrink-0" aria-hidden />}
+              {(d.status === 'queued' || d.status === 'cancelled') && (
+                <Timer className="w-4 h-4 text-muted-foreground flex-shrink-0" aria-hidden />
+              )}
+              {(d.status === 'error' || d.status === 'interrupted') && (
+                <Timer className="w-4 h-4 text-red-400 flex-shrink-0" aria-hidden />
               )}
               <p className="flex-1 text-sm text-foreground truncate min-w-0">{d.title}</p>
               <span className="text-xs text-muted-foreground flex-shrink-0">
@@ -166,36 +189,39 @@ export function PlaylistGroup({ playlist }: PlaylistGroupProps) {
                     ? `${Math.round(d.progress)}%`
                     : ''}
               </span>
-              {d.status === 'downloading' && (
-                <div className="flex gap-1 flex-shrink-0">
-                  <ActionButton icon={Pause} variant="warning" title="Pause" size="sm" onClick={() => actions.pause(d.id)} />
-                  <ActionButton icon={Trash2} variant="danger" title="Delete with files" size="sm" onClick={() => actions.removeWithFiles(d.id)} />
-                </div>
-              )}
-              {d.status === 'paused' && (
-                <div className="flex gap-1 flex-shrink-0">
-                  <ActionButton icon={Play} variant="success" title="Resume" size="sm" onClick={() => actions.retry(d.id)} />
-                  <ActionButton icon={Trash2} variant="danger" title="Delete with files" size="sm" onClick={() => actions.removeWithFiles(d.id)} />
-                </div>
-              )}
-              {d.status === 'complete' && d.file_path && (
-                <div className="flex gap-1 flex-shrink-0">
-                  <ActionButton icon={FolderOpen} title="Open folder" size="sm" onClick={() => actions.openFolder(d.file_path!)} />
-                  <ActionButton icon={Trash2} variant="danger" title="Remove" size="sm" onClick={() => actions.remove(d.id)} />
-                </div>
-              )}
-              {(d.status === 'interrupted' || d.status === 'error' || d.status === 'cancelled') && (
-                <div className="flex gap-1 flex-shrink-0">
-                  <ActionButton icon={RotateCcw} variant="success" title="Retry" size="sm" onClick={() => actions.retry(d.id)} />
-                  <ActionButton icon={Trash2} variant="danger" title="Remove" size="sm" onClick={() => actions.remove(d.id)} />
-                </div>
-              )}
+              <div className="flex gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                {d.status === 'downloading' && (
+                  <>
+                    <ActionButton icon={Pause} title="Pause" size="sm" onClick={() => actions.pause(d.id)} />
+                    <ActionButton icon={Trash2} title="Delete with files" size="sm" onClick={() => actions.removeWithFiles(d.id)} />
+                  </>
+                )}
+                {d.status === 'paused' && (
+                  <>
+                    <ActionButton icon={Play} title="Resume" size="sm" onClick={() => actions.retry(d.id)} />
+                    <ActionButton icon={Trash2} title="Delete with files" size="sm" onClick={() => actions.removeWithFiles(d.id)} />
+                  </>
+                )}
+                {d.status === 'complete' && d.file_path && (
+                  <>
+                    <ActionButton icon={FolderOpen} title="Open folder" size="sm" onClick={() => actions.openFolder(d.file_path!)} />
+                    <ActionButton icon={Trash2} title="Remove" size="sm" onClick={() => actions.remove(d.id)} />
+                  </>
+                )}
+                {(d.status === 'interrupted' || d.status === 'error' || d.status === 'cancelled') && (
+                  <>
+                    <ActionButton icon={RotateCcw} title="Retry" size="sm" onClick={() => actions.retry(d.id)} />
+                    <ActionButton icon={Trash2} title="Remove" size="sm" onClick={() => actions.remove(d.id)} />
+                  </>
+                )}
+              </div>
             </div>
           ))}
           {hasMore && (
             <button
+              type="button"
               onClick={() => setShowAll(true)}
-              className="w-full h-11 flex items-center pl-14 pr-4 text-xs text-accent-indigo hover:bg-surface/30 transition-colors"
+              className="w-full h-11 flex items-center pl-14 pr-4 text-xs text-muted-foreground hover:text-foreground hover:bg-control transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
             >
               ... and {moreCount} more videos
             </button>

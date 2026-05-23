@@ -37,7 +37,17 @@ export interface WindowApi {
   readClipboard: () => Promise<string>
   installChromeExtension: () => Promise<{ ok?: boolean; path?: string; error?: string }>
   openSettings: () => Promise<void>
+  onOpenPreferences: (callback: () => void) => () => void
   closeWindow: () => Promise<void>
+  onCookiesSynced?: (callback: (data: { count: number }) => void) => () => void
+  requestBrowserCookieSync?: () => Promise<{
+    ok: boolean
+    openedBrowser?: boolean
+    landingUrl?: string
+    message?: string
+    error?: string
+  }>
+  setNativeThemeSource: (source: 'dark' | 'light' | 'system') => Promise<{ ok: boolean; error?: string }>
   platform: NodeJS.Platform
 }
 

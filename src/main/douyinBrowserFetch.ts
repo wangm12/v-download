@@ -2,10 +2,16 @@
  * Douyin often responds to plain Node `fetch()` with an anti-bot HTML shell
  * (byted_acrawler + location.reload) and no video JSON. A hidden BrowserWindow
  * runs the same JS as Chrome and yields hydrated DOM after reload.
+ *
+ * Optional: enable "Use CloakBrowser for Douyin" in Settings (or
+ * V_DOWNLOAD_CLOAKBROWSER=1) to use CloakBrowser's patched Chromium via
+ * Playwright instead of Electron's engine. See README for licensing and footprint.
  */
-import { BrowserWindow, session } from 'electron'
+import { BrowserWindow, session, app } from 'electron'
 import { existsSync, readFileSync } from 'fs'
-import { resolve } from 'path'
+import { join, resolve } from 'path'
+import type { BrowserContext } from 'playwright-core'
+import * as settings from './settings'
 
 const MOBILE_UA =
   'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1'
@@ -19,6 +25,10 @@ const SESSION_PARTITION = 'persist:v-download-douyin-hydrate'
 /** Max wall time including reload chains (acrawler + location.reload). */
 const MAX_WALL_MS = 120_000
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms))
+}
+
 export function isDouyinAntiBotShell(html: string): boolean {
   if (!html || html.length < 800 || html.length > 200_000) return false
   if (!/byted_acrawler\.init/i.test(html)) return false
@@ -27,7 +37,8 @@ export function isDouyinAntiBotShell(html: string): boolean {
   return true
 }
 
-function htmlLooksHydrated(html: string): boolean {
+/** True when HTML likely contains embeddable Douyin video JSON (Electron or Cloak polling). */
+export function htmlLooksHydrated(html: string): boolean {
   if (!html || html.length < 8000) return false
   if (isDouyinAntiBotShell(html)) return false
   if (
@@ -37,11 +48,56 @@ function htmlLooksHydrated(html: string): boolean {
   ) {
     return true
   }
-  // Some hydrated SPAs omit _ROUTER_DATA but embed aweme JSON at scale
+  // iesdouyin / share SPAs sometimes omit _ROUTER_DATA but ship Next.js or Byte embeds
+  if (
+    html.length >= 12_000 &&
+    /id=["']__NEXT_DATA__["']|"aweme_detail"|"awemeDetail"|"videoInfoRes"|"SUPER_DATA"\s*=|window\.__INITIAL_STATE__|SSR_RENDER_DATA/i.test(
+      html
+    )
+  ) {
+    return true
+  }
   if (html.length > 35_000 && /"aweme_id"\s*:\s*"\d{10,}"/.test(html)) {
     return true
   }
   return false
+}
+
+type PwCookie = {
+  name: string
+  value: string
+  domain: string
+  path: string
+  expires: number
+  httpOnly: boolean
+  secure: boolean
+  sameSite: 'Strict' | 'Lax' | 'None'
+}
+
+/** Netscape file → Playwright `addCookies` (Douyin / ByteDance related domains only). */
+function netscapeToPlaywrightCookies(absPath: string): PwCookie[] {
+  if (!existsSync(absPath)) return []
+  const out: PwCookie[] = []
+  for (const line of readFileSync(absPath, 'utf-8').split('\n')) {
+    if (!line.trim() || line.startsWith('#')) continue
+    const p = line.split('\t')
+    if (p.length < 7) continue
+    const [domain, , path, secureStr, expiresStr, name, value] = p
+    if (!/douyin|iesdouyin|byte|snssdk|aweme|toutiao/i.test(domain)) continue
+    const exp = parseInt(expiresStr, 10)
+    const secure = secureStr === 'TRUE'
+    out.push({
+      name,
+      value,
+      domain: domain.trim(),
+      path: path?.trim() || '/',
+      expires: exp > 0 ? exp : -1,
+      httpOnly: false,
+      secure,
+      sameSite: 'Lax',
+    })
+  }
+  return out
 }
 
 async function applyNetscapeCookiesToSession(ses: Electron.Session, cookiePath: string): Promise<void> {
@@ -82,12 +138,101 @@ async function applyNetscapeCookiesToSession(ses: Electron.Session, cookiePath: 
 function pickChromiumUa(pageUrl: string, preferred: 'mobile' | 'desktop' | 'auto'): string {
   if (preferred === 'mobile') return MOBILE_UA
   if (preferred === 'desktop') return DESKTOP_UA
-  // auto: main video page often matches mobile Safari; share hosts use desktop.
   if (/www\.douyin\.com\/video\//i.test(pageUrl)) return MOBILE_UA
   return DESKTOP_UA
 }
 
-export async function fetchDouyinHtmlWithChromium(
+function useCloakBrowserEngine(): boolean {
+  return process.env.V_DOWNLOAD_CLOAKBROWSER === '1' || settings.get('douyinUseCloakBrowser') === true
+}
+
+async function fetchDouyinHtmlWithCloakBrowser(
+  pageUrl: string,
+  options?: { cookiesFilePath?: string; timeoutMs?: number; preferredUa?: 'mobile' | 'desktop' | 'auto' }
+): Promise<string> {
+  const initialTimeout = options?.timeoutMs ?? 52_000
+  const started = Date.now()
+  let deadline = started + initialTimeout
+  const pref = options?.preferredUa ?? 'auto'
+  const ua = pickChromiumUa(pageUrl, pref)
+  const isMobile = ua === MOBILE_UA
+
+  const bumpDeadline = () => {
+    const bump = Date.now() + 30_000
+    deadline = Math.min(started + MAX_WALL_MS, Math.max(deadline, bump))
+  }
+
+  let ctx: BrowserContext | null = null
+  try {
+    const { launchPersistentContext, ensureBinary } = await import('cloakbrowser')
+    try {
+      await ensureBinary()
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      throw new Error(
+        `CloakBrowser binary could not be downloaded (${msg}). Check network or disable “Use CloakBrowser for Douyin” in Settings.`
+      )
+    }
+
+    const userDataDir = join(app.getPath('userData'), 'cloak-douyin-profile')
+    ctx = await launchPersistentContext({
+      userDataDir,
+      headless: true,
+      locale: 'zh-CN',
+      userAgent: ua,
+      viewport: isMobile ? { width: 390, height: 844 } : { width: 1280, height: 800 },
+    })
+
+    if (options?.cookiesFilePath?.trim()) {
+      const abs = resolve(options.cookiesFilePath.trim())
+      const cookies = netscapeToPlaywrightCookies(abs)
+      if (cookies.length > 0) {
+        await ctx.addCookies(cookies)
+        console.log(`[douyin:cloak] Injected ${cookies.length} cookies from Netscape file`)
+      }
+    }
+
+    const page = ctx.pages()[0] ?? (await ctx.newPage())
+    await page.setExtraHTTPHeaders({
+      'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+      Referer: 'https://www.douyin.com/',
+    })
+
+    await page.goto(pageUrl, {
+      timeout: initialTimeout,
+      waitUntil: 'domcontentloaded',
+    })
+    bumpDeadline()
+
+    while (Date.now() < deadline) {
+      await sleep(450)
+      bumpDeadline()
+      const html = await page.content()
+      if (htmlLooksHydrated(html)) {
+        console.log(`[douyin] CloakBrowser got hydrated HTML (${html.length} bytes) for ${pageUrl}`)
+        return html
+      }
+    }
+
+    const last = await page.content().catch(() => '')
+    if (last && htmlLooksHydrated(last)) {
+      console.log(`[douyin] CloakBrowser got hydrated HTML (${last.length} bytes, final poll) for ${pageUrl}`)
+      return last
+    }
+
+    throw new Error('Timed out waiting for Douyin page to hydrate in CloakBrowser')
+  } finally {
+    if (ctx) {
+      try {
+        await ctx.close()
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+}
+
+async function fetchDouyinHtmlWithElectronChromium(
   pageUrl: string,
   options?: { cookiesFilePath?: string; timeoutMs?: number; preferredUa?: 'mobile' | 'desktop' | 'auto' }
 ): Promise<string> {
@@ -160,7 +305,7 @@ export async function fetchDouyinHtmlWithChromium(
     })
 
     while (Date.now() < deadline) {
-      await new Promise((r) => setTimeout(r, 450))
+      await sleep(450)
       const html: string = await win.webContents.executeJavaScript(
         `document.documentElement ? document.documentElement.outerHTML : ''`
       )
@@ -178,5 +323,24 @@ export async function fetchDouyinHtmlWithChromium(
     throw new Error('Timed out waiting for Douyin page to hydrate in Chromium')
   } finally {
     destroy()
+  }
+}
+
+export async function fetchDouyinHtmlWithChromium(
+  pageUrl: string,
+  options?: { cookiesFilePath?: string; timeoutMs?: number; preferredUa?: 'mobile' | 'desktop' | 'auto' }
+): Promise<string> {
+  if (useCloakBrowserEngine()) {
+    return fetchDouyinHtmlWithCloakBrowser(pageUrl, options)
+  }
+
+  try {
+    return await fetchDouyinHtmlWithElectronChromium(pageUrl, options)
+  } catch (err) {
+    if (process.env.V_DOWNLOAD_CLOAK_FALLBACK === '1') {
+      console.warn('[douyin] Electron hydrate failed; trying CloakBrowser fallback…', err)
+      return fetchDouyinHtmlWithCloakBrowser(pageUrl, options)
+    }
+    throw err
   }
 }

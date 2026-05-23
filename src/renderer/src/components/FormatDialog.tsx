@@ -69,7 +69,7 @@ export function FormatDialog({ videoInfo, settings, onClose, onDownload, queueCo
             {videoInfo.thumbnail ? (
               <img src={videoInfo.thumbnail} alt="" className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full bg-gradient-to-r from-accent-indigo to-accent-coral" />
+              <div className="w-full h-full bg-gradient-to-br from-elevated to-surface" />
             )}
           </div>
           <div className="min-w-0 pr-6">
@@ -104,7 +104,7 @@ export function FormatDialog({ videoInfo, settings, onClose, onDownload, queueCo
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                <Icon size={14} className={isActive ? 'text-accent-indigo' : ''} />
+                <Icon size={14} className={isActive ? 'text-foreground' : ''} />
                 {tab.label}
               </button>
             )
@@ -125,11 +125,11 @@ export function FormatDialog({ videoInfo, settings, onClose, onDownload, queueCo
               <div key={fmt.quality}>
                 <div className="flex items-center h-11 px-3">
                   <span className="w-[160px] text-[13px] font-medium text-foreground">{fmt.label}</span>
-                  <span className="w-[100px] text-[13px] text-subtle-foreground">Auto</span>
+                  <span className="w-[100px] text-[13px] text-subtle-foreground">Best available</span>
                   <div className="flex-1 flex justify-end">
                     <button
                       onClick={() => handleDownload('mp4', fmt.quality)}
-                      className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-accent-indigo text-background text-xs font-semibold hover:bg-accent-indigo-dark transition-all"
+                      className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-action text-action-fg text-xs font-semibold hover:bg-action-hover transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
                     >
                       <Download size={13} />
                       Download
@@ -145,11 +145,11 @@ export function FormatDialog({ videoInfo, settings, onClose, onDownload, queueCo
               <div key={fmt.quality}>
                 <div className="flex items-center h-11 px-3">
                   <span className="w-[160px] text-[13px] font-medium text-foreground">{fmt.label}</span>
-                  <span className="w-[100px] text-[13px] text-subtle-foreground">Auto</span>
+                  <span className="w-[100px] text-[13px] text-subtle-foreground">Best available</span>
                   <div className="flex-1 flex justify-end">
                     <button
                       onClick={() => handleDownload('mp3', fmt.quality)}
-                      className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-accent-indigo text-background text-xs font-semibold hover:bg-accent-indigo-dark transition-all"
+                      className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-action text-action-fg text-xs font-semibold hover:bg-action-hover transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
                     >
                       <Download size={13} />
                       Download
@@ -174,7 +174,7 @@ export function FormatDialog({ videoInfo, settings, onClose, onDownload, queueCo
             <span className="text-[11px] text-muted-foreground truncate">{downloadDir}</span>
             <button
               onClick={handleChangeFolder}
-              className="text-[11px] font-medium text-accent-indigo hover:underline flex-shrink-0"
+              className="text-[11px] font-medium text-foreground hover:underline flex-shrink-0"
             >
               Change
             </button>
@@ -187,7 +187,7 @@ export function FormatDialog({ videoInfo, settings, onClose, onDownload, queueCo
               {onSkipAll && (
                 <button
                   onClick={onSkipAll}
-                  className="text-[13px] font-medium text-accent-coral hover:underline"
+                  className="text-[13px] font-medium text-muted-foreground hover:text-foreground hover:underline"
                 >
                   Skip All
                 </button>

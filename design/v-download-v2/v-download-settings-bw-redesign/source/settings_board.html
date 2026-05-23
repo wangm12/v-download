@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>V-Download Settings Black and White Redesign</title>
+<style>
+:root{
+  --black:#000;
+  --bg:#050505;
+  --window:#0a0a0a;
+  --panel:#0f0f0f;
+  --panel-2:#151515;
+  --panel-3:#1e1e1e;
+  --line:rgba(255,255,255,.10);
+  --line-2:rgba(255,255,255,.16);
+  --text:#f4f4f4;
+  --text-2:#c9c9c9;
+  --muted:#8f8f8f;
+  --dim:#616161;
+  --white:#fff;
+  --radius-xl:28px;
+  --radius-lg:20px;
+  --radius-md:14px;
+  --radius-sm:10px;
+  --shadow:0 36px 90px rgba(0,0,0,.58);
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",Inter,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);}
+body{min-height:100vh;}
+.board{display:flex;flex-direction:column;align-items:center;gap:46px;padding:42px;background:#050505;}
+.screen{position:relative;width:1440px;height:1000px;overflow:hidden;background:radial-gradient(circle at 18% 16%,rgba(255,255,255,.035),transparent 30%),#050505;border:1px solid rgba(255,255,255,.08);border-radius:34px;box-shadow:0 30px 80px rgba(0,0,0,.52);}
+.screen-number{position:absolute;left:56px;top:38px;width:34px;height:34px;border-radius:12px;border:1px solid var(--line);background:var(--panel-2);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:800;z-index:4;}
+.screen-title{position:absolute;left:104px;top:47px;font-size:15px;font-weight:800;letter-spacing:-.01em;z-index:4;}
+.screen-note{position:absolute;right:58px;top:44px;width:460px;text-align:right;color:var(--muted);font-size:13px;line-height:1.45;z-index:4;}
+.pref-window{position:absolute;left:120px;right:120px;top:118px;bottom:84px;border:1px solid var(--line-2);border-radius:26px;background:var(--window);box-shadow:var(--shadow);overflow:hidden;}
+.titlebar{height:52px;display:grid;grid-template-columns:170px 1fr 170px;align-items:center;border-bottom:1px solid var(--line);background:#070707;}
+.dots{display:flex;gap:9px;padding-left:18px;}
+.dot{width:12px;height:12px;border-radius:50%;background:#737373;}
+.dot:nth-child(2){background:#959595}.dot:nth-child(3){background:#5f5f5f}
+.window-title{text-align:center;font-size:13px;font-weight:800;color:#f7f7f7;}
+.title-action{display:flex;justify-content:flex-end;padding-right:16px;gap:8px;}
+.icon-btn{width:32px;height:32px;border-radius:10px;border:1px solid var(--line);background:#101010;color:#d7d7d7;display:flex;align-items:center;justify-content:center;font-size:13px;}
+.pref-body{height:calc(100% - 52px);display:grid;grid-template-columns:250px 1fr;}
+.pref-sidebar{border-right:1px solid var(--line);background:#0d0d0d;padding:22px 14px;display:flex;flex-direction:column;}
+.pref-brand{display:flex;gap:12px;align-items:center;padding:6px 8px 24px;}
+.pref-logo{width:42px;height:42px;border-radius:15px;background:#fff;position:relative;flex:none;}
+.pref-logo:after{content:"";position:absolute;left:16px;top:11px;width:0;height:0;border-left:13px solid #000;border-top:9px solid transparent;border-bottom:9px solid transparent;}
+.pref-brand strong{display:block;font-size:15px;font-weight:850;}.pref-brand span{display:block;color:var(--muted);font-size:12px;margin-top:3px;}
+.nav{display:flex;flex-direction:column;gap:4px;}
+.nav-label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#707070;font-weight:900;padding:0 10px 7px;}
+.nav-item{height:38px;border-radius:13px;padding:0 11px;display:flex;align-items:center;gap:10px;color:#c4c4c4;font-size:13px;font-weight:750;}
+.nav-item .ico{width:18px;text-align:center;color:#9b9b9b}.nav-item .count{margin-left:auto;color:#787878;font-size:12px;}
+.nav-item.active{background:#fff;color:#000;}.nav-item.active .ico{color:#000}.nav-item.active .count{color:#4f4f4f}
+.sidebar-footer{margin-top:auto;border-top:1px solid var(--line);padding:16px 8px 0;color:#8e8e8e;font-size:12px;line-height:1.45;}
+.sidebar-footer strong{display:block;color:#e5e5e5;font-size:12px;margin-bottom:4px;}
+.pref-main{padding:28px 32px;overflow:hidden;}
+.pref-heading{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;}
+.pref-heading h1{margin:0;font-size:28px;letter-spacing:-.045em;line-height:1;}.pref-heading p{margin:9px 0 0;color:var(--muted);font-size:13px;line-height:1.35;}
+.btn{height:38px;padding:0 15px;border-radius:12px;border:1px solid var(--line-2);background:#151515;color:#f4f4f4;font-size:12px;font-weight:850;display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;}
+.btn.primary{background:#fff;color:#000;border-color:#fff}.btn.ghost{background:transparent}.btn.strong{background:#202020}.btn.warn{border-style:dashed}.btn.tiny{height:30px;border-radius:10px;padding:0 10px;font-size:11px}.btn.disabled{opacity:.45}
+.cards{display:flex;flex-direction:column;gap:14px;}
+.card{border:1px solid var(--line);border-radius:20px;background:#111;overflow:hidden;}
+.card-head{padding:17px 18px 13px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.card-head.no-line{border-bottom:0;padding-bottom:16px}.card-head h2{margin:0;font-size:15px;letter-spacing:-.02em}.card-head p{margin:5px 0 0;color:var(--muted);font-size:12px;line-height:1.35;}
+.setting-row{min-height:66px;display:grid;grid-template-columns:1fr auto;align-items:center;gap:20px;padding:14px 18px;border-top:1px solid var(--line);}
+.card .setting-row:first-of-type{border-top:0}.setting-label strong{display:block;font-size:13px;font-weight:850;color:#f5f5f5;}.setting-label span{display:block;color:var(--muted);font-size:12px;line-height:1.4;margin-top:4px;max-width:520px;}
+.input-group{display:flex;align-items:center;gap:8px;}.input{min-width:300px;height:38px;border-radius:12px;border:1px solid var(--line-2);background:#1b1b1b;color:#e9e9e9;display:flex;align-items:center;padding:0 12px;gap:8px;font-size:12px;}.input.wide{min-width:420px}.input.small{min-width:170px}.input code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#dcdcdc;font-size:11px;}
+.select:after{content:"⌄";margin-left:auto;color:#9c9c9c;}
+.stepper{height:38px;display:flex;align-items:center;gap:12px;}.stepper button{width:34px;height:34px;border-radius:11px;border:1px solid var(--line-2);background:#1b1b1b;color:#fff;font-size:15px;}.stepper strong{min-width:16px;text-align:center;font-size:14px;}
+.toggle{width:44px;height:24px;border-radius:999px;background:#fff;position:relative;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);}.toggle:after{content:"";position:absolute;right:4px;top:4px;width:16px;height:16px;border-radius:50%;background:#000;}.toggle.off{background:#222;border:1px solid var(--line-2)}.toggle.off:after{left:4px;right:auto;background:#777;}
+.pill{display:inline-flex;align-items:center;gap:6px;height:26px;border-radius:999px;padding:0 9px;border:1px solid var(--line-2);background:#1a1a1a;color:#e9e9e9;font-size:11px;font-weight:850;}.pill:before{content:"";width:6px;height:6px;border-radius:50%;background:#fff;}.pill.outline{background:transparent}.pill.muted:before{background:#777}.pill.dashed{border-style:dashed}.pill.dashed:before{background:#aaa}.pill.solid{background:#fff;color:#000}.pill.solid:before{background:#000}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;}.mini-card{border:1px solid var(--line);border-radius:18px;background:#111;padding:16px;min-height:126px;}.mini-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.mini-card h3{margin:0;font-size:14px;}.mini-card p{margin:0;color:var(--muted);font-size:12px;line-height:1.45;}.mini-actions{display:flex;gap:8px;margin-top:16px;}
+.table{border:1px solid var(--line);border-radius:18px;overflow:hidden;background:#111;}.table-row{display:grid;grid-template-columns:1fr 150px 120px 100px;align-items:center;gap:14px;min-height:58px;padding:0 16px;border-top:1px solid var(--line);font-size:12px;}.table-row:first-child{border-top:0}.table-row.head{min-height:38px;background:#151515;color:#858585;font-size:10px;text-transform:uppercase;letter-spacing:.08em;font-weight:900}.site-title strong{display:block;font-size:13px}.site-title span{display:block;color:var(--muted);font-size:11px;margin-top:4px}.checks{display:flex;gap:8px;align-items:center}.check{width:20px;height:20px;border-radius:6px;border:1px solid var(--line-2);display:flex;align-items:center;justify-content:center;color:#000;font-size:12px;}.check.on{background:#fff;border-color:#fff}.check.on:after{content:"✓"}
+.advanced-grid{display:grid;grid-template-columns:1fr;gap:14px}.warning-box{border:1px dashed var(--line-2);border-radius:18px;background:#101010;padding:16px 18px;display:flex;justify-content:space-between;align-items:center;gap:20px;}.warning-box strong{display:block;font-size:14px}.warning-box span{display:block;color:var(--muted);font-size:12px;margin-top:5px;line-height:1.4;}
+.compact-modal{position:absolute;left:467px;top:110px;width:506px;height:760px;border:1px solid var(--line-2);border-radius:18px;background:#0d0d0d;box-shadow:var(--shadow);overflow:hidden;}
+.compact-modal .titlebar{height:44px;grid-template-columns:112px 1fr 112px;}.compact-content{height:calc(100% - 102px);padding:22px 24px;overflow:hidden;background:#111;}.compact-footer{height:58px;border-top:1px solid var(--line);padding:10px 14px;background:#0c0c0c;}.compact-footer .btn{width:100%;height:38px}.compact-section{margin-bottom:18px}.compact-section h2{font-size:15px;margin:0 0 10px}.compact-field{margin-bottom:14px}.compact-field label{display:block;font-size:12px;color:#8f8f8f;margin-bottom:7px}.compact-row{display:flex;gap:8px;align-items:center}.compact-card{border:1px solid var(--line);background:#151515;border-radius:16px;padding:14px;margin-top:9px}.compact-card-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}.compact-card strong{font-size:13px}.compact-card p{margin:0;color:#8f8f8f;font-size:12px;line-height:1.4}.compact-setting{height:48px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}.compact-setting:first-of-type{border-top:0}.compact-setting strong{font-size:13px}.range{height:8px;border-radius:99px;background:#222;border:1px solid var(--line);overflow:hidden}.range span{display:block;height:100%;width:58%;background:#fff;border-radius:99px}
+.callout{border:1px dashed var(--line-2);border-radius:18px;background:#0f0f0f;padding:14px 16px;color:#bdbdbd;font-size:12px;line-height:1.45;}
+.callout strong{display:block;color:#f5f5f5;font-size:13px;margin-bottom:5px;}
+.kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;border:1px solid var(--line-2);border-bottom-color:rgba(255,255,255,.26);border-radius:6px;padding:1px 5px;color:#fff;background:#161616;font-size:11px;}
+@media print{.board{padding:0;gap:0}.screen{border-radius:0;border:0;box-shadow:none;page-break-after:always}}
+</style>
+</head>
+<body>
+<div class="board">
+
+<section class="screen" id="settings_general">
+  <div class="screen-number">01</div><div class="screen-title">Preferences - General</div><div class="screen-note">Replaces the single mixed Settings modal with a scalable Preferences window and grouped controls.</div>
+  <div class="pref-window">
+    <div class="titlebar"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><div class="window-title">Preferences</div><div class="title-action"><button class="icon-btn">⌘</button></div></div>
+    <div class="pref-body">
+      <aside class="pref-sidebar">
+        <div class="pref-brand"><div class="pref-logo"></div><div><strong>V-Download</strong><span>Application settings</span></div></div>
+        <div class="nav-label">Settings</div><nav class="nav">
+          <div class="nav-item active"><span class="ico">⚙</span>General</div><div class="nav-item"><span class="ico">↓</span>Downloads</div><div class="nav-item"><span class="ico">◉</span>Browser</div><div class="nav-item"><span class="ico">▦</span>Sites</div><div class="nav-item"><span class="ico">⌁</span>Advanced</div>
+        </nav>
+        <div class="sidebar-footer"><strong>Local-first settings</strong>Browser data and cookies stay on this Mac unless explicitly exported.</div>
+      </aside>
+      <main class="pref-main">
+        <div class="pref-heading"><div><h1>General</h1><p>Default folder, app behavior, and simple queue rules.</p></div><button class="btn primary">Done</button></div>
+        <div class="cards">
+          <section class="card">
+            <div class="card-head"><div><h2>Save location</h2><p>Where completed media files should be stored.</p></div></div>
+            <div class="setting-row"><div class="setting-label"><strong>Download folder</strong><span>Used for all downloads unless a specific item or playlist overrides it.</span></div><div class="input-group"><div class="input wide">⌘ /Users/mingjie/Downloads</div><button class="btn">Browse</button></div></div>
+            <div class="setting-row"><div class="setting-label"><strong>Create playlist/channel subfolders</strong><span>Keep batch downloads organized automatically.</span></div><div class="toggle"></div></div>
+          </section>
+          <section class="card">
+            <div class="card-head"><div><h2>Default behavior</h2><p>Controls that affect every new pasted or captured download.</p></div></div>
+            <div class="setting-row"><div class="setting-label"><strong>Show format picker before download</strong><span>Ask for video, audio, and caption choices after scanning.</span></div><div class="toggle"></div></div>
+            <div class="setting-row"><div class="setting-label"><strong>Auto-start after scanning</strong><span>Start immediately when a recommended format is available.</span></div><div class="toggle off"></div></div>
+            <div class="setting-row"><div class="setting-label"><strong>Keep completed downloads in history</strong><span>Completed rows stay visible until manually cleared.</span></div><div class="toggle"></div></div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="settings_downloads">
+  <div class="screen-number">02</div><div class="screen-title">Preferences - Downloads</div><div class="screen-note">Queue controls are separated from general app behavior so power users can tune performance without clutter.</div>
+  <div class="pref-window">
+    <div class="titlebar"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><div class="window-title">Preferences</div><div class="title-action"><button class="icon-btn">⌘</button></div></div>
+    <div class="pref-body">
+      <aside class="pref-sidebar"><div class="pref-brand"><div class="pref-logo"></div><div><strong>V-Download</strong><span>Application settings</span></div></div><div class="nav-label">Settings</div><nav class="nav"><div class="nav-item"><span class="ico">⚙</span>General</div><div class="nav-item active"><span class="ico">↓</span>Downloads</div><div class="nav-item"><span class="ico">◉</span>Browser</div><div class="nav-item"><span class="ico">▦</span>Sites</div><div class="nav-item"><span class="ico">⌁</span>Advanced</div></nav><div class="sidebar-footer"><strong>Recommended</strong>Keep concurrent downloads between 2 and 4 for best stability.</div></aside>
+      <main class="pref-main"><div class="pref-heading"><div><h1>Downloads</h1><p>Queue speed, retry behavior, filename rules, and completion actions.</p></div><button class="btn primary">Done</button></div>
+        <div class="cards">
+          <section class="card"><div class="card-head"><div><h2>Queue</h2><p>Balance speed with system and network reliability.</p></div></div>
+            <div class="setting-row"><div class="setting-label"><strong>Concurrent downloads</strong><span>Limit parallel downloads to prevent unstable sites and CPU spikes.</span></div><div class="stepper"><button>−</button><strong>3</strong><button>+</button></div></div>
+            <div class="setting-row"><div class="setting-label"><strong>Automatically retry interrupted downloads</strong><span>Retry network failures up to 3 times before showing an error.</span></div><div class="toggle"></div></div>
+            <div class="setting-row"><div class="setting-label"><strong>Pause queue on low battery</strong><span>For laptops, pause active downloads when battery drops below 15%.</span></div><div class="toggle off"></div></div>
+          </section>
+          <section class="card"><div class="card-head"><div><h2>Output format</h2><p>Default format choices used when the format picker is skipped.</p></div></div>
+            <div class="setting-row"><div class="setting-label"><strong>Preferred video quality</strong><span>Use best available quality up to this limit.</span></div><div class="input select small">1080p MP4</div></div>
+            <div class="setting-row"><div class="setting-label"><strong>Audio-only format</strong><span>Used for audio downloads and extracted tracks.</span></div><div class="input select small">M4A</div></div>
+            <div class="setting-row"><div class="setting-label"><strong>Filename template</strong><span>Controls how new files are named after download.</span></div><div class="input wide"><code>{title} - {site} - {quality}</code></div></div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="settings_browser">
+  <div class="screen-number">03</div><div class="screen-title">Preferences - Browser and Cookies</div><div class="screen-note">The Chrome Extension section becomes diagnosable: installed state, sync state, last sync, and privacy are explicit.</div>
+  <div class="pref-window">
+    <div class="titlebar"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><div class="window-title">Preferences</div><div class="title-action"><button class="icon-btn">⌘</button></div></div>
+    <div class="pref-body">
+      <aside class="pref-sidebar"><div class="pref-brand"><div class="pref-logo"></div><div><strong>V-Download</strong><span>Application settings</span></div></div><div class="nav-label">Settings</div><nav class="nav"><div class="nav-item"><span class="ico">⚙</span>General</div><div class="nav-item"><span class="ico">↓</span>Downloads</div><div class="nav-item active"><span class="ico">◉</span>Browser</div><div class="nav-item"><span class="ico">▦</span>Sites</div><div class="nav-item"><span class="ico">⌁</span>Advanced</div></nav><div class="sidebar-footer"><strong>Why this matters</strong>Private videos often need the same logged-in session as your browser.</div></aside>
+      <main class="pref-main"><div class="pref-heading"><div><h1>Browser</h1><p>Connect browser sessions for logged-in, private, and region-specific pages.</p></div><button class="btn primary">Done</button></div>
+        <div class="two-col" style="margin-bottom:14px;">
+          <section class="mini-card"><div class="mini-top"><h3>Chrome companion</h3><span class="pill solid">Connected</span></div><p>Extension is installed and can send page URLs directly to V-Download.</p><div class="mini-actions"><button class="btn">Open guide</button><button class="btn ghost">Test</button></div></section>
+          <section class="mini-card"><div class="mini-top"><h3>Browser cookies</h3><span class="pill">Synced</span></div><p>Last sync was 2 minutes ago from Chrome Default profile.</p><div class="mini-actions"><button class="btn primary">Sync now</button><button class="btn ghost">View details</button></div></section>
+        </div>
+        <section class="card"><div class="card-head"><div><h2>Profiles</h2><p>Use separate browser profiles for sites that maintain separate sessions.</p></div></div>
+          <div class="setting-row"><div class="setting-label"><strong>Default browser profile</strong><span>Used for most sites that require login.</span></div><div class="input select">Chrome - Default</div></div>
+          <div class="setting-row"><div class="setting-label"><strong>Browser profile for Douyin / TikTok</strong><span>Use a dedicated profile when sites keep region-specific sessions.</span></div><div class="input select">Chrome - China profile</div></div>
+          <div class="setting-row"><div class="setting-label"><strong>Refresh cookies before private downloads</strong><span>Automatically sync if cookies are older than 30 minutes.</span></div><div class="toggle"></div></div>
+        </section>
+        <section class="card"><div class="setting-row"><div class="setting-label"><strong>Store browser data locally only</strong><span>Cookies never leave this Mac. Clear synced data at any time.</span></div><button class="btn warn">Clear synced data</button></div></section>
+      </main>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="settings_sites">
+  <div class="screen-number">04</div><div class="screen-title">Preferences - Sites</div><div class="screen-note">Site-specific settings prevent a generic settings page from turning into a long support article.</div>
+  <div class="pref-window">
+    <div class="titlebar"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><div class="window-title">Preferences</div><div class="title-action"><button class="icon-btn">⌘</button></div></div>
+    <div class="pref-body">
+      <aside class="pref-sidebar"><div class="pref-brand"><div class="pref-logo"></div><div><strong>V-Download</strong><span>Application settings</span></div></div><div class="nav-label">Settings</div><nav class="nav"><div class="nav-item"><span class="ico">⚙</span>General</div><div class="nav-item"><span class="ico">↓</span>Downloads</div><div class="nav-item"><span class="ico">◉</span>Browser</div><div class="nav-item active"><span class="ico">▦</span>Sites <span class="count">4</span></div><div class="nav-item"><span class="ico">⌁</span>Advanced</div></nav><div class="sidebar-footer"><strong>Tip</strong>Use site profiles only when a service requires login, locale, or special cookies.</div></aside>
+      <main class="pref-main"><div class="pref-heading"><div><h1>Sites</h1><p>Per-site rules for login, format defaults, and capture behavior.</p></div><button class="btn primary">Done</button></div>
+        <div class="table">
+          <div class="table-row head"><div>Site</div><div>Profile</div><div>Default</div><div>Status</div></div>
+          <div class="table-row"><div class="site-title"><strong>Douyin</strong><span>Private and region-specific videos</span></div><div>China profile</div><div>1080p MP4</div><div><span class="pill">Ready</span></div></div>
+          <div class="table-row"><div class="site-title"><strong>YouTube</strong><span>Public videos and playlists</span></div><div>Default</div><div>Best MP4</div><div><span class="pill">Ready</span></div></div>
+          <div class="table-row"><div class="site-title"><strong>Instagram</strong><span>Stories, reels, and private links</span></div><div>Default</div><div>Original</div><div><span class="pill dashed">Needs login</span></div></div>
+          <div class="table-row"><div class="site-title"><strong>Bilibili</strong><span>Episode and playlist downloads</span></div><div>Default</div><div>1080p</div><div><span class="pill muted">Optional</span></div></div>
+        </div>
+        <div class="two-col" style="margin-top:14px;">
+          <section class="mini-card"><div class="mini-top"><h3>Detection rules</h3><span class="pill outline">Auto</span></div><p>Detect playlist, subtitles, thumbnails, and audio tracks when available.</p><div class="mini-actions"><button class="btn">Edit rules</button></div></section>
+          <section class="mini-card"><div class="mini-top"><h3>Add custom site</h3><span class="pill muted">Advanced</span></div><p>Create a rule for unsupported sites that still expose direct media streams.</p><div class="mini-actions"><button class="btn primary">Add site</button></div></section>
+        </div>
+      </main>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="settings_advanced">
+  <div class="screen-number">05</div><div class="screen-title">Preferences - Advanced</div><div class="screen-note">Advanced options are available, but isolated from normal users to keep the main settings simple.</div>
+  <div class="pref-window">
+    <div class="titlebar"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><div class="window-title">Preferences</div><div class="title-action"><button class="icon-btn">⌘</button></div></div>
+    <div class="pref-body">
+      <aside class="pref-sidebar"><div class="pref-brand"><div class="pref-logo"></div><div><strong>V-Download</strong><span>Application settings</span></div></div><div class="nav-label">Settings</div><nav class="nav"><div class="nav-item"><span class="ico">⚙</span>General</div><div class="nav-item"><span class="ico">↓</span>Downloads</div><div class="nav-item"><span class="ico">◉</span>Browser</div><div class="nav-item"><span class="ico">▦</span>Sites</div><div class="nav-item active"><span class="ico">⌁</span>Advanced</div></nav><div class="sidebar-footer"><strong>Safe defaults</strong>Most users should never need to change these options.</div></aside>
+      <main class="pref-main"><div class="pref-heading"><div><h1>Advanced</h1><p>Engine, network, logging, and troubleshooting settings.</p></div><button class="btn primary">Done</button></div>
+        <div class="advanced-grid">
+          <section class="card"><div class="card-head"><div><h2>Engine</h2><p>V-Download uses a media extraction engine to identify available streams.</p></div></div>
+            <div class="setting-row"><div class="setting-label"><strong>yt-dlp path</strong><span>Use bundled engine unless you need a custom build.</span></div><div class="input-group"><div class="input wide"><code>/Applications/V-Download.app/Contents/Resources/yt-dlp</code></div><button class="btn">Change</button></div></div>
+            <div class="setting-row"><div class="setting-label"><strong>Update engine automatically</strong><span>Keep site compatibility current.</span></div><div class="toggle"></div></div>
+          </section>
+          <section class="card"><div class="card-head"><div><h2>Network</h2><p>Optional proxy and bandwidth controls.</p></div></div>
+            <div class="setting-row"><div class="setting-label"><strong>Proxy</strong><span>Use system proxy by default.</span></div><div class="input select">System proxy</div></div>
+            <div class="setting-row"><div class="setting-label"><strong>Bandwidth limit</strong><span>Leave empty for unlimited download speed.</span></div><div class="input small">Unlimited</div></div>
+          </section>
+          <section class="warning-box"><div><strong>Diagnostics and reset</strong><span>Export logs for support, clear temporary files, or restore default settings.</span></div><div class="input-group"><button class="btn">Export logs</button><button class="btn warn">Reset defaults</button></div></section>
+        </div>
+      </main>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="settings_compact">
+  <div class="screen-number">06</div><div class="screen-title">Compact Settings Modal</div><div class="screen-note">If you want to keep the current small modal, use this simplified version. It removes long explanatory text and groups browser setup into a card.</div>
+  <div class="compact-modal">
+    <div class="titlebar"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><div class="window-title">Settings</div><div></div></div>
+    <div class="compact-content">
+      <div class="compact-section"><h2>General</h2>
+        <div class="compact-field"><label>Download location</label><div class="compact-row"><div class="input" style="min-width:0;flex:1;">⌘ /Users/mingjie/Downloads</div><button class="btn">Browse</button></div></div>
+        <div class="compact-field"><label>Concurrent downloads</label><div class="compact-row"><div class="stepper"><button>−</button><strong>3</strong><button>+</button></div><div style="flex:1"><div class="range"><span></span></div></div></div></div>
+        <div class="compact-card"><div class="compact-setting"><strong>Show format picker</strong><div class="toggle"></div></div><div class="compact-setting"><strong>Create playlist subfolders</strong><div class="toggle"></div></div><div class="compact-setting"><strong>Auto retry failed downloads</strong><div class="toggle"></div></div></div>
+      </div>
+      <div class="compact-section"><h2>Browser</h2>
+        <div class="compact-card"><div class="compact-card-title"><strong>Chrome companion</strong><span class="pill solid">Connected</span></div><p>Cookies are synced locally for private and logged-in pages.</p><div class="compact-row" style="margin-top:12px"><button class="btn primary">Sync cookies</button><button class="btn">Guide</button></div></div>
+        <div class="compact-field" style="margin-top:14px"><label>Browser profile for Douyin / TikTok</label><div class="input select" style="min-width:100%">Chrome - China profile</div></div>
+      </div>
+      
+    </div>
+    <div class="compact-footer"><button class="btn primary">Done</button></div>
+  </div>
+</section>
+
+</div>
+</body>
+</html>

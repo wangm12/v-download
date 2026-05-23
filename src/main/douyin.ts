@@ -196,7 +196,7 @@ function buildDouyinInfoFromItem(item: Record<string, unknown>, fallbackId: stri
   }
 }
 
-const JSON_MARKERS = ['_ROUTER_DATA', '__MODERN_ROUTER_DATA__', 'SIGI_STATE'] as const
+const JSON_MARKERS = ['_ROUTER_DATA', '__MODERN_ROUTER_DATA__', 'SIGI_STATE', 'SUPER_DATA'] as const
 
 function tryParseEmbeddedJsonMarkers(html: string, videoId: string): DouyinVideoInfo | null {
   for (const marker of JSON_MARKERS) {
@@ -224,6 +224,21 @@ function tryRenderDataScript(html: string, videoId: string): DouyinVideoInfo | n
   } catch {
     return null
   }
+  try {
+    const data = JSON.parse(raw) as Record<string, unknown>
+    const item = findAwemeItemDeep(data)
+    if (item) return buildDouyinInfoFromItem(item, videoId)
+  } catch {
+    return null
+  }
+  return null
+}
+
+/** Next.js-style payload on some Douyin / iesdouyin layouts */
+function tryNextDataScript(html: string, videoId: string): DouyinVideoInfo | null {
+  const m = html.match(/<script[^>]*\bid=["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/i)
+  if (!m?.[1]) return null
+  const raw = m[1].trim()
   try {
     const data = JSON.parse(raw) as Record<string, unknown>
     const item = findAwemeItemDeep(data)
@@ -362,6 +377,9 @@ function parseDouyinPageHtml(html: string, videoId: string): DouyinVideoInfo {
   const fromRender = tryRenderDataScript(html, videoId)
   if (fromRender) return fromRender
 
+  const fromNext = tryNextDataScript(html, videoId)
+  if (fromNext) return fromNext
+
   const loose = tryLoosePlayAddrInHtml(html, videoId)
   if (loose) return loose
 
@@ -461,21 +479,29 @@ export async function getDouyinInfo(url: string, cookiesFilePath?: string): Prom
           try {
             info = parseDouyinPageHtml(html, videoId)
           } catch (parseErr) {
-            const shareLike = /iesdouyin\.com|\/share\/video\//i.test(pageUrl)
-            const onMShare = /\/\/m\.douyin\.com\/share\/video\//i.test(pageUrl)
-            const eligible = !!cookiesFilePath?.trim() && shareLike && (pageUrl !== canonical || onMShare)
-            if (eligible) {
-              const retryUrl = onMShare ? mShare : canonical
-              const retryUa = onMShare && uaMode === 'mobile' ? 'desktop' : uaMode === 'mobile' ? 'mobile' : 'desktop'
-              console.warn(
-                `[douyin] Parse failed on ${pageUrl} (${uaMode}): ${parseErr instanceof Error ? parseErr.message : String(parseErr)}; Chromium on ${retryUrl} (${retryUa})…`
-              )
-              const htmlRetry = await fetchDouyinHtmlWithChromium(retryUrl, {
-                cookiesFilePath,
-                timeoutMs: 88_000,
-                preferredUa: retryUa,
-              })
-              info = parseDouyinPageHtml(htmlRetry, videoId)
+            const alreadyCanonical = /^https:\/\/www\.douyin\.com\/video\//i.test(pageUrl)
+            if (alreadyCanonical) {
+              throw parseErr
+            }
+            let recovered: DouyinVideoInfo | undefined
+            for (const ua of ['mobile', 'desktop'] as const) {
+              try {
+                console.warn(
+                  `[douyin] Parse failed on ${pageUrl} (${uaMode}): ${parseErr instanceof Error ? parseErr.message : String(parseErr)}; Chromium on canonical (${ua})…`
+                )
+                const htmlCanon = await fetchDouyinHtmlWithChromium(canonical, {
+                  cookiesFilePath,
+                  timeoutMs: 92_000,
+                  preferredUa: ua,
+                })
+                recovered = parseDouyinPageHtml(htmlCanon, videoId)
+                break
+              } catch {
+                /* try next UA */
+              }
+            }
+            if (recovered) {
+              info = recovered
             } else {
               throw parseErr
             }
@@ -516,7 +542,30 @@ export async function getDouyinInfo(url: string, cookiesFilePath?: string): Prom
           })
         }
       }
-      const info = parseDouyinPageHtml(html, videoId)
+      let info: DouyinVideoInfo
+      try {
+        info = parseDouyinPageHtml(html, videoId)
+      } catch (parseErr) {
+        console.warn(
+          '[douyin] Chromium first URL parse failed; hydrating canonical page…',
+          parseErr instanceof Error ? parseErr.message : parseErr
+        )
+        html = await fetchDouyinHtmlWithChromium(canonical, {
+          cookiesFilePath,
+          timeoutMs: 92_000,
+          preferredUa: 'mobile',
+        })
+        try {
+          info = parseDouyinPageHtml(html, videoId)
+        } catch {
+          html = await fetchDouyinHtmlWithChromium(canonical, {
+            cookiesFilePath,
+            timeoutMs: 92_000,
+            preferredUa: 'desktop',
+          })
+          info = parseDouyinPageHtml(html, videoId)
+        }
+      }
       console.log(`[douyin] Parsed (Chromium): title="${info.title}", author="${info.author}", duration=${info.duration}s`)
       lastGetDouyinInfoError = ''
       return info

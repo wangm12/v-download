@@ -17,6 +17,8 @@
   "dependencies": {
     "@v-download/shared": "*",
     "better-sqlite3": "^11.0.0",
+    "cloakbrowser": "^0.3.30",
+    "playwright-core": "^1.60.0",
     "uuid": "^11.0.0"
   },
   "devDependencies": {

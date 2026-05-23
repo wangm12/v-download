@@ -1,15 +1,34 @@
-import { ipcMain, shell, dialog, BrowserWindow } from 'electron'
-import { join } from 'path'
-import { is } from '@electron-toolkit/utils'
+import { ipcMain, shell, dialog, BrowserWindow, nativeTheme } from 'electron'
+
+const WINDOW_BG_DARK = '#0B0B0B'
+const WINDOW_BG_LIGHT = '#FFFFFF'
 
 interface WindowContext {
   getMainWindow: () => BrowserWindow | null
-  getSettingsWindow: () => BrowserWindow | null
-  setSettingsWindow: (win: BrowserWindow | null) => void
 }
 
 export function registerWindowHandlers(ctx: WindowContext): void {
-  const VITE_DEV_SERVER_URL = process.env.ELECTRON_RENDERER_URL
+  ipcMain.handle('set-native-theme-source', (_event, source: unknown) => {
+    if (source !== 'dark' && source !== 'light' && source !== 'system') {
+      return { ok: false as const, error: 'invalid theme source' }
+    }
+    nativeTheme.themeSource = source
+    const win = ctx.getMainWindow()
+    if (win && !win.isDestroyed()) {
+      const useDark =
+        source === 'dark' ? true : source === 'light' ? false : nativeTheme.shouldUseDarkColors
+      win.setBackgroundColor(useDark ? WINDOW_BG_DARK : WINDOW_BG_LIGHT)
+    }
+    return { ok: true as const }
+  })
+
+  nativeTheme.on('updated', () => {
+    if (nativeTheme.themeSource !== 'system') return
+    const win = ctx.getMainWindow()
+    if (win && !win.isDestroyed()) {
+      win.setBackgroundColor(nativeTheme.shouldUseDarkColors ? WINDOW_BG_DARK : WINDOW_BG_LIGHT)
+    }
+  })
 
   ipcMain.handle('open-file-location', async (_event, path: string) => {
     try {
@@ -42,51 +61,12 @@ export function registerWindowHandlers(ctx: WindowContext): void {
   })
 
   ipcMain.handle('open-settings', async () => {
-    const existing = ctx.getSettingsWindow()
-    if (existing && !existing.isDestroyed()) {
-      existing.focus()
-      return
-    }
-
     const mainWindow = ctx.getMainWindow()
-    const settingsWindow = new BrowserWindow({
-      width: 480,
-      height: 560,
-      center: true,
-      backgroundColor: '#1A1A1E',
-      titleBarStyle: 'hiddenInset',
-      frame: false,
-      resizable: false,
-      parent: mainWindow ?? undefined,
-      webPreferences: {
-        preload: join(__dirname, '../preload/index.js'),
-        contextIsolation: true,
-        nodeIntegration: false,
-        sandbox: false
-      }
-    })
-
-    ctx.setSettingsWindow(settingsWindow)
-
-    if (is.dev && VITE_DEV_SERVER_URL) {
-      settingsWindow.loadURL(`${VITE_DEV_SERVER_URL}#/settings`)
-    } else {
-      settingsWindow.loadFile(join(__dirname, '../renderer/index.html'), { hash: '/settings' })
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.show()
+      mainWindow.focus()
+      mainWindow.webContents.send('open-preferences')
     }
-
-    settingsWindow.webContents.on('before-input-event', (_event, input) => {
-      if ((input.meta || input.control) && input.key === 'w') {
-        settingsWindow.close()
-      }
-    })
-
-    settingsWindow.on('closed', () => {
-      ctx.setSettingsWindow(null)
-      const mw = ctx.getMainWindow()
-      if (mw && !mw.isDestroyed()) {
-        mw.webContents.send('settings-changed')
-      }
-    })
   })
 
   ipcMain.handle('close-window', async (event) => {
@@ -97,7 +77,7 @@ export function registerWindowHandlers(ctx: WindowContext): void {
   })
 
   ipcMain.handle('install-chrome-extension', async (event) => {
-    const win = BrowserWindow.fromWebContents(event.sender) ?? ctx.getSettingsWindow() ?? undefined
+    const win = BrowserWindow.fromWebContents(event.sender) ?? ctx.getMainWindow() ?? undefined
     await dialog.showMessageBox(win!, {
       type: 'info',
       title: 'Install Chrome Extension',

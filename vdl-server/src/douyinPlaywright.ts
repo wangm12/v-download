@@ -32,6 +32,14 @@ function htmlLooksHydratedEnough(html: string): boolean {
   ) {
     return true
   }
+  if (
+    html.length >= 12_000 &&
+    /id=["']__NEXT_DATA__["']|"aweme_detail"|"awemeDetail"|"videoInfoRes"|"SUPER_DATA"\s*=|window\.__INITIAL_STATE__|SSR_RENDER_DATA/i.test(
+      html
+    )
+  ) {
+    return true
+  }
   if (html.length > 35_000 && /"aweme_id"\s*:\s*"\d{10,}"/.test(html)) {
     return true
   }

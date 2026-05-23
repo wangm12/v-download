@@ -1,4 +1,4 @@
-import { app, BrowserWindow, protocol, Menu } from 'electron'
+import { app, BrowserWindow, protocol, Menu, screen } from 'electron'
 import { join } from 'path'
 import { optimizer, is } from '@electron-toolkit/utils'
 import * as database from './database'
@@ -12,7 +12,6 @@ import { registerSettingsHandlers } from './ipc/settings'
 import { registerWindowHandlers } from './ipc/window'
 
 let mainWindow: BrowserWindow | null = null
-let settingsWindow: BrowserWindow | null = null
 let pendingYtdlUrl: string | null = null
 let pendingMediaRequests = new Map<string, DownloadRequest>()
 let isQuitting = false
@@ -37,11 +36,21 @@ if (launchUrl) {
 }
 
 function createWindow(): void {
+  const { workAreaSize } = screen.getPrimaryDisplay()
+  const margin = 40
+  const maxW = Math.max(400, workAreaSize.width - margin)
+  const maxH = Math.max(400, workAreaSize.height - margin)
+  const defaultWidth = Math.min(1328, maxW)
+  const defaultHeight = Math.min(848, maxH)
+  const minWidth = Math.min(900, Math.max(560, Math.floor(workAreaSize.width * 0.92)))
+
   mainWindow = new BrowserWindow({
-    width: 680,
-    height: 520,
+    width: defaultWidth,
+    height: defaultHeight,
+    minWidth,
+    minHeight: 480,
     icon: join(__dirname, '../../resources/icon.png'),
-    backgroundColor: '#1A1A1E',
+    backgroundColor: '#0B0B0B',
     titleBarStyle: 'hiddenInset',
     frame: false,
     webPreferences: {
@@ -110,9 +119,7 @@ function setupIpcHandlers(): void {
   registerDownloadHandlers()
   registerSettingsHandlers()
   registerWindowHandlers({
-    getMainWindow: () => mainWindow,
-    getSettingsWindow: () => settingsWindow,
-    setSettingsWindow: (win) => { settingsWindow = win }
+    getMainWindow: () => mainWindow
   })
 }
 
@@ -122,6 +129,18 @@ app.whenReady().then(() => {
       label: app.name,
       submenu: [
         { role: 'about' },
+        { type: 'separator' },
+        {
+          label: 'Settings…',
+          accelerator: 'CmdOrCtrl+,',
+          click: () => {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.show()
+              mainWindow.focus()
+              mainWindow.webContents.send('open-preferences')
+            }
+          }
+        },
         { type: 'separator' },
         { role: 'hide' },
         { role: 'hideOthers' },

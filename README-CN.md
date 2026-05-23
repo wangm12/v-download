@@ -30,7 +30,12 @@
 | **vdl-server** | 可选的 **Telegram 机器人**（[vdl-server/](vdl-server/)）：Fastify HTTP、下载队列、临时链接、抖音回退 — 同样依赖 **yt-dlp** / **ffmpeg**。 |
 | **@v-download/shared** | [packages/shared](packages/shared)：Netscape Cookie 与域名列表；在仓库根目录执行 `npm install` 会构建该包并运行 [`sync:extension-constants`](package.json)，以更新 [extension/cookie-sync-domains.js](extension/cookie-sync-domains.js)。 |
 
-**延伸阅读：** [vdl-server/README.md](vdl-server/README.md)（机器人快速开始与环境变量）、[vdl-server/DEPLOYMENT.md](vdl-server/DEPLOYMENT.md)（隧道/生产部署）、[docs/MANUAL_TESTING.md](docs/MANUAL_TESTING.md)（手动与 E2E 测试清单）、[docs/CLI_AND_SHARED_CORE.md](docs/CLI_AND_SHARED_CORE.md)（下载核心 / CLI 规划）、[docs/FUTURE_ENHANCEMENTS.md](docs/FUTURE_ENHANCEMENTS.md)（抖音 / 无头浏览器后续改进与调研，英文）。
+**延伸阅读：** [docs/DESIGN_PLAN.md](docs/DESIGN_PLAN.md)（黑白重设计总览与阶段）、[vdl-server/README.md](vdl-server/README.md)（机器人快速开始与环境变量）、[vdl-server/DEPLOYMENT.md](vdl-server/DEPLOYMENT.md)（隧道/生产部署）、[docs/MANUAL_TESTING.md](docs/MANUAL_TESTING.md)（手动与 E2E 测试清单）、[docs/CLI_AND_SHARED_CORE.md](docs/CLI_AND_SHARED_CORE.md)（下载核心 / CLI 规划）、[docs/FUTURE_ENHANCEMENTS.md](docs/FUTURE_ENHANCEMENTS.md)（抖音 / 无头浏览器后续改进与调研，英文）。
+
+## 设计
+
+- **[docs/DESIGN_PLAN.md](docs/DESIGN_PLAN.md)** — 端到端设计计划：愿景、设计令牌、信息架构、界面目录、阶段划分、无障碍与治理说明。
+- **[design/v-download-bw-redesign-pack/](design/v-download-bw-redesign-pack/)** — 设计稿（PNG/PDF）、[specs/redesign-spec.md](design/v-download-bw-redesign-pack/specs/redesign-spec.md)、[tokens/design-tokens.json](design/v-download-bw-redesign-pack/tokens/design-tokens.json) 与 [index.html](design/v-download-bw-redesign-pack/index.html) 设计看板。
 
 ## 功能特性
 
@@ -70,6 +75,17 @@ brew install yt-dlp ffmpeg
 |------|------|
 | [yt-dlp](https://github.com/yt-dlp/yt-dlp) | 视频下载引擎 |
 | [ffmpeg](https://ffmpeg.org/) | 合并视频 + 音频流 |
+
+## 抖音页面与 CloakBrowser（可选）
+
+抖音链接可能需要在**隐藏 Electron 窗口**里执行页面脚本才能得到可解析的数据。若仍超时或被风控，可在 **设置** 中开启 **「Use CloakBrowser for Douyin (beta)」**。
+
+- **CloakBrowser**（[CloakHQ/cloakbrowser](https://github.com/CloakHQ/cloakbrowser)）会启动**单独的加固 Chromium**（首次约 **200 MB** 下载到厂商缓存目录，**不会**打进 DMG）。
+- **许可：** npm 包为 MIT；**浏览器二进制**另有条款（[BINARY-LICENSE.md](https://github.com/CloakHQ/cloakbrowser/blob/main/BINARY-LICENSE.md)），一般**不可再分发**二进制；本应用仅在您勾选后触发本机下载。
+- **macOS：** 缓存内的二进制可能触发 **Gatekeeper**；详见 CloakBrowser README。macOS 上补丁说明少于 Linux/Windows。
+- **环境变量：** `V_DOWNLOAD_CLOAKBROWSER=1` 强制使用 CloakBrowser；`V_DOWNLOAD_CLOAK_FALLBACK=1` 在 Electron 超时后再试一次 CloakBrowser。
+
+请遵守抖音服务条款，仅用于合法的个人用途。
 
 ## 安装
 
@@ -115,10 +131,13 @@ npm run build:mac
 | 快捷键 | 功能 |
 |--------|------|
 | `Cmd+V` | 粘贴 URL 并开始下载 |
+| `Cmd+,`（macOS）/ `Ctrl+,`（Windows/Linux） | 打开偏好设置 |
 | `Cmd+W` | 隐藏窗口（应用保留在 Dock） |
 | `Cmd+Q` | 退出应用 |
 
 ## 设置
+
+偏好设置**在主窗口内**打开（侧栏 **Preferences…**、底部栏设置按钮，或 **Cmd+,** / **Ctrl+,**），不再使用单独设置窗口。下表为本地保存的选项：
 
 | 设置项 | 默认值 | 说明 |
 |--------|--------|------|
@@ -129,6 +148,7 @@ npm run build:mac
 | 默认视频画质 | 1080p | 关闭格式选择框时使用 |
 | 默认音频品质 | 320kbps | 关闭格式选择框时使用 |
 | 下载间隔 | 3秒 | 队列中每个下载之间的等待时间（用于限速保护） |
+| 抖音用 CloakBrowser（测试） | 关闭 | 可选：用 CloakBrowser 的 Chromium 拉取抖音页面（见上文「抖音页面与 CloakBrowser」） |
 
 ## 架构
 
@@ -200,7 +220,8 @@ packages/shared/            # @v-download/shared — Cookie 与域名列表（�
 └── README.md
 
 docs/
-├── MANUAL_TESTING.md          # 回归与 E2E 清单
+├── DESIGN_PLAN.md             # 黑白重设计总览与 mockup 阶段
+├── MANUAL_TESTING.md          # 回归与 E2E 清单（含 mockup 对照表）
 ├── CLI_AND_SHARED_CORE.md     # 下载核心 / CLI 规划
 └── FUTURE_ENHANCEMENTS.md     # 抖音 / Chromium / CloakBrowser 后续规划（英文正文）
 

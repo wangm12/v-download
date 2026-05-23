@@ -1,15 +1,80 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Semantic tokens: rgb triplets use rgb(var(--x) / <alpha-value>) in Tailwind; translucent use var(--color-*) */
+:root[data-theme='dark'] {
+  --color-app: 5 5 5;
+  --color-window: 11 11 11;
+  --color-sidebar: 13 13 13;
+  --color-background: 5 5 5;
+  --color-surface: 17 17 17;
+  --color-raised: 22 22 22;
+  --color-elevated: 28 28 28;
+  --color-foreground: 255 255 255;
+  --color-muted-foreground: 164 164 164;
+  --color-tertiary-foreground: 112 112 112;
+  --color-subtle-foreground: 142 142 147;
+  --color-inverse: 5 5 5;
+  --color-action: 255 255 255;
+  --color-action-hover: 232 232 232;
+  --color-action-fg: 5 5 5;
+  --color-control: rgba(255, 255, 255, 0.055);
+  --color-border: rgba(255, 255, 255, 0.12);
+  --color-border-strong: rgba(255, 255, 255, 0.22);
+  --color-border-focus: rgba(255, 255, 255, 0.34);
+  --color-state-active-bg: rgba(255, 255, 255, 0.12);
+  --color-state-complete-bg: rgba(255, 255, 255, 0.1);
+  --color-state-queued-bg: rgba(255, 255, 255, 0.07);
+  --color-state-error-bg: rgba(255, 255, 255, 0.13);
+  --color-progress: rgba(255, 255, 255, 0.85);
+  --color-progress-muted: rgba(255, 255, 255, 0.35);
+}
+
+:root[data-theme='light'] {
+  --color-app: 250 250 250;
+  --color-window: 255 255 255;
+  --color-sidebar: 244 244 244;
+  --color-background: 250 250 250;
+  --color-surface: 238 238 238;
+  --color-raised: 232 232 232;
+  --color-elevated: 224 224 224;
+  --color-foreground: 10 10 10;
+  --color-muted-foreground: 92 92 92;
+  --color-tertiary-foreground: 110 110 110;
+  --color-subtle-foreground: 100 100 105;
+  --color-inverse: 255 255 255;
+  --color-action: 10 10 10;
+  --color-action-hover: 42 42 42;
+  --color-action-fg: 255 255 255;
+  --color-control: rgba(0, 0, 0, 0.055);
+  --color-border: rgba(0, 0, 0, 0.12);
+  --color-border-strong: rgba(0, 0, 0, 0.2);
+  --color-border-focus: rgba(0, 0, 0, 0.38);
+  --color-state-active-bg: rgba(0, 0, 0, 0.08);
+  --color-state-complete-bg: rgba(0, 0, 0, 0.06);
+  --color-state-queued-bg: rgba(0, 0, 0, 0.05);
+  --color-state-error-bg: rgba(0, 0, 0, 0.08);
+  --color-progress: rgba(0, 0, 0, 0.78);
+  --color-progress-muted: rgba(0, 0, 0, 0.35);
+}
+
 @layer base {
+  html {
+    @apply motion-safe:transition-[background-color] motion-safe:duration-200;
+  }
+
   body {
-    font-family: 'DM Sans', 'Inter', system-ui, sans-serif;
+    @apply font-sans bg-app text-foreground;
     overflow: hidden;
     user-select: none;
     -webkit-app-region: no-drag;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      transition: none;
+    }
   }
 
   ::-webkit-scrollbar {

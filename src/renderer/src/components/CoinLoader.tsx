@@ -47,7 +47,7 @@ function CoinsScene() {
       <group ref={groupRef}>
         <Instances>
           <cylinderGeometry args={[0.7, 0.7, 0.15, 32]} />
-          <meshNormalMaterial />
+          <meshStandardMaterial color="#c8c8c8" metalness={0.45} roughness={0.35} />
           {coins.map((pos, i) => (
             <Coin key={i} position={pos} />
           ))}

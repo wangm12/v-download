@@ -1,3 +1,5 @@
+# electron-builder packages compiled app + resources; it does NOT bundle the optional
+# CloakBrowser Chromium binary (downloaded at runtime to the user/cache when enabled in Settings).
 appId: com.ytdownload.app
 productName: V-Download
 directories:

@@ -1,28 +1,75 @@
 import type { Config } from 'tailwindcss'
 
+/** Semantic colors follow CSS variables in globals.css (data-theme dark | light). */
 const config: Config = {
   content: ['./src/renderer/src/**/*.{ts,tsx}', './src/renderer/index.html'],
   theme: {
     extend: {
       colors: {
-        background: '#1A1A1E',
-        surface: '#16161A',
-        elevated: '#0F0F12',
-        border: '#2A2A2E',
-        'border-strong': '#3A3A40',
-        foreground: '#FAFAF9',
-        'muted-foreground': '#6B6B70',
-        'tertiary-foreground': '#4A4A50',
-        'subtle-foreground': '#8E8E93',
-        'accent-green': '#32D583',
-        'accent-green-dark': '#059669',
-        'accent-indigo': '#FFFFFF',
-        'accent-indigo-dark': '#D4D4D8',
-        'accent-coral': '#E85A4F',
-        'accent-amber': '#FFB547'
+        app: 'rgb(var(--color-app) / <alpha-value>)',
+        window: 'rgb(var(--color-window) / <alpha-value>)',
+        sidebar: 'rgb(var(--color-sidebar) / <alpha-value>)',
+        background: 'rgb(var(--color-background) / <alpha-value>)',
+        surface: 'rgb(var(--color-surface) / <alpha-value>)',
+        raised: 'rgb(var(--color-raised) / <alpha-value>)',
+        elevated: 'rgb(var(--color-elevated) / <alpha-value>)',
+        control: 'var(--color-control)',
+        border: 'var(--color-border)',
+        'border-strong': 'var(--color-border-strong)',
+        'border-focus': 'var(--color-border-focus)',
+        foreground: 'rgb(var(--color-foreground) / <alpha-value>)',
+        'muted-foreground': 'rgb(var(--color-muted-foreground) / <alpha-value>)',
+        'tertiary-foreground': 'rgb(var(--color-tertiary-foreground) / <alpha-value>)',
+        'subtle-foreground': 'rgb(var(--color-subtle-foreground) / <alpha-value>)',
+        inverse: 'rgb(var(--color-inverse) / <alpha-value>)',
+        action: 'rgb(var(--color-action) / <alpha-value>)',
+        'action-hover': 'rgb(var(--color-action-hover) / <alpha-value>)',
+        'action-fg': 'rgb(var(--color-action-fg) / <alpha-value>)',
+        'state-active-bg': 'var(--color-state-active-bg)',
+        'state-complete-bg': 'var(--color-state-complete-bg)',
+        'state-queued-bg': 'var(--color-state-queued-bg)',
+        'state-error-bg': 'var(--color-state-error-bg)',
+        progress: 'var(--color-progress)',
+        'progress-muted': 'var(--color-progress-muted)'
       },
       fontFamily: {
-        sans: ['DM Sans', 'Inter', 'system-ui', 'sans-serif']
+        sans: [
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'SF Pro Text',
+          'Inter',
+          'Segoe UI',
+          'Roboto',
+          'Helvetica',
+          'Arial',
+          'Noto Sans CJK SC',
+          'sans-serif'
+        ]
+      },
+      borderRadius: {
+        button: '12px',
+        card: '18px',
+        panel: '22px'
+      },
+      transitionDuration: {
+        panel: '320ms'
+      },
+      transitionTimingFunction: {
+        panel: 'cubic-bezier(0.32, 0.72, 0, 1)'
+      },
+      keyframes: {
+        'panel-fade-in': {
+          '0%': { opacity: '0', transform: 'translateX(6px)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' }
+        },
+        'panel-fade-in-from-left': {
+          '0%': { opacity: '0', transform: 'translateX(-8px)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' }
+        }
+      },
+      animation: {
+        'panel-fade-in': 'panel-fade-in 0.28s ease-out both',
+        'panel-fade-in-from-left': 'panel-fade-in-from-left 0.28s ease-out both'
       }
     }
   },

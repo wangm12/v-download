@@ -30,7 +30,12 @@ This repository ships **two related products** and a small **shared library**:
 | **vdl-server** | Optional **Telegram bot** ([vdl-server/](vdl-server/)): Fastify HTTP API, download queue, temp links, Douyin fallback — uses the same **yt-dlp** / **ffmpeg** toolchain. |
 | **@v-download/shared** | [packages/shared](packages/shared): Netscape cookie helpers + domain list for cookie sync; root `npm install` builds it and runs [`sync:extension-constants`](package.json) so [extension/cookie-sync-domains.js](extension/cookie-sync-domains.js) stays in sync. |
 
-**Read next:** [vdl-server/README.md](vdl-server/README.md) (bot quick start & env), [vdl-server/DEPLOYMENT.md](vdl-server/DEPLOYMENT.md) (tunnel / production), [docs/MANUAL_TESTING.md](docs/MANUAL_TESTING.md) (manual & E2E checklist), [docs/CLI_AND_SHARED_CORE.md](docs/CLI_AND_SHARED_CORE.md) (roadmap for a shared downloader / CLI), [docs/FUTURE_ENHANCEMENTS.md](docs/FUTURE_ENHANCEMENTS.md) (Douyin / headless research backlog).
+**Read next:** [docs/DESIGN_PLAN.md](docs/DESIGN_PLAN.md) (monochrome redesign master plan & phases), [vdl-server/README.md](vdl-server/README.md) (bot quick start & env), [vdl-server/DEPLOYMENT.md](vdl-server/DEPLOYMENT.md) (tunnel / production), [docs/MANUAL_TESTING.md](docs/MANUAL_TESTING.md) (manual & E2E checklist), [docs/CLI_AND_SHARED_CORE.md](docs/CLI_AND_SHARED_CORE.md) (roadmap for a shared downloader / CLI), [docs/FUTURE_ENHANCEMENTS.md](docs/FUTURE_ENHANCEMENTS.md) (Douyin / headless research backlog).
+
+## Design
+
+- **[docs/DESIGN_PLAN.md](docs/DESIGN_PLAN.md)** — End-to-end design plan: vision, tokens, IA, screen catalog, phases, accessibility, governance.
+- **[design/v-download-bw-redesign-pack/](design/v-download-bw-redesign-pack/)** — Mockups (PNG/PDF), [specs/redesign-spec.md](design/v-download-bw-redesign-pack/specs/redesign-spec.md), [tokens/design-tokens.json](design/v-download-bw-redesign-pack/tokens/design-tokens.json), and [index.html](design/v-download-bw-redesign-pack/index.html) design board.
 
 ## Features
 
@@ -70,6 +75,17 @@ brew install yt-dlp ffmpeg
 |-----------|---------|
 | [yt-dlp](https://github.com/yt-dlp/yt-dlp) | Video downloading engine |
 | [ffmpeg](https://ffmpeg.org/) | Merging video + audio streams |
+
+## Douyin hydration & CloakBrowser (optional)
+
+For Douyin, the app may open the page in a **hidden Electron window** so embedded video JSON can render. If pages still time out or look like a bot wall, enable **Use CloakBrowser for Douyin (beta)** in **Settings**.
+
+- **CloakBrowser** ([CloakHQ/cloakbrowser](https://github.com/CloakHQ/cloakbrowser)) is a **separate patched Chromium** controlled via Playwright. The first run downloads roughly **~200 MB** into the vendor’s **local cache** (the DMG does **not** ship that binary).
+- **License:** The npm package is MIT; the **downloaded browser binary** has its own terms ([BINARY-LICENSE.md](https://github.com/CloakHQ/cloakbrowser/blob/main/BINARY-LICENSE.md)) — typically **no redistribution** of the binary with another product without legal review. This app only triggers an **end-user download** when you opt in.
+- **macOS:** The cached binary may be **ad-hoc signed**. Gatekeeper can block or warn until you allow it under **System Settings → Privacy & Security**, or after clearing quarantine on the cache path (see CloakBrowser’s README). Fewer fingerprint patches are documented for macOS than Linux/Windows.
+- **Environment overrides:** `V_DOWNLOAD_CLOAKBROWSER=1` forces CloakBrowser (same as the setting). `V_DOWNLOAD_CLOAK_FALLBACK=1` keeps Electron first and tries CloakBrowser **once** if Electron hydration times out.
+
+Use only in line with Douyin’s terms and for legitimate personal access.
 
 ## Installation
 
@@ -117,10 +133,13 @@ The built app will be in `dist/mac-arm64/V-Download.app` and a DMG installer in 
 | Shortcut | Action |
 |----------|--------|
 | `Cmd+V` | Paste URL and start download |
+| `Cmd+,` (macOS) / `Ctrl+,` (Windows/Linux) | Open Preferences |
 | `Cmd+W` | Hide window (app stays in dock) |
 | `Cmd+Q` | Quit app |
 
 ## Settings
+
+Preferences open **inside the main window** (sidebar **Preferences…**, bottom bar settings control, or **Cmd+,** / **Ctrl+,**); they are not a separate window. The following options are stored locally:
 
 | Setting | Default | Description |
 |---------|---------|-------------|
@@ -131,6 +150,7 @@ The built app will be in `dist/mac-arm64/V-Download.app` and a DMG installer in 
 | Default video quality | 1080p | Used when format dialog is off |
 | Default audio quality | 320kbps | Used when format dialog is off |
 | Delay between downloads | 3s | Pause between starting queued downloads (rate limit mitigation) |
+| Use CloakBrowser for Douyin (beta) | Off | Optional patched Chromium for Douyin hydration; see [Douyin hydration & CloakBrowser](#douyin-hydration--cloakbrowser-optional) |
 
 ## Architecture
 
@@ -202,7 +222,8 @@ packages/shared/            # @v-download/shared — cookies + domain list for a
 └── README.md
 
 docs/
-├── MANUAL_TESTING.md          # Regression & E2E checklist
+├── DESIGN_PLAN.md             # Monochrome redesign master plan & mockup phases
+├── MANUAL_TESTING.md          # Regression & E2E checklist (+ mockup vs build matrix)
 ├── CLI_AND_SHARED_CORE.md     # Downloader / CLI roadmap
 └── FUTURE_ENHANCEMENTS.md     # Douyin / Chromium / CloakBrowser backlog
 
@@ -225,7 +246,7 @@ src/                        # Electron app (main + renderer)
 └── renderer/
     └── src/
         ├── App.tsx
-        ├── components/     # UI: DownloadItem, FormatDialog, Settings, …
+        ├── components/     # UI: DownloadItem, FormatDialog, PreferencesPanel, …
         └── hooks/
 
 extension/                  # Chrome Extension (Manifest V3)

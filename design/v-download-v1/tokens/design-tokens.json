@@ -1,0 +1,127 @@
+{
+  "name": "V-Download Black and White Redesign Tokens",
+  "mode": "monochrome",
+  "color": {
+    "background": {
+      "app": "#050505",
+      "window": "#0B0B0B",
+      "sidebar": "#0D0D0D"
+    },
+    "surface": {
+      "base": "#111111",
+      "raised": "#161616",
+      "elevated": "#1C1C1C",
+      "control": "rgba(255,255,255,0.055)"
+    },
+    "border": {
+      "default": "rgba(255,255,255,0.12)",
+      "strong": "rgba(255,255,255,0.22)",
+      "focus": "rgba(255,255,255,0.34)"
+    },
+    "text": {
+      "primary": "#FFFFFF",
+      "secondary": "#A4A4A4",
+      "tertiary": "#707070",
+      "inverse": "#050505"
+    },
+    "accent": {
+      "primary": "#FFFFFF",
+      "primaryText": "#050505",
+      "subtle": "rgba(255,255,255,0.10)"
+    },
+    "state": {
+      "active": {
+        "bg": "rgba(255,255,255,0.12)",
+        "text": "#FFFFFF",
+        "border": "rgba(255,255,255,0.18)"
+      },
+      "complete": {
+        "bg": "rgba(255,255,255,0.10)",
+        "text": "#FFFFFF",
+        "border": "rgba(255,255,255,0.16)"
+      },
+      "queued": {
+        "bg": "rgba(255,255,255,0.07)",
+        "text": "#FFFFFF",
+        "border": "rgba(255,255,255,0.14)"
+      },
+      "error": {
+        "bg": "rgba(255,255,255,0.13)",
+        "text": "#FFFFFF",
+        "border": "rgba(255,255,255,0.22)",
+        "borderStyle": "dashed"
+      }
+    }
+  },
+  "typography": {
+    "family": "-apple-system, BlinkMacSystemFont, SF Pro Text, Inter, Segoe UI, Roboto, Helvetica, Arial, Noto Sans CJK SC, sans-serif",
+    "windowTitle": {
+      "size": 13,
+      "weight": 800,
+      "lineHeight": 16
+    },
+    "pageTitle": {
+      "size": 24,
+      "weight": 800,
+      "lineHeight": 30,
+      "letterSpacing": -0.03
+    },
+    "sectionTitle": {
+      "size": 15,
+      "weight": 850,
+      "lineHeight": 20
+    },
+    "rowTitle": {
+      "size": 14,
+      "weight": 800,
+      "lineHeight": 19
+    },
+    "body": {
+      "size": 13,
+      "weight": 400,
+      "lineHeight": 20
+    },
+    "metadata": {
+      "size": 12,
+      "weight": 500,
+      "lineHeight": 16
+    },
+    "label": {
+      "size": 10,
+      "weight": 850,
+      "lineHeight": 12,
+      "letterSpacing": 0.09
+    }
+  },
+  "spacing": {
+    "base": 8,
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "xxl": 32
+  },
+  "radius": {
+    "button": 12,
+    "card": 18,
+    "panel": 22,
+    "window": 26,
+    "pill": 999
+  },
+  "shadow": {
+    "window": "0 22px 70px rgba(0,0,0,0.58)",
+    "modal": "0 34px 90px rgba(0,0,0,0.62)",
+    "accent": "none"
+  },
+  "layout": {
+    "mainWindow": {
+      "width": 1328,
+      "height": 848
+    },
+    "sidebarWidth": 244,
+    "inspectorWidth": 328,
+    "titlebarHeight": 52,
+    "rowHeight": 98
+  }
+}

@@ -41,15 +41,16 @@ export function BottomBar({
     syncCookiesPhase === 'opening' ? 'Opening…' : syncCookiesPhase === 'waiting' ? 'Waiting…' : null
   return (
     <footer
-      className="h-10 flex-shrink-0 relative flex items-center px-4 bg-elevated border-t border-border"
+      className="h-10 flex-shrink-0 relative flex items-center px-4 bg-window border-t border-border"
       style={{ WebkitAppRegion: 'no-drag' }}
     >
       <div className="flex items-center gap-2">
         <button
+          type="button"
           onClick={onResumeAll}
-          className={`p-1.5 rounded-md transition-colors ${
+          className={`p-1.5 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus ${
             hasResumable
-              ? 'text-muted-foreground hover:text-accent-green hover:bg-surface'
+              ? 'text-muted-foreground hover:text-foreground hover:bg-control'
               : 'text-muted-foreground/40 cursor-default'
           }`}
           title="Start all downloads"
@@ -58,10 +59,11 @@ export function BottomBar({
           <Play className="w-4 h-4" />
         </button>
         <button
+          type="button"
           onClick={onPauseAll}
-          className={`p-1.5 rounded-md transition-colors ${
+          className={`p-1.5 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus ${
             hasActive
-              ? 'text-muted-foreground hover:text-accent-amber hover:bg-surface'
+              ? 'text-muted-foreground hover:text-foreground hover:bg-control'
               : 'text-muted-foreground/40 cursor-default'
           }`}
           title="Pause all downloads"
@@ -70,11 +72,12 @@ export function BottomBar({
           <Pause className="w-4 h-4" />
         </button>
         <button
+          type="button"
           onClick={onClear}
           disabled={!hasDownloads}
-          className={`p-1.5 rounded-md transition-colors ${
+          className={`p-1.5 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus ${
             hasDownloads
-              ? 'text-muted-foreground hover:text-accent-coral hover:bg-surface'
+              ? 'text-muted-foreground hover:text-foreground hover:bg-control'
               : 'text-muted-foreground/40 cursor-default'
           }`}
           title="Clear downloads"
@@ -87,8 +90,8 @@ export function BottomBar({
         <div className="flex items-center gap-3">
           <span className="text-xs text-muted-foreground">{statusText}</span>
           {totalSpeed && (
-            <span className="flex items-center gap-1 text-xs text-accent-green tabular-nums">
-              <ArrowDown className="w-3 h-3" />
+            <span className="flex items-center gap-1 text-xs text-foreground tabular-nums">
+              <ArrowDown className="w-3 h-3 text-muted-foreground" />
               {totalSpeed}
             </span>
           )}
@@ -101,22 +104,22 @@ export function BottomBar({
             type="button"
             onClick={onSyncCookies}
             disabled={syncCookiesBusy}
-            className={`flex items-center gap-1.5 rounded-md pl-1.5 pr-2 py-1 transition-colors ${
+            className={`flex items-center gap-1.5 rounded-md pl-1.5 pr-2 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus ${
               syncCookiesBusy
-                ? 'text-accent-indigo cursor-wait ring-1 ring-inset ring-accent-indigo/35 bg-accent-indigo/5'
-                : 'text-muted-foreground hover:text-accent-indigo hover:bg-surface'
+                ? 'text-foreground cursor-wait ring-1 ring-inset ring-border-strong bg-control'
+                : 'text-muted-foreground hover:text-foreground hover:bg-control'
             }`}
             title={syncTitle}
             aria-busy={syncCookiesBusy}
             aria-label={syncTitle}
           >
             {syncCookiesBusy ? (
-              <Loader2 className="w-4 h-4 shrink-0 animate-spin text-accent-indigo" aria-hidden />
+              <Loader2 className="w-4 h-4 shrink-0 animate-spin text-foreground" aria-hidden />
             ) : (
               <RefreshCw className="w-4 h-4 shrink-0" aria-hidden />
             )}
             {syncShortLabel && (
-              <span className="text-[11px] font-medium text-accent-indigo tabular-nums max-w-[4.25rem] truncate">
+              <span className="text-[11px] font-medium text-foreground tabular-nums max-w-[4.25rem] truncate">
                 {syncShortLabel}
               </span>
             )}
@@ -125,7 +128,7 @@ export function BottomBar({
         <button
           type="button"
           onClick={onSettings}
-          className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-surface transition-colors"
+          className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-control transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
           title="Settings"
         >
           <Settings className="w-4 h-4" />

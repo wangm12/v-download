@@ -14,6 +14,11 @@ export interface SettingsSchema {
   cookiesPath: string
   /** Passed to yt-dlp `--cookies-from-browser` for Douyin (e.g. chrome, brave, edge). */
   cookiesFromBrowser: string
+  /**
+   * When true, Douyin HTML hydration uses CloakBrowser (patched Chromium + Playwright)
+   * instead of Electron’s embedded Chromium. First run downloads ~200MB binary to cache.
+   */
+  douyinUseCloakBrowser: boolean
   ytdlpPath: string
   ffmpegPath: string
 }
@@ -48,6 +53,7 @@ const defaults: SettingsSchema = {
   sleepInterval: 3,
   cookiesPath: '',
   cookiesFromBrowser: 'chrome',
+  douyinUseCloakBrowser: false,
   ytdlpPath: findBinary('yt-dlp'),
   ffmpegPath: findBinary('ffmpeg')
 }

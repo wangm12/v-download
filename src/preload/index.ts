@@ -44,6 +44,11 @@ const api = {
   },
   selectDownloadFolder: () => ipcRenderer.invoke('select-download-folder'),
   openSettings: () => ipcRenderer.invoke('open-settings'),
+  onOpenPreferences: (callback: () => void) => {
+    const sub = () => callback()
+    ipcRenderer.on('open-preferences', sub)
+    return () => ipcRenderer.removeListener('open-preferences', sub)
+  },
   closeWindow: () => ipcRenderer.invoke('close-window'),
   onSettingsChanged: (callback: () => void) => {
     const sub = () => callback()
@@ -64,6 +69,8 @@ const api = {
   readClipboard: () => ipcRenderer.invoke('read-clipboard'),
   installChromeExtension: () => ipcRenderer.invoke('install-chrome-extension'),
   requestBrowserCookieSync: () => ipcRenderer.invoke('request-browser-cookie-sync'),
+  setNativeThemeSource: (source: 'dark' | 'light' | 'system') =>
+    ipcRenderer.invoke('set-native-theme-source', source),
   platform: process.platform
 }
 
