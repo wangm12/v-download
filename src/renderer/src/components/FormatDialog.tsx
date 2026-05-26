@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { X, Download, Music, Video, File, Folder } from 'lucide-react'
 import type { VideoInfo, SettingsData } from '@/types'
 import { formatDuration, formatViews } from '@/utils/format'
+import { HoverHintWrap } from './HoverHintWrap'
 
 interface FormatDialogProps {
   videoInfo: VideoInfo
@@ -52,19 +53,20 @@ export function FormatDialog({ videoInfo, settings, onClose, onDownload, queueCo
   ]
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
-      <div
-        className="w-[520px] bg-background rounded-xl overflow-hidden shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+      <div className="w-[520px] bg-background rounded-xl overflow-hidden shadow-2xl">
         {/* Header */}
         <div className="bg-elevated p-5 flex gap-3 items-center relative">
-          <button
-            onClick={onClose}
-            className="absolute top-3 right-3 p-1 rounded-md hover:bg-border transition-colors"
-          >
-            <X size={16} className="text-muted-foreground" />
-          </button>
+          <HoverHintWrap text="Close" side="bottom" className="absolute top-3 right-3">
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-control transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+            >
+              <X size={16} aria-hidden />
+            </button>
+          </HoverHintWrap>
           <div className="w-20 h-[45px] rounded-md overflow-hidden bg-surface flex-shrink-0">
             {videoInfo.thumbnail ? (
               <img src={videoInfo.thumbnail} alt="" className="w-full h-full object-cover" />

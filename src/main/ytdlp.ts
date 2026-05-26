@@ -373,17 +373,33 @@ export function download(
     outputTemplate = join(outputDir, '%(title)s.%(ext)s')
   }
 
+  /** Direct CDN / sniffed URLs from the browser extension — not multi-format player pages. */
+  const isDirectMedia = Boolean(mediaType)
+
   let formatStr: string
-  if (format === 'audio' || format === 'mp3') {
+  let mergeOutputMp4 = false
+  if (isDirectMedia) {
+    if (mediaType === 'mp3') {
+      formatStr = 'bestaudio/best'
+    } else if (mediaType === 'jpeg') {
+      formatStr = 'best'
+    } else {
+      // Single progressive / CDN URL from extension — avoid bv+ba picking a mismatched pair
+      formatStr = 'best'
+      mergeOutputMp4 = false
+    }
+  } else if (format === 'audio' || format === 'mp3') {
     formatStr = 'bestaudio/best'
+    mergeOutputMp4 = true
   } else {
     formatStr = `bv[height<=${quality}][ext=mp4]+ba[ext=m4a]/bv[height<=${quality}]+ba/best[height<=${quality}]/bestvideo+bestaudio/best`
+    mergeOutputMp4 = true
   }
 
   const args: string[] = [
     '--newline',
     '--continue',
-    '--merge-output-format', 'mp4',
+    ...(mergeOutputMp4 ? (['--merge-output-format', 'mp4'] as const) : []),
     '-f', formatStr,
     '-o', outputTemplate,
     '--no-warnings',
@@ -400,7 +416,7 @@ export function download(
     args.push('--concurrent-fragments', String(concurrentFragments))
   }
 
-  if (format === 'audio' || format === 'mp3') {
+  if (format === 'audio' || format === 'mp3' || mediaType === 'mp3') {
     args.push('--extract-audio', '--audio-format', 'mp3', '--audio-quality', '0')
   }
 

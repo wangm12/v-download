@@ -21,6 +21,53 @@
   let activePanel = null   // DOM node of the open panel, or null
   let rafId = null         // rAF loop handle
   let lastHref = location.href
+  let lastLoggedAwemeId = null
+
+  // Page DevTools (douyin tab): filter "[V-Download douyin CS]"
+  // Extension worker: chrome://extensions → V-Download → service worker → Inspect — "[V-Download ext]"
+  function logCs(stage, extra) {
+    const line = Object.assign({ stage, t: new Date().toISOString() }, extra || {})
+    console.info('[V-Download douyin CS]', line)
+  }
+
+  function truncateUrlCs(u, max) {
+    const m = max || 56
+    if (!u || typeof u !== 'string') return ''
+    return u.length <= m ? u : `${u.slice(0, m)}…`
+  }
+
+  /** Safe filename-ish segments; avoids every download sharing the tab title. */
+  function sanitizeFsSegment(s) {
+    return String(s || '')
+      .replace(/[/\\?*:|"<>]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 96)
+  }
+
+  /**
+   * Author + short desc + aweme id (+ optional row suffix). Falls back to timestamp if needed.
+   */
+  function buildDownloadBasename(rowSuffix) {
+    const d = currentData
+    if (!d) {
+      return `douyin-${Date.now()}`
+    }
+    const author = sanitizeFsSegment(d.author)
+    const desc = sanitizeFsSegment(d.desc).slice(0, 56)
+    const id = String(d.awemeId || '').trim()
+    const parts = []
+    if (author) parts.push(author)
+    if (desc) parts.push(desc)
+    if (id) parts.push(id)
+    let base = parts.filter(Boolean).join(' — ')
+    if (!base) base = id ? `douyin-${id}` : `douyin-${Date.now()}`
+    if (rowSuffix) {
+      const suf = sanitizeFsSegment(rowSuffix)
+      if (suf) base = `${base} — ${suf}`
+    }
+    return base.slice(0, 200)
+  }
 
   // ── Utility ────────────────────────────────────────────────────────────────
 
@@ -59,6 +106,7 @@
     btn.addEventListener('click', (e) => {
       e.stopPropagation()
       e.preventDefault()
+      logCs('float-btn-click', { willClose: !!activePanel })
       if (activePanel) {
         closePanel()
       } else {
@@ -153,27 +201,80 @@
     row.appendChild(dlBtn)
 
     const handle = (e) => {
+      e.preventDefault()
       e.stopPropagation()
+      logCs('format-row-click', { label: row.querySelector('.dy-dl-format-label')?.textContent || '?' })
       onClick()
     }
-    row.addEventListener('click', handle)
-    dlBtn.addEventListener('click', handle)
-    row.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') onClick() })
+    // Capture phase: Douyin often stops propagation in bubble phase on the player tree.
+    row.addEventListener('click', handle, true)
+    dlBtn.addEventListener('click', handle, true)
+    row.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        onClick()
+      }
+    })
 
     return row
   }
 
-  function triggerDownload(url, type) {
-    closePanel()
-    flashButton('dy-dl-sending')
-    const item = { url, type, initiator: 'https://www.douyin.com/' }
-    chrome.runtime.sendMessage({ type: 'DOWNLOAD_MEDIA_FROM_CONTENT', item }, (resp) => {
-      if (chrome.runtime.lastError) {
-        flashButton(null)
-        return
-      }
-      flashButton(resp && resp.ok ? 'dy-dl-sent' : null)
+  function triggerDownload(url, type, rowSuffix) {
+    if (!url || !String(url).trim()) {
+      logCs('trigger-download-skip', { reason: 'empty-url', type })
+      return
+    }
+    const downloadTitle = buildDownloadBasename(rowSuffix)
+    logCs('trigger-download-start', {
+      type,
+      url: truncateUrlCs(String(url), 64),
+      awemeId: currentData?.awemeId || null,
+      downloadTitle: downloadTitle.slice(0, 80)
     })
+    flashButton('dy-dl-sending')
+    if (typeof globalThis.__vdownloadWakeFromUserGesture === 'function') {
+      globalThis.__vdownloadWakeFromUserGesture()
+    }
+    const item = {
+      url,
+      type,
+      initiator: 'https://www.douyin.com/',
+      title: downloadTitle
+    }
+    const done = (ok) => {
+      logCs('trigger-download-finished', { ok, awemeId: currentData?.awemeId || null })
+      if (ok) {
+        closePanel()
+        flashButton('dy-dl-sent')
+      } else {
+        flashButton(null)
+      }
+    }
+    try {
+      const p = chrome.runtime.sendMessage({ type: 'DOWNLOAD_MEDIA_FROM_CONTENT', item, surfacedWake: true })
+      if (p && typeof p.then === 'function') {
+        p.then((resp) => {
+          logCs('trigger-download-reply', { ok: !!(resp && resp.ok), error: resp?.error })
+          done(resp && resp.ok)
+        }).catch((err) => {
+          logCs('trigger-download-promise-reject', { err: String(err) })
+          done(false)
+        })
+      } else {
+        chrome.runtime.sendMessage({ type: 'DOWNLOAD_MEDIA_FROM_CONTENT', item, surfacedWake: true }, (resp) => {
+          if (chrome.runtime.lastError) {
+            logCs('trigger-download-last-error', { message: chrome.runtime.lastError.message })
+            done(false)
+            return
+          }
+          logCs('trigger-download-callback-reply', { ok: !!(resp && resp.ok), error: resp?.error })
+          done(resp && resp.ok)
+        })
+      }
+    } catch (err) {
+      logCs('trigger-download-send-throw', { err: String(err) })
+      done(false)
+    }
   }
 
   function flashButton(stateClass) {
@@ -189,6 +290,7 @@
   }
 
   function showPanel(btn) {
+    logCs('show-panel', { hasData: !!currentData, awemeId: currentData?.awemeId || null })
     if (!currentData) {
       // Bridge hasn't sent data yet — show a "loading" panel
       const panel = document.createElement('div')
@@ -201,8 +303,6 @@
       document.documentElement.appendChild(panel)
       activePanel = panel
       requestAnimationFrame(() => positionPanelRelativeTo(panel, btn))
-      // Auto-dismiss after 1.5s to let bridge catch up
-      setTimeout(() => { if (activePanel === panel) closePanel() }, 1500)
       return
     }
 
@@ -246,7 +346,7 @@
           formatSize(fmt.size),
           typeClass,
           codecBadge,
-          () => triggerDownload(fmt.url, 'mp4')
+          () => triggerDownload(fmt.url, 'mp4', `${fmt.label} ${codecBadge}`)
         )
         panel.appendChild(row)
         hasOptions = true
@@ -266,7 +366,7 @@
         '',
         'image',
         'JPEG',
-        () => triggerDownload(currentData.cover.url, 'jpeg')
+        () => triggerDownload(currentData.cover.url, 'jpeg', 'cover')
       )
       panel.appendChild(row)
       hasOptions = true
@@ -286,7 +386,7 @@
         '',
         'audio',
         'MP3',
-        () => triggerDownload(currentData.music.url, 'mp3')
+        () => triggerDownload(currentData.music.url, 'mp3', 'audio')
       )
       panel.appendChild(row)
       hasOptions = true
@@ -370,9 +470,29 @@
 
     currentData = data
 
+    if (lastLoggedAwemeId !== data.awemeId) {
+      lastLoggedAwemeId = data.awemeId
+      logCs('bridge-video', {
+        awemeId: data.awemeId,
+        nFormats: (data.formats || []).length,
+        hasCover: !!(data.cover && data.cover.url),
+        hasMusic: !!(data.music && data.music.url)
+      })
+    }
+
     const btn = ensureButton()
     positionButton(btn)
     startRaf()
+
+    // User may have opened the panel while waiting for bridge data — replace loading UI.
+    if (activePanel) {
+      const empty = activePanel.querySelector('.dy-dl-panel-empty')
+      if (empty && empty.textContent === 'Reading video data…') {
+        closePanel()
+        const b = document.getElementById(BTN_ID)
+        if (b) showPanel(b)
+      }
+    }
   })
 
   // ── Periodic anchor check ──────────────────────────────────────────────────
@@ -396,15 +516,7 @@
   setTimeout(checkAnchor, 300)
   setTimeout(checkAnchor, 1000)
 
-  // ── Panel / button dismissal ───────────────────────────────────────────────
-
-  document.addEventListener('click', (e) => {
-    if (!activePanel) return
-    const btn = document.getElementById(BTN_ID)
-    if (activePanel.contains(e.target)) return
-    if (btn && btn.contains(e.target)) return
-    closePanel()
-  }, true)
+  // ── Panel dismissal (no click-outside — Douyin's player captures many clicks) ──
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && activePanel) closePanel()

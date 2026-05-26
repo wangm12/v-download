@@ -1,4 +1,5 @@
 import { Play, Pause, Settings, Trash2, ArrowDown, RefreshCw, Loader2 } from 'lucide-react'
+import { HoverHintWrap } from './HoverHintWrap'
 
 interface BottomBarProps {
   statusText: string
@@ -45,45 +46,51 @@ export function BottomBar({
       style={{ WebkitAppRegion: 'no-drag' }}
     >
       <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={onResumeAll}
-          className={`p-1.5 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus ${
-            hasResumable
-              ? 'text-muted-foreground hover:text-foreground hover:bg-control'
-              : 'text-muted-foreground/40 cursor-default'
-          }`}
-          title="Start all downloads"
-          disabled={!hasResumable}
-        >
-          <Play className="w-4 h-4" />
-        </button>
-        <button
-          type="button"
-          onClick={onPauseAll}
-          className={`p-1.5 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus ${
-            hasActive
-              ? 'text-muted-foreground hover:text-foreground hover:bg-control'
-              : 'text-muted-foreground/40 cursor-default'
-          }`}
-          title="Pause all downloads"
-          disabled={!hasActive}
-        >
-          <Pause className="w-4 h-4" />
-        </button>
-        <button
-          type="button"
-          onClick={onClear}
-          disabled={!hasDownloads}
-          className={`p-1.5 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus ${
-            hasDownloads
-              ? 'text-muted-foreground hover:text-foreground hover:bg-control'
-              : 'text-muted-foreground/40 cursor-default'
-          }`}
-          title="Clear downloads"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
+        <HoverHintWrap text="Start all downloads">
+          <button
+            type="button"
+            onClick={onResumeAll}
+            className={`p-1.5 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus ${
+              hasResumable
+                ? 'text-muted-foreground hover:text-foreground hover:bg-control'
+                : 'text-muted-foreground/40 cursor-default'
+            }`}
+            aria-label="Start all downloads"
+            disabled={!hasResumable}
+          >
+            <Play className="w-4 h-4" aria-hidden />
+          </button>
+        </HoverHintWrap>
+        <HoverHintWrap text="Pause all downloads">
+          <button
+            type="button"
+            onClick={onPauseAll}
+            className={`p-1.5 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus ${
+              hasActive
+                ? 'text-muted-foreground hover:text-foreground hover:bg-control'
+                : 'text-muted-foreground/40 cursor-default'
+            }`}
+            aria-label="Pause all downloads"
+            disabled={!hasActive}
+          >
+            <Pause className="w-4 h-4" aria-hidden />
+          </button>
+        </HoverHintWrap>
+        <HoverHintWrap text="Clear downloads">
+          <button
+            type="button"
+            onClick={onClear}
+            disabled={!hasDownloads}
+            className={`p-1.5 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus ${
+              hasDownloads
+                ? 'text-muted-foreground hover:text-foreground hover:bg-control'
+                : 'text-muted-foreground/40 cursor-default'
+            }`}
+            aria-label="Clear downloads"
+          >
+            <Trash2 className="w-4 h-4" aria-hidden />
+          </button>
+        </HoverHintWrap>
       </div>
 
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -100,39 +107,42 @@ export function BottomBar({
 
       <div className="ml-auto flex items-center gap-1">
         {onSyncCookies && (
+          <HoverHintWrap text={syncTitle}>
+            <button
+              type="button"
+              onClick={onSyncCookies}
+              disabled={syncCookiesBusy}
+              className={`flex items-center gap-1.5 rounded-md pl-1.5 pr-2 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus ${
+                syncCookiesBusy
+                  ? 'text-foreground cursor-wait ring-1 ring-inset ring-border-strong bg-control'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-control'
+              }`}
+              aria-busy={syncCookiesBusy}
+              aria-label={syncTitle}
+            >
+              {syncCookiesBusy ? (
+                <Loader2 className="w-4 h-4 shrink-0 animate-spin text-foreground" aria-hidden />
+              ) : (
+                <RefreshCw className="w-4 h-4 shrink-0" aria-hidden />
+              )}
+              {syncShortLabel && (
+                <span className="text-[11px] font-medium text-foreground tabular-nums max-w-[4.25rem] truncate">
+                  {syncShortLabel}
+                </span>
+              )}
+            </button>
+          </HoverHintWrap>
+        )}
+        <HoverHintWrap text="Settings">
           <button
             type="button"
-            onClick={onSyncCookies}
-            disabled={syncCookiesBusy}
-            className={`flex items-center gap-1.5 rounded-md pl-1.5 pr-2 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus ${
-              syncCookiesBusy
-                ? 'text-foreground cursor-wait ring-1 ring-inset ring-border-strong bg-control'
-                : 'text-muted-foreground hover:text-foreground hover:bg-control'
-            }`}
-            title={syncTitle}
-            aria-busy={syncCookiesBusy}
-            aria-label={syncTitle}
+            onClick={onSettings}
+            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-control transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+            aria-label="Settings"
           >
-            {syncCookiesBusy ? (
-              <Loader2 className="w-4 h-4 shrink-0 animate-spin text-foreground" aria-hidden />
-            ) : (
-              <RefreshCw className="w-4 h-4 shrink-0" aria-hidden />
-            )}
-            {syncShortLabel && (
-              <span className="text-[11px] font-medium text-foreground tabular-nums max-w-[4.25rem] truncate">
-                {syncShortLabel}
-              </span>
-            )}
+            <Settings className="w-4 h-4" aria-hidden />
           </button>
-        )}
-        <button
-          type="button"
-          onClick={onSettings}
-          className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-control transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
-          title="Settings"
-        >
-          <Settings className="w-4 h-4" />
-        </button>
+        </HoverHintWrap>
       </div>
     </footer>
   )

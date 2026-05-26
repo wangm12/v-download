@@ -150,6 +150,9 @@ export function startLocalServer(): void {
           json(res, 400, { error: 'Missing url' })
           return
         }
+        console.log(
+          `[localServer] POST /download type=${parsed.type ?? '(page)'} urlLen=${parsed.url.length} title=${(parsed.title || '').slice(0, 40)}`
+        )
         if (parsed.type && onMediaDownloadRequest) {
           onMediaDownloadRequest(parsed)
         } else if (onDownloadRequest) {

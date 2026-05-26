@@ -13,6 +13,7 @@ import { CoinLoader } from '@/components/CoinLoader'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { DownloadActionsProvider } from '@/contexts/DownloadActionsContext'
 import { AppSidebar } from '@/components/AppSidebar'
+import { HoverHintWrap } from '@/components/HoverHintWrap'
 import { QueueToolbar } from '@/components/QueueToolbar'
 import { DownloadInspector } from '@/components/DownloadInspector'
 import { useDownloads } from '@/hooks/useDownloads'
@@ -59,6 +60,17 @@ function readCollapsedFromStorage(key: string): boolean {
   }
 }
 
+/** Right inspector: absent key defaults to hidden (no strip); '1' = hidden, '0' = open. */
+function readRightInspectorCollapsedFromStorage(): boolean {
+  try {
+    const v = localStorage.getItem(LS_RIGHT_INSPECTOR)
+    if (v === null) return true
+    return v === '1'
+  } catch {
+    return true
+  }
+}
+
 type CookieSyncBanner =
   | null
   | {
@@ -85,9 +97,7 @@ function MainApp() {
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(() =>
     readCollapsedFromStorage(LS_LEFT_SIDEBAR)
   )
-  const [rightInspectorCollapsed, setRightInspectorCollapsed] = useState(() =>
-    readCollapsedFromStorage(LS_RIGHT_INSPECTOR)
-  )
+  const [rightInspectorCollapsed, setRightInspectorCollapsed] = useState(() => readRightInspectorCollapsedFromStorage())
   const { preference: themePreference, setPreference: setThemePreference, resolvedTheme } = useThemePreference()
   const { downloads, removeDownload, updateDownload, refreshDownloads } = useDownloads()
   const { settings, loadSettings } = useSettings()
@@ -425,7 +435,7 @@ function MainApp() {
       removeDownload={removeDownload}
       updateDownload={updateDownload}
     >
-      <div className="h-screen flex flex-col bg-background text-foreground">
+      <div className="flex h-screen min-h-0 min-w-0 w-full flex-col bg-background text-foreground">
         <TitleBar
           title={preferencesMode ? 'Preferences' : 'V-Download'}
           trafficInset={trafficInset}
@@ -463,18 +473,20 @@ function MainApp() {
                 <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{cookieSyncBanner.detail}</p>
               )}
             </div>
-            <button
-              type="button"
-              className="shrink-0 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-control transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
-              onClick={dismissCookieSyncBanner}
-              aria-label="Dismiss cookie sync message"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            <HoverHintWrap text="Dismiss cookie sync message" side="bottom">
+              <button
+                type="button"
+                className="shrink-0 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-control transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+                onClick={dismissCookieSyncBanner}
+                aria-label="Dismiss cookie sync message"
+              >
+                <X className="w-4 h-4" aria-hidden />
+              </button>
+            </HoverHintWrap>
           </div>
         )}
 
-        <div className="flex flex-1 min-h-0 min-w-0">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-row overflow-hidden bg-background">
           <AppSidebar
             collapsed={leftSidebarCollapsed}
             onToggleCollapsed={() => setLeftSidebarCollapsed((c) => !c)}
@@ -490,36 +502,41 @@ function MainApp() {
           {preferencesMode ? (
             <PreferencesPanel section={prefSection} />
           ) : (
-            <>
-              <div className="flex flex-1 flex-col min-w-0 bg-window border-r border-border">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-row overflow-hidden">
+              <div
+                className={cn(
+                  'flex min-h-0 min-w-0 flex-1 flex-col bg-window',
+                  !rightInspectorCollapsed && 'border-r border-border'
+                )}
+              >
                 <QueueToolbar
                   searchQuery={searchQuery}
                   onSearchQuery={setSearchQuery}
                   onDropUrl={onDropUrl}
                 />
 
-                <main className="flex-1 overflow-y-auto min-h-0 min-w-0 relative">
+                <main className="relative min-h-0 min-w-0 flex-1 overflow-y-auto">
                   {loading && (
                     <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-background/85 backdrop-blur-sm">
                       <CoinLoader />
-                      <p className="text-muted-foreground text-sm mt-4">
+                      <p className="mt-4 text-sm text-muted-foreground">
                         {loadingPhase === 'sniffing' ? 'Scanning page for media' : 'Fetching video info…'}
                       </p>
                     </div>
                   )}
 
                   {errorMsg && (
-                    <div className="px-4 py-2 bg-state-error-bg border-b border-dashed border-border-strong shrink-0">
-                      <p className="text-foreground text-xs">{errorMsg}</p>
+                    <div className="shrink-0 border-b border-dashed border-border-strong bg-state-error-bg px-4 py-2">
+                      <p className="text-xs text-foreground">{errorMsg}</p>
                     </div>
                   )}
 
                   {grouped.length === 0 && !loading ? (
-                    <div className="flex flex-col items-center justify-center h-full text-center px-8 py-12">
-                      <p className="text-muted-foreground text-sm mb-2 max-w-sm">
+                    <div className="flex h-full flex-col items-center justify-center px-8 py-12 text-center">
+                      <p className="mb-2 max-w-sm text-sm text-muted-foreground">
                         Paste a URL (Cmd+V), drop a link on the queue, or use the browser companion for logged-in pages.
                       </p>
-                      <p className="text-tertiary-foreground text-xs max-w-sm">
+                      <p className="max-w-sm text-xs text-tertiary-foreground">
                         Supports YouTube, direct media links, and page scanning
                       </p>
                     </div>
@@ -547,13 +564,14 @@ function MainApp() {
                 </main>
               </div>
 
-              <DownloadInspector
-                download={selectedDownload}
-                downloadDir={settings.downloadDir}
-                collapsed={rightInspectorCollapsed}
-                onSyncBrowserCookies={handleBrowserCookieSync}
-              />
-            </>
+              {!rightInspectorCollapsed && (
+                <DownloadInspector
+                  download={selectedDownload}
+                  downloadDir={settings.downloadDir}
+                  onSyncBrowserCookies={handleBrowserCookieSync}
+                />
+              )}
+            </div>
           )}
         </div>
 

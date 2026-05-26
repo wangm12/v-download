@@ -16,6 +16,7 @@ import type { Playlist } from '@/types'
 import { useDownloadActions } from '@/contexts/DownloadActionsContext'
 import { PlaylistDeleteDialog } from './PlaylistDeleteDialog'
 import { ActionButton } from './ActionButton'
+import { HoverHintWrap } from './HoverHintWrap'
 import { formatFileSize } from '@/utils/format'
 import { cn } from '@/lib/cn'
 
@@ -105,43 +106,50 @@ export function PlaylistGroup({ playlist, selectedId, onSelectDownload }: Playli
             {playlist.completed_count}/{playlist.total_count}
           </span>
           {hasResumableItems && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                resumableItems.forEach((d) => actions.retry(d.id))
-              }}
-              className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-control transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
-              title="Resume all"
-            >
-              <Play className="w-4 h-4" />
-            </button>
+            <HoverHintWrap text="Resume all" side="bottom">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  resumableItems.forEach((d) => actions.retry(d.id))
+                }}
+                className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-control transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+                aria-label="Resume all"
+              >
+                <Play className="w-4 h-4" aria-hidden />
+              </button>
+            </HoverHintWrap>
           )}
           {hasActiveItems && (
+            <HoverHintWrap text="Pause all" side="bottom">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  downloads
+                    .filter((d) => d.status === 'downloading' || d.status === 'queued')
+                    .forEach((d) => actions.pause(d.id))
+                }}
+                className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-control transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+                aria-label="Pause all"
+              >
+                <Pause className="w-4 h-4" aria-hidden />
+              </button>
+            </HoverHintWrap>
+          )}
+          <HoverHintWrap text="Remove playlist" side="bottom">
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation()
-                downloads
-                  .filter((d) => d.status === 'downloading' || d.status === 'queued')
-                  .forEach((d) => actions.pause(d.id))
+                setDeleteDialogOpen(true)
               }}
               className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-control transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
-              title="Pause all"
+              aria-label="Remove playlist"
             >
-              <Pause className="w-4 h-4" />
+              <Trash2 className="w-4 h-4" aria-hidden />
             </button>
-          )}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              setDeleteDialogOpen(true)
-            }}
-            className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-control transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
-            title="Remove playlist"
-            aria-label="Remove playlist"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+          </HoverHintWrap>
         </div>
       </div>
 

@@ -82,6 +82,10 @@ function renderMedia(media, tabUrl, tabTitle) {
 
     if (selected.length === 0) return
 
+    if (typeof globalThis.__vdownloadWakeFromUserGesture === 'function') {
+      globalThis.__vdownloadWakeFromUserGesture()
+    }
+
     const btn = document.getElementById('download-btn')
     btn.textContent = 'Sending...'
     btn.disabled = true
@@ -91,7 +95,8 @@ function renderMedia(media, tabUrl, tabTitle) {
         type: 'DOWNLOAD_MEDIA',
         items: selected,
         tabUrl,
-        tabTitle
+        tabTitle,
+        surfacedWake: true
       },
       () => {
         window.close()

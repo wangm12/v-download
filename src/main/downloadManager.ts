@@ -365,41 +365,114 @@ async function runTask(task: DownloadTask): Promise<void> {
 
       let filePath: string | null = null
       let fileSize: number | null = null
-      const ext = task.format === 'audio' || task.format === 'mp3' ? 'mp3' : 'mp4'
+      const outputExtGuess =
+        task.format === 'audio' || task.format === 'mp3' || mediaType === 'mp3'
+          ? 'mp3'
+          : mediaType === 'jpeg'
+            ? 'jpg'
+            : 'mp4'
       const sanitizedTitle = task.title.replace(/[/\\?*:|"<>]/g, '-')
-      const expectedPath = join(outDir, `${sanitizedTitle}.${ext}`)
+      const expectedPath = join(outDir, `${sanitizedTitle}.${outputExtGuess}`)
+      const expectedPathAlt =
+        mediaType === 'jpeg' ? join(outDir, `${sanitizedTitle}.jpeg`) : null
 
-      try {
-        const st = await stat(expectedPath)
-        filePath = expectedPath
-        fileSize = st.size
-      } catch {
+      const MIN_OUTPUT_BYTES = 512
+
+      const tryStat = async (p: string): Promise<{ path: string; size: number } | null> => {
+        try {
+          const st = await stat(p)
+          if (st.isFile() && st.size >= MIN_OUTPUT_BYTES) return { path: p, size: st.size }
+        } catch {
+          /* missing */
+        }
+        return null
+      }
+
+      // 1) Paths yt-dlp reported on stdout (authoritative when present)
+      const dests = dp.getDestinations?.() ?? []
+      for (let i = dests.length - 1; i >= 0; i--) {
+        const hit = await tryStat(dests[i])
+        if (hit) {
+          filePath = hit.path
+          fileSize = hit.size
+          break
+        }
+      }
+
+      // 2) Expected basename from our -o template
+      if (!filePath) {
+        const hit = await tryStat(expectedPath)
+        if (hit) {
+          filePath = hit.path
+          fileSize = hit.size
+        } else if (expectedPathAlt) {
+          const hitAlt = await tryStat(expectedPathAlt)
+          if (hitAlt) {
+            filePath = hitAlt.path
+            fileSize = hitAlt.size
+          }
+        }
+      }
+
+      // 3) Same directory, same title prefix only (never "newest mp4 in folder" — that mis-attributes unrelated files)
+      if (!filePath) {
         try {
           const files = await readdir(outDir)
-          const extLower = ext.toLowerCase()
-          const candidates = files
-            .filter((f) => f.toLowerCase().endsWith(extLower))
-            .map((f) => join(outDir, f))
-          let newest: { path: string; mtime: number } | null = null
-          for (const p of candidates) {
-            const st = await stat(p)
-            if (!newest || st.mtimeMs > newest.mtime) {
-              newest = { path: p, mtime: st.mtimeMs }
+          const exts = new Set(
+            outputExtGuess === 'mp3'
+              ? ['mp3', 'm4a', 'opus', 'webm']
+              : mediaType === 'jpeg'
+                ? ['jpg', 'jpeg', 'png', 'webp']
+                : ['mp4', 'mkv', 'webm', 'm4a']
+          )
+          let newest: { path: string; mtime: number; size: number } | null = null
+          for (const f of files) {
+            const dot = f.lastIndexOf('.')
+            if (dot < 1) continue
+            const ext = f.slice(dot + 1).toLowerCase()
+            if (!exts.has(ext)) continue
+            if (!f.startsWith(sanitizedTitle)) continue
+            const p = join(outDir, f)
+            try {
+              const st = await stat(p)
+              if (!st.isFile() || st.size < MIN_OUTPUT_BYTES) continue
+              if (!newest || st.mtimeMs > newest.mtime) {
+                newest = { path: p, mtime: st.mtimeMs, size: st.size }
+              }
+            } catch {
+              /* skip */
             }
           }
           if (newest) {
             filePath = newest.path
-            const st = await stat(newest.path)
-            fileSize = st.size
+            fileSize = newest.size
           }
         } catch {
-          // Leave filePath null
+          /* dir missing */
         }
+      }
+
+      if (!filePath) {
+        const stderr = dp.getStderr().trim()
+        const tail = stderr ? stderr.split('\n').filter(Boolean).slice(-4).join('\n') : ''
+        task.status = 'error'
+        task.error = tail
+          ? `yt-dlp reported success but no output file was found.\n${tail}`
+          : 'yt-dlp reported success but no output file was found (check download folder permissions and disk space).'
+        task.progress = 0
+        task.updatedAt = new Date().toISOString()
+        taskExtraMeta.delete(task.id)
+        db.updateDownload(task.id, { status: 'error', error: task.error, progress: 0, file_path: null, file_size: null })
+        emitProgress(task)
+        resolve()
+        processQueue()
+        return
       }
 
       task.filePath = filePath
       task.status = 'complete'
       task.progress = 100
+      task.error = null
       task.updatedAt = new Date().toISOString()
       taskExtraMeta.delete(task.id)
       db.updateDownload(task.id, {

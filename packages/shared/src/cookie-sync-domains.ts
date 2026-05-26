@@ -5,6 +5,7 @@
 export const COOKIE_SYNC_DOMAINS = [
   '.youtube.com',
   '.douyin.com',
+  '.iesdouyin.com',
   '.tiktok.com',
   '.xiaohongshu.com',
   '.bilibili.com',

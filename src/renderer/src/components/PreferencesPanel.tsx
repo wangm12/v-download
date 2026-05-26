@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react'
 import { Folder, RefreshCw, Loader2, X } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { Stepper } from './Stepper'
+import { HoverHintWrap } from './HoverHintWrap'
 import type { PrefSection } from '@/preferencesNav'
 import { PREF_SECTION_HEADER } from '@/preferencesNav'
 import type { SettingsData } from '@/types'
@@ -327,14 +328,16 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                   )}
                   <p className="text-sm text-foreground leading-relaxed flex-1 min-w-0">{cookieSyncNote}</p>
                   {!cookieSyncBusy && cookieSyncNote && (
-                    <button
-                      type="button"
-                      onClick={() => setCookieSyncNote('')}
-                      className="shrink-0 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-elevated transition-colors"
-                      aria-label="Dismiss message"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
+                    <HoverHintWrap text="Dismiss message" side="bottom">
+                      <button
+                        type="button"
+                        onClick={() => setCookieSyncNote('')}
+                        className="shrink-0 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-control transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+                        aria-label="Dismiss message"
+                      >
+                        <X className="w-4 h-4" aria-hidden />
+                      </button>
+                    </HoverHintWrap>
                   )}
                 </div>
               )}

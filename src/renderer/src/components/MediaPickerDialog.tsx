@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { X, Download, Globe } from 'lucide-react'
+import { HoverHintWrap } from './HoverHintWrap'
 
 export interface DetectedMedia {
   url: string
@@ -98,12 +99,16 @@ export function MediaPickerDialog({ media, pageUrl, pageTitle, onClose, onDownlo
               <p className="text-[11px] text-muted-foreground mt-0.5">{pageDomain}</p>
             )}
           </div>
-          <button
-            onClick={onClose}
-            className="p-1 rounded-md hover:bg-border transition-colors flex-shrink-0"
-          >
-            <X size={16} className="text-muted-foreground" />
-          </button>
+          <HoverHintWrap text="Close" side="bottom">
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-control transition-colors flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+            >
+              <X size={16} aria-hidden />
+            </button>
+          </HoverHintWrap>
         </div>
 
         <div className="max-h-[320px] overflow-y-auto divide-y divide-border/50">

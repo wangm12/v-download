@@ -14,6 +14,7 @@ import {
 import { cn } from '@/lib/cn'
 import type { PrefSection } from '@/preferencesNav'
 import { PREF_SECTION_ADVANCED, PREF_SECTION_PRIMARY } from '@/preferencesNav'
+import { HoverHintWrap } from './HoverHintWrap'
 
 const APP_ICON_SRC = `${import.meta.env.BASE_URL}app-icon.png`
 
@@ -81,28 +82,29 @@ function IconNavButton({
   label: string
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={label}
-      aria-label={label}
-      aria-current={active ? 'page' : undefined}
-      className={cn(
-        'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-[transform,colors] duration-200 ease-out hover:scale-[1.04] active:scale-[0.96] motion-reduce:hover:scale-100 motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus',
-        active
-          ? 'bg-action text-action-fg'
-          : 'text-muted-foreground hover:bg-control hover:text-foreground'
-      )}
-    >
-      <Icon className="h-4 w-4" aria-hidden />
-    </button>
+    <HoverHintWrap text={label} side="right">
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={label}
+        aria-current={active ? 'page' : undefined}
+        className={cn(
+          'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-[transform,colors] duration-200 ease-out hover:scale-[1.04] active:scale-[0.96] motion-reduce:hover:scale-100 motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus',
+          active
+            ? 'bg-action text-action-fg'
+            : 'text-muted-foreground hover:bg-control hover:text-foreground'
+        )}
+      >
+        <Icon className="h-4 w-4" aria-hidden />
+      </button>
+    </HoverHintWrap>
   )
 }
 
 const panelIconClass = 'h-[18px] w-[18px] shrink-0 text-foreground/80 transition-[color,transform] duration-200 ease-out group-hover:text-foreground'
 
 const toggleIconBtn =
-  'group flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border/55 bg-raised/50 text-muted-foreground shadow-[0_1px_0_rgba(255,255,255,0.04)] transition-[border-color,background-color,box-shadow,transform] duration-panel ease-panel hover:border-border hover:bg-control hover:text-foreground hover:shadow-[0_2px_8px_rgba(0,0,0,0.35)] active:scale-[0.96] motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus'
+  'group flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-transparent bg-raised/50 text-muted-foreground shadow-[0_1px_0_rgba(255,255,255,0.04)] transition-[border-color,background-color,box-shadow,transform] duration-panel ease-panel hover:border-border-strong hover:bg-control hover:text-foreground hover:shadow-[0_2px_8px_rgba(0,0,0,0.22)] active:scale-[0.96] motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus'
 
 export function AppSidebar({
   collapsed,
@@ -124,16 +126,6 @@ export function AppSidebar({
     >
       {collapsed ? (
         <div className="flex shrink-0 flex-col items-center gap-2">
-          <button
-            type="button"
-            onClick={onToggleCollapsed}
-            className={toggleIconBtn}
-            aria-expanded={!collapsed}
-            aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
-            title={collapsed ? 'Expand navigation' : 'Collapse navigation'}
-          >
-            <PanelLeftOpen className={panelIconClass} strokeWidth={1.65} aria-hidden />
-          </button>
           <img
             src={APP_ICON_SRC}
             alt=""
@@ -141,7 +133,19 @@ export function AppSidebar({
             height={28}
             className="h-7 w-7 shrink-0 rounded-lg object-cover shadow-sm ring-1 ring-border"
             draggable={false}
+            role="presentation"
           />
+          <HoverHintWrap text={collapsed ? 'Expand navigation' : 'Collapse navigation'} side="right">
+            <button
+              type="button"
+              onClick={onToggleCollapsed}
+              className={toggleIconBtn}
+              aria-expanded={!collapsed}
+              aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
+            >
+              <PanelLeftOpen className={panelIconClass} strokeWidth={1.65} aria-hidden />
+            </button>
+          </HoverHintWrap>
         </div>
       ) : (
         <div className="flex w-full shrink-0 items-center gap-2 px-1">
@@ -159,16 +163,17 @@ export function AppSidebar({
               {queueActive ? 'Downloads' : 'Application settings'}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onToggleCollapsed}
-            className={toggleIconBtn}
-            aria-expanded={!collapsed}
-            aria-label="Collapse navigation"
-            title="Collapse navigation"
-          >
-            <PanelLeftClose className={panelIconClass} strokeWidth={1.65} aria-hidden />
-          </button>
+          <HoverHintWrap text="Collapse navigation" side="bottom">
+            <button
+              type="button"
+              onClick={onToggleCollapsed}
+              className={toggleIconBtn}
+              aria-expanded={!collapsed}
+              aria-label="Collapse navigation"
+            >
+              <PanelLeftClose className={panelIconClass} strokeWidth={1.65} aria-hidden />
+            </button>
+          </HoverHintWrap>
         </div>
       )}
 

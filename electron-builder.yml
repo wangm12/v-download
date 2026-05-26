@@ -17,9 +17,14 @@ protocols:
   - name: V-Download
     schemes:
       - ytdl
+      # Browser extension cold-start uses vdownload://wake so macOS does not hand
+      # ytdl:// to a stray node_modules Electron.app from local dev runs.
+      - vdownload
 mac:
   icon: resources/icon.icns
   category: public.app-category.utilities
+  extendInfo:
+    CFBundleDisplayName: V-Download
   target:
     - dmg
     - zip

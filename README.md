@@ -127,6 +127,7 @@ The built app will be in `dist/mac-arm64/V-Download.app` and a DMG installer in 
 5. **Douyin pages** — A download button appears on the active video with full quality selection, cover image, and music download
 6. **Other pages** — A download overlay appears on detected video elements; click the extension icon to open a popup showing all detected media streams (HLS, MP4, WebM, FLV)
 7. Cookies are synced automatically every 5 minutes for authenticated access
+8. **Cold start** — If the desktop app is not running, the extension opens `vdownload://wake` from the **same click** as the download (or from the extension popup) so Chrome ties the request to that page and can offer **“Always allow … to open links of this type”**. Install the **packaged** V-Download build from `/dist` (or your release); the dev `npm run dev` binary does not register URL schemes and should not be the default handler. If Chrome still says **“Open Electron?”**, choose **V-Download** in `/Applications` (or your install location) instead of any `Electron.app` under `node_modules`, then try again.
 
 ### Keyboard Shortcuts
 

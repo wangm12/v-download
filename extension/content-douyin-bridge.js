@@ -19,6 +19,24 @@
     return url.startsWith('//') ? 'https:' + url : url
   }
 
+  /** playApi (camel) or play_addr.url_list (snake) from fiber / API payloads */
+  function playUrlFromBitrateEntry(entry) {
+    if (!entry) return ''
+    if (entry.playApi) return normalizeUrl(entry.playApi)
+    const addr = entry.play_addr || entry.playAddr
+    if (addr) {
+      const list = addr.url_list || addr.urlList
+      if (Array.isArray(list) && list[0]) return normalizeUrl(list[0])
+      if (typeof addr.url === 'string') return normalizeUrl(addr.url)
+    }
+    return ''
+  }
+
+  function bitRateListFromVideo(video) {
+    const list = video.bitRateList || video.bit_rate_list
+    return Array.isArray(list) ? list : []
+  }
+
   function getFiberKey(el) {
     for (const key of Object.keys(el)) {
       if (key.startsWith('__reactFiber$')) return key
@@ -46,38 +64,44 @@
   // ── Format extraction ────────────────────────────────────────────────────
 
   function buildFormats(video) {
-    const list = video.bitRateList || []
+    const list = bitRateListFromVideo(video)
 
     // If no bitRateList, build a single entry from top-level fields
     if (!list.length) {
-      if (!video.playApi) return []
+      const top =
+        normalizeUrl(video.playApi || video.play_url || '') ||
+        playUrlFromBitrateEntry(video)
+      if (!top) return []
+      const h265 = !!(video.isH265 || video.is_h265)
       return [{
         label: heightToLabel(video.height || 0),
         width: video.width || 0,
         height: video.height || 0,
-        url: video.playApi,
-        size: Number(video.dataSize) || 0,
-        isH265: !!(video.isH265)
+        url: top,
+        size: Number(video.dataSize || video.data_size) || 0,
+        isH265: h265
       }]
     }
 
     // Group by label + codec; keep highest-dataSize entry per group
     const groups = new Map()
     for (const entry of list) {
-      if (!entry.playApi) continue
+      const url = playUrlFromBitrateEntry(entry)
+      if (!url) continue
       const label = heightToLabel(entry.height || 0)
-      const codec = entry.isH265 ? 'h265' : 'h264'
+      const h265 = !!(entry.isH265 || entry.is_h265)
+      const codec = h265 ? 'h265' : 'h264'
       const key = `${label}:${codec}`
-      const size = Number(entry.dataSize) || 0
+      const size = Number(entry.dataSize || entry.data_size) || 0
       const existing = groups.get(key)
       if (!existing || size > existing.size) {
         groups.set(key, {
           label,
           width: entry.width || 0,
           height: entry.height || 0,
-          url: entry.playApi,
+          url,
           size,
-          isH265: codec === 'h265'
+          isH265: h265
         })
       }
     }
@@ -104,7 +128,11 @@
 
   function buildMusic(music) {
     if (!music) return null
-    const rawUri = music.playUrl?.uri || music.playUrl?.url || ''
+    const pu = music.playUrl || music.play_url
+    const rawUri =
+      (pu && (pu.uri || pu.url)) ||
+      (typeof music.play_url === 'string' ? music.play_url : '') ||
+      ''
     const url = normalizeUrl(rawUri)
     if (!url) return null
     return {

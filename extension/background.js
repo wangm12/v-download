@@ -4,6 +4,17 @@ const COOKIE_SYNC_DOMAINS = globalThis.COOKIE_SYNC_DOMAINS
 const APP_URL = 'http://127.0.0.1:18765'
 const VDL_SERVER_URL = 'http://127.0.0.1:30010'
 
+function truncateUrl(u, max = 72) {
+  if (!u || typeof u !== 'string') return ''
+  return u.length <= max ? u : `${u.slice(0, max)}…`
+}
+
+/** Service worker console: chrome://extensions → V-Download → “service worker” → Inspect */
+function logBg(stage, data) {
+  const line = { stage, t: new Date().toISOString(), ...data }
+  console.info('[V-Download ext]', line)
+}
+
 const DEBOUNCE_MS = 2000
 
 const ICON_ACTIVE = {
@@ -21,9 +32,57 @@ const MIN_VIDEO_SIZE = 100000
 const SIZE_EXEMPT_TYPES = new Set(['hls'])
 const FRAME_BUCKET_MAX = 50
 
+/** After vdownload://wake cold-starts the app, POST /download when localhost server is up. */
+async function postDownloadsQueueWhenReady(requests, maxAttempts = 48, delayMs = 500) {
+  const rid = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
+  logBg('post-queue-start', {
+    rid,
+    n: requests.length,
+    url0: truncateUrl(requests[0]?.url),
+    type0: requests[0]?.type
+  })
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const ping = await fetch(`${APP_URL}/ping`)
+      if (ping.ok) {
+        logBg('post-queue-ping-ok', { rid, attempt })
+        await syncCookies()
+        for (let i = 0; i < requests.length; i++) {
+          const req = requests[i]
+          const res = await fetch(`${APP_URL}/download`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(req)
+          })
+          logBg('post-queue-download-post', { rid, i, status: res.status, ok: res.ok })
+          if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        }
+        logBg('post-queue-done', { rid, ok: true })
+        return true
+      }
+      if (attempt === 0 || attempt % 10 === 0) {
+        logBg('post-queue-ping-notok', { rid, attempt, status: ping.status })
+      }
+    } catch (e) {
+      if (attempt === 0 || attempt % 10 === 0) {
+        logBg('post-queue-attempt-catch', { rid, attempt, err: String(e) })
+      }
+    }
+    await new Promise((r) => setTimeout(r, delayMs))
+  }
+  logBg('post-queue-timeout', { rid, maxAttempts, delayMs })
+  return false
+}
+
+function postDownloadWhenAppReady(request) {
+  return postDownloadsQueueWhenReady([request])
+}
+
 // tabMedia: Map<tabId, Map<frameId, Map<url, mediaEntry>>>
 const tabMedia = new Map()
 let lastClickTime = 0
+let lastWakeBgAt = 0
+const WAKE_DEBOUNCE_MS = 2000
 
 // --- Frame-aware storage helpers ---
 
@@ -71,6 +130,30 @@ function getAllTabMedia(tabId) {
 
 // --- Action / tab event handlers ---
 
+/** Best-effort: same anchor trick as wake-sync.js so the page origin owns the external-protocol prompt. */
+function injectPageWakeGesture(tabId) {
+  if (tabId == null) return Promise.resolve()
+  return chrome.scripting
+    .executeScript({
+      target: { tabId },
+      func: () => {
+        try {
+          const a = document.createElement('a')
+          a.href = 'vdownload://wake'
+          a.target = '_blank'
+          a.rel = 'noopener noreferrer'
+          const root = document.documentElement || document.body
+          if (!root) return
+          root.appendChild(a)
+          a.click()
+          root.removeChild(a)
+        } catch (_) {}
+      }
+    })
+    .then(() => {})
+    .catch(() => {})
+}
+
 chrome.action.onClicked.addListener(async (tab) => {
   if (!tab.url) return
   const now = Date.now()
@@ -94,7 +177,8 @@ chrome.action.onClicked.addListener(async (tab) => {
     }
 
     if (/[?&]v=/.test(downloadUrl)) {
-      await sendDownloadRequest({ url: downloadUrl }, tab.id)
+      await injectPageWakeGesture(tab.id)
+      await sendDownloadRequest({ url: downloadUrl }, tab.id, { surfacedWake: true })
     }
   }
 
@@ -114,7 +198,8 @@ chrome.action.onClicked.addListener(async (tab) => {
   if (isXUrl(tab.url)) {
     const statusUrl = getXStatusUrl(tab.url)
     if (statusUrl) {
-      await sendDownloadRequest({ url: statusUrl }, tab.id)
+      await injectPageWakeGesture(tab.id)
+      await sendDownloadRequest({ url: statusUrl }, tab.id, { surfacedWake: true })
     }
   }
 })
@@ -254,8 +339,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   // Existing: YouTube content.js download button
   if (message.type === 'DOWNLOAD_VIDEO') {
-    sendDownloadRequest({ url: message.url }, sender.tab?.id)
-      .then(() => sendResponse({ ok: true }))
+    const surfacedWake = message.surfacedWake === true
+    sendDownloadRequest({ url: message.url }, sender.tab?.id, { surfacedWake })
+      .then((ok) => sendResponse(ok ? { ok: true } : { error: true }))
       .catch(() => sendResponse({ error: true }))
     return true
   }
@@ -277,6 +363,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Existing: popup triggers multi-item download
   if (message.type === 'DOWNLOAD_MEDIA') {
     const { items, tabUrl, tabTitle } = message
+    const surfacedWake = message.surfacedWake === true
     const baseTitle = tabTitle || 'download'
     chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
       const tabId = tabs[0]?.id || null
@@ -306,34 +393,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           return
         }
       } catch {
-        // App not running — launch via protocol then retry
+        // App not running — launch via protocol then POST all when ready (including first item)
       }
 
-      launchViaProtocol(requests[0], tabId)
-
-      if (requests.length > 1) {
-        const retryRemaining = async (attempt) => {
-          if (attempt > 5) return
-          await new Promise((r) => setTimeout(r, 2000))
-          try {
-            const ping = await fetch(`${APP_URL}/ping`)
-            if (ping.ok) {
-              for (let i = 1; i < requests.length; i++) {
-                await fetch(`${APP_URL}/download`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(requests[i])
-                })
-              }
-              return
-            }
-          } catch {}
-          retryRemaining(attempt + 1)
-        }
-        retryRemaining(0)
+      if (!surfacedWake) {
+        launchWakeToFocusApp(tabId)
       }
-
-      sendResponse({ ok: true })
+      let posted = await postDownloadsQueueWhenReady(requests)
+      if (!posted && surfacedWake) {
+        logBg('download-media-fallback-bg-wake', { tabId })
+        launchWakeToFocusApp(tabId, { force: true })
+        posted = await postDownloadsQueueWhenReady(requests)
+      }
+      sendResponse({ ok: posted })
     })
     return true
   }
@@ -362,46 +434,79 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true
   }
 
-  // New: content overlay triggers single-item download using sender context
+  // Content scripts → localhost: use return true + sendResponse (Promise return is flaky in some Chrome MV3 builds).
   if (message.type === 'DOWNLOAD_MEDIA_FROM_CONTENT') {
     const { item } = message
+    const surfacedWake = message.surfacedWake === true
     const tabId = sender.tab?.id
     const tabUrl = sender.tab?.url || ''
     const tabTitle = sender.tab?.title || 'download'
 
     if (!item || !item.url) {
+      logBg('download-from-content-bad-item', { tabId, hasItem: !!item })
       sendResponse({ ok: false, error: 'Missing item or url' })
-      return true
+      return false
     }
 
     const request = {
       url: item.url,
       type: item.type,
       referer: item.initiator || tabUrl,
-      title: tabTitle
+      title: (item.title && String(item.title).trim()) || tabTitle
+    }
+
+    logBg('download-from-content-start', {
+      tabId,
+      type: item.type,
+      url: truncateUrl(item.url),
+      referer: truncateUrl(request.referer, 48),
+      title: (request.title || '').slice(0, 80)
+    })
+
+    let responded = false
+    const safeSend = (payload) => {
+      if (responded) return
+      responded = true
+      try {
+        sendResponse(payload)
+      } catch (e) {
+        logBg('download-from-content-sendResponse-failed', { err: String(e) })
+      }
     }
 
     ;(async () => {
       try {
-        await syncCookies()
+        const cookiesOk = await syncCookies()
+        logBg('download-from-content-sync-cookies', { cookiesOk })
         const res = await fetch(`${APP_URL}/download`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(request)
         })
+        logBg('download-from-content-fetch', { status: res.status, ok: res.ok })
         if (res.ok) {
-          sendResponse({ ok: true })
+          safeSend({ ok: true })
           return
         }
-        throw new Error(`HTTP ${res.status}`)
-      } catch {
-        // App not running — launch via protocol
-        try {
-          launchViaProtocol(request, tabId)
-          sendResponse({ ok: true })
-        } catch (err) {
-          sendResponse({ ok: false, error: String(err) })
+      } catch (e) {
+        logBg('download-from-content-fetch-catch', { err: String(e) })
+      }
+      try {
+        logBg('download-from-content-cold-wake', { tabId, surfacedWake })
+        if (!surfacedWake) {
+          launchWakeToFocusApp(tabId)
         }
+        let ok = await postDownloadWhenAppReady(request)
+        if (!ok && surfacedWake) {
+          logBg('download-from-content-fallback-bg-wake', { tabId })
+          launchWakeToFocusApp(tabId, { force: true })
+          ok = await postDownloadWhenAppReady(request)
+        }
+        logBg('download-from-content-after-wake', { ok })
+        safeSend({ ok })
+      } catch (err) {
+        logBg('download-from-content-wake-catch', { err: String(err) })
+        safeSend({ ok: false, error: String(err) })
       }
     })()
     return true
@@ -415,7 +520,7 @@ function isYouTubeUrl(url) {
 }
 
 function isDouyinUrl(url) {
-  return /^https?:\/\/([a-z0-9-]+\.)?douyin\.com/.test(url)
+  return /^https?:\/\/([a-z0-9-]+\.)?(douyin|iesdouyin)\.com/i.test(url)
 }
 
 function isXUrl(url) {
@@ -427,38 +532,69 @@ function getXStatusUrl(url) {
   return m ? m[0] : null
 }
 
-async function sendDownloadRequest(request, tabId) {
+async function sendDownloadRequest(request, tabId, opts = {}) {
+  const { surfacedWake = false } = opts
+  const payload = typeof request === 'object' && request !== null ? request : { url: String(request) }
   try {
     await syncCookies()
     const res = await fetch(`${APP_URL}/download`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(request)
+      body: JSON.stringify(payload)
     })
-    return res.ok
+    if (res.ok) return true
   } catch {
-    console.warn('V-Download app is not running, launching via protocol')
-    launchViaProtocol(request, tabId)
-    return false
+    /* app not running */
   }
+  if (!surfacedWake) {
+    launchWakeToFocusApp(tabId)
+  }
+  let ok = await postDownloadWhenAppReady(payload)
+  if (!ok && surfacedWake) {
+    logBg('sendDownload-fallback-bg-wake', { tabId })
+    launchWakeToFocusApp(tabId, { force: true })
+    ok = await postDownloadWhenAppReady(payload)
+  }
+  return ok
 }
 
-function launchViaProtocol(request, tabId) {
-  const params = new URLSearchParams({ url: request.url || request })
-  if (typeof request === 'object') {
-    if (request.type) params.set('type', request.type)
-    if (request.referer) params.set('referer', request.referer)
-    if (request.title) params.set('title', request.title)
+/** Wake desktop app without queuing a download (extension POSTs to localhost after boot). */
+function launchWakeToFocusApp(tabId, opts = {}) {
+  const { force = false } = opts
+  const now = Date.now()
+  if (!force && now - lastWakeBgAt < WAKE_DEBOUNCE_MS) {
+    logBg('launch-wake-skipped-debounce', { tabId, msSince: now - lastWakeBgAt })
+    return
   }
-  const ytdlUrl = `ytdl://download?${params.toString()}`
+  lastWakeBgAt = now
+  logBg('launch-wake', { tabId, force })
+  const wakeUrl = 'vdownload://wake'
+  chrome.tabs.create({ url: wakeUrl, active: true }, (created) => {
+    if (chrome.runtime.lastError || !created?.id) {
+      logBg('launch-wake-fallback-inject', {
+        err: chrome.runtime.lastError?.message,
+        tabId
+      })
+      protocolLaunchInjectTab(wakeUrl, tabId)
+      return
+    }
+    logBg('launch-wake-tab-created', { newTabId: created.id })
+    const id = created.id
+    setTimeout(() => {
+      chrome.tabs.remove(id, () => void chrome.runtime.lastError)
+    }, 2000)
+  })
+}
 
+/** Legacy fallback: navigate an existing tab (fragile on some SPAs). */
+function protocolLaunchInjectTab(ytdlUrl, tabId) {
   const execTabId = tabId || undefined
   if (execTabId) {
     chrome.scripting
       .executeScript({
         target: { tabId: execTabId },
-        func: (url) => {
-          window.location.href = url
+        func: (u) => {
+          window.location.href = u
         },
         args: [ytdlUrl]
       })
@@ -469,8 +605,8 @@ function launchViaProtocol(request, tabId) {
         chrome.scripting
           .executeScript({
             target: { tabId: tabs[0].id },
-            func: (url) => {
-              window.location.href = url
+            func: (u) => {
+              window.location.href = u
             },
             args: [ytdlUrl]
           })

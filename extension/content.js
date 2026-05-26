@@ -16,7 +16,10 @@
   }
 
   function sendDownload(url) {
-    chrome.runtime.sendMessage({ type: 'DOWNLOAD_VIDEO', url })
+    if (typeof globalThis.__vdownloadWakeFromUserGesture === 'function') {
+      globalThis.__vdownloadWakeFromUserGesture()
+    }
+    chrome.runtime.sendMessage({ type: 'DOWNLOAD_VIDEO', url, surfacedWake: true })
   }
 
   // ── Watch page download button ──────────────────────────────────────────

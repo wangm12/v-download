@@ -32,7 +32,7 @@
   }
 
   function isDouyinPage() {
-    return /^https?:\/\/(www\.)?douyin\.com/.test(location.href)
+    return /^https?:\/\/([a-z0-9-]+\.)?(douyin|iesdouyin)\.com/i.test(location.href)
   }
 
   function isXPage() {
@@ -290,7 +290,10 @@
       const doYTDownload = () => {
         closeActivePanel()
         flashButton(btn, 'ytdl-sending')
-        chrome.runtime.sendMessage({ type: 'DOWNLOAD_VIDEO', url: location.href }, (resp) => {
+        if (typeof globalThis.__vdownloadWakeFromUserGesture === 'function') {
+          globalThis.__vdownloadWakeFromUserGesture()
+        }
+        chrome.runtime.sendMessage({ type: 'DOWNLOAD_VIDEO', url: location.href, surfacedWake: true }, (resp) => {
           flashButton(btn, resp && !resp.error ? 'ytdl-sent' : null)
         })
       }
@@ -318,7 +321,10 @@
               type: clickedOpt.type,
               initiator: clickedOpt.initiator || ''
             }
-            chrome.runtime.sendMessage({ type: 'DOWNLOAD_MEDIA_FROM_CONTENT', item }, (resp) => {
+            if (typeof globalThis.__vdownloadWakeFromUserGesture === 'function') {
+              globalThis.__vdownloadWakeFromUserGesture()
+            }
+            chrome.runtime.sendMessage({ type: 'DOWNLOAD_MEDIA_FROM_CONTENT', item, surfacedWake: true }, (resp) => {
               if (chrome.runtime.lastError) {
                 flashButton(btn, null)
                 return

@@ -2,9 +2,10 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { Check, Monitor, Moon, PanelRightClose, PanelRightOpen, Sun } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import type { ThemePreference } from '@/hooks/useThemePreference'
+import { HoverHintWrap } from './HoverHintWrap'
 
 const titleBarIconBtn =
-  'group flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border/55 bg-raised/50 text-muted-foreground shadow-[0_1px_0_rgba(255,255,255,0.04)] transition-[border-color,background-color,box-shadow,transform] duration-panel ease-panel hover:border-border hover:bg-control hover:text-foreground hover:shadow-[0_2px_8px_rgba(0,0,0,0.22)] active:scale-[0.96] motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus'
+  'group flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-transparent bg-raised/50 text-muted-foreground shadow-[0_1px_0_rgba(255,255,255,0.04)] transition-[border-color,background-color,box-shadow,transform] duration-panel ease-panel hover:border-border-strong hover:bg-control hover:text-foreground hover:shadow-[0_2px_8px_rgba(0,0,0,0.22)] data-[state=open]:border-border-strong active:scale-[0.96] motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus'
 
 const panelGlyph = 'h-[18px] w-[18px] shrink-0 text-foreground/80 group-hover:text-foreground'
 
@@ -57,20 +58,24 @@ export function TitleBar({
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
         {showInspectorToggle && onToggleInspector && (
-          <button
-            type="button"
-            onClick={onToggleInspector}
-            className={titleBarIconBtn}
-            aria-expanded={!inspectorCollapsed}
-            aria-label={inspectorCollapsed ? 'Expand inspector' : 'Collapse inspector'}
-            title={inspectorCollapsed ? 'Expand inspector' : 'Collapse inspector'}
+          <HoverHintWrap
+            text={inspectorCollapsed ? 'Expand inspector' : 'Collapse inspector'}
+            side="bottom"
           >
-            {inspectorCollapsed ? (
-              <PanelRightOpen className={panelGlyph} strokeWidth={1.65} aria-hidden />
-            ) : (
-              <PanelRightClose className={panelGlyph} strokeWidth={1.65} aria-hidden />
-            )}
-          </button>
+            <button
+              type="button"
+              onClick={onToggleInspector}
+              className={titleBarIconBtn}
+              aria-expanded={!inspectorCollapsed}
+              aria-label={inspectorCollapsed ? 'Expand inspector' : 'Collapse inspector'}
+            >
+              {inspectorCollapsed ? (
+                <PanelRightOpen className={panelGlyph} strokeWidth={1.65} aria-hidden />
+              ) : (
+                <PanelRightClose className={panelGlyph} strokeWidth={1.65} aria-hidden />
+              )}
+            </button>
+          </HoverHintWrap>
         )}
 
         <ThemeMenuButton
@@ -104,13 +109,10 @@ function ThemeMenuButton({
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
-        <button
-          type="button"
-          className={titleBarIconBtn}
-          aria-label="Theme menu"
-          title="Appearance"
-        >
-          <TriggerIcon className={panelGlyph} strokeWidth={1.65} aria-hidden />
+        <button type="button" className={cn(titleBarIconBtn, 'relative')} aria-label="Theme menu">
+          <HoverHintWrap text="Appearance" side="bottom" className="flex size-full items-center justify-center">
+            <TriggerIcon className={panelGlyph} strokeWidth={1.65} aria-hidden />
+          </HoverHintWrap>
         </button>
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>

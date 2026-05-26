@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "V-Download",
-  "version": "1.1.0",
+  "version": "1.1.6",
   "description": "Download videos and detect media streams on any website",
   "permissions": [
     "cookies",
@@ -12,7 +12,9 @@
     "webRequest"
   ],
   "host_permissions": [
-    "<all_urls>"
+    "<all_urls>",
+    "http://127.0.0.1/*",
+    "http://localhost/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -23,7 +25,7 @@
         "*://*.youtube.com/*",
         "*://music.youtube.com/*"
       ],
-      "js": ["content.js"],
+      "js": ["wake-sync.js", "content.js"],
       "css": ["content.css"],
       "run_at": "document_idle"
     },
@@ -33,14 +35,24 @@
       "run_at": "document_idle"
     },
     {
-      "matches": ["*://*.douyin.com/*"],
+      "matches": [
+        "*://*.douyin.com/*",
+        "*://douyin.com/*",
+        "*://*.iesdouyin.com/*",
+        "*://iesdouyin.com/*"
+      ],
       "js": ["content-douyin-bridge.js"],
       "run_at": "document_idle",
       "world": "MAIN"
     },
     {
-      "matches": ["*://*.douyin.com/*"],
-      "js": ["content-douyin.js"],
+      "matches": [
+        "*://*.douyin.com/*",
+        "*://douyin.com/*",
+        "*://*.iesdouyin.com/*",
+        "*://iesdouyin.com/*"
+      ],
+      "js": ["wake-sync.js", "content-douyin.js"],
       "css": ["content-douyin.css"],
       "run_at": "document_idle"
     },
@@ -49,13 +61,13 @@
         "*://*.x.com/*",
         "*://*.twitter.com/*"
       ],
-      "js": ["content-x.js"],
+      "js": ["wake-sync.js", "content-x.js"],
       "css": ["content-x.css"],
       "run_at": "document_idle"
     },
     {
       "matches": ["<all_urls>"],
-      "js": ["content-video-overlay.js"],
+      "js": ["wake-sync.js", "content-video-overlay.js"],
       "css": ["content-video-overlay.css"],
       "run_at": "document_idle",
       "all_frames": true
@@ -64,7 +76,12 @@
   "web_accessible_resources": [
     {
       "resources": ["content-douyin-bridge.js"],
-      "matches": ["*://*.douyin.com/*"]
+      "matches": [
+        "*://*.douyin.com/*",
+        "*://douyin.com/*",
+        "*://*.iesdouyin.com/*",
+        "*://iesdouyin.com/*"
+      ]
     }
   ],
   "icons": {

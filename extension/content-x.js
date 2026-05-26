@@ -36,7 +36,10 @@
   function triggerDownload(tweetUrl, btn) {
     if (!tweetUrl) return
     flashButton(btn, 'vdl-x-sending')
-    chrome.runtime.sendMessage({ type: 'DOWNLOAD_VIDEO', url: tweetUrl }, (resp) => {
+    if (typeof globalThis.__vdownloadWakeFromUserGesture === 'function') {
+      globalThis.__vdownloadWakeFromUserGesture()
+    }
+    chrome.runtime.sendMessage({ type: 'DOWNLOAD_VIDEO', url: tweetUrl, surfacedWake: true }, (resp) => {
       if (chrome.runtime.lastError) {
         flashButton(btn, null)
         return

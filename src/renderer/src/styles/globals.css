@@ -65,10 +65,14 @@
   }
 
   body {
-    @apply font-sans bg-app text-foreground;
+    @apply font-sans bg-app text-foreground min-h-screen w-full min-w-0;
     overflow: hidden;
     user-select: none;
     -webkit-app-region: no-drag;
+  }
+
+  #root {
+    @apply min-h-screen w-full min-w-0;
   }
 
   @media (prefers-reduced-motion: reduce) {

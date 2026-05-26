@@ -146,7 +146,13 @@ export function useUrlHandler(settings: SettingsData) {
     setLoadingPhase('info')
     busyRef.current = true
     try {
-      if (isMediaUrl(url) && !isYouTubeUrl(url)) {
+      // Extension passes mediaType for raw CDN URLs that do not match isMediaUrl (e.g. Douyin tos paths without ".mp4")
+      const extensionDirectTypes = ['mp4', 'hls', 'webm', 'flv', 'jpeg', 'mp3'] as const
+      const fromExtension =
+        !!meta?.type &&
+        (extensionDirectTypes as readonly string[]).includes(meta.type) &&
+        /^https?:\/\//i.test(url)
+      if ((isMediaUrl(url) || fromExtension) && !isYouTubeUrl(url)) {
         const title = meta?.title || filenameFromUrl(url)
         await window.api.startDownload({
           url,
@@ -327,10 +333,14 @@ export function useUrlHandler(settings: SettingsData) {
     let url = rawUrl
     let meta: { type?: string; referer?: string; title?: string; headers?: Record<string, string> } | undefined
 
-    if (url.startsWith('ytdl://')) {
+    if (url.startsWith('ytdl://') || url.startsWith('vdownload://')) {
       try {
         const parsed = new URL(url)
-        url = decodeURIComponent(parsed.searchParams.get('url') || '')
+        if (parsed.hostname === 'wake' || parsed.hostname === 'open') {
+          return
+        }
+        // searchParams.get already percent-decodes once; avoid decodeURIComponent (throws on stray %)
+        url = parsed.searchParams.get('url') || ''
         const type = parsed.searchParams.get('type') || undefined
         const referer = parsed.searchParams.get('referer') || undefined
         const title = parsed.searchParams.get('title') || undefined

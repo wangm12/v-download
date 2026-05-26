@@ -64,45 +64,24 @@ function StatusPill({ status }: { status: Download['status'] }) {
 interface DownloadInspectorProps {
   download: Download | null
   downloadDir: string
-  collapsed: boolean
   onSyncBrowserCookies?: () => void
 }
 
-export function DownloadInspector({ download, downloadDir, collapsed, onSyncBrowserCookies }: DownloadInspectorProps) {
+export function DownloadInspector({ download, downloadDir, onSyncBrowserCookies }: DownloadInspectorProps) {
   const actions = useDownloadActions()
 
   const asideShell = cn(
-    'shrink-0 flex flex-col border-l border-border bg-sidebar min-h-0',
-    'transition-[width,padding,gap] duration-panel ease-panel motion-reduce:transition-none',
-    collapsed
-      ? 'w-14 items-center overflow-hidden px-1.5 py-3 gap-2'
-      : 'w-[328px] items-stretch overflow-y-auto overflow-x-hidden px-4 py-4 gap-4'
+    'flex h-full min-h-0 w-[328px] shrink-0 flex-col self-stretch border-l border-border bg-sidebar',
+    'items-stretch gap-4 overflow-y-auto overflow-x-hidden px-4 py-4'
   )
 
   return (
     <aside
       className={asideShell}
       style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-      aria-label={collapsed ? 'Inspector (collapsed)' : 'Inspector'}
+      aria-label="Inspector"
     >
-      {collapsed ? (
-        <>
-          {download?.thumbnail ? (
-            <div
-              className="h-9 w-9 shrink-0 overflow-hidden rounded-md border border-border bg-raised transition-opacity duration-panel ease-panel motion-reduce:transition-none"
-              title={download.title}
-            >
-              <img src={download.thumbnail} alt="" className="h-full w-full object-cover" />
-            </div>
-          ) : download ? (
-            <div
-              className="h-9 w-9 shrink-0 rounded-md border border-border bg-gradient-to-br from-elevated to-surface transition-opacity duration-panel ease-panel motion-reduce:transition-none"
-              title={download.title}
-              aria-hidden
-            />
-          ) : null}
-        </>
-      ) : !download ? (
+      {!download ? (
         <div
           className={cn(
             'flex min-h-0 min-w-0 flex-1 flex-col',

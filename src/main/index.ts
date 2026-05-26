@@ -11,16 +11,43 @@ import { registerDownloadHandlers } from './ipc/downloads'
 import { registerSettingsHandlers } from './ipc/settings'
 import { registerWindowHandlers } from './ipc/window'
 
+app.setName('V-Download')
+
 let mainWindow: BrowserWindow | null = null
 let pendingYtdlUrl: string | null = null
 let pendingMediaRequests = new Map<string, DownloadRequest>()
 let isQuitting = false
+
+const DEEP_LINK_SCHEMES = new Set(['ytdl:', 'vdownload:'])
+
+function isDeepLinkUrl(url: string): boolean {
+  try {
+    return DEEP_LINK_SCHEMES.has(new URL(url).protocol)
+  } catch {
+    return false
+  }
+}
+
+/** Browser extension cold-start: activate app without queuing (download follows via localhost POST). */
+function isWakeDeepLink(url: string): boolean {
+  if (!isDeepLinkUrl(url)) return false
+  try {
+    const u = new URL(url)
+    return u.hostname === 'wake' || u.hostname === 'open'
+  } catch {
+    return false
+  }
+}
 
 const VITE_DEV_SERVER_URL = process.env.ELECTRON_RENDERER_URL
 
 protocol.registerSchemesAsPrivileged([
   {
     scheme: 'ytdl',
+    privileges: { standard: true, secure: true, supportFetchAPI: false }
+  },
+  {
+    scheme: 'vdownload',
     privileges: { standard: true, secure: true, supportFetchAPI: false }
   }
 ])
@@ -30,7 +57,7 @@ if (!gotLock) {
   app.quit()
 }
 
-const launchUrl = process.argv.find((arg) => arg.startsWith('ytdl://'))
+const launchUrl = process.argv.find((arg) => isDeepLinkUrl(arg))
 if (launchUrl) {
   pendingYtdlUrl = launchUrl
 }
@@ -89,8 +116,14 @@ function createWindow(): void {
 
   mainWindow.webContents.on('did-finish-load', () => {
     if (pendingYtdlUrl && mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('ytdl-url', pendingYtdlUrl)
+      const pending = pendingYtdlUrl
       pendingYtdlUrl = null
+      if (isWakeDeepLink(pending)) {
+        mainWindow.show()
+        mainWindow.focus()
+        return
+      }
+      mainWindow.webContents.send('ytdl-url', pending)
     }
   })
 }
@@ -106,6 +139,13 @@ function handleDownloadRequest(request: DownloadRequest): void {
 }
 
 function handleYtdlUrl(url: string): void {
+  if (isWakeDeepLink(url)) {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.show()
+      mainWindow.focus()
+    }
+    return
+  }
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.show()
     mainWindow.focus()
@@ -187,7 +227,13 @@ app.whenReady().then(() => {
       mainWindow.focus()
     }
   })
-  app.setAsDefaultProtocolClient('ytdl')
+  // Only the packaged app should claim URL schemes. Dev Electron from
+  // node_modules would otherwise become the OS handler and open the generic
+  // Electron splash when the extension triggers ytdl:// or vdownload:// wake.
+  if (app.isPackaged) {
+    app.setAsDefaultProtocolClient('ytdl')
+    app.setAsDefaultProtocolClient('vdownload')
+  }
   setupIpcHandlers()
   optimizer.registerFramelessWindowIpc()
 
@@ -209,7 +255,7 @@ app.whenReady().then(() => {
 
 app.on('open-url', (event, url) => {
   event.preventDefault()
-  if (url.startsWith('ytdl://')) {
+  if (isDeepLinkUrl(url)) {
     if (app.isReady()) {
       handleYtdlUrl(url)
     } else {
@@ -219,7 +265,7 @@ app.on('open-url', (event, url) => {
 })
 
 app.on('second-instance', (_event, commandLine) => {
-  const deepLink = commandLine.find((arg) => arg.startsWith('ytdl://'))
+  const deepLink = commandLine.find((arg) => isDeepLinkUrl(arg))
   if (deepLink) {
     handleYtdlUrl(deepLink)
   }
