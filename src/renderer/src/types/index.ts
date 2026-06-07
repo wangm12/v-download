@@ -55,6 +55,8 @@ export interface VideoInfo {
   _type?: string
   playlist_title?: string
   playlist_count?: number
+  /** Douyin image note / gallery — passed through format dialog for metadata.douyinImageUrls */
+  image_urls?: string[]
 }
 
 export interface SettingsData {
@@ -70,8 +72,77 @@ export interface SettingsData {
   cookiesFromBrowser?: string
   /** Patched Chromium (CloakBrowser) for Douyin page hydration instead of Electron. */
   douyinUseCloakBrowser?: boolean
+  /** YouTube list/channel URLs: one yt-dlp job vs one task per video. */
+  youtubePlaylistMode?: 'native' | 'fanout'
+  youtubePlaylistSleepRequests?: number
+  youtubePlaylistMaxDownloads?: number
+  /** Path to douyin-downloader `run.py` (optional bulk helper). */
+  douyinBulkRunPyPath?: string
+  douyinBulkConfigPath?: string
+  /** Optional `-p` override for douyin-downloader; empty uses `downloadDir`. */
+  douyinBulkOutputPath?: string
+  /** `-t` thread count for douyin-downloader (1–32). */
+  douyinBulkThreads?: number
+  /** Pass `--show-warnings` to the bulk CLI for more stderr detail. */
+  douyinBulkVerboseWarnings?: boolean
   ytdlpPath?: string
   ffmpegPath?: string
+  /** Engine for sniffed/extension direct URLs (HLS, mp4, …). */
+  directMediaEngine?: 'auto' | 'ffmpeg' | 'ytdlp'
+  /** yt-dlp `--concurrent-fragments` for fragmented streams (HLS/DASH/ISM) on all yt-dlp jobs when > 1. */
+  concurrentFragments?: number
+  /** Preset last applied from Preferences (balanced / turbo / gentle). */
+  downloadSpeedMode?: 'balanced' | 'turbo' | 'gentle'
+  /** User has confirmed the Turbo risk notice at least once. */
+  turboRiskAcknowledged?: boolean
+  /** Optional yt-dlp `--downloader` name (e.g. aria2c). Empty = built-in. */
+  ytdlpExternalDownloader?: string
+}
+
+export type DouyinProfileMediaType = 'video' | 'note' | 'gallery'
+
+export interface DouyinProfilePostRow {
+  awemeId: string
+  mediaType: DouyinProfileMediaType
+  title: string
+  author: string
+  cover: string
+  durationSec?: number
+  imageCount?: number
+  pageUrl: string
+}
+
+export type DouyinProfileListErrorCode =
+  | 'INVALID_URL'
+  | 'COOKIE_REQUIRED'
+  | 'ANTI_BOT'
+  | 'PRIVATE_OR_EMPTY'
+  | 'UNSUPPORTED_LAYOUT'
+  | 'TIMEOUT'
+  | 'LOAD_MORE_FAILED'
+  | 'PAGINATION_RESTRICTED'
+
+export type DouyinProfileListResult =
+  | {
+      ok: true
+      items: DouyinProfilePostRow[]
+      cursor: string | null
+      hasMore: boolean
+      source: 'html' | 'chromium' | 'api' | 'merged' | 'browser_recovery'
+      warnings?: string[]
+    }
+  | {
+      ok: false
+      code: DouyinProfileListErrorCode
+      message: string
+    }
+
+export interface DouyinBulkJobStatus {
+  id: string
+  state: 'running' | 'completed' | 'failed' | 'cancelled'
+  startedAt: string
+  endedAt?: string
+  stderrTail: string
 }
 
 export interface DownloadActions {
@@ -80,6 +151,8 @@ export interface DownloadActions {
   retry: (id: string) => void
   remove: (id: string) => void
   removeWithFiles: (id: string) => void
+  removeMany: (ids: string[]) => void
+  removeManyWithFiles: (ids: string[]) => void
   openFolder: (path: string) => void
   openFile: (path: string) => void
 }

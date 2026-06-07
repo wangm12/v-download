@@ -5,6 +5,7 @@
   "description": "Download videos and detect media streams on any website",
   "permissions": [
     "cookies",
+    "storage",
     "activeTab",
     "tabs",
     "alarms",
@@ -67,7 +68,7 @@
     },
     {
       "matches": ["<all_urls>"],
-      "js": ["wake-sync.js", "content-video-overlay.js"],
+      "js": ["wake-sync.js", "media-patterns.js", "content-video-overlay.js"],
       "css": ["content-video-overlay.css"],
       "run_at": "document_idle",
       "all_frames": true

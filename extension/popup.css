@@ -25,6 +25,40 @@ body {
   overflow: hidden;
 }
 
+.last-error {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #fecaca;
+  background: #3f1f1f;
+  border-bottom: 1px solid #7f1d1d;
+}
+
+.last-error-message {
+  flex: 1;
+  min-width: 0;
+}
+
+.last-error-dismiss {
+  border: 1px solid #991b1b;
+  background: rgba(127, 29, 29, 0.2);
+  color: #fecaca;
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1;
+  padding: 6px 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.last-error-dismiss:hover {
+  background: rgba(127, 29, 29, 0.35);
+}
+
 .header {
   display: flex;
   align-items: center;
@@ -58,6 +92,38 @@ body {
   display: none;
 }
 
+.selection-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-bottom: 1px solid #27272a;
+  font-size: 12px;
+}
+
+.selection-link {
+  border: none;
+  background: transparent;
+  color: #d4d4d8;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0;
+}
+
+.selection-link:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+.selection-sep {
+  color: #71717a;
+}
+
+.selected-count {
+  margin-left: auto;
+  color: #a1a1aa;
+}
+
 .list {
   overflow-y: auto;
   max-height: 360px;
@@ -88,6 +154,23 @@ body {
   flex: 1;
   min-width: 0;
   cursor: pointer;
+}
+
+.media-download-one {
+  border: 1px solid #3f3f46;
+  background: #27272a;
+  color: #e4e4e7;
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1;
+  padding: 6px 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.media-download-one:hover {
+  border-color: #52525b;
+  background: #3f3f46;
 }
 
 .media-name {

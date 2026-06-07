@@ -6,6 +6,7 @@
   const MIN_VIDEO_WIDTH = 100
   const MIN_VIDEO_HEIGHT = 100
   const BTN_ATTR = 'data-ytdl-overlay'
+  const LIST_MODE_KEY = 'vdownload_overlay_list_mode'
 
   // Query params to keep when building dedup key (original URL always used for download)
   const QUERY_WHITELIST = new Set(['token', 'sig', 'signature', 'expires', 'expire', 'key', 'id'])
@@ -24,6 +25,7 @@
   // Currently open panel (only one at a time)
   let activePanel = null
   let activePanelVideo = null
+  let activePanelCleanup = null
 
   // ── Site detection ───────────────────────────────────────────────────────
 
@@ -65,7 +67,31 @@
     }
   }
 
+  function getListMode() {
+    try {
+      const v = localStorage.getItem(LIST_MODE_KEY)
+      return v === 'all' ? 'all' : 'smart'
+    } catch {
+      return 'smart'
+    }
+  }
+
+  function setListMode(mode) {
+    try {
+      localStorage.setItem(LIST_MODE_KEY, mode === 'all' ? 'all' : 'smart')
+    } catch {
+      // ignore storage failures
+    }
+  }
+
+  function buildDedupKey(url, type, listMode) {
+    const base = listMode === 'all' ? url : normalizeUrlForDedup(url)
+    return `${base}|${type}`
+  }
+
   function inferTypeFromUrl(url) {
+    const mp = typeof globalThis !== 'undefined' ? globalThis.VDownloadMediaPatterns : null
+    if (mp && typeof mp.inferTypeFromUrl === 'function') return mp.inferTypeFromUrl(url)
     if (/\.m3u8(\?|#|$)/i.test(url)) return 'hls'
     if (/\.mp4(\?|#|$)/i.test(url)) return 'mp4'
     if (/\.webm(\?|#|$)/i.test(url)) return 'webm'
@@ -86,7 +112,7 @@
 
   // ── Build format options list ─────────────────────────────────────────────
 
-  function buildOptions(video, sniffed, videoLoadTime) {
+  function buildOptions(video, sniffed, videoLoadTime, listMode) {
     const seen = new Map() // dedup key → original entry
     const options = []
 
@@ -107,7 +133,7 @@
 
     for (const { url, mimeType } of srcs) {
       const type = inferTypeFromUrl(url) || (mimeType.includes('webm') ? 'webm' : 'mp4')
-      const key = normalizeUrlForDedup(url) + '|' + type
+      const key = buildDedupKey(url, type, listMode)
       if (seen.has(key)) continue
       seen.set(key, true)
       options.push({
@@ -121,19 +147,35 @@
 
     // 2. From background sniffed media
     // Filter by recency: only show entries loaded after this video started playing.
-    const cutoff = videoLoadTime ? videoLoadTime - 3000 : 0
+    const cutoff = videoLoadTime ? videoLoadTime - 1000 : 0
     const relevant = videoLoadTime
       ? sniffed.filter((e) => e.timestamp >= cutoff)
       : sniffed
 
-    // Smart filtering: detect whether sniffed entries are real downloadable files
-    // or MSE/HLS/DASH player segments (small chunks that aren't useful for download).
-    //
-    // Detection heuristics:
-    //  1. If HLS manifest exists → small mp4/flv are its segments, filter them out
-    //  2. If video.currentSrc is blob: and we have many small same-type entries →
-    //     they're MSE player chunks, not downloadable files
-    //  3. For each type group, keep at most 2 entries (largest ones = likely full files or highest quality)
+    // "All" mode: keep near-complete list for manual selection (Downie-like).
+    if (listMode === 'all') {
+      const sorted = [...relevant].sort((a, b) => {
+        const tsDelta = (b.timestamp || 0) - (a.timestamp || 0)
+        if (tsDelta !== 0) return tsDelta
+        return (b.size || 0) - (a.size || 0)
+      })
+      for (const entry of sorted.slice(0, 120)) {
+        const key = buildDedupKey(entry.url, entry.type, listMode)
+        if (seen.has(key)) continue
+        seen.set(key, true)
+        options.push({
+          url: entry.url,
+          type: entry.type,
+          label: entry.type.toUpperCase(),
+          size: entry.size,
+          initiator: entry.initiator,
+          source: 'sniffed'
+        })
+      }
+      return options
+    }
+
+    // Smart filtering: hide noisy MSE/HLS segments by heuristics.
 
     const hasHls = relevant.some((e) => e.type === 'hls')
     const isBlobSrc = isBlobOrStream(video.currentSrc)
@@ -146,8 +188,12 @@
     }
 
     for (const [type, entries] of byType) {
-      // Sort by size descending (null/unknown → end)
-      entries.sort((a, b) => (b.size || 0) - (a.size || 0))
+      // Prefer newer sniffed entries to avoid stale ad URLs after stream switches.
+      entries.sort((a, b) => {
+        const tsDelta = (b.timestamp || 0) - (a.timestamp || 0)
+        if (tsDelta !== 0) return tsDelta
+        return (b.size || 0) - (a.size || 0)
+      })
 
       let filtered = entries
 
@@ -161,9 +207,9 @@
       } else if (isBlobSrc && entries.length > 2) {
         // blob: src + many entries of same type = MSE player chunks
         // Only keep the single largest (might be a full file) if it's meaningfully large
-        const largest = entries[0]
-        if (largest && largest.size && largest.size >= SEGMENT_THRESHOLD) {
-          filtered = [largest]
+        const newestLarge = entries.find((e) => e.size && e.size >= SEGMENT_THRESHOLD)
+        if (newestLarge) {
+          filtered = [newestLarge]
         } else {
           // All small → these are segments, not useful for download
           filtered = []
@@ -174,7 +220,7 @@
       }
 
       for (const entry of filtered) {
-        const key = normalizeUrlForDedup(entry.url) + '|' + entry.type
+        const key = buildDedupKey(entry.url, entry.type, listMode)
         if (seen.has(key)) continue
         seen.set(key, true)
         options.push({
@@ -243,6 +289,22 @@
     return item
   }
 
+  async function fetchFrameMediaSnapshot() {
+    return await new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({ type: 'GET_FRAME_MEDIA' }, (r) => {
+        if (chrome.runtime.lastError) reject(chrome.runtime.lastError)
+        else resolve(r || {})
+      })
+    })
+  }
+
+  function sniffedFingerprint(media) {
+    return (media || [])
+      .map((m) => `${m.type || ''}|${normalizeUrlForDedup(m.url || '')}|${m.timestamp || 0}`)
+      .sort()
+      .join('\n')
+  }
+
   function showPanel(video, btn, sniffed, isYouTube, blobDetected, sourceLabel, videoLoadTime) {
     closeActivePanel()
 
@@ -255,6 +317,15 @@
     const headerTitle = document.createElement('span')
     headerTitle.textContent = 'Download'
     header.appendChild(headerTitle)
+    let listMode = getListMode()
+    if (!isYouTube) {
+      const modeBtn = document.createElement('button')
+      modeBtn.type = 'button'
+      modeBtn.className = 'ytdl-panel-mode-btn'
+      modeBtn.title = 'Toggle Smart/All media list'
+      modeBtn.textContent = listMode === 'all' ? 'All' : 'Smart'
+      header.appendChild(modeBtn)
+    }
     if (sourceLabel && sourceLabel !== 'frame') {
       const badge = document.createElement('span')
       badge.className = 'ytdl-panel-source-badge'
@@ -290,9 +361,6 @@
       const doYTDownload = () => {
         closeActivePanel()
         flashButton(btn, 'ytdl-sending')
-        if (typeof globalThis.__vdownloadWakeFromUserGesture === 'function') {
-          globalThis.__vdownloadWakeFromUserGesture()
-        }
         chrome.runtime.sendMessage({ type: 'DOWNLOAD_VIDEO', url: location.href, surfacedWake: true }, (resp) => {
           flashButton(btn, resp && !resp.error ? 'ytdl-sent' : null)
         })
@@ -304,25 +372,65 @@
       item.appendChild(dlBtn)
       panel.appendChild(item)
     } else {
-      const options = buildOptions(video, sniffed, videoLoadTime)
+      const content = document.createElement('div')
+      panel.appendChild(content)
 
-      if (options.length === 0) {
-        const empty = document.createElement('div')
-        empty.className = 'ytdl-panel-empty'
-        empty.textContent = 'No downloads available'
-        panel.appendChild(empty)
-      } else {
+      let latestSniffed = Array.isArray(sniffed) ? sniffed : []
+      let lastSniffedKey = sniffedFingerprint(latestSniffed)
+
+      const renderOptions = () => {
+        content.innerHTML = ''
+        const options = buildOptions(video, latestSniffed, videoLoadTime, listMode)
+
+        if (options.length === 0) {
+          const empty = document.createElement('div')
+          empty.className = 'ytdl-panel-empty'
+          empty.textContent = 'No downloads available'
+          content.appendChild(empty)
+          return options
+        }
+
+        const getLatestSniffedOption = async (clickedOpt) => {
+          if (clickedOpt.source !== 'sniffed') return clickedOpt
+          try {
+            const resp = await fetchFrameMediaSnapshot()
+            const media = resp.media || []
+            const cutoff = Math.max((videoLoadTime || 0) - 1000, 0)
+            const candidates = media
+              .filter((m) => m && m.type === clickedOpt.type && m.timestamp >= cutoff)
+              .sort((a, b) => {
+                const tsDelta = (b.timestamp || 0) - (a.timestamp || 0)
+                if (tsDelta !== 0) return tsDelta
+                return (b.size || 0) - (a.size || 0)
+              })
+            if (!candidates.length) return null
+            const picked = candidates[0]
+            return {
+              ...clickedOpt,
+              url: picked.url,
+              type: picked.type,
+              initiator: picked.initiator || clickedOpt.initiator || ''
+            }
+          } catch {
+            return clickedOpt
+          }
+        }
+
         for (const opt of options) {
-          panel.appendChild(buildPanelItem(opt, (clickedOpt) => {
+          content.appendChild(buildPanelItem(opt, async (clickedOpt) => {
             closeActivePanel()
             flashButton(btn, 'ytdl-sending')
-            const item = {
-              url: clickedOpt.url,
-              type: clickedOpt.type,
-              initiator: clickedOpt.initiator || ''
+
+            const latestOpt = await getLatestSniffedOption(clickedOpt)
+            if (!latestOpt) {
+              // Source likely switched (ad -> main content); ask user to reopen panel.
+              flashButton(btn, null)
+              return
             }
-            if (typeof globalThis.__vdownloadWakeFromUserGesture === 'function') {
-              globalThis.__vdownloadWakeFromUserGesture()
+            const item = {
+              url: latestOpt.url,
+              type: latestOpt.type,
+              initiator: latestOpt.initiator || ''
             }
             chrome.runtime.sendMessage({ type: 'DOWNLOAD_MEDIA_FROM_CONTENT', item, surfacedWake: true }, (resp) => {
               if (chrome.runtime.lastError) {
@@ -333,15 +441,53 @@
             })
           }))
         }
+        return options
+      }
+
+      let renderedOptions = renderOptions()
+      const modeBtn = header.querySelector('.ytdl-panel-mode-btn')
+      if (modeBtn) {
+        modeBtn.addEventListener('click', (e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          listMode = listMode === 'all' ? 'smart' : 'all'
+          modeBtn.textContent = listMode === 'all' ? 'All' : 'Smart'
+          setListMode(listMode)
+          renderedOptions = renderOptions()
+          reposPanel(panel, btn)
+        })
       }
 
       if (blobDetected) {
         const note = document.createElement('div')
         note.className = 'ytdl-panel-note'
-        note.textContent = options.length > 0
-          ? 'Page stream — downloading via sniffed address'
+        note.textContent = renderedOptions.length > 0
+          ? (listMode === 'all'
+              ? 'All mode: showing more stream candidates; pick manually.'
+              : 'Page stream — downloading via sniffed address')
           : 'This video uses encrypted streaming. Try the toolbar popup for available media.'
         panel.appendChild(note)
+      }
+
+      // While panel stays open, poll frame media and refresh list when new resources arrive.
+      const pollId = setInterval(async () => {
+        if (!(activePanel && activePanelVideo === video)) return
+        try {
+          const resp = await fetchFrameMediaSnapshot()
+          const media = resp.media || []
+          const nextKey = sniffedFingerprint(media)
+          if (nextKey !== lastSniffedKey) {
+            latestSniffed = media
+            lastSniffedKey = nextKey
+            renderedOptions = renderOptions()
+            reposPanel(panel, btn)
+          }
+        } catch {
+          // ignore transient extension/runtime fetch errors
+        }
+      }, 1500)
+      activePanelCleanup = () => {
+        clearInterval(pollId)
       }
     }
 
@@ -390,6 +536,10 @@
   }
 
   function closeActivePanel() {
+    if (activePanelCleanup) {
+      try { activePanelCleanup() } catch {}
+      activePanelCleanup = null
+    }
     if (activePanel) {
       activePanel.remove()
       activePanel = null
@@ -466,16 +616,52 @@
     let rafId = null
     let isInViewport = false
     let prevRect = null
+    let lastVideoFingerprint = ''
 
     let videoLoadTime = Date.now()
-    const onSourceChange = () => { videoLoadTime = Date.now() }
+    const currentFingerprint = () =>
+      [
+        video.currentSrc || '',
+        video.src || '',
+        video.duration || 0,
+        video.videoWidth || 0,
+        video.videoHeight || 0
+      ].join('|')
+    const onSourceChange = () => {
+      videoLoadTime = Date.now()
+      lastVideoFingerprint = currentFingerprint()
+      if (activePanel && activePanelVideo === video) {
+        closeActivePanel()
+      }
+    }
+    lastVideoFingerprint = currentFingerprint()
     video.addEventListener('loadstart', onSourceChange)
     video.addEventListener('loadeddata', onSourceChange)
+    video.addEventListener('loadedmetadata', onSourceChange)
+    video.addEventListener('durationchange', onSourceChange)
+    video.addEventListener('emptied', onSourceChange)
+    const sourceObserver = new MutationObserver(() => onSourceChange())
+    sourceObserver.observe(video, { attributes: true, attributeFilter: ['src', 'poster'] })
+    sourceObserver.observe(video, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['src', 'type']
+    })
 
     function syncPosition() {
       if (suppressed) return
 
       const rect = video.getBoundingClientRect()
+      const fp = currentFingerprint()
+      if (fp !== lastVideoFingerprint) {
+        lastVideoFingerprint = fp
+        videoLoadTime = Date.now()
+        // Stream switched (e.g. ad -> main content): drop stale panel options.
+        if (activePanel && activePanelVideo === video) {
+          closeActivePanel()
+        }
+      }
 
       if (activePanel && activePanelVideo === video) {
         const gone = rect.width < 10 || rect.height < 10 ||
@@ -537,6 +723,13 @@
     }, { threshold: 0.1 })
 
     observer.observe(video)
+    const onWindowResize = () => {
+      syncPosition()
+      if (activePanel && activePanelVideo === video) {
+        reposPanel(activePanel, btn)
+      }
+    }
+    window.addEventListener('resize', onWindowResize)
 
     btn.addEventListener('click', async (e) => {
       e.preventDefault()
@@ -596,6 +789,11 @@
       btn.remove()
       video.removeEventListener('loadstart', onSourceChange)
       video.removeEventListener('loadeddata', onSourceChange)
+      video.removeEventListener('loadedmetadata', onSourceChange)
+      video.removeEventListener('durationchange', onSourceChange)
+      video.removeEventListener('emptied', onSourceChange)
+      sourceObserver.disconnect()
+      window.removeEventListener('resize', onWindowResize)
       if (activePanel && activePanelVideo === video) closeActivePanel()
     }
 

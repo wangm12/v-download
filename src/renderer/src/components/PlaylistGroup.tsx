@@ -3,6 +3,7 @@ import {
   ChevronDown,
   ChevronRight,
   ListVideo,
+  Folder,
   CircleCheckBig,
   Loader,
   Timer,
@@ -17,7 +18,7 @@ import { useDownloadActions } from '@/contexts/DownloadActionsContext'
 import { PlaylistDeleteDialog } from './PlaylistDeleteDialog'
 import { ActionButton } from './ActionButton'
 import { HoverHintWrap } from './HoverHintWrap'
-import { formatFileSize } from '@/utils/format'
+import { formatFileSize, formatSpeed, parseSpeedToBytes } from '@/utils/format'
 import { cn } from '@/lib/cn'
 
 const VISIBLE_ITEMS = 5
@@ -44,9 +45,27 @@ export function PlaylistGroup({ playlist, selectedId, onSelectDownload }: Playli
 
   const hasActiveItems = downloads.some((d) => d.status === 'downloading' || d.status === 'queued')
   const resumableItems = downloads.filter((d) =>
-    ['paused', 'interrupted', 'cancelled', 'error'].includes(d.status)
+    ['paused', 'interrupted', 'error'].includes(d.status)
   )
-  const hasResumableItems = resumableItems.length > 0
+  // Pause vs resume are mutually exclusive: a running batch may still have older error rows.
+  const showPauseAll = hasActiveItems
+  const showResumeAll = !hasActiveItems && resumableItems.length > 0
+  const isProfileGroup = playlist.type === 'Douyin profile'
+  const countLabel = isProfileGroup ? 'posts' : 'videos'
+
+  const downloadingItems = downloads.filter((d) => d.status === 'downloading')
+  const aggregateSpeedBytes = downloadingItems.reduce(
+    (sum, d) => sum + (d.speed ? parseSpeedToBytes(d.speed) : 0),
+    0
+  )
+  const speedLabel = aggregateSpeedBytes > 0 ? formatSpeed(aggregateSpeedBytes) : null
+  const etaLabel =
+    downloadingItems.length === 1 &&
+    downloadingItems[0]?.eta &&
+    downloadingItems[0].eta !== '00:00' &&
+    downloadingItems[0].eta !== '0:00'
+      ? downloadingItems[0].eta
+      : null
 
   return (
     <>
@@ -56,10 +75,10 @@ export function PlaylistGroup({ playlist, selectedId, onSelectDownload }: Playli
           videoCount={downloads.length}
           onClose={() => setDeleteDialogOpen(false)}
           onRemoveListOnly={() => {
-            downloads.forEach((d) => actions.remove(d.id))
+            actions.removeMany(downloads.map((d) => d.id))
           }}
           onRemoveWithFiles={() => {
-            downloads.forEach((d) => actions.removeWithFiles(d.id))
+            actions.removeManyWithFiles(downloads.map((d) => d.id))
           }}
         />
       )}
@@ -87,25 +106,36 @@ export function PlaylistGroup({ playlist, selectedId, onSelectDownload }: Playli
           <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
         )}
         <div className="w-8 h-8 rounded flex items-center justify-center bg-control text-foreground flex-shrink-0 border border-border">
-          <ListVideo className="w-4 h-4" />
+          {isProfileGroup ? (
+            <Folder className="w-4 h-4" aria-hidden />
+          ) : (
+            <ListVideo className="w-4 h-4" aria-hidden />
+          )}
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-foreground truncate">{playlist.title}</p>
           <p className="text-xs text-muted-foreground">
-            {playlist.type} · {playlist.total_count} videos · {playlist.output_dir}
+            {playlist.type} · {playlist.total_count} {countLabel}
+            {playlist.output_dir ? ` · ${playlist.output_dir}` : ''}
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <div className="w-24 h-1.5 rounded-full bg-control overflow-hidden border border-border/50">
-            <div
-              className="h-full rounded-full bg-progress transition-all duration-300"
-              style={{ width: `${progressPercent}%` }}
-            />
+        <div className="flex items-center gap-2 flex-shrink-0 min-w-[7.5rem]">
+          <div className="flex flex-col items-end gap-0.5 flex-1 min-w-0">
+            <div className="w-full h-1.5 rounded-full bg-control overflow-hidden border border-border/50">
+              <div
+                className="h-full rounded-full bg-progress transition-all duration-300"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground whitespace-nowrap tabular-nums">
+              <span>
+                {playlist.completed_count}/{playlist.total_count}
+              </span>
+              {speedLabel ? <span className="text-foreground/80">{speedLabel}</span> : null}
+              {etaLabel ? <span>ETA {etaLabel}</span> : null}
+            </div>
           </div>
-          <span className="text-xs text-muted-foreground whitespace-nowrap">
-            {playlist.completed_count}/{playlist.total_count}
-          </span>
-          {hasResumableItems && (
+          {showResumeAll && (
             <HoverHintWrap text="Resume all" side="bottom">
               <button
                 type="button"
@@ -120,7 +150,7 @@ export function PlaylistGroup({ playlist, selectedId, onSelectDownload }: Playli
               </button>
             </HoverHintWrap>
           )}
-          {hasActiveItems && (
+          {showPauseAll && (
             <HoverHintWrap text="Pause all" side="bottom">
               <button
                 type="button"
@@ -190,11 +220,11 @@ export function PlaylistGroup({ playlist, selectedId, onSelectDownload }: Playli
                 <Timer className="w-4 h-4 text-red-400 flex-shrink-0" aria-hidden />
               )}
               <p className="flex-1 text-sm text-foreground truncate min-w-0">{d.title}</p>
-              <span className="text-xs text-muted-foreground flex-shrink-0">
+              <span className="text-xs text-muted-foreground flex-shrink-0 tabular-nums text-right min-w-[4.5rem]">
                 {d.status === 'complete' && d.file_size
                   ? formatFileSize(d.file_size)
                   : d.status === 'downloading'
-                    ? `${Math.round(d.progress)}%`
+                    ? [d.speed, `${Math.round(d.progress)}%`].filter(Boolean).join(' · ')
                     : ''}
               </span>
               <div className="flex gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>

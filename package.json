@@ -12,7 +12,8 @@
     "build:mac": "electron-vite build && electron-builder --mac",
     "preview": "electron-vite preview",
     "postinstall": "npm run build --workspace=@v-download/shared && node scripts/write-extension-cookie-sync.mjs && electron-builder install-app-deps",
-    "sync:extension-constants": "npm run build --workspace=@v-download/shared && node scripts/write-extension-cookie-sync.mjs"
+    "sync:extension-constants": "npm run build --workspace=@v-download/shared && node scripts/write-extension-cookie-sync.mjs",
+    "test:douyin-profile": "npx tsx scripts/test-douyin-profile.ts"
   },
   "dependencies": {
     "@v-download/shared": "*",

@@ -1,4 +1,4 @@
-import { createWriteStream, existsSync, mkdirSync, readFileSync } from 'fs'
+import { createWriteStream, existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { join, resolve } from 'path'
 import { pipeline } from 'stream/promises'
 import { Readable } from 'stream'
@@ -12,12 +12,28 @@ const DESKTOP_UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
 
 export interface DouyinVideoInfo {
+  kind?: 'video'
   id: string
   title: string
   author: string
   videoUrl: string
   duration: number
   cover: string
+}
+
+export interface DouyinGalleryInfo {
+  kind: 'gallery'
+  id: string
+  title: string
+  author: string
+  cover: string
+  imageUrls: string[]
+}
+
+export type DouyinMediaResult = DouyinVideoInfo | DouyinGalleryInfo
+
+export function isDouyinGallery(info: DouyinMediaResult | null): info is DouyinGalleryInfo {
+  return info != null && info.kind === 'gallery'
 }
 
 /** Last failure reason from `getDouyinInfo` (for queue / bot messages). */
@@ -49,8 +65,8 @@ async function resolveShortUrl(url: string): Promise<string> {
   return res.url
 }
 
-function extractVideoId(resolvedUrl: string): string | null {
-  const m = resolvedUrl.match(/video\/(\d+)/)
+function extractContentId(resolvedUrl: string): string | null {
+  const m = resolvedUrl.match(/\/(?:video|note|gallery)\/(\d+)/)
   return m ? m[1] : null
 }
 
@@ -181,6 +197,7 @@ function buildDouyinInfoFromItem(item: Record<string, unknown>, fallbackId: stri
   const author = (item.author as { nickname?: string } | undefined)?.nickname ?? ''
 
   return {
+    kind: 'video',
     id: String(item.aweme_id ?? fallbackId),
     title: String(item.desc ?? 'Douyin Video').substring(0, 200),
     author: String(author),
@@ -190,17 +207,96 @@ function buildDouyinInfoFromItem(item: Record<string, unknown>, fallbackId: stri
   }
 }
 
+function itemHasImages(o: Record<string, unknown>): boolean {
+  const imgs = (o.images ?? o.image_list ?? o.imageList) as unknown
+  if (!Array.isArray(imgs) || imgs.length === 0) return false
+  for (const img of imgs) {
+    if (!img || typeof img !== 'object') continue
+    const rec = img as Record<string, unknown>
+    const urlList = rec.url_list ?? rec.urlList
+    if (Array.isArray(urlList) && urlList.some((u) => typeof u === 'string' && /^https?:\/\//i.test(u))) {
+      return true
+    }
+  }
+  return false
+}
+
+function findGalleryItemDeep(obj: unknown, depth = 0, maxDepth = 100): Record<string, unknown> | null {
+  if (depth > maxDepth || obj == null) return null
+  if (typeof obj !== 'object') return null
+
+  if (Array.isArray(obj)) {
+    for (const el of obj) {
+      const r = findGalleryItemDeep(el, depth + 1, maxDepth)
+      if (r) return r
+    }
+    return null
+  }
+
+  const o = obj as Record<string, unknown>
+  if (itemHasImages(o)) return o
+
+  for (const key of Object.keys(o)) {
+    const r = findGalleryItemDeep(o[key], depth + 1, maxDepth)
+    if (r) return r
+  }
+  return null
+}
+
+function buildDouyinGalleryFromItem(item: Record<string, unknown>, fallbackId: string): DouyinGalleryInfo {
+  const imgs = (item.images ?? item.image_list ?? item.imageList) as unknown[] | undefined
+  const imageUrls: string[] = []
+  if (Array.isArray(imgs)) {
+    for (const img of imgs) {
+      if (!img || typeof img !== 'object') continue
+      const rec = img as Record<string, unknown>
+      const urlList = (rec.url_list ?? rec.urlList) as string[] | undefined
+      if (Array.isArray(urlList) && urlList.length > 0) {
+        const best = urlList[urlList.length - 1]
+        if (typeof best === 'string' && /^https?:\/\//i.test(best)) imageUrls.push(best)
+      }
+    }
+  }
+  const author = (item.author as { nickname?: string } | undefined)?.nickname ?? ''
+  const cover = imageUrls[0] ?? ''
+
+  return {
+    kind: 'gallery',
+    id: String(item.aweme_id ?? fallbackId),
+    title: String(item.desc ?? 'Douyin Images').substring(0, 200),
+    author: String(author),
+    cover,
+    imageUrls,
+  }
+}
+
+function resolveMediaFromParsedData(data: Record<string, unknown>, contentId: string): DouyinMediaResult | null {
+  let item = findAwemeItemDeep(data.loaderData)
+  if (!item) item = findAwemeItemDeep(data)
+  let gItem = findGalleryItemDeep(data.loaderData)
+  if (!gItem) gItem = findGalleryItemDeep(data)
+  if (gItem && itemHasImages(gItem)) {
+    return buildDouyinGalleryFromItem(gItem, contentId)
+  }
+  if (item && itemHasImages(item)) {
+    return buildDouyinGalleryFromItem(item, contentId)
+  }
+  if (item && itemHasPlayUri(item)) {
+    return buildDouyinInfoFromItem(item, contentId)
+  }
+  return null
+}
+
 const JSON_MARKERS = ['_ROUTER_DATA', '__MODERN_ROUTER_DATA__', 'SIGI_STATE', 'SUPER_DATA'] as const
 
-function tryParseEmbeddedJsonMarkers(html: string, videoId: string): DouyinVideoInfo | null {
+function tryParseEmbeddedJsonMarkers(html: string, contentId: string): DouyinMediaResult | null {
   for (const marker of JSON_MARKERS) {
     const jsonStr = extractBalancedJsonAfterMarker(html, marker)
     if (!jsonStr) continue
     try {
       const data = JSON.parse(jsonStr) as Record<string, unknown>
-      let item = findAwemeItemDeep(data.loaderData)
-      if (!item) item = findAwemeItemDeep(data)
-      if (item) return buildDouyinInfoFromItem(item, videoId)
+      const resolved = resolveMediaFromParsedData(data, contentId)
+      if (resolved) return resolved
     } catch {
       /* try next marker */
     }
@@ -209,7 +305,7 @@ function tryParseEmbeddedJsonMarkers(html: string, videoId: string): DouyinVideo
 }
 
 /** SSR: URL-encoded JSON in <script id="RENDER_DATA"> */
-function tryRenderDataScript(html: string, videoId: string): DouyinVideoInfo | null {
+function tryRenderDataScript(html: string, contentId: string): DouyinMediaResult | null {
   const m = html.match(/<script[^>]*\bid=["']RENDER_DATA["'][^>]*>([\s\S]*?)<\/script>/i)
   if (!m?.[1]) return null
   let raw = m[1].trim()
@@ -220,22 +316,20 @@ function tryRenderDataScript(html: string, videoId: string): DouyinVideoInfo | n
   }
   try {
     const data = JSON.parse(raw) as Record<string, unknown>
-    const item = findAwemeItemDeep(data)
-    if (item) return buildDouyinInfoFromItem(item, videoId)
+    return resolveMediaFromParsedData(data, contentId)
   } catch {
     return null
   }
   return null
 }
 
-function tryNextDataScript(html: string, videoId: string): DouyinVideoInfo | null {
+function tryNextDataScript(html: string, contentId: string): DouyinMediaResult | null {
   const m = html.match(/<script[^>]*\bid=["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/i)
   if (!m?.[1]) return null
   const raw = m[1].trim()
   try {
     const data = JSON.parse(raw) as Record<string, unknown>
-    const item = findAwemeItemDeep(data)
-    if (item) return buildDouyinInfoFromItem(item, videoId)
+    return resolveMediaFromParsedData(data, contentId)
   } catch {
     return null
   }
@@ -363,17 +457,17 @@ function tryLooseNearAwemeId(html: string, videoId: string): DouyinVideoInfo | n
   return null
 }
 
-function parseDouyinPageHtml(html: string, videoId: string): DouyinVideoInfo {
-  const fromMarkers = tryParseEmbeddedJsonMarkers(html, videoId)
+function parseDouyinPageHtml(html: string, contentId: string): DouyinMediaResult {
+  const fromMarkers = tryParseEmbeddedJsonMarkers(html, contentId)
   if (fromMarkers) return fromMarkers
 
-  const fromRender = tryRenderDataScript(html, videoId)
+  const fromRender = tryRenderDataScript(html, contentId)
   if (fromRender) return fromRender
 
-  const fromNext = tryNextDataScript(html, videoId)
+  const fromNext = tryNextDataScript(html, contentId)
   if (fromNext) return fromNext
 
-  const loose = tryLoosePlayAddrInHtml(html, videoId)
+  const loose = tryLoosePlayAddrInHtml(html, contentId)
   if (loose) return loose
 
   let jsonStr = extractBalancedJsonAfterMarker(html, '_ROUTER_DATA')
@@ -384,9 +478,8 @@ function parseDouyinPageHtml(html: string, videoId: string): DouyinVideoInfo {
   }
 
   const data = JSON.parse(jsonStr) as Record<string, unknown>
-  let item = findAwemeItemDeep(data.loaderData)
-  if (!item) item = findAwemeItemDeep(data)
-  if (item) return buildDouyinInfoFromItem(item, videoId)
+  const resolved = resolveMediaFromParsedData(data, contentId)
+  if (resolved) return resolved
 
   const pageData = (data.loaderData as Record<string, unknown> | undefined)?.['video_(id)/page'] as
     | Record<string, unknown>
@@ -394,17 +487,20 @@ function parseDouyinPageHtml(html: string, videoId: string): DouyinVideoInfo {
   const videoInfoRes = pageData?.videoInfoRes as Record<string, unknown> | undefined
   const itemList = videoInfoRes?.item_list as unknown[] | undefined
   const legacyItem = itemList?.[0] as Record<string, unknown> | undefined
+  if (legacyItem && itemHasImages(legacyItem)) {
+    return buildDouyinGalleryFromItem(legacyItem, contentId)
+  }
   if (legacyItem && itemHasPlayUri(legacyItem)) {
-    return buildDouyinInfoFromItem(legacyItem, videoId)
+    return buildDouyinInfoFromItem(legacyItem, contentId)
   }
 
-  const nearAweme = tryLooseNearAwemeId(html, videoId)
+  const nearAweme = tryLooseNearAwemeId(html, contentId)
   if (nearAweme) return nearAweme
 
   throw new Error('No video item in page data (layout not recognized or empty item_list)')
 }
 
-export async function getDouyinInfo(url: string): Promise<DouyinVideoInfo | null> {
+export async function getDouyinInfo(url: string): Promise<DouyinMediaResult | null> {
   if (!isDouyinUrl(url)) return null
 
   lastGetDouyinInfoError = ''
@@ -414,23 +510,32 @@ export async function getDouyinInfo(url: string): Promise<DouyinVideoInfo | null
     const resolved = await resolveShortUrl(url)
     console.log(`[douyin] Resolved to: ${resolved}`)
 
-    const videoId = extractVideoId(resolved)
-    if (!videoId) {
-      console.log(`[douyin] Could not extract video ID from: ${resolved}`)
-      lastGetDouyinInfoError = 'Could not extract numeric video id from resolved URL'
+    const contentId = extractContentId(resolved)
+    if (!contentId) {
+      console.log(`[douyin] Could not extract content ID from: ${resolved}`)
+      lastGetDouyinInfoError = 'Could not extract video/note id from resolved URL'
       return null
     }
-    console.log(`[douyin] Video ID: ${videoId}`)
+    console.log(`[douyin] Content ID: ${contentId}`)
 
+    const isNote = /\/note\//i.test(resolved)
     const resolvedNoHash = resolved.split('#')[0].trim()
-    const canonical = `https://www.douyin.com/video/${videoId}`
-    const mShare = `https://m.douyin.com/share/video/${videoId}`
-    const pageUrls: string[] = [
-      mShare,
-      canonical,
-      `https://www.iesdouyin.com/share/video/${videoId}`,
-      `https://m.iesdouyin.com/share/video/${videoId}`,
-    ]
+    const canonical = `https://www.douyin.com/video/${contentId}`
+    const mShare = `https://m.douyin.com/share/video/${contentId}`
+    const pageUrls: string[] = isNote
+      ? [
+          `https://m.douyin.com/share/note/${contentId}`,
+          `https://www.douyin.com/note/${contentId}`,
+          `https://www.iesdouyin.com/share/note/${contentId}`,
+          canonical,
+          mShare,
+        ]
+      : [
+          mShare,
+          canonical,
+          `https://www.iesdouyin.com/share/video/${contentId}`,
+          `https://m.iesdouyin.com/share/video/${contentId}`,
+        ]
     if (
       /^https?:\/\//i.test(resolvedNoHash) &&
       /douyin/i.test(resolvedNoHash) &&
@@ -445,8 +550,9 @@ export async function getDouyinInfo(url: string): Promise<DouyinVideoInfo | null
         try {
           const html = await fetchDouyinHtml(pageUrl, uaMode)
           console.log(`[douyin] Fetched ${pageUrl} (${uaMode}, ${html.length} bytes)`)
-          const info = parseDouyinPageHtml(html, videoId)
-          console.log(`[douyin] Parsed: title="${info.title}", author="${info.author}", duration=${info.duration}s`)
+          const info = parseDouyinPageHtml(html, contentId)
+          const kind = isDouyinGallery(info) ? `gallery images=${info.imageUrls.length}` : `video duration=${info.duration}s`
+          console.log(`[douyin] Parsed: title="${info.title}", author="${info.author}", ${kind}`)
           lastGetDouyinInfoError = ''
           return info
         } catch (e) {
@@ -472,18 +578,19 @@ export async function getDouyinInfo(url: string): Promise<DouyinVideoInfo | null
           console.warn('[douyin] Playwright m-share load failed; trying canonical…', pw1)
           html = await fetchDouyinHtmlWithPlaywright(canonical, { cookiesFilePath: cookiePath })
         }
-        let info: DouyinVideoInfo
+        let info: DouyinMediaResult
         try {
-          info = parseDouyinPageHtml(html, videoId)
+          info = parseDouyinPageHtml(html, contentId)
         } catch (parseErr) {
           console.warn(
             '[douyin] Playwright m-share HTML did not parse; hydrating canonical…',
             parseErr instanceof Error ? parseErr.message : parseErr
           )
           html = await fetchDouyinHtmlWithPlaywright(canonical, { cookiesFilePath: cookiePath })
-          info = parseDouyinPageHtml(html, videoId)
+          info = parseDouyinPageHtml(html, contentId)
         }
-        console.log(`[douyin] Parsed (Playwright): title="${info.title}", author="${info.author}", duration=${info.duration}s`)
+        const kind = isDouyinGallery(info) ? `gallery images=${info.imageUrls.length}` : `video duration=${info.duration}s`
+        console.log(`[douyin] Parsed (Playwright): title="${info.title}", author="${info.author}", ${kind}`)
         lastGetDouyinInfoError = ''
         return info
       } catch (e) {
@@ -556,4 +663,59 @@ export async function downloadDouyinVideo(
 
   console.log(`[douyin] Download complete: ${(downloaded / 1024 / 1024).toFixed(1)} MB`)
   return outputPath
+}
+
+function extFromImageUrl(u: string): string {
+  try {
+    const p = new URL(u).pathname.toLowerCase()
+    if (p.endsWith('.png')) return 'png'
+    if (p.endsWith('.webp')) return 'webp'
+    if (p.endsWith('.jpeg')) return 'jpeg'
+    if (p.endsWith('.jpg')) return 'jpg'
+  } catch {
+    /* ignore */
+  }
+  return 'jpg'
+}
+
+export async function downloadDouyinImageGallery(
+  imageUrls: string[],
+  outputDir: string,
+  title: string,
+  onProgress?: (percent: number) => void
+): Promise<string> {
+  if (imageUrls.length === 0) throw new Error('No image URLs to download')
+
+  const safeTitle = sanitizeDownloadBasename(title, 80)
+  const subDir = join(outputDir, safeTitle)
+  mkdirSync(subDir, { recursive: true })
+
+  const cookieHeader = buildCookieHeaderFromNetscapeFile(resolve(config.cookiesFilePath))
+
+  let i = 0
+  for (const url of imageUrls) {
+    i++
+    const ext = extFromImageUrl(url)
+    const dest = join(subDir, `${String(i).padStart(3, '0')}.${ext}`)
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': DESKTOP_UA,
+        Referer: 'https://www.douyin.com/',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+        ...(cookieHeader ? { Cookie: cookieHeader } : {}),
+      },
+      redirect: 'follow',
+    })
+    if (!res.ok) {
+      throw new Error(`Image ${i} failed: ${res.status} ${res.statusText}`)
+    }
+    const buf = Buffer.from(await res.arrayBuffer())
+    if (buf.length < 64) {
+      throw new Error(`Image ${i} response too small`)
+    }
+    writeFileSync(dest, buf)
+    if (onProgress) onProgress(Math.min(99, Math.round((i / imageUrls.length) * 100)))
+  }
+  if (onProgress) onProgress(100)
+  return subDir
 }

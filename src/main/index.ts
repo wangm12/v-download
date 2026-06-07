@@ -5,11 +5,12 @@ import * as database from './database'
 import * as downloadManager from './downloadManager'
 import * as dockProgress from './dockProgress'
 import { startPoTokenServer } from './poTokenServer'
-import { startLocalServer, stopLocalServer, setDownloadHandler, setMediaDownloadHandler, DownloadRequest } from './localServer'
+import { startLocalServer, stopLocalServer, setDownloadHandler, setMediaDownloadHandler, DownloadRequest, LOCAL_SERVER_PORT } from './localServer'
 import * as settings from './settings'
 import { registerDownloadHandlers } from './ipc/downloads'
 import { registerSettingsHandlers } from './ipc/settings'
 import { registerWindowHandlers } from './ipc/window'
+import { initWorklog, worklog } from './worklog'
 
 app.setName('V-Download')
 
@@ -164,6 +165,9 @@ function setupIpcHandlers(): void {
 }
 
 app.whenReady().then(() => {
+  initWorklog()
+  worklog('app_ready', { packaged: app.isPackaged, version: app.getVersion() })
+
   const template: Electron.MenuItemConstructorOptions[] = [
     {
       label: app.name,
@@ -210,6 +214,7 @@ app.whenReady().then(() => {
   downloadManager.loadFromDbAndRecover()
   startPoTokenServer()
   startLocalServer()
+  worklog('local_server_started', { port: LOCAL_SERVER_PORT })
   setDownloadHandler((request) => handleDownloadRequest(request))
   setMediaDownloadHandler((request) => {
     const quality = settings.get('defaultVideoQuality')

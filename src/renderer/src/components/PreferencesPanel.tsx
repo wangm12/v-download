@@ -5,7 +5,8 @@ import { Stepper } from './Stepper'
 import { HoverHintWrap } from './HoverHintWrap'
 import type { PrefSection } from '@/preferencesNav'
 import { PREF_SECTION_HEADER } from '@/preferencesNav'
-import type { SettingsData } from '@/types'
+import type { DouyinBulkJobStatus, SettingsData } from '@/types'
+import { DOUYIN_BULK_URL_PREFILL_SESSION_KEY } from '@/utils/douyinBulk'
 
 const VIDEO_QUALITIES = ['2160', '1080', '720', '360', '240', '144']
 const AUDIO_QUALITIES = ['320', '256', '128']
@@ -74,9 +75,28 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
     cookiesPath: '',
     cookiesFromBrowser: 'chrome',
     douyinUseCloakBrowser: false,
+    youtubePlaylistMode: 'native',
+    youtubePlaylistSleepRequests: 0,
+    youtubePlaylistMaxDownloads: 0,
+    douyinBulkRunPyPath: '',
+    douyinBulkConfigPath: '',
+    douyinBulkOutputPath: '',
+    douyinBulkThreads: 5,
+    douyinBulkVerboseWarnings: false,
     ytdlpPath: '',
-    ffmpegPath: ''
+    ffmpegPath: '',
+    directMediaEngine: 'auto',
+    concurrentFragments: 5,
+    downloadSpeedMode: 'balanced',
+    turboRiskAcknowledged: false,
+    ytdlpExternalDownloader: ''
   })
+  const [bulkUrl, setBulkUrl] = useState('')
+  const [bulkJobId, setBulkJobId] = useState('')
+  const [bulkJob, setBulkJob] = useState<DouyinBulkJobStatus | null>(null)
+  const [bulkJobBusy, setBulkJobBusy] = useState(false)
+  const [bulkJobNote, setBulkJobNote] = useState('')
+  const [turboModalOpen, setTurboModalOpen] = useState(false)
 
   const header = PREF_SECTION_HEADER[section]
 
@@ -98,6 +118,22 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
     })
     return unsub
   }, [])
+
+  useEffect(() => {
+    if (section !== 'downloads') return
+    try {
+      const v = sessionStorage.getItem(DOUYIN_BULK_URL_PREFILL_SESSION_KEY)
+      if (v) {
+        sessionStorage.removeItem(DOUYIN_BULK_URL_PREFILL_SESSION_KEY)
+        setBulkUrl(v)
+        setBulkJobNote(
+          'Profile URL prefilled. Ensure run.py, config.yml, and `mode` / `number` in config match upstream docs, then Start bulk.'
+        )
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [section])
 
   useEffect(() => {
     if (!window.api?.onCookiesSynced) return
@@ -131,10 +167,84 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
     }
   }, [])
 
+  useEffect(() => {
+    if (!bulkJobId || !window.api?.getDouyinBulkStatus) return
+
+    let active = true
+    let intervalId: ReturnType<typeof window.setInterval> | null = null
+
+    const pollStatus = async () => {
+      if (!active) return
+      try {
+        const result = await window.api.getDouyinBulkStatus!(bulkJobId)
+        if (!active) return
+
+        if (result.error) {
+          setBulkJobNote(result.error)
+          return
+        }
+
+        if (result.data) {
+          setBulkJob(result.data)
+          if (result.data.state !== 'running' && intervalId !== null) {
+            window.clearInterval(intervalId)
+            intervalId = null
+          }
+        }
+      } catch (err) {
+        if (!active) return
+        setBulkJobNote(err instanceof Error ? err.message : String(err))
+      }
+    }
+
+    void pollStatus()
+    intervalId = window.setInterval(() => {
+      void pollStatus()
+    }, 1200)
+
+    return () => {
+      active = false
+      if (intervalId !== null) window.clearInterval(intervalId)
+    }
+  }, [bulkJobId])
+
   const onUpdate = useCallback(async (key: string, value: unknown) => {
     setSettings((prev) => ({ ...prev, [key]: value }))
     if (window.api) await window.api.updateSettings(key, value)
   }, [])
+
+  const refreshSettingsFromMain = useCallback(async () => {
+    if (!window.api) return
+    const res = await window.api.getSettings()
+    const data = (res as { data?: SettingsData })?.data ?? res
+    if (data) setSettings((prev) => ({ ...prev, ...data }))
+  }, [])
+
+  const handleDownloadSpeedMode = useCallback(
+    async (mode: 'balanced' | 'turbo' | 'gentle') => {
+      if (!window.api?.applyDownloadSpeedMode) return
+      const current = settings.downloadSpeedMode ?? 'balanced'
+      if (mode === current) return
+      if (mode === 'turbo' && !settings.turboRiskAcknowledged) {
+        setTurboModalOpen(true)
+        return
+      }
+      const result = await window.api.applyDownloadSpeedMode(mode, {})
+      if (!result.ok && result.error === 'turbo_ack_required') {
+        setTurboModalOpen(true)
+        return
+      }
+      await refreshSettingsFromMain()
+    },
+    [refreshSettingsFromMain, settings.downloadSpeedMode, settings.turboRiskAcknowledged]
+  )
+
+  const confirmTurboMode = useCallback(async () => {
+    if (!window.api?.applyDownloadSpeedMode) return
+    await window.api.applyDownloadSpeedMode('turbo', { acknowledgeTurboRisk: true })
+    setTurboModalOpen(false)
+    await refreshSettingsFromMain()
+  }, [refreshSettingsFromMain])
 
   const handleForceCookieSync = async () => {
     if (!window.api?.requestBrowserCookieSync || cookieSyncBusy) return
@@ -176,6 +286,73 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
       if (result) onUpdate('downloadDir', result)
     } catch {
       // ignore
+    }
+  }
+
+  const handleBrowseBulkOutput = async () => {
+    if (!window.api?.selectDownloadFolder) return
+    try {
+      const result = await window.api.selectDownloadFolder()
+      if (result) onUpdate('douyinBulkOutputPath', result)
+    } catch {
+      // ignore
+    }
+  }
+
+  const handleStartDouyinBulk = async () => {
+    const url = bulkUrl.trim()
+    if (!url || !window.api?.startDouyinBulk || bulkJobBusy) return
+
+    setBulkJobBusy(true)
+    setBulkJobNote('')
+    try {
+      const result = await window.api.startDouyinBulk(url)
+      const id = result.data?.id
+      if (result.error) {
+        setBulkJobNote(result.error)
+        return
+      }
+      if (!id) {
+        setBulkJobNote('Bulk job did not return a job id.')
+        return
+      }
+
+      setBulkJobId(id)
+      setBulkJob({
+        id,
+        state: 'running',
+        startedAt: new Date().toISOString(),
+        stderrTail: ''
+      })
+      setBulkJobNote('Douyin bulk job started. Status updates every 1.2s.')
+    } catch (err) {
+      setBulkJobNote(err instanceof Error ? err.message : String(err))
+    } finally {
+      setBulkJobBusy(false)
+    }
+  }
+
+  const handleCancelDouyinBulk = async () => {
+    if (!bulkJobId || !window.api?.cancelDouyinBulk || bulkJobBusy) return
+
+    setBulkJobBusy(true)
+    setBulkJobNote('')
+    try {
+      const result = await window.api.cancelDouyinBulk(bulkJobId)
+      if (result.error) {
+        setBulkJobNote(result.error)
+        return
+      }
+      if (!result.ok) {
+        setBulkJobNote('Cancel request was not accepted for this job.')
+        return
+      }
+      setBulkJob((prev) => (prev ? { ...prev, state: 'cancelled', endedAt: new Date().toISOString() } : prev))
+      setBulkJobNote('Cancel request sent.')
+    } catch (err) {
+      setBulkJobNote(err instanceof Error ? err.message : String(err))
+    } finally {
+      setBulkJobBusy(false)
     }
   }
 
@@ -236,6 +413,34 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
             </PrefCard>
 
             <PrefCard
+              title="Download speed"
+              subtitle="Presets tune parallel queue slots, yt-dlp sleep between operations, fragment concurrency, and the direct-media engine. Default is Balanced."
+            >
+              <FieldBlock
+                label="Mode"
+                description="Turbo enables higher parallelism and zero sleep between operations; some CDNs may return HTTP 429 (rate limit)."
+              >
+                <div className="flex flex-wrap gap-2">
+                  {(['balanced', 'turbo', 'gentle'] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => void handleDownloadSpeedMode(mode)}
+                      className={cn(
+                        'px-4 py-2 rounded-lg border text-sm font-medium transition-colors capitalize',
+                        (settings.downloadSpeedMode ?? 'balanced') === mode
+                          ? 'border-white/40 bg-control text-foreground'
+                          : 'border-border bg-elevated text-foreground hover:bg-control'
+                      )}
+                    >
+                      {mode === 'balanced' ? 'Balanced' : mode === 'turbo' ? 'Turbo' : 'Gentle'}
+                    </button>
+                  ))}
+                </div>
+              </FieldBlock>
+            </PrefCard>
+
+            <PrefCard
               title="Queue"
               subtitle="Balance speed with system and network reliability. A short delay between starts helps with rate limits."
             >
@@ -247,7 +452,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
               </FieldBlock>
               <FieldBlock
                 label="Delay between download starts"
-                description="Pause after each new task begins before starting the next (0–30s). Helps avoid hammering the same origin."
+                description="Maps to yt-dlp --sleep-interval for normal page URLs (not extension direct-media tasks). Minimum wait before each download operation."
               >
                 <Stepper
                   value={settings.sleepInterval}
@@ -261,6 +466,235 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                 Automatic retry for interrupted items and battery-aware pauses are on the roadmap (see v2 Downloads
                 mockup); today you can use <span className="text-foreground">Retry</span> on failed rows in the queue.
               </p>
+            </PrefCard>
+
+            <PrefCard
+              title="Direct media (sniff / extension)"
+              subtitle="URLs with a detected media type (HLS, MP4, …). Auto uses yt-dlp first for HLS (.m3u8) for faster parallel fragments; other types still try ffmpeg first with yt-dlp fallback."
+            >
+              <FieldBlock
+                label="Direct media engine"
+                description="Applies to sniffed or extension-sent CDN URLs, not full watch pages (those stay on yt-dlp)."
+              >
+                <select
+                  value={settings.directMediaEngine ?? 'auto'}
+                  onChange={(e) =>
+                    onUpdate('directMediaEngine', e.target.value as 'auto' | 'ffmpeg' | 'ytdlp')
+                  }
+                  className="w-full max-w-md px-3 py-2 rounded-lg bg-raised border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-white/30"
+                >
+                  <option value="auto">Auto — HLS via yt-dlp first; other CDN URLs ffmpeg first</option>
+                  <option value="ffmpeg">ffmpeg only</option>
+                  <option value="ytdlp">yt-dlp only</option>
+                </select>
+              </FieldBlock>
+              <FieldBlock
+                label="Concurrent fragments (yt-dlp)"
+                description="Passed as --concurrent-fragments for fragmented streams (HLS, DASH, ISM) on all yt-dlp downloads when set above 1. Higher values can be faster but may trigger rate limits."
+              >
+                <Stepper
+                  value={settings.concurrentFragments ?? 5}
+                  min={1}
+                  max={32}
+                  onChange={(v) => onUpdate('concurrentFragments', v)}
+                />
+              </FieldBlock>
+              <FieldBlock
+                label="External downloader (optional)"
+                description="yt-dlp --downloader, e.g. aria2c (must be installed and on PATH). Leave empty for the built-in downloader."
+              >
+                <input
+                  type="text"
+                  value={settings.ytdlpExternalDownloader ?? ''}
+                  onChange={(e) => onUpdate('ytdlpExternalDownloader', e.target.value)}
+                  placeholder="aria2c"
+                  className="w-full max-w-md px-3 py-2 rounded-lg bg-raised border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-white/30"
+                />
+              </FieldBlock>
+            </PrefCard>
+
+            <PrefCard
+              title="YouTube playlists"
+              subtitle="Channel and list URLs can be one yt-dlp job (fewer tasks, stable ordering) or many parallel tasks (legacy)."
+            >
+              <FieldBlock label="Playlist mode" description="Native mode uses the original list/channel URL with yt-dlp’s playlist options. Fan-out queues one task per video.">
+                <select
+                  value={settings.youtubePlaylistMode ?? 'native'}
+                  onChange={(e) => onUpdate('youtubePlaylistMode', e.target.value)}
+                  className="w-full max-w-md px-3 py-2 rounded-lg bg-raised border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-white/30"
+                >
+                  <option value="native">Single yt-dlp job (recommended)</option>
+                  <option value="fanout">One task per video</option>
+                </select>
+              </FieldBlock>
+              <FieldBlock
+                label="Sleep between playlist requests"
+                description="Maps to yt-dlp --sleep-requests for native playlist downloads (seconds)."
+              >
+                <Stepper
+                  value={settings.youtubePlaylistSleepRequests ?? 0}
+                  min={0}
+                  max={30}
+                  suffix="s"
+                  onChange={(v) => onUpdate('youtubePlaylistSleepRequests', v)}
+                />
+              </FieldBlock>
+              <FieldBlock
+                label="Max videos per native playlist"
+                description="0 = no limit. Passed as --max-downloads for native playlist mode."
+              >
+                <Stepper
+                  value={settings.youtubePlaylistMaxDownloads ?? 0}
+                  min={0}
+                  max={500}
+                  onChange={(v) => onUpdate('youtubePlaylistMaxDownloads', v)}
+                />
+              </FieldBlock>
+            </PrefCard>
+
+            <PrefCard
+              title="Douyin bulk (optional)"
+              subtitle="Creator/profile bulk via external jiji262/douyin-downloader. Align `-p` with your app download folder using the fields below; `mode`, `number`, and cookies stay in config.yml per upstream README."
+            >
+              <div className="text-xs text-muted-foreground leading-relaxed">
+                <a
+                  href="https://github.com/jiji262/douyin-downloader#minimal-working-config"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-foreground underline font-medium hover:no-underline"
+                >
+                  Open upstream README (minimal config)
+                </a>
+                <span className="text-muted-foreground"> — link, mode, number.post, browser_fallback, cookies.</span>
+              </div>
+              <FieldBlock label="Path to run.py" description="Absolute path to douyin-downloader run.py.">
+                <input
+                  type="text"
+                  value={settings.douyinBulkRunPyPath ?? ''}
+                  onChange={(e) => onUpdate('douyinBulkRunPyPath', e.target.value)}
+                  placeholder="/path/to/douyin-downloader/run.py"
+                  className="w-full max-w-md px-3 py-2 rounded-lg bg-raised border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-white/30"
+                />
+              </FieldBlock>
+              <FieldBlock label="Path to config.yml" description="Config file passed as -c to run.py.">
+                <input
+                  type="text"
+                  value={settings.douyinBulkConfigPath ?? ''}
+                  onChange={(e) => onUpdate('douyinBulkConfigPath', e.target.value)}
+                  placeholder="/path/to/douyin-downloader/config.yml"
+                  className="w-full max-w-md px-3 py-2 rounded-lg bg-raised border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-white/30"
+                />
+              </FieldBlock>
+              <FieldBlock
+                label="Bulk output directory (-p)"
+                description="Passed to run.py as -p / --path. Empty uses the same folder as Default download directory above."
+              >
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <input
+                    type="text"
+                    value={settings.douyinBulkOutputPath ?? ''}
+                    onChange={(e) => onUpdate('douyinBulkOutputPath', e.target.value)}
+                    placeholder="(use default download directory)"
+                    className="w-full max-w-md px-3 py-2 rounded-lg bg-raised border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-white/30"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleBrowseBulkOutput}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-elevated text-xs font-medium text-foreground hover:bg-control"
+                  >
+                    <Folder size={14} aria-hidden />
+                    Choose folder
+                  </button>
+                </div>
+              </FieldBlock>
+              <FieldBlock
+                label="Downloader threads (-t)"
+                description="Maps to douyin-downloader --thread (parallel work inside the Python tool; separate from app queue concurrency)."
+              >
+                <Stepper
+                  value={settings.douyinBulkThreads ?? 5}
+                  min={1}
+                  max={32}
+                  onChange={(v) => onUpdate('douyinBulkThreads', v)}
+                />
+              </FieldBlock>
+              <FieldBlock
+                label="Verbose CLI warnings"
+                description="Adds --show-warnings so stderr may include more detail for troubleshooting (see job log below)."
+              >
+                <label className="flex items-center gap-2 cursor-pointer text-sm text-foreground">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(settings.douyinBulkVerboseWarnings)}
+                    onChange={(e) => onUpdate('douyinBulkVerboseWarnings', e.target.checked)}
+                    className="rounded border-border"
+                  />
+                  Enable
+                </label>
+              </FieldBlock>
+              <FieldBlock
+                label="Bulk source URL"
+                description="Paste a Douyin creator/profile URL and start a cancellable bulk job."
+              >
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <input
+                    type="text"
+                    value={bulkUrl}
+                    onChange={(e) => setBulkUrl(e.target.value)}
+                    placeholder="https://www.douyin.com/user/..."
+                    className="w-full max-w-md px-3 py-2 rounded-lg bg-raised border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-white/30"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleStartDouyinBulk}
+                      disabled={!bulkUrl.trim() || bulkJobBusy || bulkJob?.state === 'running'}
+                      className={cn(
+                        'px-4 py-2 rounded-lg border text-sm font-medium transition-colors',
+                        !bulkUrl.trim() || bulkJobBusy || bulkJob?.state === 'running'
+                          ? 'border-border/50 text-muted-foreground/50 cursor-not-allowed'
+                          : 'border-border bg-elevated text-foreground hover:bg-control'
+                      )}
+                    >
+                      {bulkJobBusy ? 'Working…' : 'Start bulk'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCancelDouyinBulk}
+                      disabled={!bulkJobId || bulkJobBusy || bulkJob?.state !== 'running'}
+                      className={cn(
+                        'px-4 py-2 rounded-lg border text-sm font-medium transition-colors',
+                        !bulkJobId || bulkJobBusy || bulkJob?.state !== 'running'
+                          ? 'border-border/50 text-muted-foreground/50 cursor-not-allowed'
+                          : 'border-border bg-elevated text-foreground hover:bg-control'
+                      )}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </FieldBlock>
+              {(bulkJob || bulkJobNote) && (
+                <div className="rounded-lg border border-border bg-raised px-3 py-2 space-y-1">
+                  {bulkJob && (
+                    <>
+                      <p className="text-xs text-foreground">
+                        Job <code>{bulkJob.id}</code> - <span className="capitalize">{bulkJob.state}</span>
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        Started: {new Date(bulkJob.startedAt).toLocaleString()}
+                        {bulkJob.endedAt ? `  Ended: ${new Date(bulkJob.endedAt).toLocaleString()}` : ''}
+                      </p>
+                      {bulkJob.stderrTail ? (
+                        <pre className="text-[11px] leading-relaxed text-muted-foreground whitespace-pre-wrap break-words border border-border rounded-md p-2 max-h-32 overflow-y-auto">
+                          {bulkJob.stderrTail}
+                        </pre>
+                      ) : null}
+                    </>
+                  )}
+                  {bulkJobNote ? <p className="text-xs text-muted-foreground">{bulkJobNote}</p> : null}
+                </div>
+              )}
             </PrefCard>
 
             <PrefCard
@@ -477,6 +911,42 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
           </div>
         )}
       </div>
+
+      {turboModalOpen ? (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/55 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="turbo-modal-title"
+        >
+          <div className="w-full max-w-md rounded-xl border border-border bg-surface p-5 shadow-xl space-y-3">
+            <h2 id="turbo-modal-title" className="text-sm font-semibold text-foreground">
+              Enable Turbo mode?
+            </h2>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Turbo raises parallel fragment downloads and removes the delay between yt-dlp operations. Some hosts may
+              respond with HTTP 429 (Too Many Requests) or throttle your connection. You can switch back to Balanced
+              anytime.
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setTurboModalOpen(false)}
+                className="px-4 py-2 rounded-lg border border-border bg-elevated text-sm font-medium text-foreground hover:bg-control transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void confirmTurboMode()}
+                className="px-4 py-2 rounded-lg border border-white/30 bg-control text-sm font-medium text-foreground hover:opacity-95 transition-opacity"
+              >
+                Enable Turbo
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

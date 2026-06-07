@@ -11,8 +11,21 @@ const DEFAULT_SETTINGS: SettingsData = {
   sleepInterval: 3,
   cookiesFromBrowser: 'chrome',
   douyinUseCloakBrowser: false,
+  youtubePlaylistMode: 'native',
+  youtubePlaylistSleepRequests: 0,
+  youtubePlaylistMaxDownloads: 0,
+  douyinBulkRunPyPath: '',
+  douyinBulkConfigPath: '',
+  douyinBulkOutputPath: '',
+  douyinBulkThreads: 5,
+  douyinBulkVerboseWarnings: false,
   ytdlpPath: '',
-  ffmpegPath: ''
+  ffmpegPath: '',
+  directMediaEngine: 'auto',
+  concurrentFragments: 5,
+  downloadSpeedMode: 'balanced',
+  turboRiskAcknowledged: false,
+  ytdlpExternalDownloader: ''
 }
 
 export function useSettings() {

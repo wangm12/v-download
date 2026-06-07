@@ -1,7 +1,7 @@
 import { Bot, InlineKeyboard, InputFile, webhookCallback } from 'grammy'
 import { statSync, readdirSync } from 'fs'
 import { rm } from 'fs/promises'
-import { resolve, dirname, basename } from 'path'
+import { resolve, dirname, basename, join, extname } from 'path'
 import { config } from '../config.js'
 import * as db from '../db.js'
 import * as queue from '../queue.js'
@@ -21,6 +21,14 @@ function formatBytes(bytes: number): string {
   const units = ['B', 'KB', 'MB', 'GB', 'TB']
   const i = Math.floor(Math.log(bytes) / Math.log(1024))
   return `${(bytes / 1024 ** i).toFixed(i === 0 ? 0 : 1)} ${units[i]}`
+}
+
+function listGalleryImages(dirPath: string): string[] {
+  const allowed = new Set(['.jpg', '.jpeg', '.png', '.webp'])
+  return readdirSync(dirPath)
+    .filter((name) => allowed.has(extname(name).toLowerCase()))
+    .sort((a, b) => a.localeCompare(b))
+    .map((name) => join(dirPath, name))
 }
 
 const SUPPORTED_PLATFORMS = [
@@ -526,7 +534,57 @@ queue.onComplete(async (taskId, filePath, title) => {
   const tmpDir = dirname(filePath)
 
   try {
-    const fileSize = statSync(filePath).size
+    const st = statSync(filePath)
+    if (st.isDirectory()) {
+      const images = listGalleryImages(filePath)
+      if (images.length === 0) {
+        throw new Error('Gallery output has no image files to send')
+      }
+
+      await bot.api
+        .editMessageText(
+          msg.chatId,
+          msg.messageId,
+          `📤 Sending *${esc(title)}* image gallery \\(${images.length} files\\)\\.\\.\\.`,
+          { parse_mode: 'MarkdownV2' }
+        )
+        .catch(() => {})
+
+      // Telegram sendMediaGroup accepts 2-10 items, so chunk gallery images.
+      const chunks: string[][] = []
+      for (let i = 0; i < images.length; i += 10) {
+        chunks.push(images.slice(i, i + 10))
+      }
+
+      let sentAny = false
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i]
+        if (chunk.length === 1) {
+          await bot.api.sendPhoto(msg.chatId, new InputFile(chunk[0]), {
+            caption: sentAny ? undefined : title
+          })
+          sentAny = true
+          continue
+        }
+
+        await bot.api.sendMediaGroup(
+          msg.chatId,
+          chunk.map((imgPath, idx) => ({
+            type: 'photo' as const,
+            media: new InputFile(imgPath),
+            ...(sentAny || idx !== 0 ? {} : { caption: title })
+          }))
+        )
+        sentAny = true
+      }
+
+      await bot.api.deleteMessage(msg.chatId, msg.messageId).catch(() => {})
+      console.log(`[bot] Task ${taskId}: sent gallery (${images.length} images)`)
+      await rm(tmpDir, { recursive: true, force: true }).catch(() => {})
+      return
+    }
+
+    const fileSize = st.size
     console.log(`[bot] Task ${taskId}: file size = ${(fileSize / 1024 / 1024).toFixed(1)} MB, limit = ${(TELEGRAM_FILE_LIMIT / 1024 / 1024).toFixed(0)} MB`)
 
     if (fileSize <= TELEGRAM_FILE_LIMIT) {

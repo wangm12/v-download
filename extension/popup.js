@@ -1,9 +1,60 @@
 document.addEventListener('DOMContentLoaded', () => {
+  showLastDownloadError()
   chrome.runtime.sendMessage({ type: 'GET_MEDIA' }, (response) => {
     const { media = [], tabUrl = '', tabTitle = '' } = response || {}
     renderMedia(media, tabUrl, tabTitle)
   })
 })
+
+const ERROR_TTL_MS = 10 * 60 * 1000
+
+function isFreshError(err) {
+  if (!err || typeof err.message !== 'string') return false
+  const ts = Number(err.t || 0)
+  return Number.isFinite(ts) && Date.now() - ts < ERROR_TTL_MS
+}
+
+function clearStoredLastDownloadError(done) {
+  chrome.runtime.sendMessage({ type: 'CLEAR_LAST_DOWNLOAD_ERROR' }, () => {
+    if (chrome.runtime.lastError) {
+      chrome.storage.local.remove('lastDownloadError', done)
+      return
+    }
+    if (typeof done === 'function') done()
+  })
+}
+
+function showLastDownloadError() {
+  const container = document.getElementById('last-error')
+  const messageEl = document.getElementById('last-error-message')
+  const dismissBtn = document.getElementById('dismiss-last-error')
+  if (!container || !messageEl || !dismissBtn) return
+
+  const hideError = () => {
+    messageEl.textContent = ''
+    container.style.display = 'none'
+  }
+
+  if (!dismissBtn.dataset.bound) {
+    dismissBtn.dataset.bound = '1'
+    dismissBtn.addEventListener('click', () => {
+      clearStoredLastDownloadError(hideError)
+    })
+  }
+
+  chrome.storage.local.get(['lastDownloadError'], (data) => {
+    const err = data && data.lastDownloadError
+    if (isFreshError(err)) {
+      messageEl.textContent = err.message
+      container.style.display = 'flex'
+    } else {
+      hideError()
+      if (err) {
+        clearStoredLastDownloadError()
+      }
+    }
+  })
+}
 
 function renderMedia(media, tabUrl, tabTitle) {
   const list = document.getElementById('list')
@@ -11,6 +62,17 @@ function renderMedia(media, tabUrl, tabTitle) {
   const footer = document.getElementById('footer')
   const count = document.getElementById('count')
   const headerTitle = document.getElementById('header-title')
+  const selectionBar = document.getElementById('selection-bar')
+  const selectedCount = document.getElementById('selected-count')
+  const selectAllBtn = document.getElementById('select-all-btn')
+  const deselectAllBtn = document.getElementById('deselect-all-btn')
+  const downloadBtn = document.getElementById('download-btn')
+
+  if (!list || !empty || !footer || !count || !selectionBar || !selectedCount || !selectAllBtn || !deselectAllBtn || !downloadBtn) return
+
+  while (list.firstChild) {
+    list.removeChild(list.firstChild)
+  }
 
   if (headerTitle && tabTitle) {
     headerTitle.textContent = tabTitle
@@ -20,12 +82,14 @@ function renderMedia(media, tabUrl, tabTitle) {
   if (media.length === 0) {
     empty.style.display = 'flex'
     footer.style.display = 'none'
+    selectionBar.style.display = 'none'
     count.textContent = ''
     return
   }
 
   empty.style.display = 'none'
   footer.style.display = 'flex'
+  selectionBar.style.display = 'flex'
   count.textContent = media.length
 
   media.forEach((item, index) => {
@@ -71,29 +135,35 @@ function renderMedia(media, tabUrl, tabTitle) {
     meta.appendChild(size)
     info.appendChild(name)
     info.appendChild(meta)
+
+    const singleDownloadBtn = document.createElement('button')
+    singleDownloadBtn.type = 'button'
+    singleDownloadBtn.className = 'media-download-one'
+    singleDownloadBtn.textContent = 'Download'
+
+    singleDownloadBtn.addEventListener('click', (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      triggerDownload([item])
+    })
+
     row.appendChild(checkbox)
     row.appendChild(info)
+    row.appendChild(singleDownloadBtn)
     list.appendChild(row)
   })
 
-  document.getElementById('download-btn').addEventListener('click', () => {
-    const checkboxes = list.querySelectorAll('input[type="checkbox"]:checked')
-    const selected = Array.from(checkboxes).map((cb) => media[cb.dataset.index])
+  const triggerDownload = (items) => {
+    if (!Array.isArray(items) || items.length === 0) return
+    if (downloadBtn.disabled && downloadBtn.textContent === 'Sending...') return
 
-    if (selected.length === 0) return
-
-    if (typeof globalThis.__vdownloadWakeFromUserGesture === 'function') {
-      globalThis.__vdownloadWakeFromUserGesture()
-    }
-
-    const btn = document.getElementById('download-btn')
-    btn.textContent = 'Sending...'
-    btn.disabled = true
+    downloadBtn.textContent = 'Sending...'
+    downloadBtn.disabled = true
 
     chrome.runtime.sendMessage(
       {
         type: 'DOWNLOAD_MEDIA',
-        items: selected,
+        items,
         tabUrl,
         tabTitle,
         surfacedWake: true
@@ -102,7 +172,42 @@ function renderMedia(media, tabUrl, tabTitle) {
         window.close()
       }
     )
+  }
+
+  const updateSelectionUi = () => {
+    const selected = list.querySelectorAll('input[type="checkbox"]:checked').length
+    selectedCount.textContent = `${selected}/${media.length} selected`
+    downloadBtn.disabled = selected === 0
+    downloadBtn.textContent = selected > 0 ? `Download Selected (${selected})` : 'Download Selected'
+  }
+
+  list.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+    cb.addEventListener('change', updateSelectionUi)
   })
+
+  selectAllBtn.onclick = () => {
+    list.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+      cb.checked = true
+    })
+    updateSelectionUi()
+  }
+
+  deselectAllBtn.onclick = () => {
+    list.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+      cb.checked = false
+    })
+    updateSelectionUi()
+  }
+
+  updateSelectionUi()
+
+  downloadBtn.onclick = () => {
+    const checkboxes = list.querySelectorAll('input[type="checkbox"]:checked')
+    const selected = Array.from(checkboxes).map((cb) => media[cb.dataset.index])
+
+    if (selected.length === 0) return
+    triggerDownload(selected)
+  }
 }
 
 function getDisplayName(url) {

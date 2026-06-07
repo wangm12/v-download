@@ -7,11 +7,12 @@
  * V_DOWNLOAD_CLOAKBROWSER=1) to use CloakBrowser's patched Chromium via
  * Playwright instead of Electron's engine. See README for licensing and footprint.
  */
-import { BrowserWindow, session, app } from 'electron'
-import { existsSync, readFileSync } from 'fs'
+import { BrowserWindow, session, app, net } from 'electron'
+import { createWriteStream, existsSync, readFileSync } from 'fs'
 import { join, resolve } from 'path'
 import type { BrowserContext } from 'playwright-core'
 import * as settings from './settings'
+import { createDouyinDownloadProgressReporter, type DouyinDownloadProgress } from './douyinDownloadProgress'
 
 const MOBILE_UA =
   'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1'
@@ -21,6 +22,38 @@ const DESKTOP_UA =
 
 /** Reuse one partition so __ac_* cookies survive across fetches. */
 const SESSION_PARTITION = 'persist:v-download-douyin-hydrate'
+
+/** Block ByteDance verify/captcha *scripts* in the hydrate session (multiple CDNs: yhgfb-cn-static, bytescm, …). */
+const sessionsCaptchaBlocked = new WeakSet<Electron.Session>()
+
+function isDouyinCaptchaNoiseScriptUrl(u: string): boolean {
+  if (!/https?:\/\//i.test(u)) return false
+  // e.g. lf-rc1.yhgfb-cn-static.com/.../rc-verifycenter/.../rmc-captcha.js
+  // e.g. lf-cdn-tos.bytescm.com/obj/rc-verifycenter/rmc-captcha/@latest/captcha.js
+  return (
+    /rc-verifycenter/i.test(u) ||
+    /rmc-captcha/i.test(u) ||
+    /sec-sdk-captcha/i.test(u) ||
+    (/\.bytescm\.com\//i.test(u) && /(captcha|verifycenter)/i.test(u)) ||
+    (/\.snssdk\.com\//i.test(u) && /(captcha|verify|secsdk)/i.test(u))
+  )
+}
+
+function ensureDouyinHydrateCaptchaBlocked(ses: Electron.Session): void {
+  if (sessionsCaptchaBlocked.has(ses)) return
+  sessionsCaptchaBlocked.add(ses)
+  try {
+    ses.webRequest.onBeforeRequest({ urls: ['<all_urls>'], types: ['script'] }, (details, callback) => {
+      if (isDouyinCaptchaNoiseScriptUrl(details.url)) {
+        callback({ cancel: true })
+        return
+      }
+      callback({})
+    })
+  } catch {
+    /* webRequest may be unavailable in rare builds */
+  }
+}
 
 /** Max wall time including reload chains (acrawler + location.reload). */
 const MAX_WALL_MS = 120_000
@@ -135,6 +168,45 @@ async function applyNetscapeCookiesToSession(ses: Electron.Session, cookiePath: 
   }
 }
 
+function isDouyinAppDeepLink(url: string): boolean {
+  return /^(snssdk\d*|aweme|sslocal|douyin):/i.test(url)
+}
+
+const EXTRACT_CDN_URLS_FROM_PAGE_JS = `(() => {
+  const out = [];
+  const seen = new Set();
+  const norm = (s) => {
+    if (typeof s !== "string") return null;
+    const u = s.replace(/\\\\u002F/gi, "/");
+    if (!/^https?:\\/\\//i.test(u)) return null;
+    if (!/douyinvod|bytecdn|zjcdn|ixigua|amemv|tos-cn-|mime_type=video/i.test(u)) return null;
+    if (seen.has(u)) return null;
+    seen.add(u);
+    return u;
+  };
+  const walk = (o, d) => {
+    if (d > 12 || o == null) return;
+    if (typeof o === "string") { const u = norm(o); if (u) out.push(u); return; }
+    if (Array.isArray(o)) { for (const x of o) walk(x, d + 1); return; }
+    if (typeof o === "object") { for (const k of Object.keys(o)) walk(o[k], d + 1); }
+  };
+  for (const r of [window.__INITIAL_STATE__, window._ROUTER_DATA, window.__MODERN_ROUTER_DATA__]) {
+    try { walk(r, 0); } catch (e) {}
+  }
+  const v = document.querySelector("video");
+  if (v) { const u = norm(v.currentSrc || v.src); if (u) out.push(u); }
+  return out;
+})()`
+
+function isLikelyDouyinVideoCdnUrl(url: string): boolean {
+  if (!/^https?:\/\//i.test(url)) return false
+  if (/aweme\.snssdk\.com/i.test(url)) return false
+  if (/douyinvod\.com|365yg\.com|zjcdn\.com|ixigua\.com|amemv\.com/i.test(url)) return true
+  if (/\.bytecdn\.com/i.test(url) && (/\/video\//i.test(url) || /mime_type=video/i.test(url))) return true
+  if (/tos-cn-/.test(url) && /\.(mp4|m3u8)(\?|$)/i.test(url)) return true
+  return false
+}
+
 function pickChromiumUa(pageUrl: string, preferred: 'mobile' | 'desktop' | 'auto'): string {
   if (preferred === 'mobile') return MOBILE_UA
   if (preferred === 'desktop') return DESKTOP_UA
@@ -232,9 +304,36 @@ async function fetchDouyinHtmlWithCloakBrowser(
   }
 }
 
+export type DouyinChromiumFetchOptions = {
+  cookiesFilePath?: string
+  timeoutMs?: number
+  preferredUa?: 'mobile' | 'desktop' | 'auto'
+  /** Filled with video CDN URLs observed during page load (for play URL enrichment). */
+  capturedCdnUrls?: string[]
+  /** Shorter waits / early exit when only sniffing CDN urls (bulk download enrichment). */
+  enrichmentMode?: boolean
+}
+
+let chromiumHydrateChain: Promise<void> = Promise.resolve()
+
+/** Serialize hidden Chromium windows — parallel hydrate starves CPU and looks hung. */
+export async function withDouyinChromiumHydrateLock<T>(fn: () => Promise<T>): Promise<T> {
+  const prev = chromiumHydrateChain
+  let release!: () => void
+  chromiumHydrateChain = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  await prev
+  try {
+    return await fn()
+  } finally {
+    release()
+  }
+}
+
 async function fetchDouyinHtmlWithElectronChromium(
   pageUrl: string,
-  options?: { cookiesFilePath?: string; timeoutMs?: number; preferredUa?: 'mobile' | 'desktop' | 'auto' }
+  options?: DouyinChromiumFetchOptions
 ): Promise<string> {
   const initialTimeout = options?.timeoutMs ?? 52_000
   const started = Date.now()
@@ -243,11 +342,13 @@ async function fetchDouyinHtmlWithElectronChromium(
   const ua = pickChromiumUa(pageUrl, pref)
 
   const bumpDeadline = () => {
+    if (options?.enrichmentMode) return
     const bump = Date.now() + 30_000
     deadline = Math.min(started + MAX_WALL_MS, Math.max(deadline, bump))
   }
 
   const ses = session.fromPartition(SESSION_PARTITION)
+  ensureDouyinHydrateCaptchaBlocked(ses)
   await ses.setUserAgent(ua)
 
   if (options?.cookiesFilePath?.trim()) {
@@ -276,13 +377,38 @@ async function fetchDouyinHtmlWithElectronChromium(
   win.webContents.setAudioMuted(true)
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
 
+  const captured = options?.capturedCdnUrls
+  let captureActive = true
+  const onCdnResponse = (details: Electron.OnCompletedListenerDetails) => {
+    if (!captureActive) return
+    if (details.statusCode !== 200 && details.statusCode !== 206) return
+    if (!isLikelyDouyinVideoCdnUrl(details.url)) return
+    if (!captured || captured.includes(details.url)) return
+    captured.push(details.url)
+    console.log(`[douyin] Chromium captured CDN url (${captured.length}): ${details.url.slice(0, 96)}…`)
+  }
+  ses.webRequest.onCompleted({ urls: ['<all_urls>'] }, onCdnResponse)
+
+  const blockAppNavigation = (event: Electron.Event, url: string) => {
+    if (isDouyinAppDeepLink(url)) {
+      event.preventDefault()
+      bumpDeadline()
+      console.log(`[douyin] Blocked Douyin app deep link: ${url.slice(0, 96)}…`)
+    }
+  }
+
   const onDidFinishLoad = () => bumpDeadline()
   const onDidStopLoading = () => bumpDeadline()
+  win.webContents.on('will-navigate', blockAppNavigation)
+  win.webContents.on('will-redirect', blockAppNavigation)
   win.webContents.on('did-finish-load', onDidFinishLoad)
   win.webContents.on('did-stop-loading', onDidStopLoading)
 
   const destroy = () => {
+    captureActive = false
     try {
+      win.webContents.removeListener('will-navigate', blockAppNavigation)
+      win.webContents.removeListener('will-redirect', blockAppNavigation)
       win.webContents.removeListener('did-finish-load', onDidFinishLoad)
       win.webContents.removeListener('did-stop-loading', onDidStopLoading)
     } catch {
@@ -296,22 +422,73 @@ async function fetchDouyinHtmlWithElectronChromium(
   }
 
   try {
-    await win.loadURL(pageUrl, {
-      userAgent: ua,
-      extraHeaders: [
-        'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8',
-        'Referer: https://www.douyin.com/',
-      ].join('\n'),
-    })
+    try {
+      await win.loadURL(pageUrl, {
+        userAgent: ua,
+        extraHeaders: [
+          'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8',
+          'Referer: https://www.douyin.com/',
+        ].join('\n'),
+      })
+    } catch (loadErr) {
+      const msg = loadErr instanceof Error ? loadErr.message : String(loadErr)
+      if (!/ERR_ABORTED/i.test(msg)) throw loadErr
+      console.warn(`[douyin] Chromium load aborted (often app deep link) for ${pageUrl}: ${msg}`)
+    }
 
     while (Date.now() < deadline) {
       await sleep(450)
+      if (captured && captured.length > 0) {
+        const html: string = await win.webContents
+          .executeJavaScript(`document.documentElement ? document.documentElement.outerHTML : ''`)
+          .catch(() => '')
+        console.log(
+          `[douyin] Chromium exiting early with ${captured.length} CDN url(s) for ${pageUrl}`
+        )
+        return html || '<html></html>'
+      }
+      if (options?.enrichmentMode && captured) {
+        const videoSrc: string = await win.webContents
+          .executeJavaScript(
+            `(() => { const v = document.querySelector('video'); if (!v) return ''; const s = v.currentSrc || v.src || ''; return typeof s === 'string' ? s : ''; })()`
+          )
+          .catch(() => '')
+        if (videoSrc && isLikelyDouyinVideoCdnUrl(videoSrc) && !captured.includes(videoSrc)) {
+          captured.push(videoSrc)
+          console.log(`[douyin] Chromium captured video element src for ${pageUrl}`)
+          return '<html></html>'
+        }
+      }
       const html: string = await win.webContents.executeJavaScript(
         `document.documentElement ? document.documentElement.outerHTML : ''`
       )
       if (htmlLooksHydrated(html)) {
+        if (options?.enrichmentMode && captured) {
+          const fromState: string[] = await win.webContents
+            .executeJavaScript(EXTRACT_CDN_URLS_FROM_PAGE_JS)
+            .catch(() => [])
+          for (const u of fromState) {
+            if (typeof u === 'string' && isLikelyDouyinVideoCdnUrl(u) && !captured.includes(u)) {
+              captured.push(u)
+            }
+          }
+          if (captured.length > 0) {
+            console.log(
+              `[douyin] Chromium extracted ${captured.length} CDN url(s) from page state for ${pageUrl}`
+            )
+            return html
+          }
+        }
         console.log(`[douyin] Chromium got hydrated HTML (${html.length} bytes) for ${pageUrl}`)
         return html
+      }
+      if (
+        options?.enrichmentMode &&
+        isDouyinAntiBotShell(html) &&
+        Date.now() - started > 8_000
+      ) {
+        console.warn(`[douyin] Chromium fast-fail anti-bot shell on ${pageUrl}`)
+        break
       }
     }
 
@@ -320,22 +497,135 @@ async function fetchDouyinHtmlWithElectronChromium(
       .catch(() => '')
     if (last && htmlLooksHydrated(last)) return last
 
+    if (captured && captured.length > 0) {
+      console.log(`[douyin] Chromium hydrate timed out but captured ${captured.length} CDN url(s)`)
+      return last || '<html></html>'
+    }
+
     throw new Error('Timed out waiting for Douyin page to hydrate in Chromium')
   } finally {
     destroy()
   }
 }
 
+/** GET text through the Chromium hydrate session (for signed web APIs after page visit). */
+export async function fetchTextWithDouyinSession(
+  url: string,
+  cookiesFilePath?: string
+): Promise<string> {
+  const ses = session.fromPartition(SESSION_PARTITION)
+  if (cookiesFilePath?.trim()) {
+    await applyNetscapeCookiesToSession(ses, cookiesFilePath)
+  }
+
+  return new Promise<string>((resolve, reject) => {
+    const request = net.request({ url, session: ses })
+    request.setHeader('Referer', 'https://www.douyin.com/')
+    request.setHeader('Origin', 'https://www.douyin.com')
+    request.setHeader('User-Agent', DESKTOP_UA)
+    request.setHeader('Accept-Language', 'zh-CN,zh;q=0.9,en;q=0.8')
+    request.setHeader('Accept', 'application/json, text/plain, */*')
+
+    const chunks: Buffer[] = []
+    request.on('response', (response) => {
+      const code = response.statusCode ?? 0
+      response.on('data', (chunk: Buffer) => chunks.push(chunk))
+      response.on('end', () => {
+        const body = Buffer.concat(chunks).toString('utf-8')
+        if (code < 200 || code >= 400) {
+          reject(new Error(`HTTP ${code}: ${body.slice(0, 200)}`))
+          return
+        }
+        resolve(body)
+      })
+      response.on('error', reject)
+    })
+    request.on('error', reject)
+    request.end()
+  })
+}
+
+/** Download through the Chromium hydrate session so CDN cookies are sent per-domain. */
+export async function downloadUrlWithDouyinSession(
+  url: string,
+  outputPath: string,
+  cookiesFilePath?: string,
+  onProgress?: (progress: DouyinDownloadProgress) => void
+): Promise<void> {
+  const ses = session.fromPartition(SESSION_PARTITION)
+  if (cookiesFilePath?.trim()) {
+    await applyNetscapeCookiesToSession(ses, cookiesFilePath)
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    const request = net.request({ url, session: ses })
+    request.setHeader('Referer', 'https://www.douyin.com/')
+    request.setHeader('Origin', 'https://www.douyin.com')
+    request.setHeader('User-Agent', DESKTOP_UA)
+    request.setHeader('Accept-Language', 'zh-CN,zh;q=0.9,en;q=0.8')
+
+    request.on('response', (response) => {
+      const code = response.statusCode ?? 0
+      if (code !== 200) {
+        response.resume()
+        reject(new Error(`Download failed: ${code} ${response.statusMessage ?? ''}`.trim()))
+        return
+      }
+
+      const contentLength = parseInt(String(response.headers['content-length'] ?? '0'), 10) || 0
+      const fileStream = createWriteStream(outputPath)
+      const reporter = createDouyinDownloadProgressReporter(contentLength, onProgress)
+
+      response.on('data', (chunk: Buffer) => {
+        reporter.addBytes(chunk.length)
+        if (!fileStream.write(chunk)) {
+          response.pause()
+          fileStream.once('drain', () => response.resume())
+        }
+      })
+
+      response.on('end', () => {
+        fileStream.end(() => resolve())
+      })
+      response.on('error', (err) => {
+        fileStream.destroy()
+        reject(err)
+      })
+    })
+
+    request.on('error', reject)
+    request.end()
+  })
+}
+
+/** Cookie header from the Chromium hydrate session (set during page fetches). */
+export async function getDouyinHydrateSessionCookieHeader(): Promise<string> {
+  const ses = session.fromPartition(SESSION_PARTITION)
+  const jars = await ses.cookies.get({})
+  const relevant = jars.filter((c) => {
+    const d = c.domain ?? ''
+    return /douyin|snssdk|byteimg|douyinvod|ixigua|amemv|bytedance|iesdouyin/i.test(d)
+  })
+  return relevant.map((c) => `${c.name}=${c.value}`).join('; ')
+}
+
 export async function fetchDouyinHtmlWithChromium(
   pageUrl: string,
-  options?: { cookiesFilePath?: string; timeoutMs?: number; preferredUa?: 'mobile' | 'desktop' | 'auto' }
+  options?: DouyinChromiumFetchOptions
 ): Promise<string> {
-  if (useCloakBrowserEngine()) {
-    return fetchDouyinHtmlWithCloakBrowser(pageUrl, options)
+  const run = async (): Promise<string> => {
+    if (useCloakBrowserEngine()) {
+      return fetchDouyinHtmlWithCloakBrowser(pageUrl, options)
+    }
+    return fetchDouyinHtmlWithElectronChromium(pageUrl, options)
+  }
+
+  if (options?.enrichmentMode) {
+    return withDouyinChromiumHydrateLock(run)
   }
 
   try {
-    return await fetchDouyinHtmlWithElectronChromium(pageUrl, options)
+    return await run()
   } catch (err) {
     if (process.env.V_DOWNLOAD_CLOAK_FALLBACK === '1') {
       console.warn('[douyin] Electron hydrate failed; trying CloakBrowser fallback…', err)

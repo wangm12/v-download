@@ -21,6 +21,8 @@ export interface DownloadRecord {
   channel: string | null
   playlist_id: string | null
   playlist_index: number | null
+  /** JSON blob: nativeYoutubePlaylist, douyinImageUrls, etc. */
+  extras: string | null
   error: string | null
   created_at: string
   updated_at: string
@@ -67,14 +69,27 @@ export function initDB(): void {
     CREATE INDEX IF NOT EXISTS idx_downloads_status ON downloads(status);
     CREATE INDEX IF NOT EXISTS idx_downloads_playlist_id ON downloads(playlist_id);
   `)
+
+  const cols = db.prepare(`PRAGMA table_info(downloads)`).all() as { name: string }[]
+  if (!cols.some((c) => c.name === 'extras')) {
+    db.exec(`ALTER TABLE downloads ADD COLUMN extras TEXT`)
+  }
 }
 
 export function insertDownload(record: Omit<DownloadRecord, 'created_at' | 'updated_at'>): void {
   if (!db) throw new Error('Database not initialized')
   const now = new Date().toISOString()
+  insertDownloadWithTimestamp(record, now)
+}
+
+function insertDownloadWithTimestamp(
+  record: Omit<DownloadRecord, 'created_at' | 'updated_at'>,
+  createdAt: string
+): void {
+  if (!db) throw new Error('Database not initialized')
   const stmt = db.prepare(`
-    INSERT INTO downloads (id, url, title, format, quality, status, progress, file_path, file_size, thumbnail, duration, channel, playlist_id, playlist_index, error, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO downloads (id, url, title, format, quality, status, progress, file_path, file_size, thumbnail, duration, channel, playlist_id, playlist_index, extras, error, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
   stmt.run(
     record.id,
@@ -91,15 +106,32 @@ export function insertDownload(record: Omit<DownloadRecord, 'created_at' | 'upda
     record.channel ?? null,
     record.playlist_id ?? null,
     record.playlist_index ?? null,
+    record.extras ?? null,
     record.error ?? null,
-    now,
-    now
+    createdAt,
+    createdAt
   )
+}
+
+/** Batch insert preserving enqueue order (created_at ticks forward per row). */
+export function insertDownloadsBulk(records: Array<Omit<DownloadRecord, 'created_at' | 'updated_at'>>): void {
+  if (!db) throw new Error('Database not initialized')
+  if (records.length === 0) return
+  const baseMs = Date.now()
+  const tx = db.transaction((rows: typeof records) => {
+    for (let i = 0; i < rows.length; i++) {
+      const createdAt = new Date(baseMs + i).toISOString()
+      insertDownloadWithTimestamp(rows[i]!, createdAt)
+    }
+  })
+  tx(records)
 }
 
 export function updateDownload(
   id: string,
-  updates: Partial<Pick<DownloadRecord, 'status' | 'progress' | 'file_path' | 'file_size' | 'error' | 'title' | 'thumbnail' | 'duration'>>
+  updates: Partial<
+    Pick<DownloadRecord, 'status' | 'progress' | 'file_path' | 'file_size' | 'error' | 'title' | 'thumbnail' | 'duration' | 'extras'>
+  >
 ): void {
   if (!db) throw new Error('Database not initialized')
   const now = new Date().toISOString()
@@ -137,6 +169,10 @@ export function updateDownload(
   if (updates.duration !== undefined) {
     fields.push('duration = ?')
     values.push(updates.duration)
+  }
+  if (updates.extras !== undefined) {
+    fields.push('extras = ?')
+    values.push(updates.extras)
   }
 
   values.push(id)

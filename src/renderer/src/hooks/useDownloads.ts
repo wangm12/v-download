@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import type { Download, DownloadStatus } from '@/types'
 
 function normalizeTask(t: Record<string, unknown>): Download {
@@ -31,23 +31,88 @@ function normalizeTasks(data: unknown[]): Download[] {
   return data.map((t) => normalizeTask(t as Record<string, unknown>))
 }
 
+const PROGRESS_FLUSH_MS = 250
+
+/** Only merge IPC fields that are actually present — never wipe title/thumbnail with undefined. */
+function progressPatchFromIpc(data: Record<string, unknown>): Partial<Download> {
+  const patch: Partial<Download> = {}
+  if (typeof data.progress === 'number') patch.progress = data.progress
+  if (typeof data.status === 'string') patch.status = data.status as DownloadStatus
+  if ('speed' in data) patch.speed = (data.speed as string) || null
+  if ('eta' in data) patch.eta = (data.eta as string) || null
+  if ('totalSize' in data) patch.totalSize = (data.totalSize as string) || null
+  if ('phase' in data) patch.phase = (data.phase as string) || null
+  const filePath = data.filePath ?? data.file_path
+  if (typeof filePath === 'string') patch.file_path = filePath
+  if (typeof data.title === 'string' && data.title.trim()) patch.title = data.title
+  if (typeof data.thumbnail === 'string') patch.thumbnail = data.thumbnail
+  if (typeof data.error === 'string') patch.error = data.error
+  return patch
+}
+
 export function useDownloads() {
   const [downloads, setDownloads] = useState<Download[]>([])
+  const pendingRef = useRef(new Map<string, Partial<Download>>())
+  const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const flushPending = useCallback(() => {
+    flushTimerRef.current = null
+    const batch = pendingRef.current
+    if (batch.size === 0) return
+    const snapshot = new Map(batch)
+    batch.clear()
+    setDownloads((prev) => {
+      let changed = false
+      const next = prev.map((d) => {
+        const u = snapshot.get(d.id)
+        if (!u) return d
+        changed = true
+        return { ...d, ...u }
+      })
+      return changed ? next : prev
+    })
+  }, [])
+
+  const queueProgressUpdate = useCallback(
+    (id: string, updates: Partial<Download>, immediate = false) => {
+      const existing = pendingRef.current.get(id) ?? {}
+      pendingRef.current.set(id, { ...existing, ...updates })
+      if (immediate) {
+        if (flushTimerRef.current) {
+          clearTimeout(flushTimerRef.current)
+          flushTimerRef.current = null
+        }
+        flushPending()
+        return
+      }
+      if (!flushTimerRef.current) {
+        flushTimerRef.current = setTimeout(flushPending, PROGRESS_FLUSH_MS)
+      }
+    },
+    [flushPending]
+  )
 
   const removeDownload = useCallback((id: string) => {
+    pendingRef.current.delete(id)
     setDownloads((prev) => prev.filter((d) => d.id !== id))
   }, [])
 
-  const updateDownload = useCallback((id: string, updates: Partial<Download>) => {
-    setDownloads((prev) =>
-      prev.map((d) => (d.id === id ? { ...d, ...updates } : d))
-    )
+  const removeDownloads = useCallback((ids: string[]) => {
+    if (ids.length === 0) return
+    const drop = new Set(ids)
+    for (const id of drop) pendingRef.current.delete(id)
+    setDownloads((prev) => prev.filter((d) => !drop.has(d.id)))
   }, [])
+
+  const updateDownload = useCallback((id: string, updates: Partial<Download>) => {
+    queueProgressUpdate(id, updates, true)
+  }, [queueProgressUpdate])
 
   const refreshDownloads = useCallback(async () => {
     if (typeof window !== 'undefined' && window.api) {
       const res = await window.api.getDownloads()
       const data = (res as { data?: unknown[] })?.data ?? res
+      pendingRef.current.clear()
       setDownloads(Array.isArray(data) ? normalizeTasks(data) : [])
     }
   }, [])
@@ -61,7 +126,12 @@ export function useDownloads() {
     })
 
     const unsubProgress = window.api.onDownloadProgress((data) => {
-      if (data?.cleared) {
+      if (data?.cleared || data?.bulkAdded || data?.bulkRemoved) {
+        if (flushTimerRef.current) {
+          clearTimeout(flushTimerRef.current)
+          flushTimerRef.current = null
+        }
+        pendingRef.current.clear()
         window.api.getDownloads().then((res) => {
           const arr = (res as { data?: unknown[] })?.data ?? res
           setDownloads(Array.isArray(arr) ? normalizeTasks(arr) : [])
@@ -70,26 +140,14 @@ export function useDownloads() {
       }
       const id = data?.id as string | undefined
       if (id) {
-        const filePath = (data.filePath ?? data.file_path) as string | null | undefined
-        setDownloads((prev) =>
-          prev.map((d) =>
-            d.id === id
-              ? {
-                  ...d,
-                  progress: (data.progress as number) ?? d.progress,
-                  status: (data.status as DownloadStatus) ?? d.status,
-                  speed: (data.speed as string) || null,
-                  eta: (data.eta as string) || null,
-                  totalSize: (data.totalSize as string) || d.totalSize,
-                  phase: (data.phase as string) || d.phase,
-                  file_path: filePath ?? d.file_path,
-                  title: (data.title as string) || d.title,
-                  thumbnail: (data.thumbnail as string) || d.thumbnail,
-                  error: (data.error as string) ?? d.error
-                }
-              : d
-          )
-        )
+        const status = data.status as DownloadStatus | undefined
+        const terminal =
+          status === 'complete' ||
+          status === 'error' ||
+          status === 'cancelled' ||
+          status === 'paused' ||
+          status === 'interrupted'
+        queueProgressUpdate(id, progressPatchFromIpc(data as Record<string, unknown>), terminal)
       }
     })
 
@@ -102,8 +160,9 @@ export function useDownloads() {
     return () => {
       unsubProgress()
       unsubNew()
+      if (flushTimerRef.current) clearTimeout(flushTimerRef.current)
     }
-  }, [])
+  }, [queueProgressUpdate])
 
-  return { downloads, removeDownload, updateDownload, refreshDownloads }
+  return { downloads, removeDownload, removeDownloads, updateDownload, refreshDownloads }
 }

@@ -8,7 +8,7 @@ VDL := vdl-server
 help:
 	@echo "V-Download (desktop — repo root)"
 	@echo "  make install   npm install (+ shared package + extension constants)"
-	@echo "  make dev       electron-vite dev"
+	@echo "  make dev       electron-vite dev (verbose env + tee logs/dev-latest.log)"
 	@echo "  make build     electron-vite build"
 	@echo "  make mac       build + electron-builder --mac"
 	@echo "  make clean     rm out/, dist/, vite cache"
@@ -35,7 +35,9 @@ install:
 	npm install
 
 dev:
-	npm run dev
+	@mkdir -p logs
+	@echo "=== V-Download dev — full log also in logs/dev-latest.log ==="
+	@V_DOWNLOAD_VERBOSE=1 ELECTRON_ENABLE_LOGGING=1 npm run dev 2>&1 | tee logs/dev-latest.log
 
 build:
 	npm run build
@@ -45,6 +47,7 @@ mac:
 
 clean:
 	rm -rf out dist node_modules/.cache
+	rm -f logs/*.log
 
 lint:
 	@echo "(no lint script in package.json)"

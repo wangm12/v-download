@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react'
 import type { VideoInfo, SettingsData } from '@/types'
-import { extractUrlFromClipboard, isMediaUrl, isYouTubeUrl, filenameFromUrl } from '@/utils/youtube'
+import { extractUrlFromClipboard, isMediaUrl, isYouTubeUrl, filenameFromUrl, isPlaylistUrl } from '@/utils/youtube'
+import { isDouyinProfileHomeUrl } from '@/utils/douyinBulk'
 import type { DetectedMedia } from '@/components/MediaPickerDialog'
 
 interface PendingPlaylistMeta {
@@ -15,9 +16,12 @@ interface QueuedUrl {
   meta?: { type?: string; referer?: string; title?: string; headers?: Record<string, string> }
 }
 
-/** Page sniff looks for raw .m3u8/.mp4 — useless on major video sites yt-dlp handles. */
-function shouldSniffAfterUnsupportedUrl(url: string, err: string): boolean {
-  if (!/unsupported url/i.test(err)) return false
+/** Page sniff looks for raw .m3u8/.mp4 — useful as fallback on unknown sites when yt-dlp parsing fails. */
+function shouldSniffAfterYtdlpFailure(url: string, err: string): boolean {
+  if (!err || !err.trim()) return false
+  const likelyExtractorFailure =
+    /unsupported url|unable to extract|no video formats found|unsupported webpage|extractor error|not available|no longer supported|primarily used for piracy/i.test(err)
+  if (!likelyExtractorFailure) return false
   const bundle = `${url}\n${err}`.toLowerCase()
   // Block by URL and by error text (yt-dlp often repeats the target URL in the message).
   if (
@@ -63,6 +67,8 @@ export function useUrlHandler(settings: SettingsData) {
   const [loadingPhase, setLoadingPhase] = useState<LoadingPhase>('')
   const [errorMsg, setErrorMsg] = useState('')
   const [showFormatDialog, setShowFormatDialog] = useState(false)
+  const [showDouyinProfilePicker, setShowDouyinProfilePicker] = useState(false)
+  const [douyinProfileUrl, setDouyinProfileUrl] = useState('')
   const [pendingVideoInfo, setPendingVideoInfo] = useState<VideoInfo | null>(null)
   const [pendingEntries, setPendingEntries] = useState<VideoInfo[] | null>(null)
   const [pendingPlaylistMeta, setPendingPlaylistMeta] = useState<PendingPlaylistMeta | null>(null)
@@ -112,9 +118,18 @@ export function useUrlHandler(settings: SettingsData) {
 
   const clearPending = useCallback(() => {
     setShowFormatDialog(false)
+    setShowDouyinProfilePicker(false)
+    setDouyinProfileUrl('')
     setPendingVideoInfo(null)
     setPendingEntries(null)
     setPendingPlaylistMeta(null)
+    dialogOpenRef.current = false
+    advanceQueue()
+  }, [advanceQueue])
+
+  const closeDouyinProfilePicker = useCallback(() => {
+    setShowDouyinProfilePicker(false)
+    setDouyinProfileUrl('')
     dialogOpenRef.current = false
     advanceQueue()
   }, [advanceQueue])
@@ -166,11 +181,21 @@ export function useUrlHandler(settings: SettingsData) {
         return
       }
 
+      if (isDouyinProfileHomeUrl(url)) {
+        setDouyinProfileUrl(url.trim())
+        setShowDouyinProfilePicker(true)
+        dialogOpenRef.current = true
+        setLoading(false)
+        setLoadingPhase('')
+        busyRef.current = false
+        return
+      }
+
       const res = await window.api.getVideoInfo(url)
       const resObj = res as { data?: unknown; error?: string }
       if (resObj?.error) {
         const err = resObj.error
-        const trySniff = shouldSniffAfterUnsupportedUrl(url, err)
+        const trySniff = shouldSniffAfterYtdlpFailure(url, err)
         if (trySniff) {
           setLoadingPhase('sniffing')
           try {
@@ -249,48 +274,106 @@ export function useUrlHandler(settings: SettingsData) {
           setShowFormatDialog(true)
           dialogOpenRef.current = true
         } else {
-          for (let i = 0; i < allEntries.length; i++) {
-            const entry = allEntries[i]
-            const videoUrl = entry.webpage_url || `https://www.youtube.com/watch?v=${entry.id}`
+          const useNativePlaylist =
+            settings.youtubePlaylistMode === 'native' && isPlaylistUrl(url)
+          if (useNativePlaylist) {
             await window.api.startDownload({
-              url: videoUrl,
-              title: entry.title,
+              url,
+              title: playlistTitle,
               format: 'video',
               quality: settings.defaultVideoQuality,
-              thumbnail: entry.thumbnail,
-              duration: entry.duration,
+              thumbnail: allEntries[0]?.thumbnail,
+              duration: allEntries[0]?.duration ?? 0,
               playlistId: playlistTitle,
-              playlistIndex: i,
-              playlistTitle
+              metadata: {
+                nativeYoutubePlaylist: true,
+                channel: playlistChannel
+              }
             })
+          } else {
+            for (let i = 0; i < allEntries.length; i++) {
+              const entry = allEntries[i]
+              const videoUrl = entry.webpage_url || `https://www.youtube.com/watch?v=${entry.id}`
+              await window.api.startDownload({
+                url: videoUrl,
+                title: entry.title,
+                format: 'video',
+                quality: settings.defaultVideoQuality,
+                thumbnail: entry.thumbnail,
+                duration: entry.duration,
+                playlistId: playlistTitle,
+                playlistIndex: i,
+                playlistTitle
+              })
+            }
           }
         }
       } else {
-        const videoInfo: VideoInfo = {
-          id: String(infoObj?.id ?? ''),
-          title: String(infoObj?.title ?? ''),
-          thumbnail: String(infoObj?.thumbnail ?? ''),
-          duration: Number(infoObj?.duration ?? 0),
-          channel: String(infoObj?.channel ?? ''),
-          view_count: Number(infoObj?.view_count ?? 0),
-          webpage_url: String(infoObj?.webpage_url ?? infoObj?.url ?? url)
-        }
+        const galleryUrls = infoObj?.image_urls
+        const isDouyinGalleryInfo =
+          infoObj?._type === 'douyin_gallery' && Array.isArray(galleryUrls) && galleryUrls.length > 0
 
-        if (settings.showFormatDialog) {
-          setPendingVideoInfo(videoInfo)
-          setPendingEntries(null)
-          setPendingPlaylistMeta(null)
-          setShowFormatDialog(true)
-          dialogOpenRef.current = true
+        if (isDouyinGalleryInfo) {
+          const galleryTitle = String(infoObj?.title ?? 'douyin')
+          const galleryChannel = String(infoObj?.channel ?? '')
+          if (settings.showFormatDialog) {
+            const gallerySummary: VideoInfo = {
+              id: String(infoObj?.id ?? ''),
+              title: galleryTitle,
+              thumbnail: String(infoObj?.thumbnail ?? ''),
+              duration: 0,
+              channel: galleryChannel,
+              view_count: 0,
+              webpage_url: String(infoObj?.webpage_url ?? url),
+              _type: 'douyin_gallery',
+              image_urls: galleryUrls as string[]
+            }
+            setPendingVideoInfo(gallerySummary)
+            setPendingEntries(null)
+            setPendingPlaylistMeta(null)
+            setShowFormatDialog(true)
+            dialogOpenRef.current = true
+          } else {
+            await window.api.startDownload({
+              url,
+              title: galleryTitle,
+              format: 'video',
+              quality: settings.defaultVideoQuality,
+              thumbnail: String(infoObj?.thumbnail ?? ''),
+              duration: 0,
+              metadata: {
+                douyinImageUrls: galleryUrls as string[],
+                channel: galleryChannel
+              }
+            })
+          }
         } else {
-          await window.api.startDownload({
-            url,
-            title: videoInfo.title,
-            format: 'video',
-            quality: settings.defaultVideoQuality,
-            thumbnail: videoInfo.thumbnail,
-            duration: videoInfo.duration
-          })
+          const videoInfo: VideoInfo = {
+            id: String(infoObj?.id ?? ''),
+            title: String(infoObj?.title ?? ''),
+            thumbnail: String(infoObj?.thumbnail ?? ''),
+            duration: Number(infoObj?.duration ?? 0),
+            channel: String(infoObj?.channel ?? ''),
+            view_count: Number(infoObj?.view_count ?? 0),
+            webpage_url: String(infoObj?.webpage_url ?? infoObj?.url ?? url)
+          }
+
+          if (settings.showFormatDialog) {
+            setPendingVideoInfo(videoInfo)
+            setPendingEntries(null)
+            setPendingPlaylistMeta(null)
+            setShowFormatDialog(true)
+            dialogOpenRef.current = true
+          } else {
+            await window.api.startDownload({
+              url,
+              title: videoInfo.title,
+              format: 'video',
+              quality: settings.defaultVideoQuality,
+              thumbnail: videoInfo.thumbnail,
+              duration: videoInfo.duration
+            })
+          }
         }
       }
     } catch (err) {
@@ -302,7 +385,12 @@ export function useUrlHandler(settings: SettingsData) {
       setLoadingPhase('')
       busyRef.current = false
     }
-  }, [settings.showFormatDialog, settings.defaultVideoQuality, scheduleAutoAdvance])
+  }, [
+    settings.showFormatDialog,
+    settings.defaultVideoQuality,
+    settings.youtubePlaylistMode,
+    scheduleAutoAdvance
+  ])
 
   fetchAndShowRef.current = fetchAndShow
 
@@ -363,6 +451,8 @@ export function useUrlHandler(settings: SettingsData) {
     loadingPhase,
     errorMsg,
     showFormatDialog,
+    showDouyinProfilePicker,
+    douyinProfileUrl,
     pendingVideoInfo,
     pendingEntries,
     pendingPlaylistMeta,
@@ -376,6 +466,7 @@ export function useUrlHandler(settings: SettingsData) {
     clearPending,
     clearSniffed,
     clearQueue,
-    setShowFormatDialog
+    setShowFormatDialog,
+    closeDouyinProfilePicker
   }
 }

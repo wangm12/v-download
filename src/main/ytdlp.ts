@@ -1,7 +1,12 @@
 import { spawn, ChildProcess, execSync } from 'child_process'
-import { existsSync } from 'fs'
+import { existsSync, mkdirSync } from 'fs'
 import { join } from 'path'
+import { tmpdir } from 'os'
 import * as settings from './settings'
+import { resolvedCookiesBrowser } from './cookiesBrowser'
+import type { DownloadProgress, DownloadProcess } from './downloadTypes'
+
+export type { DownloadProgress, DownloadProcess } from './downloadTypes'
 
 const EXTRA_PATH_DIRS = [
   '/opt/homebrew/bin',
@@ -59,35 +64,39 @@ export interface DownloadOptions {
   cookiesPath?: string
   sleepInterval?: number
   isPlaylist?: boolean
+  /** When true with isPlaylist, pass --yes-playlist (single job for whole list). */
+  youtubeNativePlaylist?: boolean
   playlistTitle?: string
+  /** Seconds between HTTP requests (yt-dlp --sleep-requests). */
+  playlistSleepRequests?: number
+  /** Max number of playlist items (yt-dlp --max-downloads). 0 = unlimited. */
+  playlistMaxDownloads?: number
   referer?: string
   customHeaders?: Record<string, string>
   outputTitle?: string
   mediaType?: string
   concurrentFragments?: number
+  /** yt-dlp `--downloader` (e.g. aria2c). Empty = default built-in. */
+  externalDownloader?: string
+  /** Each string is passed as `--retry-sleep` (e.g. `fragment:linear=2::5`). */
+  retrySleeps?: string[]
   onProgress?: (progress: DownloadProgress) => void
-}
-
-export interface DownloadProgress {
-  percent: number
-  speed: string
-  eta: string
-  downloaded: string
-  total: string
-  phase: 'video' | 'audio' | 'merging' | ''
-}
-
-export interface DownloadProcess {
-  process: ChildProcess
-  onProgress: (cb: (progress: DownloadProgress) => void) => void
-  cancel: () => void
-  getStderr: () => string
-  getDestinations: () => string[]
 }
 
 const YOUTUBE_REGEX = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be|music\.youtube\.com)\/.+/
 const PLAYLIST_REGEX = /[?&]list=/
 const CHANNEL_REGEX = /youtube\.com\/(@[\w-]+|channel\/[\w-]+|c\/[\w-]+|user\/[\w-]+)(\/|$)/
+export const DEFAULT_DIRECT_MEDIA_UA =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
+
+function getYtdlpTempDir(): string {
+  // Keep partial artifacts (.part/.ytdl/fragments) out of user-visible download folders.
+  const dir = join(tmpdir(), 'v-download', 'yt-dlp-temp')
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true })
+  }
+  return dir
+}
 
 export function isValidYouTubeUrl(url: string): boolean {
   return YOUTUBE_REGEX.test(url) && url.trim().length > 0
@@ -137,15 +146,6 @@ function appendDouyinYtdlpArgs(url: string, args: string[], explicitReferer?: st
   if (!flat.includes('Origin:https://www.douyin.com')) {
     args.push('--add-header', 'Origin:https://www.douyin.com')
   }
-}
-
-/** yt-dlp `--cookies-from-browser` value; sanitized so argv cannot be abused via settings.json. */
-function resolvedCookiesBrowser(): string {
-  const raw = settings.get('cookiesFromBrowser')
-  const s = typeof raw === 'string' ? raw.trim() : ''
-  if (!s || s.length > 120) return 'chrome'
-  if (!/^[a-zA-Z0-9_.\-: ]+$/.test(s)) return 'chrome'
-  return s
 }
 
 /**
@@ -300,43 +300,117 @@ export async function getVideoInfo(
   })
 }
 
-const PROGRESS_REGEX = /\[download\]\s+(\d+\.?\d*)%\s+of\s+([~\d.]+\s*\S+)\s+at\s+(\S+)\s+ETA\s+(\S+)/i
 const DEST_REGEX = /\[download\]\s+Destination:\s+(.+)/
 const MERGER_REGEX = /\[Merger\]/i
 
+/** Strip ANSI SGR sequences so progress regexes match colored yt-dlp output. */
+function stripAnsi(s: string): string {
+  return s.replace(/\x1b\[[0-9;]*m/g, '')
+}
+
+/**
+ * Parse yt-dlp `[download] ...` progress lines.
+ *
+ * yt-dlp uses several templates (see `yt_dlp/downloader/common.py` `report_progress`):
+ * - With known total: `12.3% of  50.00MiB at  1.00MiB/s ETA 00:05`
+ * - With estimate: `12.3% of ~  50.00MiB at  Unknown B/s ETA Unknown` (speed has spaces → old `(\S+)` failed)
+ * - Without total (common for HLS): `12.3% at  1.00MiB/s ETA 00:05`
+ * - Finished: `100% of  942.51KiB in 00:00:01 at 674.91KiB/s`
+ */
 function parseProgressLine(line: string, currentPhase: string): { progress: DownloadProgress | null; phase?: string } {
-  if (MERGER_REGEX.test(line)) {
+  const plain = stripAnsi(line).replace(/\r$/, '')
+
+  if (MERGER_REGEX.test(plain)) {
     return { progress: null, phase: 'merging' }
   }
 
-  const destMatch = line.match(DEST_REGEX)
+  const destMatch = plain.match(DEST_REGEX)
   if (destMatch) {
     const dest = destMatch[1]
     const isAudio = /\.m4a|\.mp3|\.opus|\.ogg|\.webm.*audio/i.test(dest) || /\.f\d+\.m4a/.test(dest)
     return { progress: null, phase: isAudio ? 'audio' : 'video' }
   }
 
-  const match = line.match(PROGRESS_REGEX)
-  if (!match) return { progress: null }
+  const phase = (currentPhase as DownloadProgress['phase']) || ''
 
-  const percent = parseFloat(match[1]) || 0
-  const total = match[2]?.trim() ?? ''
-  const rawSpeed = match[3]?.trim() ?? ''
-  const rawEta = match[4]?.trim() ?? ''
+  const normalizeSpeedEta = (rawSpeed: string, rawEta: string) => {
+    const speedTrim = rawSpeed.trim()
+    const etaTrim = rawEta.trim()
+    const speed =
+      !speedTrim ||
+      /^unknown(\s+b\/s)?$/i.test(speedTrim) ||
+      speedTrim === 'UnknownB/s'
+        ? ''
+        : speedTrim
+    const eta = !etaTrim || etaTrim === 'Unknown' ? '' : etaTrim
+    return { speed, eta }
+  }
 
-  const speed = rawSpeed === 'Unknown' || rawSpeed === 'UnknownB/s' ? '' : rawSpeed
-  const eta = rawEta === 'Unknown' ? '' : rawEta
-
-  return {
-    progress: {
-      percent,
-      speed,
-      eta,
-      downloaded: '',
-      total,
-      phase: (currentPhase as DownloadProgress['phase']) || ''
+  // 1) `X% of ... at ... ETA ...` (known or estimated total)
+  const withTotal = plain.match(
+    /^\[download\]\s+(\d+\.?\d*)%\s+of\s+(.+?)\s+at\s+(.+?)\s+ETA\s+(\S+)/i
+  )
+  if (withTotal) {
+    const percent = parseFloat(withTotal[1]) || 0
+    const total = withTotal[2]?.trim() ?? ''
+    const { speed, eta } = normalizeSpeedEta(withTotal[3], withTotal[4])
+    return {
+      progress: { percent, speed, eta, downloaded: '', total, phase }
     }
   }
+
+  // 2) `X% at ... ETA ...` (no total — typical HLS / indeterminate size)
+  const noTotal = plain.match(/^\[download\]\s+(\d+\.?\d*)%\s+at\s+(.+?)\s+ETA\s+(\S+)/i)
+  if (noTotal) {
+    const percent = parseFloat(noTotal[1]) || 0
+    const { speed, eta } = normalizeSpeedEta(noTotal[2], noTotal[3])
+    return {
+      progress: { percent, speed, eta, downloaded: '', total: '', phase }
+    }
+  }
+
+  // 3) Finished: `100% of SIZE in ELAPSED at SPEED` (no ETA segment)
+  const finished = plain.match(
+    /^\[download\]\s+(\d+\.?\d*)%\s+of\s+(.+?)\s+in\s+(\S+)(?:\s+at\s+(.+))?/i
+  )
+  if (finished) {
+    const percent = parseFloat(finished[1]) || 0
+    const total = finished[2]?.trim() ?? ''
+    const elapsed = finished[3]?.trim() ?? ''
+    const rawSpeed = finished[4]?.trim() ?? ''
+    const { speed } = normalizeSpeedEta(rawSpeed, '')
+    return {
+      progress: {
+        percent,
+        speed,
+        eta: elapsed,
+        downloaded: '',
+        total,
+        phase
+      }
+    }
+  }
+
+  // 4) Fragment counter suffix: `… (frag 10/64)` on a line that already had % — handled above.
+  //    Standalone fragment lines (rare): `10 of 64 fragments`
+  const frag = plain.match(/^\[download\]\s+(\d+)\s+of\s+(\d+)\s+fragments/i)
+  if (frag) {
+    const cur = parseInt(frag[1], 10)
+    const totalN = Math.max(parseInt(frag[2], 10), 1)
+    const percent = Math.min(99, Math.max(0, (100 * cur) / totalN))
+    return {
+      progress: {
+        percent,
+        speed: '',
+        eta: '',
+        downloaded: '',
+        total: `${cur}/${totalN} fragments`,
+        phase
+      }
+    }
+  }
+
+  return { progress: null }
 }
 
 export function download(
@@ -352,12 +426,17 @@ export function download(
     cookiesPath,
     sleepInterval = 3,
     isPlaylist = false,
+    youtubeNativePlaylist = false,
     playlistTitle,
+    playlistSleepRequests = 0,
+    playlistMaxDownloads = 0,
     referer,
     customHeaders,
     outputTitle,
     mediaType,
     concurrentFragments,
+    externalDownloader,
+    retrySleeps,
     onProgress: progressCb
   } = options
 
@@ -365,7 +444,8 @@ export function download(
 
   let outputTemplate: string
   if (isPlaylist && playlistTitle) {
-    outputTemplate = join(outputDir, `${playlistTitle}/%(title)s.%(ext)s`)
+    /** `outputDir` is already the per-playlist folder when the app uses playlist subfolders. */
+    outputTemplate = join(outputDir, '%(playlist_index)03d - %(title)s.%(ext)s')
   } else if (outputTitle) {
     const sanitized = outputTitle.replace(/[/\\?*:|"<>]/g, '-')
     outputTemplate = join(outputDir, `${sanitized}.%(ext)s`)
@@ -402,6 +482,7 @@ export function download(
     ...(mergeOutputMp4 ? (['--merge-output-format', 'mp4'] as const) : []),
     '-f', formatStr,
     '-o', outputTemplate,
+    '--paths', `temp:${getYtdlpTempDir()}`,
     '--no-warnings',
     '--no-check-certificate'
   ]
@@ -412,8 +493,32 @@ export function download(
     args.push('--sleep-interval', String(sleepInterval))
   }
 
+  if (playlistSleepRequests > 0 && !mediaType) {
+    args.push('--sleep-requests', String(playlistSleepRequests))
+  }
+
+  if (playlistMaxDownloads > 0 && !mediaType) {
+    args.push('--max-downloads', String(playlistMaxDownloads))
+  }
+
+  if (isPlaylist && youtubeNativePlaylist && !mediaType) {
+    args.push('--yes-playlist')
+  }
+
   if (concurrentFragments && concurrentFragments > 1) {
     args.push('--concurrent-fragments', String(concurrentFragments))
+  }
+
+  const extDl = externalDownloader?.trim()
+  if (extDl) {
+    args.push('--downloader', extDl)
+  }
+
+  if (retrySleeps && retrySleeps.length > 0) {
+    for (const expr of retrySleeps) {
+      const s = expr.trim()
+      if (s) args.push('--retry-sleep', s)
+    }
   }
 
   if (format === 'audio' || format === 'mp3' || mediaType === 'mp3') {
@@ -424,8 +529,23 @@ export function download(
     args.push('--referer', referer)
   }
 
-  if (customHeaders) {
-    for (const [key, value] of Object.entries(customHeaders)) {
+  const effectiveHeaders: Record<string, string> = { ...(customHeaders || {}) }
+  // Direct media URLs (especially HLS sniffed from players) commonly require UA/Origin.
+  if (isDirectMedia) {
+    if (!effectiveHeaders['User-Agent']) {
+      effectiveHeaders['User-Agent'] = DEFAULT_DIRECT_MEDIA_UA
+    }
+    if (referer && !effectiveHeaders['Origin']) {
+      try {
+        effectiveHeaders['Origin'] = new URL(referer).origin
+      } catch {
+        // ignore malformed referer
+      }
+    }
+  }
+
+  if (Object.keys(effectiveHeaders).length > 0) {
+    for (const [key, value] of Object.entries(effectiveHeaders)) {
       args.push('--add-header', `${key}: ${value}`)
     }
   }

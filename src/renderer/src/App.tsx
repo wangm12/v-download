@@ -5,6 +5,7 @@ import { BottomBar } from '@/components/BottomBar'
 import { DownloadItem } from '@/components/DownloadItem'
 import { PlaylistGroup } from '@/components/PlaylistGroup'
 import { FormatDialog } from '@/components/FormatDialog'
+import { DouyinProfilePickerDialog } from '@/components/DouyinProfilePickerDialog'
 import { MediaPickerDialog } from '@/components/MediaPickerDialog'
 import type { DetectedMedia } from '@/components/MediaPickerDialog'
 import { ClearDialog } from '@/components/ClearDialog'
@@ -22,6 +23,8 @@ import { useUrlHandler } from '@/hooks/useUrlHandler'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { groupDownloadsByPlaylist } from '@/utils/downloads'
 import { filterDownloadsBySearch } from '@/utils/queueFilters'
+import { isPlaylistUrl } from '@/utils/youtube'
+import { DOUYIN_BULK_URL_PREFILL_SESSION_KEY } from '@/utils/douyinBulk'
 import { parseSpeedToBytes, formatSpeed } from '@/utils/format'
 import { useThrottledValue } from '@/hooks/useThrottledValue'
 import { useThemePreference } from '@/hooks/useThemePreference'
@@ -99,13 +102,15 @@ function MainApp() {
   )
   const [rightInspectorCollapsed, setRightInspectorCollapsed] = useState(() => readRightInspectorCollapsedFromStorage())
   const { preference: themePreference, setPreference: setThemePreference, resolvedTheme } = useThemePreference()
-  const { downloads, removeDownload, updateDownload, refreshDownloads } = useDownloads()
+  const { downloads, removeDownload, removeDownloads, updateDownload, refreshDownloads } = useDownloads()
   const { settings, loadSettings } = useSettings()
   const {
     loading,
     loadingPhase,
     errorMsg,
     showFormatDialog,
+    showDouyinProfilePicker,
+    douyinProfileUrl,
     pendingVideoInfo,
     pendingEntries,
     pendingPlaylistMeta,
@@ -118,7 +123,8 @@ function MainApp() {
     clearPending,
     clearSniffed,
     clearQueue,
-    setShowFormatDialog
+    setShowFormatDialog,
+    closeDouyinProfilePicker
   } = useUrlHandler(settings)
 
   const [searchQuery, setSearchQuery] = useState('')
@@ -164,6 +170,17 @@ function MainApp() {
     setMainView('preferences')
     setSelectedId(null)
     setPrefSection('general')
+  }, [])
+
+  const openDouyinBulkPreferences = useCallback((homepageUrl: string) => {
+    try {
+      sessionStorage.setItem(DOUYIN_BULK_URL_PREFILL_SESSION_KEY, homepageUrl)
+    } catch {
+      /* ignore */
+    }
+    setMainView('preferences')
+    setSelectedId(null)
+    setPrefSection('downloads')
   }, [])
 
   useEffect(() => {
@@ -305,37 +322,70 @@ function MainApp() {
 
       if (pendingEntries && pendingEntries.length > 0) {
         const playlistTitle = pendingPlaylistMeta?.title ?? 'Playlist'
-        for (let i = 0; i < pendingEntries.length; i++) {
-          const entry = pendingEntries[i]
-          const videoUrl = entry.webpage_url || `https://www.youtube.com/watch?v=${entry.id}`
+        const listUrl = pendingPlaylistMeta?.url ?? ''
+        const useNativePlaylist =
+          settings.youtubePlaylistMode === 'native' && listUrl && isPlaylistUrl(listUrl)
+
+        if (useNativePlaylist) {
           await window.api.startDownload({
-            url: videoUrl,
-            title: entry.title,
+            url: listUrl,
+            title: playlistTitle,
             format,
             quality,
-            thumbnail: entry.thumbnail,
-            duration: entry.duration,
+            thumbnail: pendingEntries[0]?.thumbnail,
+            duration: pendingEntries[0]?.duration ?? 0,
             playlistId: playlistTitle,
-            playlistIndex: i,
-            playlistTitle
+            metadata: {
+              nativeYoutubePlaylist: true,
+              channel: pendingEntries[0]?.channel ?? ''
+            }
           })
+        } else {
+          for (let i = 0; i < pendingEntries.length; i++) {
+            const entry = pendingEntries[i]
+            const videoUrl = entry.webpage_url || `https://www.youtube.com/watch?v=${entry.id}`
+            await window.api.startDownload({
+              url: videoUrl,
+              title: entry.title,
+              format,
+              quality,
+              thumbnail: entry.thumbnail,
+              duration: entry.duration,
+              playlistId: playlistTitle,
+              playlistIndex: i,
+              playlistTitle
+            })
+          }
         }
       } else {
         const title = pendingVideoInfo?.title ?? 'Unknown'
+        const pageUrl = pendingVideoInfo?.webpage_url ?? _url
+        const imgs = pendingVideoInfo?.image_urls
+        const isGallery =
+          pendingVideoInfo?._type === 'douyin_gallery' && imgs && imgs.length > 0
+
         await window.api.startDownload({
-          url: pendingVideoInfo?.webpage_url ?? _url,
+          url: pageUrl,
           title,
           format,
           quality,
           thumbnail: pendingVideoInfo?.thumbnail,
-          duration: pendingVideoInfo?.duration
+          duration: pendingVideoInfo?.duration,
+          metadata: isGallery
+            ? {
+                douyinImageUrls: imgs,
+                channel: pendingVideoInfo?.channel ?? ''
+              }
+            : pendingVideoInfo?.channel
+              ? { channel: pendingVideoInfo.channel }
+              : undefined
         })
       }
 
       clearPending()
       loadSettings()
     },
-    [pendingVideoInfo, pendingEntries, pendingPlaylistMeta, loadSettings, clearPending]
+    [pendingVideoInfo, pendingEntries, pendingPlaylistMeta, settings.youtubePlaylistMode, loadSettings, clearPending]
   )
 
   const handleMediaDownload = useCallback(
@@ -408,7 +458,8 @@ function MainApp() {
   )
 
   const completeCount = downloads.filter((d) => d.status === 'complete').length
-  const resumableStatuses = ['paused', 'interrupted', 'cancelled', 'error', 'queued']
+  /** Matches resumeAll(): bulk resume skips user-cancelled tasks. */
+  const resumableStatuses = ['paused', 'interrupted', 'error', 'queued']
   const hasResumable = downloads.some((d) => resumableStatuses.includes(d.status))
   const hasActive = downloads.some((d) => d.status === 'downloading' || d.status === 'queued')
   const statusText = `${downloads.length} Download${downloads.length !== 1 ? 's' : ''} · ${completeCount} Complete`
@@ -433,6 +484,7 @@ function MainApp() {
     <DownloadActionsProvider
       refreshDownloads={refreshDownloads}
       removeDownload={removeDownload}
+      removeDownloads={removeDownloads}
       updateDownload={updateDownload}
     >
       <div className="flex h-screen min-h-0 min-w-0 w-full flex-col bg-background text-foreground">
@@ -592,6 +644,14 @@ function MainApp() {
           />
         )}
 
+        {showDouyinProfilePicker && douyinProfileUrl ? (
+          <DouyinProfilePickerDialog
+            profileUrl={douyinProfileUrl}
+            settings={settings}
+            onClose={closeDouyinProfilePicker}
+          />
+        ) : null}
+
         {showFormatDialog && pendingVideoInfo && (
           <FormatDialog
             videoInfo={pendingVideoInfo}
@@ -607,6 +667,7 @@ function MainApp() {
               setShowFormatDialog(false)
               clearPending()
             }}
+            onOpenPreferencesForDouyinBulk={openDouyinBulkPreferences}
           />
         )}
 

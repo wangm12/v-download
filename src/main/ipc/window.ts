@@ -1,4 +1,14 @@
 import { ipcMain, shell, dialog, BrowserWindow, nativeTheme } from 'electron'
+import { execFile } from 'child_process'
+import { promisify } from 'util'
+import { extractSecUidFromProfileUrl } from '../douyinProfile'
+import {
+  mapBrowserToOpenApp,
+  mapBrowserToWinExecutable,
+  resolvedCookiesBrowser,
+} from '../cookiesBrowser'
+
+const execFileAsync = promisify(execFile)
 
 const WINDOW_BG_DARK = '#0B0B0B'
 const WINDOW_BG_LIGHT = '#FFFFFF'
@@ -98,5 +108,47 @@ export function registerWindowHandlers(ctx: WindowContext): void {
       }
     })
     return { ok: true }
+  })
+
+  ipcMain.handle('open-douyin-profile-url', async (_event, profileUrl: unknown) => {
+    if (typeof profileUrl !== 'string' || !profileUrl.trim()) {
+      return { ok: false, error: 'Invalid profile URL' }
+    }
+    const url = profileUrl.trim()
+    const secUid = extractSecUidFromProfileUrl(url)
+    if (!secUid) {
+      return { ok: false, error: 'Not a valid Douyin profile URL' }
+    }
+    try {
+      const parsed = new URL(/^https?:\/\//i.test(url) ? url : `https://${url}`)
+      const host = parsed.hostname.toLowerCase()
+      if (host !== 'douyin.com' && !host.endsWith('.douyin.com')) {
+        return { ok: false, error: 'URL host not allowed' }
+      }
+      if (!/\/user\//.test(parsed.pathname)) {
+        return { ok: false, error: 'URL path not allowed' }
+      }
+      const canonical = `https://www.douyin.com/user/${secUid}`
+      const browser = resolvedCookiesBrowser()
+      const appName = mapBrowserToOpenApp(browser)
+
+      if (process.platform === 'darwin' && appName) {
+        await execFileAsync('open', ['-a', appName, canonical])
+        return { ok: true, openedIn: appName, url: canonical }
+      }
+
+      if (process.platform === 'win32') {
+        const exe = mapBrowserToWinExecutable(browser)
+        if (exe) {
+          await execFileAsync(exe, [canonical])
+          return { ok: true, openedIn: browser, url: canonical }
+        }
+      }
+
+      await shell.openExternal(canonical)
+      return { ok: true, openedIn: 'default', url: canonical }
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) }
+    }
   })
 }

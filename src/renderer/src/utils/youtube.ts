@@ -36,6 +36,13 @@ export function filenameFromUrl(url: string): string {
   return 'download'
 }
 
+const PLAYLIST_REGEX = /[?&]list=/
+const CHANNEL_REGEX = /youtube\.com\/(@[\w-]+|channel\/[\w-]+|c\/[\w-]+|user\/[\w-]+)(\/|$)/
+
+export function isPlaylistUrl(url: string): boolean {
+  return PLAYLIST_REGEX.test(url) || CHANNEL_REGEX.test(url)
+}
+
 /** Trailing punctuation / CJK closers often glued to copied links (e.g. Douyin share text). */
 const TRAILING_URL_JUNK = /[，。！？；：、）》」』\]\)>,.]+$/u
 

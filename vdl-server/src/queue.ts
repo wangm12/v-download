@@ -6,7 +6,7 @@ import { config } from './config.js'
 import * as db from './db.js'
 import * as ytdlp from './ytdlp.js'
 import { needsCompression, canCompressWithDecentQuality, compressToSize } from './compress.js'
-import { getDouyinInfo, getLastDouyinInfoError, downloadDouyinVideo } from './douyin.js'
+import { getDouyinInfo, getLastDouyinInfoError, downloadDouyinVideo, downloadDouyinImageGallery } from './douyin.js'
 
 const MAX_CONCURRENT = 3
 const activeDownloads = new Map<string, { cancel: () => void }>()
@@ -168,10 +168,17 @@ async function runTask(task: db.TaskRow): Promise<void> {
         console.log(`[queue] Task ${task.id}: Douyin info: "${title}" by ${douyinInfo.author}`)
 
         onProgressCb(task.id, { percent: 10, speed: '', eta: '', phase: 'downloading' }, title)
-        filePath = await downloadDouyinVideo(douyinInfo.videoUrl, tmpDir, title, (percent) => {
-          db.updateTask(task.id, { progress: percent })
-          onProgressCb(task.id, { percent, speed: '', eta: '', phase: 'downloading' }, title)
-        })
+        if (douyinInfo.kind === 'gallery') {
+          filePath = await downloadDouyinImageGallery(douyinInfo.imageUrls, tmpDir, title, (percent) => {
+            db.updateTask(task.id, { progress: percent })
+            onProgressCb(task.id, { percent, speed: '', eta: '', phase: 'downloading' }, title)
+          })
+        } else {
+          filePath = await downloadDouyinVideo(douyinInfo.videoUrl, tmpDir, title, (percent) => {
+            db.updateTask(task.id, { progress: percent })
+            onProgressCb(task.id, { percent, speed: '', eta: '', phase: 'downloading' }, title)
+          })
+        }
         console.log(`[queue] Task ${task.id}: Douyin direct download complete -> ${filePath}`)
       }
     }
@@ -195,6 +202,8 @@ async function runTask(task: db.TaskRow): Promise<void> {
     let finalPath = resolvedPath
     if (quality === 'full') {
       console.log(`[queue] Task ${task.id}: full quality mode — skipping compression, will use temp link if > 50MB`)
+    } else if (fileStat.isDirectory()) {
+      console.log(`[queue] Task ${task.id}: output is a directory, skipping video compression`)
     } else if (await needsCompression(finalPath)) {
       if (await canCompressWithDecentQuality(finalPath)) {
         console.log(`[queue] Task ${task.id}: compact mode, file > 48MB, compressing...`)

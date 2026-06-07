@@ -6,9 +6,19 @@
 </head>
 <body>
   <div id="app">
+    <div id="last-error" class="last-error" style="display:none" role="status">
+      <div id="last-error-message" class="last-error-message"></div>
+      <button id="dismiss-last-error" class="last-error-dismiss" type="button">Dismiss</button>
+    </div>
     <div class="header">
       <span id="header-title" class="title">Detected Media</span>
       <span id="count" class="count"></span>
+    </div>
+    <div id="selection-bar" class="selection-bar" style="display:none">
+      <button id="select-all-btn" class="selection-link" type="button">Select all</button>
+      <span class="selection-sep">·</span>
+      <button id="deselect-all-btn" class="selection-link" type="button">Deselect all</button>
+      <span id="selected-count" class="selected-count"></span>
     </div>
     <div id="list" class="list"></div>
     <div id="empty" class="empty" style="display:none">

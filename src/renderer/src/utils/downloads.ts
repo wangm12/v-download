@@ -1,5 +1,9 @@
 import type { Download, Playlist } from '@/types'
 
+function isDouyinProfileGroup(d: Download): boolean {
+  return /douyin\.com/i.test(d.url) && Boolean(d.playlist_id) && d.playlist_id === d.channel
+}
+
 export function groupDownloadsByPlaylist(downloads: Download[]): (Download | Playlist)[] {
   const standalone: Download[] = []
   const playlistMap = new Map<string, { playlist: Playlist; downloads: Download[] }>()
@@ -10,13 +14,13 @@ export function groupDownloadsByPlaylist(downloads: Download[]): (Download | Pla
       if (existing) {
         existing.downloads.push(d)
       } else {
+        const profileGroup = isDouyinProfileGroup(d)
         playlistMap.set(d.playlist_id, {
           playlist: {
             id: d.playlist_id,
             url: d.url,
-            // playlist_id holds the human playlist name (same as download subfolder); channel is often null
             title: d.playlist_id,
-            type: 'playlist',
+            type: profileGroup ? 'Douyin profile' : 'playlist',
             total_count: 1,
             completed_count: d.status === 'complete' ? 1 : 0,
             output_dir: '',

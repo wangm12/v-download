@@ -1,9 +1,14 @@
 import { ipcMain } from 'electron'
 import * as downloadManager from '../downloadManager'
 import * as ytdlp from '../ytdlp'
-import { getDouyinInfo, getLastDouyinInfoError } from '../douyin'
+import { getDouyinInfo, getLastDouyinInfoError, isDouyinGallery } from '../douyin'
+import { listDouyinProfilePosts } from '../douyinProfile'
+import { runDouyinBulkCli } from '../douyinBulk'
+import { cancelDouyinBulkJob, getDouyinBulkJobStatus, startDouyinBulkJob } from '../douyinBulkJobs'
 import * as settings from '../settings'
 import { sniffMedia } from '../mediaSniffer'
+
+const profileListAbortControllers = new Map<string, AbortController>()
 
 export function registerDownloadHandlers(): void {
   ipcMain.handle('get-video-info', async (_event, url: string) => {
@@ -13,27 +18,54 @@ export function registerDownloadHandlers(): void {
       }
       const cookiesPath = settings.getCookiesPath()
       const ytdlpPath = settings.get('ytdlpPath')
+      const isDouyinUrl = /douyin\.com/i.test(url)
+
+      const toDouyinData = (douyin: NonNullable<Awaited<ReturnType<typeof getDouyinInfo>>>) => {
+        if (isDouyinGallery(douyin)) {
+          return {
+            id: douyin.id,
+            title: douyin.title,
+            thumbnail: douyin.cover,
+            duration: 0,
+            channel: douyin.author,
+            view_count: 0,
+            formats: [],
+            webpage_url: url,
+            _type: 'douyin_gallery',
+            image_urls: douyin.imageUrls
+          }
+        }
+        return {
+          id: douyin.id,
+          title: douyin.title,
+          thumbnail: douyin.cover,
+          duration: douyin.duration,
+          channel: douyin.author,
+          view_count: 0,
+          formats: [],
+          webpage_url: url,
+          _type: 'video'
+        }
+      }
+
+      let douyinHint: Awaited<ReturnType<typeof getDouyinInfo>> = null
+      if (isDouyinUrl) {
+        douyinHint = await getDouyinInfo(url, cookiesPath || undefined)
+        // Gallery must bypass yt-dlp format-info path; UI should treat it as image set.
+        if (isDouyinGallery(douyinHint)) {
+          return { data: toDouyinData(douyinHint) }
+        }
+      }
+
       try {
         const info = await ytdlp.getVideoInfo(url, cookiesPath || undefined, ytdlpPath)
         return { data: info }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
-        if (/douyin\.com/i.test(url)) {
-          const douyin = await getDouyinInfo(url, cookiesPath || undefined)
+        if (isDouyinUrl) {
+          const douyin = douyinHint ?? await getDouyinInfo(url, cookiesPath || undefined)
           if (douyin) {
-            return {
-              data: {
-                id: douyin.id,
-                title: douyin.title,
-                thumbnail: douyin.cover,
-                duration: douyin.duration,
-                channel: douyin.author,
-                view_count: 0,
-                formats: [],
-                webpage_url: url,
-                _type: 'video'
-              }
-            }
+            return { data: toDouyinData(douyin) }
           }
           const hint = getLastDouyinInfoError()
           if (hint) {
@@ -72,6 +104,120 @@ export function registerDownloadHandlers(): void {
     }
   })
 
+  ipcMain.handle(
+    'douyin-profile-list-posts',
+    async (
+      _event,
+      payload: {
+        profileUrl: string
+        cursor?: string | null
+        limit?: number
+        firstPageMode?: 'merged' | 'api_quick' | 'html_only'
+        existingAwemeIds?: string[]
+        abortKey?: string
+        browserRecovery?: boolean
+      }
+    ) => {
+      const abortKey = payload?.abortKey?.trim()
+      let ac: AbortController | undefined
+      if (abortKey) {
+        profileListAbortControllers.get(abortKey)?.abort()
+        ac = new AbortController()
+        profileListAbortControllers.set(abortKey, ac)
+      }
+      try {
+        const cookiesPath = settings.getCookiesPath()
+        const result = await listDouyinProfilePosts({
+          profileUrl: String(payload?.profileUrl ?? '').trim(),
+          cursor: payload?.cursor ?? null,
+          limit: payload?.limit,
+          cookiesFilePath: cookiesPath || undefined,
+          firstPageMode: payload?.firstPageMode,
+          existingAwemeIds: payload?.existingAwemeIds,
+          browserRecovery: payload?.browserRecovery === true,
+          signal: ac?.signal,
+        })
+        return { data: result }
+      } catch (err) {
+        return {
+          data: {
+            ok: false,
+            code: 'TIMEOUT',
+            message: err instanceof Error ? err.message : String(err),
+          },
+        }
+      } finally {
+        if (abortKey) profileListAbortControllers.delete(abortKey)
+      }
+    }
+  )
+
+  ipcMain.handle('douyin-profile-list-posts-abort', (_event, abortKey: string) => {
+    const key = String(abortKey ?? '').trim()
+    if (!key) return { ok: false }
+    profileListAbortControllers.get(key)?.abort()
+    profileListAbortControllers.delete(key)
+    return { ok: true }
+  })
+
+  ipcMain.handle(
+    'start-downloads-bulk',
+    async (
+      _event,
+      tasks: Array<{
+        url: string
+        title: string
+        format?: string
+        quality?: string
+        thumbnail?: string
+        duration?: number
+        metadata?: Record<string, unknown>
+        playlistId?: string
+        playlistIndex?: number
+        playlistTitle?: string
+      }>
+    ) => {
+      try {
+        if (!Array.isArray(tasks) || tasks.length === 0) {
+          return { error: 'No tasks' }
+        }
+        const defaultQ = settings.get('defaultVideoQuality')
+        const normalized = tasks
+          .map((t) => {
+            const url = String(t?.url ?? '').trim()
+            if (!url) return null
+            return {
+              url,
+              title: (t.title && t.title.trim()) || 'Download',
+              format: t.format ?? 'mp4',
+              quality: t.quality ?? defaultQ,
+              thumbnail: t.thumbnail,
+              duration: t.duration,
+              playlistId: t.playlistId,
+              playlistIndex: t.playlistIndex,
+              playlistTitle: t.playlistTitle,
+              metadata: {
+                ...t.metadata,
+                channel: String(t.metadata?.channel ?? ''),
+                ...(t.playlistTitle ? { playlistTitle: t.playlistTitle } : {}),
+              },
+            }
+          })
+          .filter(Boolean) as Parameters<typeof downloadManager.addTasksBulk>[0]
+
+        if (normalized.length === 0) {
+          return { error: 'No tasks' }
+        }
+
+        const { count, ids } = downloadManager.addTasksBulk(normalized)
+        return { data: { count, ids } }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        return { error: msg }
+      }
+    }
+  )
+
   ipcMain.handle('cancel-download', async (_event, id: string) => {
     const cancelled = downloadManager.cancelTask(id)
     return { cancelled }
@@ -95,6 +241,16 @@ export function registerDownloadHandlers(): void {
   ipcMain.handle('delete-task-with-files', async (_event, id: string) => {
     await downloadManager.deleteTaskWithFiles(id)
     return { ok: true }
+  })
+
+  ipcMain.handle('delete-tasks-with-files', async (_event, ids: string[]) => {
+    const result = await downloadManager.deleteTasksWithFiles(ids)
+    return { ok: true, ...result }
+  })
+
+  ipcMain.handle('delete-tasks', async (_event, ids: string[]) => {
+    const result = await downloadManager.deleteTasks(ids)
+    return { ok: true, ...result }
   })
 
   ipcMain.handle('get-downloads', async () => {
@@ -125,6 +281,44 @@ export function registerDownloadHandlers(): void {
     try {
       const media = await sniffMedia(url)
       return { data: media }
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : String(err) }
+    }
+  })
+
+  ipcMain.handle('start-douyin-bulk', async (_event, url: string) => {
+    try {
+      return { data: startDouyinBulkJob(url) }
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : String(err) }
+    }
+  })
+
+  ipcMain.handle('get-douyin-bulk-status', async (_event, id: string) => {
+    try {
+      const job = getDouyinBulkJobStatus(id)
+      if (!job) {
+        return { error: 'Bulk job not found' }
+      }
+      return { data: job }
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : String(err) }
+    }
+  })
+
+  ipcMain.handle('cancel-douyin-bulk', async (_event, id: string) => {
+    try {
+      return { ok: cancelDouyinBulkJob(id) }
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) }
+    }
+  })
+
+  ipcMain.handle('run-douyin-bulk', async (_event, url: string) => {
+    try {
+      const { promise } = runDouyinBulkCli({ url: String(url || '').trim() })
+      const result = await promise
+      return { data: result }
     } catch (err) {
       return { error: err instanceof Error ? err.message : String(err) }
     }

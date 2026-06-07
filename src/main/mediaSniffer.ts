@@ -19,10 +19,10 @@ const MEDIA_PATTERNS: { pattern: RegExp; type: DetectedMedia['type'] }[] = [
   { pattern: /\.flv(\?|#|$)/i, type: 'flv' }
 ]
 
-const MIN_VIDEO_SIZE = 100_000
+const MIN_VIDEO_SIZE = 16_000
 const SIZE_EXEMPT_TYPES = new Set<string>(['hls'])
-const DEFAULT_TIMEOUT_MS = 25_000
-const GRACE_AFTER_PLAY_MS = 8_000
+const DEFAULT_TIMEOUT_MS = 45_000
+const GRACE_AFTER_PLAY_MS = 16_000
 
 const AUTOPLAY_SCRIPT = `
 (function() {

@@ -19,8 +19,42 @@ export interface SettingsSchema {
    * instead of Electron’s embedded Chromium. First run downloads ~200MB binary to cache.
    */
   douyinUseCloakBrowser: boolean
+  /** YouTube playlists: one yt-dlp job vs per-video tasks. */
+  youtubePlaylistMode: 'native' | 'fanout'
+  youtubePlaylistSleepRequests: number
+  /** 0 = no limit; passed as --max-downloads for native playlist. */
+  youtubePlaylistMaxDownloads: number
+  douyinBulkRunPyPath: string
+  douyinBulkConfigPath: string
+  /**
+   * Optional override for douyin-downloader `-p` / `--path`. Empty = use `downloadDir`.
+   * Keeps bulk output aligned with the app’s default save location.
+   */
+  douyinBulkOutputPath: string
+  /** Passed to douyin-downloader `-t` / `--thread` (worker threads inside the tool). Clamped 1–32. */
+  douyinBulkThreads: number
+  /** When true, append `--show-warnings` for richer stderr (troubleshooting). */
+  douyinBulkVerboseWarnings: boolean
   ytdlpPath: string
   ffmpegPath: string
+  /**
+   * Sniffed / extension direct URLs (`mediaType`): try ffmpeg first, force yt-dlp only, or auto with fallback.
+   */
+  directMediaEngine: 'auto' | 'ffmpeg' | 'ytdlp'
+  /** yt-dlp `--concurrent-fragments` for direct-media tasks (HLS). Clamped 1–32. */
+  concurrentFragments: number
+  /**
+   * Preset that sets recommended concurrency / sleep / fragments / engine when applied from Preferences.
+   * Individual fields remain the source of truth after apply; changing steppers does not auto-switch this label.
+   */
+  downloadSpeedMode: 'balanced' | 'turbo' | 'gentle'
+  /** User confirmed the Turbo risk disclaimer (429 / account throttling). Shown once before first Turbo apply. */
+  turboRiskAcknowledged: boolean
+  /**
+   * Optional yt-dlp `--downloader` name (e.g. aria2c). Empty = built-in downloader only.
+   * Must be a short safe token; validated in normalizeLoadedSettings.
+   */
+  ytdlpExternalDownloader: string
 }
 
 function findBinary(name: string): string {
@@ -54,8 +88,21 @@ const defaults: SettingsSchema = {
   cookiesPath: '',
   cookiesFromBrowser: 'chrome',
   douyinUseCloakBrowser: false,
+  youtubePlaylistMode: 'native',
+  youtubePlaylistSleepRequests: 0,
+  youtubePlaylistMaxDownloads: 0,
+  douyinBulkRunPyPath: '',
+  douyinBulkConfigPath: '',
+  douyinBulkOutputPath: '',
+  douyinBulkThreads: 5,
+  douyinBulkVerboseWarnings: false,
   ytdlpPath: findBinary('yt-dlp'),
-  ffmpegPath: findBinary('ffmpeg')
+  ffmpegPath: findBinary('ffmpeg'),
+  directMediaEngine: 'auto',
+  concurrentFragments: 5,
+  downloadSpeedMode: 'balanced',
+  turboRiskAcknowledged: false,
+  ytdlpExternalDownloader: ''
 }
 
 let settingsPath = ''
@@ -79,7 +126,28 @@ function load(): SettingsSchema {
     if (!cache.downloadDir) cache.downloadDir = app.getPath('downloads')
   }
   if (!cache!.downloadDir) cache!.downloadDir = app.getPath('downloads')
+  normalizeLoadedSettings(cache!)
   return cache!
+}
+
+function normalizeLoadedSettings(s: SettingsSchema): void {
+  if (s.directMediaEngine !== 'auto' && s.directMediaEngine !== 'ffmpeg' && s.directMediaEngine !== 'ytdlp') {
+    s.directMediaEngine = 'auto'
+  }
+  let n = Number(s.concurrentFragments)
+  if (!Number.isFinite(n)) n = 5
+  s.concurrentFragments = Math.min(32, Math.max(1, Math.floor(n)))
+  if (s.downloadSpeedMode !== 'balanced' && s.downloadSpeedMode !== 'turbo' && s.downloadSpeedMode !== 'gentle') {
+    s.downloadSpeedMode = 'balanced'
+  }
+  s.turboRiskAcknowledged = Boolean(s.turboRiskAcknowledged)
+  const dl = typeof s.ytdlpExternalDownloader === 'string' ? s.ytdlpExternalDownloader.trim() : ''
+  s.ytdlpExternalDownloader = /^[a-zA-Z0-9_-]{1,32}$/.test(dl) ? dl : ''
+  s.douyinBulkOutputPath = typeof s.douyinBulkOutputPath === 'string' ? s.douyinBulkOutputPath.trim() : ''
+  let bt = Number(s.douyinBulkThreads)
+  if (!Number.isFinite(bt)) bt = 5
+  s.douyinBulkThreads = Math.min(32, Math.max(1, Math.floor(bt)))
+  s.douyinBulkVerboseWarnings = Boolean(s.douyinBulkVerboseWarnings)
 }
 
 function save(): void {
@@ -90,6 +158,39 @@ function save(): void {
   } catch (err) {
     console.error('Failed to save settings:', err)
   }
+}
+
+/** Apply queue + yt-dlp tuning presets for the download speed mode (see Preferences). */
+export function applyDownloadSpeedMode(
+  mode: 'balanced' | 'turbo' | 'gentle',
+  opts?: { acknowledgeTurboRisk?: boolean }
+): 'ok' | 'turbo_ack_required' {
+  load()
+  if (!cache) return 'ok'
+  if (mode === 'turbo' && !cache.turboRiskAcknowledged && !opts?.acknowledgeTurboRisk) {
+    return 'turbo_ack_required'
+  }
+  if (mode === 'balanced') {
+    cache.concurrency = 3
+    cache.sleepInterval = 3
+    cache.concurrentFragments = 5
+    cache.directMediaEngine = 'auto'
+  } else if (mode === 'turbo') {
+    cache.concurrency = Math.min(10, Math.max(1, 8))
+    cache.sleepInterval = 0
+    cache.concurrentFragments = Math.min(32, Math.max(1, 16))
+    cache.directMediaEngine = 'ytdlp'
+    cache.turboRiskAcknowledged = true
+  } else {
+    cache.concurrency = 1
+    cache.sleepInterval = 5
+    cache.concurrentFragments = 2
+    cache.directMediaEngine = 'auto'
+  }
+  cache.downloadSpeedMode = mode
+  normalizeLoadedSettings(cache)
+  save()
+  return 'ok'
 }
 
 export function getAll(): SettingsSchema {
@@ -103,6 +204,7 @@ export function get<K extends keyof SettingsSchema>(key: K): SettingsSchema[K] {
 export function set<K extends keyof SettingsSchema>(key: K, value: SettingsSchema[K]): void {
   load()
   cache![key] = value
+  normalizeLoadedSettings(cache!)
   save()
 }
 

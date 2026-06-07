@@ -22,6 +22,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# make dev session capture (see Makefile dev target)
+logs/*.log
+
 # Electron
 *.asar
 

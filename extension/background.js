@@ -1,8 +1,10 @@
-importScripts('cookie-sync-domains.js')
+importScripts('cookie-sync-domains.js', 'media-patterns.js')
 const COOKIE_SYNC_DOMAINS = globalThis.COOKIE_SYNC_DOMAINS
+const { MEDIA_PATTERNS, MIN_VIDEO_SIZE, SIZE_EXEMPT_TYPES } = globalThis.VDownloadMediaPatterns
 
 const APP_URL = 'http://127.0.0.1:18765'
 const VDL_SERVER_URL = 'http://127.0.0.1:30010'
+const LAST_DOWNLOAD_ERROR_TTL_MS = 10 * 60 * 1000
 
 function truncateUrl(u, max = 72) {
   if (!u || typeof u !== 'string') return ''
@@ -15,6 +17,43 @@ function logBg(stage, data) {
   console.info('[V-Download ext]', line)
 }
 
+function setLastDownloadError(message) {
+  try {
+    chrome.storage.local.set({
+      lastDownloadError: { message: String(message), t: Date.now() }
+    })
+  } catch {
+    /* ignore */
+  }
+}
+
+function clearLastDownloadError() {
+  try {
+    chrome.storage.local.remove('lastDownloadError')
+  } catch {
+    /* ignore */
+  }
+}
+
+function isFreshDownloadError(err) {
+  if (!err || typeof err.message !== 'string') return false
+  const ts = Number(err.t || 0)
+  return Number.isFinite(ts) && Date.now() - ts < LAST_DOWNLOAD_ERROR_TTL_MS
+}
+
+function cleanupLastDownloadError() {
+  try {
+    chrome.storage.local.get(['lastDownloadError'], ({ lastDownloadError }) => {
+      if (!lastDownloadError) return
+      if (!isFreshDownloadError(lastDownloadError)) {
+        chrome.storage.local.remove('lastDownloadError')
+      }
+    })
+  } catch {
+    /* ignore */
+  }
+}
+
 const DEBOUNCE_MS = 2000
 
 const ICON_ACTIVE = {
@@ -22,15 +61,7 @@ const ICON_ACTIVE = {
   48: 'icons/icon48.png'
 }
 
-const MEDIA_PATTERNS = [
-  { pattern: /\.m3u8(\?|#|$)/i, type: 'hls' },
-  { pattern: /\.mp4(\?|#|$)/i, type: 'mp4' },
-  { pattern: /\.webm(\?|#|$)/i, type: 'webm' },
-  { pattern: /\.flv(\?|#|$)/i, type: 'flv' }
-]
-const MIN_VIDEO_SIZE = 100000
-const SIZE_EXEMPT_TYPES = new Set(['hls'])
-const FRAME_BUCKET_MAX = 50
+const FRAME_BUCKET_MAX = 300
 
 /** After vdownload://wake cold-starts the app, POST /download when localhost server is up. */
 async function postDownloadsQueueWhenReady(requests, maxAttempts = 48, delayMs = 500) {
@@ -58,6 +89,7 @@ async function postDownloadsQueueWhenReady(requests, maxAttempts = 48, delayMs =
           if (!res.ok) throw new Error(`HTTP ${res.status}`)
         }
         logBg('post-queue-done', { rid, ok: true })
+        clearLastDownloadError()
         return true
       }
       if (attempt === 0 || attempt % 10 === 0) {
@@ -71,6 +103,9 @@ async function postDownloadsQueueWhenReady(requests, maxAttempts = 48, delayMs =
     await new Promise((r) => setTimeout(r, delayMs))
   }
   logBg('post-queue-timeout', { rid, maxAttempts, delayMs })
+  setLastDownloadError(
+    'V-Download did not respond on localhost after several attempts. Open the desktop app and try again.'
+  )
   return false
 }
 
@@ -315,6 +350,12 @@ function getHeader(headers, name) {
 // --- Message handlers ---
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'CLEAR_LAST_DOWNLOAD_ERROR') {
+    clearLastDownloadError()
+    sendResponse({ ok: true })
+    return false
+  }
+
   if (message.type === 'FORCE_COOKIE_SYNC') {
     ;(async () => {
       const ok = await syncCookies()
@@ -382,6 +423,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           body: JSON.stringify(requests[0])
         })
         if (firstRes.ok) {
+          clearLastDownloadError()
           for (let i = 1; i < requests.length; i++) {
             await fetch(`${APP_URL}/download`, {
               method: 'POST',
@@ -405,6 +447,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         launchWakeToFocusApp(tabId, { force: true })
         posted = await postDownloadsQueueWhenReady(requests)
       }
+      if (!posted) {
+        setLastDownloadError(
+          'Could not queue download: app unreachable after wake. Check that V-Download is running.'
+        )
+      }
       sendResponse({ ok: posted })
     })
     return true
@@ -418,12 +465,28 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ media: [], source: 'none', frameId })
       return true
     }
-    let media = getFrameMedia(tabId, frameId)
-    let source = 'frame'
-    if (media.length === 0) {
-      media = getAllTabMedia(tabId)
-      source = 'tab-fallback'
+    const frameMedia = getFrameMedia(tabId, frameId)
+    const tabMedia = getAllTabMedia(tabId)
+
+    const mergedByKey = new Map()
+    for (const m of frameMedia) {
+      const key = `${m.url}|${m.type}`
+      mergedByKey.set(key, m)
     }
+    for (const m of tabMedia) {
+      const key = `${m.url}|${m.type}`
+      const prev = mergedByKey.get(key)
+      if (!prev || (m.timestamp || 0) > (prev.timestamp || 0)) {
+        mergedByKey.set(key, m)
+      }
+    }
+    const media = Array.from(mergedByKey.values()).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+
+    let source = 'frame'
+    if (frameMedia.length > 0 && tabMedia.length > 0) source = 'frame+tab'
+    else if (frameMedia.length === 0 && tabMedia.length > 0) source = 'tab-fallback'
+    else if (frameMedia.length === 0) source = 'none'
+
     sendResponse({
       media,
       source,
@@ -485,6 +548,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         })
         logBg('download-from-content-fetch', { status: res.status, ok: res.ok })
         if (res.ok) {
+          clearLastDownloadError()
           safeSend({ ok: true })
           return
         }
@@ -503,6 +567,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           ok = await postDownloadWhenAppReady(request)
         }
         logBg('download-from-content-after-wake', { ok })
+        if (ok) clearLastDownloadError()
+        else {
+          setLastDownloadError(
+            'Could not send this stream to V-Download. Confirm the app is running and try again.'
+          )
+        }
         safeSend({ ok })
       } catch (err) {
         logBg('download-from-content-wake-catch', { err: String(err) })
@@ -542,7 +612,10 @@ async function sendDownloadRequest(request, tabId, opts = {}) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     })
-    if (res.ok) return true
+    if (res.ok) {
+      clearLastDownloadError()
+      return true
+    }
   } catch {
     /* app not running */
   }
@@ -554,6 +627,11 @@ async function sendDownloadRequest(request, tabId, opts = {}) {
     logBg('sendDownload-fallback-bg-wake', { tabId })
     launchWakeToFocusApp(tabId, { force: true })
     ok = await postDownloadWhenAppReady(payload)
+  }
+  if (!ok) {
+    setLastDownloadError('Could not open or reach V-Download from the extension.')
+  } else {
+    clearLastDownloadError()
   }
   return ok
 }
@@ -669,18 +747,23 @@ async function pollPendingCookieSync() {
 
 chrome.runtime.onInstalled.addListener(() => {
   syncCookies()
+  cleanupLastDownloadError()
 })
 
 chrome.runtime.onStartup.addListener(() => {
   syncCookies()
+  cleanupLastDownloadError()
 })
 
 chrome.alarms.create('sync-cookies', { periodInMinutes: 5 })
 chrome.alarms.create('cookie-sync-force-poll', { periodInMinutes: 1 })
+chrome.alarms.create('last-download-error-gc', { periodInMinutes: 5 })
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === 'sync-cookies') {
     syncCookies()
   } else if (alarm.name === 'cookie-sync-force-poll') {
     void pollPendingCookieSync()
+  } else if (alarm.name === 'last-download-error-gc') {
+    cleanupLastDownloadError()
   }
 })

@@ -5,7 +5,7 @@ import { writeFileSync, mkdirSync, existsSync } from 'fs'
 import { buildNetscapeCookieFile, type ChromeSyncedCookie } from '@v-download/shared'
 import * as settings from './settings'
 
-const PORT = 18765
+export const LOCAL_SERVER_PORT = 18765
 let server: ReturnType<typeof createServer> | null = null
 
 /** When true, Chrome extension should run syncCookies() (poll or cookie-sync-landing page). */
@@ -173,8 +173,8 @@ export function startLocalServer(): void {
     json(res, 404, { error: 'Not found' })
   })
 
-  server.listen(PORT, '127.0.0.1', () => {
-    console.log(`Local server listening on http://127.0.0.1:${PORT}`)
+  server.listen(LOCAL_SERVER_PORT, '127.0.0.1', () => {
+    console.log(`Local server listening on http://127.0.0.1:${LOCAL_SERVER_PORT}`)
   })
 
   server.on('error', (err) => {

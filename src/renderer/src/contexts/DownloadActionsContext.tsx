@@ -14,10 +14,11 @@ interface Props {
   children: ReactNode
   refreshDownloads: () => Promise<void>
   removeDownload: (id: string) => void
+  removeDownloads: (ids: string[]) => void
   updateDownload: (id: string, updates: Record<string, unknown>) => void
 }
 
-export function DownloadActionsProvider({ children, refreshDownloads, removeDownload, updateDownload }: Props) {
+export function DownloadActionsProvider({ children, refreshDownloads, removeDownload, removeDownloads, updateDownload }: Props) {
   const cancel = useCallback(async (id: string) => {
     if (window.api) await window.api.cancelDownload(id)
     updateDownload(id, { status: 'cancelled' })
@@ -45,6 +46,36 @@ export function DownloadActionsProvider({ children, refreshDownloads, removeDown
     removeDownload(id)
   }, [removeDownload])
 
+  const removeMany = useCallback(async (ids: string[]) => {
+    const uniqueIds = [...new Set(ids.filter(Boolean))]
+    if (uniqueIds.length === 0) return
+    removeDownloads(uniqueIds)
+    try {
+      if (window.api?.deleteTasks) {
+        await window.api.deleteTasks(uniqueIds)
+      } else if (window.api) {
+        for (const id of uniqueIds) await window.api.deleteTask(id)
+      }
+    } catch {
+      await refreshDownloads()
+    }
+  }, [removeDownloads, refreshDownloads])
+
+  const removeManyWithFiles = useCallback(async (ids: string[]) => {
+    const uniqueIds = [...new Set(ids.filter(Boolean))]
+    if (uniqueIds.length === 0) return
+    removeDownloads(uniqueIds)
+    try {
+      if (window.api?.deleteTasksWithFiles) {
+        await window.api.deleteTasksWithFiles(uniqueIds)
+      } else if (window.api) {
+        for (const id of uniqueIds) await window.api.deleteTaskWithFiles(id)
+      }
+    } catch {
+      await refreshDownloads()
+    }
+  }, [removeDownloads, refreshDownloads])
+
   const openFolder = useCallback((path: string) => {
     window.api?.openFileLocation(path)
   }, [])
@@ -53,7 +84,7 @@ export function DownloadActionsProvider({ children, refreshDownloads, removeDown
     window.api?.openFile(path)
   }, [])
 
-  const actions: DownloadActions = { cancel, pause, retry, remove, removeWithFiles, openFolder, openFile }
+  const actions: DownloadActions = { cancel, pause, retry, remove, removeWithFiles, removeMany, removeManyWithFiles, openFolder, openFile }
 
   return (
     <DownloadActionsContext.Provider value={actions}>

@@ -232,9 +232,6 @@
       downloadTitle: downloadTitle.slice(0, 80)
     })
     flashButton('dy-dl-sending')
-    if (typeof globalThis.__vdownloadWakeFromUserGesture === 'function') {
-      globalThis.__vdownloadWakeFromUserGesture()
-    }
     const item = {
       url,
       type,

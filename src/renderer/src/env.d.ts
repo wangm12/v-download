@@ -20,6 +20,8 @@ interface WindowApi {
   pauseDownload: (id: string) => Promise<{ paused: boolean }>
   deleteTask: (id: string) => Promise<{ ok: boolean }>
   deleteTaskWithFiles: (id: string) => Promise<{ ok: boolean }>
+  deleteTasksWithFiles: (ids: string[]) => Promise<{ ok: boolean; removed: number }>
+  deleteTasks: (ids: string[]) => Promise<{ ok: boolean; removed: number }>
   retryDownload: (id: string) => Promise<{ retried: boolean }>
   getDownloads: () => Promise<{ data: unknown[] }>
   resumeAll: () => Promise<{ ok: boolean }>
@@ -29,6 +31,10 @@ interface WindowApi {
   openFile: (path: string) => Promise<{ ok?: boolean; error?: string }>
   getSettings: () => Promise<{ data: unknown }>
   updateSettings: (key: string, value: unknown) => Promise<{ ok: boolean }>
+  applyDownloadSpeedMode: (
+    mode: 'balanced' | 'turbo' | 'gentle',
+    options?: { acknowledgeTurboRisk?: boolean }
+  ) => Promise<{ ok: boolean; error?: string }>
   onDownloadProgress: (callback: (data: Record<string, unknown>) => void) => () => void
   onNewDownload: (callback: (data: Record<string, unknown>) => void) => () => void
   onYtdlUrl: (callback: (url: string) => void) => () => void
@@ -47,6 +53,36 @@ interface WindowApi {
     message?: string
     error?: string
   }>
+  openDouyinProfileUrl?: (profileUrl: string) => Promise<{
+    ok: boolean
+    openedIn?: string
+    url?: string
+    error?: string
+  }>
+  sniffMedia?: (url: string) => Promise<{ data?: unknown; error?: string }>
+  douyinProfileListPosts?: (
+    profileUrl: string,
+    cursor?: string | null,
+    limit?: number,
+    firstPageMode?: 'merged' | 'api_quick' | 'html_only',
+    options?: { existingAwemeIds?: string[]; abortKey?: string; browserRecovery?: boolean }
+  ) => Promise<{ data?: unknown; error?: string }>
+  douyinProfileListPostsAbort?: (abortKey: string) => Promise<{ ok: boolean }>
+  startDownloadsBulk?: (
+    tasks: Array<{
+      url: string
+      title: string
+      format?: string
+      quality?: string
+      thumbnail?: string
+      duration?: number
+      metadata?: Record<string, unknown>
+      playlistId?: string
+      playlistIndex?: number
+      playlistTitle?: string
+    }>
+  ) => Promise<{ data?: { count: number; ids: string[] }; error?: string }>
+  setNativeThemeSource?: (source: 'dark' | 'light' | 'system') => Promise<{ ok: boolean; error?: string }>
   platform: NodeJS.Platform
 }
 

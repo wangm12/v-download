@@ -1,13 +1,74 @@
 import { v4 as uuidv4 } from 'uuid'
 import { BrowserWindow } from 'electron'
+import type { ChildProcess } from 'child_process'
 import * as db from './database'
 import * as settings from './settings'
 import * as ytdlp from './ytdlp'
-import { getDouyinInfo, downloadDouyinVideo, isDouyinUrl, getLastDouyinInfoError } from './douyin'
+import * as ffmpegDownload from './ffmpegDownload'
+import { worklog } from './worklog'
+import {
+  getDouyinInfo,
+  getDouyinInfoForProfilePick,
+  downloadDouyinVideo,
+  downloadDouyinImageGallery,
+  enrichDouyinVideoPlayUrls,
+  isDouyinUrl,
+  getLastDouyinInfoError,
+  isDouyinGallery,
+  isDouyinAbortError,
+} from './douyin'
 import * as dockProgress from './dockProgress'
 import { dirname } from 'path'
-import { stat, readdir, unlink } from 'fs/promises'
+import { stat, readdir, unlink, rm } from 'fs/promises'
 import { join } from 'path'
+import { sanitizeDownloadBasename } from './sanitizeDownloadBasename'
+
+const MIN_DOUYIN_OUTPUT_BYTES = 512
+
+async function tryAdoptExistingDouyinOutput(task: DownloadTask, outDir: string): Promise<boolean> {
+  if (!isDouyinUrl(task.url)) return false
+  const taskMeta = task.metadata as Record<string, unknown> | undefined
+  const imageUrls = taskMeta?.douyinImageUrls as string[] | undefined
+  if (imageUrls && imageUrls.length > 0) return false
+
+  const outputPath = join(outDir, `${sanitizeDownloadBasename(task.title, 100)}.mp4`)
+  try {
+    const st = await stat(outputPath)
+    if (isTaskAborted(task.id)) return false
+    if (!st.isFile() || st.size < MIN_DOUYIN_OUTPUT_BYTES) return false
+    task.filePath = outputPath
+    task.status = 'complete'
+    task.progress = 100
+    task.error = null
+    task.updatedAt = new Date().toISOString()
+    taskExtraMeta.delete(task.id)
+    db.updateDownload(task.id, {
+      status: 'complete',
+      progress: 100,
+      file_path: outputPath,
+      file_size: st.size,
+      error: null,
+    })
+    emitProgress(task)
+    console.log(`[runTask] adopted existing Douyin file id=${task.id.slice(0, 8)} path=${outputPath}`)
+    return true
+  } catch {
+    return false
+  }
+}
+
+function isHlsLikeDirectMedia(mediaType: string | undefined, url: string): boolean {
+  const mt = (mediaType || '').toLowerCase()
+  if (mt === 'hls') return true
+  return /\.m3u8(\?|#|$)/i.test(url)
+}
+
+function ytdlpRetrySleepsForSpeedMode(mode: string | undefined): string[] | undefined {
+  if (mode === 'turbo') return ['fragment:linear=2::5', 'http:linear=2::5']
+  if (mode === 'gentle') return ['fragment:linear=4::12']
+  if (mode === 'balanced') return ['fragment:linear=1::4']
+  return undefined
+}
 
 export type TaskStatus = 'queued' | 'downloading' | 'complete' | 'error' | 'interrupted' | 'cancelled' | 'paused'
 
@@ -49,13 +110,59 @@ interface AddTaskOptions {
 }
 
 let activeDownloads = new Map<string, { cancel: () => void; getStderr?: () => string; getDestinations?: () => string[] }>()
+/** Tasks the user removed/cancelled; in-flight runTask loops must exit without touching DB. */
+const abortedTaskIds = new Set<string>()
+const taskAbortControllers = new Map<string, AbortController>()
 const taskExtraMeta = new Map<string, { mediaType?: string; referer?: string; customHeaders?: Record<string, string> }>()
 const taskSpeedBytes = new Map<string, number>()
 const taskProgress = new Map<string, number>()
+const progressEmitLastAt = new Map<string, number>()
+const PROGRESS_EMIT_MIN_MS = 400
+let lastDockUpdateAt = 0
+const DOCK_UPDATE_MIN_MS = 1000
 let mainWindow: BrowserWindow | null = null
+
+type ProgressExtras = {
+  speed?: string
+  eta?: string
+  totalSize?: string | null
+  phase?: string | null
+}
 
 export function setMainWindow(win: BrowserWindow | null): void {
   mainWindow = win
+}
+
+function ensureTaskAbortController(id: string): AbortSignal {
+  let ctrl = taskAbortControllers.get(id)
+  if (!ctrl || ctrl.signal.aborted) {
+    ctrl = new AbortController()
+    taskAbortControllers.set(id, ctrl)
+  }
+  return ctrl.signal
+}
+
+function getTaskAbortSignal(id: string): AbortSignal | undefined {
+  return taskAbortControllers.get(id)?.signal
+}
+
+function disposeTaskAbortController(id: string): void {
+  taskAbortControllers.delete(id)
+}
+
+function markTaskAborted(id: string): void {
+  abortedTaskIds.add(id)
+  taskAbortControllers.get(id)?.abort()
+}
+
+function clearTaskAborted(id: string): void {
+  abortedTaskIds.delete(id)
+  disposeTaskAbortController(id)
+}
+
+function isTaskAborted(id: string): boolean {
+  if (abortedTaskIds.has(id)) return true
+  return !db.getDownloads().some((r) => r.id === id)
 }
 
 function emitToRenderer(channel: string, data: unknown): void {
@@ -64,7 +171,45 @@ function emitToRenderer(channel: string, data: unknown): void {
   }
 }
 
+function serializeExtras(metadata?: Record<string, unknown>): string | null {
+  if (!metadata) return null
+  const out: Record<string, unknown> = {}
+  if (metadata.nativeYoutubePlaylist === true) out.nativeYoutubePlaylist = true
+  if (Array.isArray(metadata.douyinImageUrls)) out.douyinImageUrls = metadata.douyinImageUrls
+  // Persist direct-media fields so retry / app restart still routes ffmpeg-first like the original enqueue.
+  if (typeof metadata.mediaType === 'string' && metadata.mediaType.trim()) {
+    out.mediaType = metadata.mediaType.trim()
+  }
+  if (typeof metadata.referer === 'string' && metadata.referer.trim()) {
+    out.referer = metadata.referer.trim()
+  }
+  if (
+    metadata.customHeaders &&
+    typeof metadata.customHeaders === 'object' &&
+    !Array.isArray(metadata.customHeaders)
+  ) {
+    out.customHeaders = metadata.customHeaders
+  }
+  if (metadata.douyinProfilePick === true) out.douyinProfilePick = true
+  if (typeof metadata.awemeId === 'string') out.awemeId = metadata.awemeId
+  if (typeof metadata.douyinMediaType === 'string') out.douyinMediaType = metadata.douyinMediaType
+  if (typeof metadata.douyinProfileBatchSize === 'number') {
+    out.douyinProfileBatchSize = metadata.douyinProfileBatchSize
+  }
+  if (typeof metadata.playlistTitle === 'string') out.playlistTitle = metadata.playlistTitle
+  return Object.keys(out).length ? JSON.stringify(out) : null
+}
+
 function taskFromRecord(r: db.DownloadRecord): DownloadTask {
+  const metadata: Record<string, unknown> = {}
+  if (r.channel) metadata.channel = r.channel
+  if (r.extras) {
+    try {
+      Object.assign(metadata, JSON.parse(r.extras) as Record<string, unknown>)
+    } catch {
+      /* ignore corrupt extras */
+    }
+  }
   return {
     id: r.id,
     url: r.url,
@@ -76,7 +221,7 @@ function taskFromRecord(r: db.DownloadRecord): DownloadTask {
     filePath: r.file_path,
     thumbnail: r.thumbnail,
     duration: r.duration,
-    metadata: r.channel ? { channel: r.channel } : {},
+    metadata,
     playlistId: r.playlist_id,
     playlistIndex: r.playlist_index,
     error: r.error,
@@ -98,11 +243,28 @@ function parseSpeedToBytes(speedStr: string): number {
   }
 }
 
-function updateDockProgress(): void {
+/** yt-dlp often emits 0% for the first lines even when `--continue` resumes; don't regress UI/DB below last known. */
+function mergeMonotonicProgress(task: DownloadTask, reported: number): number {
+  const prev = typeof task.progress === 'number' && Number.isFinite(task.progress) ? task.progress : 0
+  return Math.max(reported, prev)
+}
+
+function waitChildClose(proc: ChildProcess): Promise<{ code: number | null; signal: NodeJS.Signals | null }> {
+  return new Promise((resolve) => {
+    proc.once('close', (code, signal) => resolve({ code, signal }))
+    proc.once('error', () => resolve({ code: 1, signal: null }))
+  })
+}
+
+function updateDockProgress(force = false): void {
   if (activeDownloads.size === 0) {
     dockProgress.reset()
     return
   }
+
+  const now = Date.now()
+  if (!force && now - lastDockUpdateAt < DOCK_UPDATE_MIN_MS) return
+  lastDockUpdateAt = now
 
   let totalSpeed = 0
   for (const [id] of activeDownloads) {
@@ -125,14 +287,259 @@ function updateDockProgress(): void {
   dockProgress.updateProgress(avgProgress, totalSpeed, activeCount)
 }
 
-function emitProgress(task: DownloadTask): void {
-  emitToRenderer('download-progress', task)
+/** Slim IPC payload — avoids shipping full task metadata/thumbnails on every progress tick. */
+function slimProgressPayload(task: DownloadTask, extras?: ProgressExtras): Record<string, unknown> {
+  const terminal = ['complete', 'error', 'cancelled', 'paused', 'interrupted'].includes(task.status)
+  return {
+    id: task.id,
+    status: task.status,
+    progress: task.progress,
+    speed: extras?.speed ?? '',
+    eta: extras?.eta ?? '',
+    totalSize: extras?.totalSize ?? null,
+    phase: extras?.phase ?? null,
+    ...(task.filePath != null ? { filePath: task.filePath } : {}),
+    ...(task.title ? { title: task.title } : {}),
+    ...(terminal
+      ? {
+          error: task.error,
+          thumbnail: task.thumbnail,
+        }
+      : {}),
+  }
+}
+
+function emitProgress(task: DownloadTask, extras?: ProgressExtras, opts?: { force?: boolean }): void {
+  const terminal = ['complete', 'error', 'cancelled', 'paused', 'interrupted'].includes(task.status)
+  const isStart = task.status === 'downloading' && task.progress <= 1
+  if (!opts?.force && !terminal && !isStart) {
+    const now = Date.now()
+    const last = progressEmitLastAt.get(task.id) ?? 0
+    if (now - last < PROGRESS_EMIT_MIN_MS) return
+    progressEmitLastAt.set(task.id, now)
+  } else {
+    progressEmitLastAt.set(task.id, Date.now())
+  }
+  emitToRenderer('download-progress', slimProgressPayload(task, extras))
+}
+
+function emitThumbnailRefresh(task: DownloadTask): void {
+  emitToRenderer('download-progress', {
+    id: task.id,
+    status: task.status,
+    progress: task.progress,
+    title: task.title,
+    thumbnail: task.thumbnail,
+    speed: '',
+    eta: '',
+    totalSize: null,
+    phase: null,
+  })
+}
+
+function douyinResolveUrlForTask(task: DownloadTask): string {
+  const meta = task.metadata as Record<string, unknown> | undefined
+  const awemeId = typeof meta?.awemeId === 'string' ? meta.awemeId.trim() : ''
+  if (awemeId) {
+    const mt = meta?.douyinMediaType
+    if (mt === 'note' || mt === 'gallery') {
+      return `https://m.douyin.com/share/note/${awemeId}`
+    }
+    return `https://m.douyin.com/share/video/${awemeId}`
+  }
+  return task.url
+}
+
+function reportDouyinDownloadProgress(
+  task: DownloadTask,
+  p: number,
+  extras?: ProgressExtras
+): void {
+  if (isTaskAborted(task.id)) return
+  task.progress = p
+  task.status = 'downloading'
+  task.updatedAt = new Date().toISOString()
+  db.updateDownload(task.id, { status: 'downloading', progress: p })
+  taskProgress.set(task.id, p)
+  if (extras?.speed) taskSpeedBytes.set(task.id, parseSpeedToBytes(extras.speed))
+  updateDockProgress()
+  emitProgress(task, extras)
+}
+
+async function runDouyinDirectDownload(
+  task: DownloadTask,
+  outDir: string,
+  cookiesPath: string | undefined,
+  options?: { profilePick?: boolean }
+): Promise<boolean> {
+  if (isTaskAborted(task.id)) return true
+
+  const resolveUrl = douyinResolveUrlForTask(task)
+  if (!isDouyinUrl(resolveUrl) && !isDouyinUrl(task.url)) return false
+
+  task.status = 'downloading'
+  task.updatedAt = new Date().toISOString()
+  db.updateDownload(task.id, { status: 'downloading', progress: 1 })
+  emitProgress(task, {}, { force: true })
+
+  try {
+    console.log(
+      `[runTask] Douyin direct${options?.profilePick ? ' (profile pick)' : ''} id=${task.id.slice(0, 8)}`
+    )
+    const fetchOpts = { signal: getTaskAbortSignal(task.id) }
+    const taskMeta = task.metadata as Record<string, unknown> | undefined
+    const profileAwemeId =
+      options?.profilePick && typeof taskMeta?.awemeId === 'string' ? taskMeta.awemeId.trim() : ''
+    const profileMediaType =
+      typeof taskMeta?.douyinMediaType === 'string' ? taskMeta.douyinMediaType : undefined
+
+    let douyinInfo: Awaited<ReturnType<typeof getDouyinInfo>> = null
+    if (profileAwemeId) {
+      douyinInfo = await getDouyinInfoForProfilePick(profileAwemeId, cookiesPath || undefined, {
+        ...fetchOpts,
+        mediaType: profileMediaType,
+      })
+      if (isTaskAborted(task.id)) return true
+      if (!douyinInfo) {
+        console.log(
+          `[runTask] profile pick API miss for ${profileAwemeId}; falling back to page fetch id=${task.id.slice(0, 8)}`
+        )
+      }
+    }
+    if (!douyinInfo) {
+      douyinInfo = await getDouyinInfo(resolveUrl, cookiesPath || undefined, fetchOpts)
+    }
+    if (isTaskAborted(task.id)) return true
+    if (!douyinInfo) {
+      if (options?.profilePick) {
+        task.status = 'error'
+        task.error = getLastDouyinInfoError() || 'Could not resolve Douyin media'
+        task.progress = 0
+        db.updateDownload(task.id, { status: 'error', error: task.error, progress: 0 })
+        emitProgress(task, {}, { force: true })
+        return true
+      }
+      return false
+    }
+
+    let filePath: string
+    if (isDouyinGallery(douyinInfo)) {
+      filePath = await downloadDouyinImageGallery(
+        douyinInfo.imageUrls,
+        outDir,
+        douyinInfo.title || task.title,
+        cookiesPath || undefined,
+        (pct) => {
+          const p = Math.min(99, Math.round(10 + pct * 0.89))
+          reportDouyinDownloadProgress(task, p, {
+            speed: '',
+            eta: '',
+            totalSize: null,
+            phase: 'video',
+          })
+        },
+        fetchOpts
+      )
+    } else {
+      const videoInfo = await enrichDouyinVideoPlayUrls(douyinInfo, cookiesPath || undefined, fetchOpts)
+      if (isTaskAborted(task.id)) return true
+      filePath = await downloadDouyinVideo(
+        videoInfo.videoUrl,
+        outDir,
+        task.title,
+        cookiesPath || undefined,
+        (prog) => {
+          const p = Math.min(99, Math.round(10 + prog.percent * 0.89))
+          reportDouyinDownloadProgress(task, p, {
+            speed: prog.speed ?? '',
+            eta: prog.eta ?? '',
+            totalSize: null,
+            phase: 'video',
+          })
+        },
+        videoInfo.videoUrlFallbacks,
+        fetchOpts
+      )
+    }
+
+    if (isTaskAborted(task.id)) return true
+
+    let fileSize: number | null = null
+    try {
+      const st = await stat(filePath)
+      fileSize = st.isFile() ? st.size : null
+    } catch {
+      /* ignore */
+    }
+    task.filePath = filePath
+    task.status = 'complete'
+    task.progress = 100
+    task.error = null
+    task.updatedAt = new Date().toISOString()
+    taskExtraMeta.delete(task.id)
+    db.updateDownload(task.id, {
+      status: 'complete',
+      progress: 100,
+      file_path: filePath,
+      file_size: fileSize,
+    })
+    emitProgress(task, {}, { force: true })
+    return true
+  } catch (e) {
+    if (isTaskAborted(task.id) || isDouyinAbortError(e)) return true
+    task.status = 'error'
+    task.error = e instanceof Error ? e.message : String(e)
+    task.progress = 0
+    task.updatedAt = new Date().toISOString()
+    taskExtraMeta.delete(task.id)
+    db.updateDownload(task.id, { status: 'error', error: task.error, progress: 0 })
+    emitProgress(task, {}, { force: true })
+    return true
+  }
+}
+
+function scheduleDirectMediaThumbnailIfNeeded(task: DownloadTask, options: AddTaskOptions): void {
+  if (options.thumbnail && options.thumbnail.trim()) return
+  if (!ffmpegDownload.shouldTryStreamThumbnail(options.mediaType, task.url, task.format)) return
+
+  const id = task.id
+  const { url } = task
+  const { mediaType, referer, customHeaders } = options
+
+  void (async () => {
+    try {
+      const dataUrl = await ffmpegDownload.extractStreamThumbnailAsDataUrl({
+        url,
+        mediaType,
+        referer,
+        customHeaders
+      })
+      if (!dataUrl) return
+      const row = db.getDownloads().find((r) => r.id === id)
+      if (!row) return
+      if (row.thumbnail && String(row.thumbnail).trim()) return
+      if (row.status === 'cancelled') return
+      db.updateDownload(id, { thumbnail: dataUrl })
+      const updated = db.getDownloads().find((r) => r.id === id)
+      if (!updated) return
+      emitThumbnailRefresh(taskFromRecord(updated))
+    } catch (e) {
+      console.warn('[thumbnail] extract failed:', e instanceof Error ? e.message : e)
+    }
+  })()
 }
 
 export function addTask(options: AddTaskOptions): DownloadTask {
   const id = uuidv4()
   const outputDir = options.outputDir ?? settings.get('downloadDir')
   const quality = options.quality ?? settings.get('defaultVideoQuality')
+
+  const mergedMetadata: Record<string, unknown> = {
+    ...(options.metadata ?? {}),
+    ...(options.mediaType ? { mediaType: options.mediaType } : {}),
+    ...(options.referer ? { referer: options.referer } : {}),
+    ...(options.customHeaders ? { customHeaders: options.customHeaders } : {})
+  }
 
   const task: DownloadTask = {
     id,
@@ -145,12 +552,7 @@ export function addTask(options: AddTaskOptions): DownloadTask {
     filePath: null,
     thumbnail: options.thumbnail ?? null,
     duration: options.duration ?? null,
-    metadata: {
-      ...(options.metadata ?? {}),
-      ...(options.mediaType ? { mediaType: options.mediaType } : {}),
-      ...(options.referer ? { referer: options.referer } : {}),
-      ...(options.customHeaders ? { customHeaders: options.customHeaders } : {})
-    },
+    metadata: mergedMetadata,
     playlistId: options.playlistId ?? null,
     playlistIndex: options.playlistIndex ?? null,
     error: null,
@@ -178,18 +580,172 @@ export function addTask(options: AddTaskOptions): DownloadTask {
     file_size: null,
     thumbnail: task.thumbnail,
     duration: task.duration,
-    channel: null,
+    channel: (options.metadata?.channel as string) || null,
     playlist_id: task.playlistId,
     playlist_index: task.playlistIndex,
+    extras: serializeExtras(mergedMetadata),
     error: null
   })
 
   emitToRenderer('new-download', task)
+  try {
+    const u = new URL(task.url)
+    worklog('task_enqueued', {
+      id: task.id,
+      host: u.hostname,
+      hasThumbnail: Boolean(task.thumbnail),
+      mediaType: options.mediaType ?? '',
+      format: task.format
+    })
+  } catch {
+    worklog('task_enqueued', {
+      id: task.id,
+      hasThumbnail: Boolean(task.thumbnail),
+      mediaType: options.mediaType ?? '',
+      format: task.format
+    })
+  }
+  scheduleDirectMediaThumbnailIfNeeded(task, options)
   processQueue()
   return task
 }
 
+/** Max tasks per bulk enqueue (matches profile picker load-all cap). */
+export const MAX_BULK_TASKS = 2000
+
+function buildTaskFromOptions(options: AddTaskOptions, id: string): DownloadTask {
+  const quality = options.quality ?? settings.get('defaultVideoQuality')
+  const mergedMetadata: Record<string, unknown> = {
+    ...(options.metadata ?? {}),
+    ...(options.mediaType ? { mediaType: options.mediaType } : {}),
+    ...(options.referer ? { referer: options.referer } : {}),
+    ...(options.customHeaders ? { customHeaders: options.customHeaders } : {}),
+    ...(options.playlistTitle ? { playlistTitle: options.playlistTitle } : {}),
+  }
+  const now = new Date().toISOString()
+  return {
+    id,
+    url: options.url,
+    title: options.title,
+    format: options.format,
+    quality,
+    status: 'queued',
+    progress: 0,
+    filePath: null,
+    thumbnail: options.thumbnail ?? null,
+    duration: options.duration ?? null,
+    metadata: mergedMetadata,
+    playlistId: options.playlistId ?? null,
+    playlistIndex: options.playlistIndex ?? null,
+    error: null,
+    createdAt: now,
+    updatedAt: now,
+  }
+}
+
+/** Enqueue many tasks in one DB transaction; queue runs at Settings concurrency. */
+export function addTasksBulk(optionsList: AddTaskOptions[]): { count: number; ids: string[] } {
+  if (optionsList.length === 0) return { count: 0, ids: [] }
+  if (optionsList.length > MAX_BULK_TASKS) {
+    throw new Error(`Too many tasks (max ${MAX_BULK_TASKS})`)
+  }
+
+  const batchSize = optionsList.length
+  const isProfileBatch =
+    batchSize >= 2 && optionsList.every((o) => o.metadata?.douyinProfilePick === true)
+
+  const records: Array<Omit<db.DownloadRecord, 'created_at' | 'updated_at'>> = []
+  const tasks: DownloadTask[] = []
+  const ids: string[] = []
+
+  for (const options of optionsList) {
+    const id = uuidv4()
+    ids.push(id)
+    const metadata: Record<string, unknown> = {
+      ...(options.metadata ?? {}),
+      channel: String(options.metadata?.channel ?? ''),
+      ...(options.playlistTitle ? { playlistTitle: options.playlistTitle } : {}),
+      ...(isProfileBatch ? { douyinProfileBatchSize: batchSize } : {}),
+    }
+    const task = buildTaskFromOptions({ ...options, metadata }, id)
+    tasks.push(task)
+
+    if (options.mediaType || options.referer || options.customHeaders) {
+      taskExtraMeta.set(id, {
+        mediaType: options.mediaType,
+        referer: options.referer,
+        customHeaders: options.customHeaders,
+      })
+    }
+
+    records.push({
+      id: task.id,
+      url: task.url,
+      title: task.title,
+      format: task.format,
+      quality: task.quality,
+      status: task.status,
+      progress: task.progress,
+      file_path: null,
+      file_size: null,
+      thumbnail: task.thumbnail,
+      duration: task.duration,
+      channel: (metadata.channel as string) || null,
+      playlist_id: task.playlistId,
+      playlist_index: task.playlistIndex,
+      extras: serializeExtras(metadata),
+      error: null,
+    })
+  }
+
+  db.insertDownloadsBulk(records)
+
+  for (let i = 0; i < tasks.length; i++) {
+    scheduleDirectMediaThumbnailIfNeeded(tasks[i]!, optionsList[i]!)
+  }
+
+  worklog('bulk_enqueued', { count: tasks.length, profileBatch: isProfileBatch })
+  emitToRenderer('download-progress', { bulkAdded: tasks.length })
+  processQueue()
+  return { count: tasks.length, ids }
+}
+
 async function runTask(task: DownloadTask): Promise<void> {
+  // Claim a concurrency slot before any await so processQueue cannot over-start tasks.
+  let workerCancel: (() => void) | null = null
+  activeDownloads.set(task.id, {
+    cancel: () => workerCancel?.(),
+    getStderr: () => '',
+    getDestinations: () => []
+  })
+  ensureTaskAbortController(task.id)
+  updateDockProgress()
+
+  const releaseSlot = (): void => {
+    activeDownloads.delete(task.id)
+    taskSpeedBytes.delete(task.id)
+    taskProgress.delete(task.id)
+    progressEmitLastAt.delete(task.id)
+    disposeTaskAbortController(task.id)
+    updateDockProgress(true)
+  }
+
+  const stopIfAborted = (): boolean => {
+    if (!isTaskAborted(task.id)) return false
+    releaseSlot()
+    processQueue()
+    return true
+  }
+
+  const batchSize = Number(task.metadata?.douyinProfileBatchSize ?? 0)
+  if (batchSize >= 50 && task.metadata?.douyinProfilePick === true) {
+    const delaySec = settings.get('sleepInterval')
+    // Profile picks use aweme/detail API (fast); keep a short stagger only when sleepInterval is unset.
+    const pauseMs = delaySec > 0 ? delaySec * 1000 : 250
+    await new Promise((r) => setTimeout(r, pauseMs))
+    if (stopIfAborted()) return
+  }
+
   const outputDir = settings.get('downloadDir')
   const cookiesPath = settings.getCookiesPath()
   const sleepInterval = settings.get('sleepInterval')
@@ -208,6 +764,246 @@ async function runTask(task: DownloadTask): Promise<void> {
   const mediaType = cached?.mediaType || (taskMeta?.mediaType as string) || undefined
   const referer = cached?.referer || (taskMeta?.referer as string) || undefined
   const customHeaders = cached?.customHeaders || (taskMeta?.customHeaders as Record<string, string>) || undefined
+
+  if (await tryAdoptExistingDouyinOutput(task, outDir)) {
+    if (stopIfAborted()) return
+    releaseSlot()
+    processQueue()
+    return
+  }
+  if (stopIfAborted()) return
+
+  const douyinImageUrls = taskMeta?.douyinImageUrls as string[] | undefined
+  const galleryFetchOpts = { signal: getTaskAbortSignal(task.id) }
+  if (douyinImageUrls && douyinImageUrls.length > 0) {
+    task.status = 'downloading'
+    task.updatedAt = new Date().toISOString()
+    db.updateDownload(task.id, { status: 'downloading', progress: 1 })
+    emitProgress(task)
+    try {
+      const dir = await downloadDouyinImageGallery(
+        douyinImageUrls,
+        outDir,
+        task.title,
+        cookiesPath || undefined,
+        (pct) => {
+          if (isTaskAborted(task.id)) return
+          task.progress = pct
+          task.updatedAt = new Date().toISOString()
+          db.updateDownload(task.id, { status: 'downloading', progress: pct })
+          taskProgress.set(task.id, pct)
+          updateDockProgress()
+          emitProgress(task, {
+            speed: '',
+            eta: '',
+            totalSize: null,
+            phase: 'video',
+          })
+        },
+        galleryFetchOpts
+      )
+      if (stopIfAborted()) return
+      let fileSize: number | null = null
+      try {
+        const st = await stat(dir)
+        if (st.isDirectory()) fileSize = null
+      } catch {
+        /* ignore */
+      }
+      task.filePath = dir
+      task.status = 'complete'
+      task.progress = 100
+      task.error = null
+      task.updatedAt = new Date().toISOString()
+      taskExtraMeta.delete(task.id)
+      db.updateDownload(task.id, {
+        status: 'complete',
+        progress: 100,
+        file_path: dir,
+        file_size: fileSize
+      })
+      emitProgress(task)
+    } catch (e) {
+      if (stopIfAborted() || isDouyinAbortError(e)) return
+      task.status = 'error'
+      task.error = e instanceof Error ? e.message : String(e)
+      task.progress = 0
+      task.updatedAt = new Date().toISOString()
+      taskExtraMeta.delete(task.id)
+      db.updateDownload(task.id, { status: 'error', error: task.error, progress: 0 })
+      emitProgress(task)
+    }
+    taskProgress.delete(task.id)
+    releaseSlot()
+    processQueue()
+    return
+  }
+
+  const nativeYoutube = taskMeta?.nativeYoutubePlaylist === true
+  const useNativePlaylist =
+    nativeYoutube && Boolean(task.playlistId) && ytdlp.isPlaylistUrl(task.url)
+  const playlistSleep = useNativePlaylist ? settings.get('youtubePlaylistSleepRequests') : 0
+  const playlistMax = useNativePlaylist ? settings.get('youtubePlaylistMaxDownloads') : 0
+
+  const outputExtGuess =
+    task.format === 'audio' || task.format === 'mp3' || mediaType === 'mp3'
+      ? 'mp3'
+      : mediaType === 'jpeg'
+        ? 'jpg'
+        : 'mp4'
+  const sanitizedTitle = task.title.replace(/[/\\?*:|"<>]/g, '-')
+  const expectedPath = join(outDir, `${sanitizedTitle}.${outputExtGuess}`)
+
+  const directEngine = settings.get('directMediaEngine')
+  const speedMode = settings.get('downloadSpeedMode')
+  const concFragments = Math.min(
+    32,
+    Math.max(1, Math.floor(Number(settings.get('concurrentFragments')) || 5))
+  )
+
+  const tryFfmpegFirst =
+    Boolean(mediaType) &&
+    (directEngine === 'auto' || directEngine === 'ffmpeg') &&
+    ffmpegDownload.isFfmpegDirectMediaEligible(mediaType, task.url) &&
+    !(directEngine === 'auto' && isHlsLikeDirectMedia(mediaType, task.url))
+
+  if (tryFfmpegFirst) {
+    const fdp = ffmpegDownload.downloadDirectMediaWithFfmpeg({
+      url: task.url,
+      outputPath: expectedPath,
+      mediaType,
+      format: task.format,
+      referer,
+      customHeaders,
+      durationSec: task.duration
+    })
+    workerCancel = fdp.cancel
+    activeDownloads.set(task.id, {
+      cancel: fdp.cancel,
+      getStderr: fdp.getStderr,
+      getDestinations: fdp.getDestinations
+    })
+    fdp.onProgress((progress) => {
+      const pct = mergeMonotonicProgress(task, progress.percent)
+      task.progress = pct
+      task.status = 'downloading'
+      task.updatedAt = new Date().toISOString()
+      db.updateDownload(task.id, { status: 'downloading', progress: pct })
+
+      taskProgress.set(task.id, pct)
+      taskSpeedBytes.set(task.id, parseSpeedToBytes(progress.speed))
+      updateDockProgress()
+
+      emitProgress(task, {
+        speed: progress.speed,
+        eta: progress.eta,
+        totalSize: progress.total,
+        phase: progress.phase,
+      })
+    })
+
+    console.log(`[runTask] ffmpeg id=${task.id.slice(0, 8)} title=${task.title.slice(0, 20)}`)
+
+    const { code, signal } = await waitChildClose(fdp.process)
+    if (stopIfAborted()) return
+
+    const isStale =
+      !activeDownloads.has(task.id) || activeDownloads.get(task.id)?.cancel !== fdp.cancel
+
+    if (isStale) {
+      releaseSlot()
+      processQueue()
+      return
+    }
+
+    const current = db.getDownloads().find((r) => r.id === task.id)
+
+    if (signal === 'SIGTERM' || signal === 'SIGKILL') {
+      if (current?.status !== 'paused') {
+        task.status = 'cancelled'
+        task.error = 'Cancelled by user'
+        db.updateDownload(task.id, { status: 'cancelled', error: 'Cancelled by user' })
+      } else {
+        task.status = 'paused'
+        task.error = null
+      }
+      emitProgress(taskFromRecord(db.getDownloads().find((r) => r.id === task.id)!))
+      releaseSlot()
+      processQueue()
+      return
+    }
+
+    if (code === 0 && current?.status !== 'paused') {
+      const MIN_OUTPUT_BYTES = 512
+      try {
+        const st = await stat(expectedPath)
+        if (st.isFile() && st.size >= MIN_OUTPUT_BYTES) {
+          task.filePath = expectedPath
+          task.status = 'complete'
+          task.progress = 100
+          task.error = null
+          task.updatedAt = new Date().toISOString()
+          taskExtraMeta.delete(task.id)
+          db.updateDownload(task.id, {
+            status: 'complete',
+            progress: 100,
+            file_path: expectedPath,
+            file_size: st.size
+          })
+          emitProgress(task)
+          releaseSlot()
+          processQueue()
+          return
+        }
+      } catch {
+        /* missing output */
+      }
+      await unlink(expectedPath).catch(() => {})
+    }
+
+    const stderrTail = fdp
+      .getStderr()
+      .trim()
+      .split('\n')
+      .filter(Boolean)
+      .slice(-6)
+      .join('\n')
+    if (directEngine === 'ffmpeg') {
+      task.status = 'error'
+      task.error =
+        stderrTail ||
+        (code !== 0 ? `ffmpeg exited with code ${code}` : 'ffmpeg produced no output file')
+      task.progress = 0
+      task.updatedAt = new Date().toISOString()
+      taskExtraMeta.delete(task.id)
+      db.updateDownload(task.id, { status: 'error', error: task.error, progress: 0 })
+      emitProgress(task)
+      await unlink(expectedPath).catch(() => {})
+      releaseSlot()
+      processQueue()
+      return
+    }
+
+    if (stderrTail) {
+      console.warn(`[runTask] ffmpeg stderr tail (fallback to yt-dlp):\n${stderrTail}`)
+    } else {
+      console.warn(`[runTask] ffmpeg failed (code=${code}); falling back to yt-dlp`)
+    }
+    await unlink(expectedPath).catch(() => {})
+  }
+
+  const externalDl = settings.get('ytdlpExternalDownloader')
+  const retrySleeps = ytdlpRetrySleepsForSpeedMode(speedMode)
+
+  const isProfilePick = taskMeta?.douyinProfilePick === true
+  if (isProfilePick && isDouyinUrl(task.url)) {
+    await runDouyinDirectDownload(task, outDir, cookiesPath || undefined, { profilePick: true })
+    taskProgress.delete(task.id)
+    releaseSlot()
+    processQueue()
+    return
+  }
+
   const dp = ytdlp.download(
     {
       url: task.url,
@@ -216,34 +1012,40 @@ async function runTask(task: DownloadTask): Promise<void> {
       outputDir: outDir,
       cookiesPath: cookiesPath || undefined,
       sleepInterval,
-      isPlaylist: false,
-      playlistTitle: undefined,
+      isPlaylist: useNativePlaylist,
+      youtubeNativePlaylist: useNativePlaylist,
+      playlistTitle: useNativePlaylist ? (task.playlistId ?? undefined) : undefined,
+      playlistSleepRequests: playlistSleep,
+      playlistMaxDownloads: playlistMax,
       referer,
       customHeaders,
       outputTitle: mediaType ? task.title : undefined,
       mediaType,
-      concurrentFragments: mediaType ? 5 : undefined
+      concurrentFragments: concFragments > 1 ? concFragments : undefined,
+      externalDownloader: externalDl || undefined,
+      retrySleeps
     },
     ytdlpPath
   )
 
+  workerCancel = dp.cancel
   activeDownloads.set(task.id, { cancel: dp.cancel, getStderr: dp.getStderr, getDestinations: dp.getDestinations })
   dp.onProgress((progress) => {
-    task.progress = progress.percent
+    const pct = mergeMonotonicProgress(task, progress.percent)
+    task.progress = pct
     task.status = 'downloading'
     task.updatedAt = new Date().toISOString()
-    db.updateDownload(task.id, { status: 'downloading', progress: progress.percent })
+    db.updateDownload(task.id, { status: 'downloading', progress: pct })
 
-    taskProgress.set(task.id, progress.percent)
+    taskProgress.set(task.id, pct)
     taskSpeedBytes.set(task.id, parseSpeedToBytes(progress.speed))
     updateDockProgress()
 
-    emitToRenderer('download-progress', {
-      ...task,
+    emitProgress(task, {
       speed: progress.speed,
       eta: progress.eta,
       totalSize: progress.total,
-      phase: progress.phase
+      phase: progress.phase,
     })
   })
 
@@ -251,18 +1053,20 @@ async function runTask(task: DownloadTask): Promise<void> {
 
   return new Promise((resolve) => {
     dp.process.on('close', async (code, signal) => {
-      const isStale = !activeDownloads.has(task.id) || activeDownloads.get(task.id)?.cancel !== dp.cancel
-      if (!isStale) {
-        activeDownloads.delete(task.id)
-        taskSpeedBytes.delete(task.id)
-        taskProgress.delete(task.id)
+      if (isTaskAborted(task.id)) {
+        releaseSlot()
+        resolve()
+        processQueue()
+        return
       }
-      updateDockProgress()
+
+      const isStale = !activeDownloads.has(task.id) || activeDownloads.get(task.id)?.cancel !== dp.cancel
 
       console.log(`[close] id=${task.id.slice(0,8)} code=${code} signal=${signal} isStale=${isStale}`)
 
       if (isStale) {
         console.log(`[close] id=${task.id.slice(0,8)} STALE - skipping`)
+        releaseSlot()
         resolve()
         processQueue()
         return
@@ -281,6 +1085,7 @@ async function runTask(task: DownloadTask): Promise<void> {
           task.error = null
         }
         emitProgress(taskFromRecord(db.getDownloads().find((r) => r.id === task.id)!))
+        releaseSlot()
         resolve()
         processQueue()
         return
@@ -288,59 +1093,16 @@ async function runTask(task: DownloadTask): Promise<void> {
 
       if (code !== 0) {
         const stderr = dp.getStderr().trim()
+        const stderrTail = stderr ? stderr.split('\n').filter(Boolean).slice(-6).join('\n') : ''
+        if (stderrTail) {
+          console.warn(`[runTask] id=${task.id.slice(0,8)} yt-dlp stderr tail:\n${stderrTail}`)
+        }
         const isAudio = task.format === 'audio' || task.format === 'mp3'
         let recovered = false
         if (!isAudio && isDouyinUrl(task.url)) {
-          try {
-            console.log('[runTask] yt-dlp failed for Douyin; trying mobile share fallback')
-            const douyinInfo = await getDouyinInfo(task.url, cookiesPath || undefined)
-            if (douyinInfo) {
-              const filePath = await downloadDouyinVideo(
-                douyinInfo.videoUrl,
-                outDir,
-                task.title,
-                (pct) => {
-                  const p = Math.min(99, Math.round(10 + pct * 0.89))
-                  task.progress = p
-                  task.status = 'downloading'
-                  task.updatedAt = new Date().toISOString()
-                  db.updateDownload(task.id, { status: 'downloading', progress: p })
-                  taskProgress.set(task.id, p)
-                  updateDockProgress()
-                  emitToRenderer('download-progress', {
-                    ...task,
-                    speed: '',
-                    eta: '',
-                    totalSize: null,
-                    phase: 'video'
-                  })
-                }
-              )
-              let fileSize: number | null = null
-              try {
-                const st = await stat(filePath)
-                fileSize = st.size
-              } catch {
-                /* ignore */
-              }
-              task.filePath = filePath
-              task.status = 'complete'
-              task.progress = 100
-              task.error = null
-              task.updatedAt = new Date().toISOString()
-              taskExtraMeta.delete(task.id)
-              db.updateDownload(task.id, {
-                status: 'complete',
-                progress: 100,
-                file_path: filePath,
-                file_size: fileSize
-              })
-              emitProgress(task)
-              recovered = true
-            }
-          } catch (e) {
-            console.warn('[runTask] Douyin mobile fallback failed:', e instanceof Error ? e.message : e)
-          }
+          console.log('[runTask] yt-dlp failed for Douyin; trying mobile share fallback')
+          await runDouyinDirectDownload(task, outDir, cookiesPath || undefined)
+          recovered = task.status === 'complete'
         }
         if (!recovered) {
           task.status = 'error'
@@ -358,6 +1120,7 @@ async function runTask(task: DownloadTask): Promise<void> {
           db.updateDownload(task.id, { status: 'error', error: task.error })
           emitProgress(task)
         }
+        releaseSlot()
         resolve()
         processQueue()
         return
@@ -365,6 +1128,42 @@ async function runTask(task: DownloadTask): Promise<void> {
 
       let filePath: string | null = null
       let fileSize: number | null = null
+
+      if (useNativePlaylist) {
+        let totalBytes = 0
+        try {
+          const files = await readdir(outDir)
+          for (const f of files) {
+            const p = join(outDir, f)
+            try {
+              const st = await stat(p)
+              if (st.isFile()) totalBytes += st.size
+            } catch {
+              /* skip */
+            }
+          }
+        } catch {
+          /* folder missing — still mark playlist folder */
+        }
+        task.filePath = outDir
+        task.status = 'complete'
+        task.progress = 100
+        task.error = null
+        task.updatedAt = new Date().toISOString()
+        taskExtraMeta.delete(task.id)
+        db.updateDownload(task.id, {
+          status: 'complete',
+          progress: 100,
+          file_path: outDir,
+          file_size: totalBytes > 0 ? totalBytes : null
+        })
+        emitProgress(task)
+        releaseSlot()
+        resolve()
+        processQueue()
+        return
+      }
+
       const outputExtGuess =
         task.format === 'audio' || task.format === 'mp3' || mediaType === 'mp3'
           ? 'mp3'
@@ -464,6 +1263,7 @@ async function runTask(task: DownloadTask): Promise<void> {
         taskExtraMeta.delete(task.id)
         db.updateDownload(task.id, { status: 'error', error: task.error, progress: 0, file_path: null, file_size: null })
         emitProgress(task)
+        releaseSlot()
         resolve()
         processQueue()
         return
@@ -483,20 +1283,17 @@ async function runTask(task: DownloadTask): Promise<void> {
       })
 
       emitProgress(task)
+      releaseSlot()
       resolve()
       processQueue()
     })
 
     dp.process.on('error', (err) => {
+      console.error(`[runTask] id=${task.id.slice(0,8)} process error: ${err.message}`)
       const isStale = !activeDownloads.has(task.id) || activeDownloads.get(task.id)?.cancel !== dp.cancel
-      if (!isStale) {
-        activeDownloads.delete(task.id)
-        taskSpeedBytes.delete(task.id)
-        taskProgress.delete(task.id)
-      }
-      updateDockProgress()
 
       if (isStale) {
+        releaseSlot()
         resolve()
         processQueue()
         return
@@ -506,6 +1303,7 @@ async function runTask(task: DownloadTask): Promise<void> {
       task.error = err.message
       db.updateDownload(task.id, { status: 'error', error: err.message })
       emitProgress(task)
+      releaseSlot()
       resolve()
       processQueue()
     })
@@ -522,8 +1320,28 @@ function processQueue(): void {
 
     const concurrency = settings.get('concurrency')
     const all = db.getDownloads()
-    const effectiveActive = Math.max(all.filter((r) => r.status === 'downloading').length, activeDownloads.size)
-    const queued = all.filter((r) => r.status === 'queued')
+
+    // Heal zombie rows left from older builds: DB says downloading but no in-process slot.
+    for (const r of all) {
+      if (abortedTaskIds.has(r.id)) continue
+      if (r.status === 'downloading' && !activeDownloads.has(r.id)) {
+        console.warn(`[processQueue] re-queue zombie downloading id=${r.id.slice(0, 8)}`)
+        db.updateDownload(r.id, { status: 'queued', error: r.error })
+      }
+    }
+
+    const refreshed = db.getDownloads()
+    const effectiveActive = activeDownloads.size
+    const queued = refreshed
+      .filter((r) => r.status === 'queued')
+      .sort((a, b) => {
+        if (a.playlist_id && b.playlist_id && a.playlist_id === b.playlist_id) {
+          const ai = a.playlist_index ?? 0
+          const bi = b.playlist_index ?? 0
+          if (ai !== bi) return ai - bi
+        }
+        return a.created_at.localeCompare(b.created_at)
+      })
 
     console.log(`[processQueue] active=${effectiveActive}/${concurrency} queued=${queued.length} activeMap=${activeDownloads.size}`)
 
@@ -538,12 +1356,15 @@ function processQueue(): void {
       db.updateDownload(r.id, { status: 'downloading' })
       const task = taskFromRecord({ ...r, status: 'downloading' })
       task.status = 'downloading'
+      taskProgress.set(task.id, task.progress)
+      emitProgress(task)
       runTask(task).catch(() => {})
     }
   })
 }
 
 export function cancelTask(id: string): boolean {
+  markTaskAborted(id)
   const active = activeDownloads.get(id)
   if (active) {
     active.cancel()
@@ -596,7 +1417,16 @@ export function retryTask(id: string): boolean {
   const record = tasks.find((r) => r.id === id)
   console.log(`[retryTask] id=${id.slice(0,8)} status=${record?.status ?? 'NOT_FOUND'}`)
   if (record && (record.status === 'error' || record.status === 'interrupted' || record.status === 'cancelled' || record.status === 'paused')) {
-    db.updateDownload(id, { status: 'queued', progress: 0, error: null })
+    clearTaskAborted(id)
+    // Preserve progress for crash / pause / failed retries so the UI matches yt-dlp --continue (partial .part).
+    // Only explicit user cancel gets a clean slate when they choose Retry again.
+    const preserveProgress =
+      record.status === 'interrupted' || record.status === 'paused' || record.status === 'error'
+    if (preserveProgress) {
+      db.updateDownload(id, { status: 'queued', error: null })
+    } else {
+      db.updateDownload(id, { status: 'queued', progress: 0, error: null })
+    }
     const updated = db.getDownloads().find((r) => r.id === id)
     if (updated) {
       emitProgress(taskFromRecord(updated))
@@ -608,9 +1438,78 @@ export function retryTask(id: string): boolean {
 }
 
 export function deleteTask(id: string): void {
+  markTaskAborted(id)
   cancelTask(id)
   taskExtraMeta.delete(id)
   db.deleteDownload(id)
+  clearTaskAborted(id)
+}
+
+async function deleteTaskFilesForRecord(
+  record: db.DownloadRecord,
+  capturedDests: string[] = []
+): Promise<void> {
+  const baseOutputDir = settings.get('downloadDir')
+  const playlistSubfolder = settings.get('playlistSubfolder')
+  const isPlaylist = record.playlist_id != null
+  const sanitizedPlaylistId = record.playlist_id?.replace(/[/\\?*:|"<>]/g, '-')
+  const filesToDelete: string[] = []
+  const dirsToDelete: string[] = []
+
+  let searchDir = (playlistSubfolder && isPlaylist && sanitizedPlaylistId)
+    ? join(baseOutputDir, sanitizedPlaylistId)
+    : baseOutputDir
+
+  if (record.file_path) {
+    try {
+      const st = await stat(record.file_path)
+      if (st.isDirectory()) {
+        dirsToDelete.push(record.file_path)
+        searchDir = record.file_path
+      } else {
+        filesToDelete.push(record.file_path)
+        searchDir = dirname(record.file_path)
+      }
+    } catch {
+      // Missing file path, keep fallback searchDir.
+    }
+  }
+
+  const ext = record.format === 'audio' || record.format === 'mp3' ? 'mp3' : 'mp4'
+  const sanitizedTitle = record.title.replace(/[/\\?*:|"<>]/g, '-')
+
+  const knownBases = new Set<string>()
+  knownBases.add(sanitizedTitle)
+
+  for (const dest of capturedDests) {
+    filesToDelete.push(dest)
+    filesToDelete.push(dest + '.part')
+    filesToDelete.push(dest + '.ytdl')
+    const base = dest.replace(/\.[^.]+$/, '').split('/').pop() ?? ''
+    if (base) knownBases.add(base)
+  }
+
+  try {
+    const files = await readdir(searchDir)
+    for (const f of files) {
+      for (const base of knownBases) {
+        if (
+          f.startsWith(base) &&
+          (f.endsWith('.part') || f.endsWith('.ytdl') ||
+           /\.f\d+\.\w+$/.test(f) || /\.f\d+\.\w+\.part$/.test(f) ||
+           f === `${base}.${ext}` || f === `${base}.mp4` || f === `${base}.webm`)
+        ) {
+          filesToDelete.push(join(searchDir, f))
+          break
+        }
+      }
+    }
+  } catch { /* dir may not exist */ }
+
+  const uniqueFiles = [...new Set(filesToDelete)]
+  const uniqueDirs = [...new Set(dirsToDelete)]
+  await Promise.allSettled(uniqueFiles.map((p) => unlink(p)))
+  await Promise.allSettled(uniqueDirs.map((p) => rm(p, { recursive: true, force: true })))
 }
 
 export async function deleteTaskWithFiles(id: string): Promise<void> {
@@ -619,60 +1518,58 @@ export async function deleteTaskWithFiles(id: string): Promise<void> {
   const active = activeDownloads.get(id)
   const capturedDests = active?.getDestinations?.() ?? []
 
+  markTaskAborted(id)
   cancelTask(id)
 
   if (record) {
-    const baseOutputDir = settings.get('downloadDir')
-    const playlistSubfolder = settings.get('playlistSubfolder')
-    const isPlaylist = record.playlist_id != null
-    const sanitizedPlaylistId = record.playlist_id?.replace(/[/\\?*:|"<>]/g, '-')
-
-    const searchDir = record.file_path
-      ? dirname(record.file_path)
-      : (playlistSubfolder && isPlaylist && sanitizedPlaylistId)
-        ? join(baseOutputDir, sanitizedPlaylistId)
-        : baseOutputDir
-
-    const ext = record.format === 'audio' || record.format === 'mp3' ? 'mp3' : 'mp4'
-    const sanitizedTitle = record.title.replace(/[/\\?*:|"<>]/g, '-')
-
-    const filesToDelete: string[] = []
-
-    if (record.file_path) filesToDelete.push(record.file_path)
-
-    const knownBases = new Set<string>()
-    knownBases.add(sanitizedTitle)
-
-    for (const dest of capturedDests) {
-      filesToDelete.push(dest)
-      filesToDelete.push(dest + '.part')
-      filesToDelete.push(dest + '.ytdl')
-      const base = dest.replace(/\.[^.]+$/, '').split('/').pop() ?? ''
-      if (base) knownBases.add(base)
-    }
-
-    try {
-      const files = await readdir(searchDir)
-      for (const f of files) {
-        for (const base of knownBases) {
-          if (
-            f.startsWith(base) &&
-            (f.endsWith('.part') || f.endsWith('.ytdl') ||
-             /\.f\d+\.\w+$/.test(f) || /\.f\d+\.\w+\.part$/.test(f) ||
-             f === `${base}.${ext}` || f === `${base}.mp4` || f === `${base}.webm`)
-          ) {
-            filesToDelete.push(join(searchDir, f))
-            break
-          }
-        }
-      }
-    } catch { /* dir may not exist */ }
-
-    const unique = [...new Set(filesToDelete)]
-    await Promise.allSettled(unique.map((p) => unlink(p)))
+    await deleteTaskFilesForRecord(record, capturedDests)
   }
 
+  taskExtraMeta.delete(id)
   db.deleteDownload(id)
+  clearTaskAborted(id)
+}
+
+export async function deleteTasksWithFiles(ids: string[]): Promise<{ removed: number }> {
+  const uniqueIds = [...new Set(ids.map((id) => String(id || '').trim()).filter(Boolean))]
+  if (uniqueIds.length === 0) return { removed: 0 }
+
+  const records = new Map<string, db.DownloadRecord>()
+  const capturedById = new Map<string, string[]>()
+  for (const id of uniqueIds) {
+    const record = db.getDownloads().find((r) => r.id === id)
+    if (record) records.set(id, record)
+    const active = activeDownloads.get(id)
+    capturedById.set(id, active?.getDestinations?.() ?? [])
+    markTaskAborted(id)
+    cancelTask(id)
+    taskExtraMeta.delete(id)
+  }
+
+  for (const [id, record] of records) {
+    await deleteTaskFilesForRecord(record, capturedById.get(id) ?? [])
+    db.deleteDownload(id)
+    clearTaskAborted(id)
+  }
+
+  emitToRenderer('download-progress', { bulkRemoved: records.size })
+  processQueue()
+  return { removed: records.size }
+}
+
+export async function deleteTasks(ids: string[]): Promise<{ removed: number }> {
+  const uniqueIds = [...new Set(ids.map((id) => String(id || '').trim()).filter(Boolean))]
+  if (uniqueIds.length === 0) return { removed: 0 }
+
+  let removed = 0
+  for (const id of uniqueIds) {
+    if (db.getDownloads().some((r) => r.id === id)) removed++
+    deleteTask(id)
+  }
+
+  emitToRenderer('download-progress', { bulkRemoved: removed })
+  processQueue()
+  return { removed }
 }
 
 export function getAll(): DownloadTask[] {
@@ -685,11 +1582,17 @@ export function clearCompleted(): void {
 }
 
 export function clearAll(): void {
-  for (const [id] of activeDownloads) {
+  for (const r of db.getDownloads()) {
+    markTaskAborted(r.id)
+  }
+  for (const id of [...activeDownloads.keys()]) {
     cancelTask(id)
   }
+  abortedTaskIds.clear()
+  taskAbortControllers.clear()
   db.clearAll()
   emitToRenderer('download-progress', { cleared: true })
+  processQueue()
 }
 
 export function pauseAll(): void {
@@ -704,7 +1607,8 @@ export function pauseAll(): void {
 export function resumeAll(): void {
   const all = db.getDownloads()
   for (const r of all) {
-    if (r.status === 'paused' || r.status === 'interrupted' || r.status === 'cancelled' || r.status === 'error') {
+    // Do not bulk-resume user-cancelled items; per-row Retry still works for those.
+    if (r.status === 'paused' || r.status === 'interrupted' || r.status === 'error') {
       retryTask(r.id)
     }
   }

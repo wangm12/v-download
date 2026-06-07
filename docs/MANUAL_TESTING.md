@@ -2,11 +2,41 @@
 
 Short regression matrix for **V-Download** (desktop + extension) and **vdl-server** (Telegram bot). Use legal URLs you control or stable public samples; rotate when sites change.
 
+Debug logging: see [DEBUG.md](./DEBUG.md) (`make dev` session log + release `worklog.txt`).
+
 ## P0 — every release
 
 - **YouTube** — single `watch?v=` via Cmd+V; format dialog; merged file plays.
 - **YouTube** — small playlist (2–5); subfolders / grouping if enabled.
 - **Douyin** — extension panel, download completes. On **vdl-server**, Playwright runs after fetch fails **by default** (`DOUYIN_PLAYWRIGHT=0` to disable); run `npx playwright install chromium` on the host.
+
+## Reliability regressions (manual)
+
+### Douyin profile picker (built-in)
+
+1. Copy a creator URL (`https://www.douyin.com/user/…` on `douyin.com`) and paste into the app; confirm the **post picker** opens with the **API list immediately** (no background HTML/Chromium enrich). Use **Load more** / **Load all** when you want additional pages.
+2. With **Douyin cookies** configured (include `msToken`, `ttwid`, `odin_tt`, `passport_csrf_token`), use **Load more** / **Load all** until the count stabilizes.
+3. If API pagination stops early, click **Load in browser** (opt-in) — a **system browser window** opens (Chrome/Edge/Brave per Settings), with live cookies injected; a second window may appear if that browser is already running. Click **Open profile in browser** to scroll manually in your configured browser. Set **`V_DOWNLOAD_DOUYIN_PROFILE_RECOVERY=0`** to disable the automated recovery backend.
+4. If Chromium spins on captcha widgets (noisy `rmc-captcha` logs), set **`V_DOWNLOAD_DOUYIN_PROFILE_CHROMIUM_MS`** (ms, ≥5000) to cap hydrate wait. Profile **Load in browser** uses Playwright + your configured system browser (not Electron).
+5. Run **`npm run test:douyin-profile`** for parser/signing smoke tests (no network).
+4. Select several posts → **Add to queue**; confirm tasks appear in the main list with correct titles/thumbnails.
+5. If **Load more** is enabled, click it once and confirm new rows append without duplicates.
+6. **Load all pages (capped)** stops at the documented cap; cancel by closing the modal mid-flight (no crash).
+
+### Bulk lifecycle (Python escape hatch)
+
+1. Start a Douyin bulk job from Preferences and confirm first status is `running` (files land under `downloadDir` or **Bulk output directory** / `-p` as configured).
+2. From the format dialog on a `douyin.com/user/…` URL, use **Configure bulk in preferences** (URL prefilled) or **Bulk download profile** when `run.py` and `config.yml` paths are set.
+3. While a job is active, refresh status repeatedly and confirm state remains observable (no missing job errors).
+4. Trigger cancel while `running`; verify state moves to `cancelled` and does not flip back to `running`.
+5. Start a second job after cancellation and verify it can finish (`completed` or `failed`) with fresh status output.
+
+### Extension stale-error behavior
+
+1. Force a localhost wake/download failure so the popup shows `lastDownloadError`.
+2. Confirm the error banner includes the latest failure (not an older stale message).
+3. Click dismiss; reopen popup and verify the banner stays hidden.
+4. Simulate an old timestamped error in storage and confirm popup hides/cleans it instead of showing it.
 
 **Regression short links** (paste / bot / `npm run test:douyin` in `vdl-server/`):
 
@@ -30,6 +60,27 @@ Short regression matrix for **V-Download** (desktop + extension) and **vdl-serve
 - Direct `.mp4` / `.webm` or picker-sent URL
 - HLS (`.m3u8`) via overlay / sniffer
 - Queue: 2–3 concurrent; pause / resume / cancel
+
+### Direct media engine (ffmpeg vs yt-dlp)
+
+Preferences → **Downloads** → **Direct media (sniff / extension)**.
+
+1. **Auto + HLS** — For `mediaType` HLS or `.m3u8` URLs, the app uses **yt-dlp first** (no ffmpeg-first attempt) so `--concurrent-fragments` applies immediately. Logs should **not** show `[runTask] ffmpeg` before yt-dlp for pure HLS.
+2. **Auto + progressive** (e.g. direct MP4) — ffmpeg may run first; if it fails or writes a tiny file, logs show fallback to yt-dlp.
+3. **ffmpeg only** — Same URL; if ffmpeg cannot mux, task should **error** (no silent yt-dlp fallback).
+4. **yt-dlp only** — Same URL; yt-dlp path without a leading ffmpeg attempt.
+5. **Concurrent fragments** — Set to e.g. `8` vs `1`: affects **YouTube / DASH** page URLs as well as HLS when value is **> 1**. Compare throughput and any HTTP 429 behavior (qualitative).
+
+### Download speed mode (Balanced / Turbo / Gentle)
+
+Preferences → **Downloads** → **Download speed**.
+
+1. **Balanced (default)** — After reset or fresh profile, mode reads `balanced`; applying it sets moderate concurrency, sleep, and fragments.
+2. **Turbo** — First selection opens a disclaimer modal; confirm, then settings apply (higher fragments, `sleepInterval` 0, `directMediaEngine` yt-dlp). Re-open Preferences: Turbo stays selectable without modal.
+3. **Gentle** — Low concurrency and higher sleep; useful if you hit rate limits.
+4. **Optional external downloader** — Set `aria2c` only if installed; start one HLS job and confirm yt-dlp still completes or surfaces a clear error if the binary is missing.
+
+See [download-engines.md](./download-engines.md) for the routing matrix.
 
 ## Cookies and login (critical for Instagram / members YouTube)
 

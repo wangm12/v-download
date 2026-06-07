@@ -19,7 +19,19 @@ async function main(): Promise<void> {
     const info = await getDouyinInfo(url)
     if (info) {
       ok++
-      console.log(`[ok] ${label} title="${info.title.slice(0, 60)}" id=${info.id}`)
+      if (info.kind === 'gallery') {
+        if (info.imageUrls.length === 0) {
+          throw new Error(`Gallery has no images: ${label} ${url}`)
+        }
+        console.log(
+          `[ok] ${label} kind=gallery images=${info.imageUrls.length} title="${info.title.slice(0, 60)}" id=${info.id}`
+        )
+      } else {
+        if (!info.videoUrl) {
+          throw new Error(`Video has no play URL: ${label} ${url}`)
+        }
+        console.log(`[ok] ${label} kind=video title="${info.title.slice(0, 60)}" id=${info.id}`)
+      }
     } else {
       console.log(`[fail] ${label} ${getLastDouyinInfoError() || '(no detail)'}`)
     }
