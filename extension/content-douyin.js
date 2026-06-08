@@ -6,9 +6,12 @@
 
   // ── Constants ─────────────────────────────────────────────────────────────
 
+  const PL = globalThis.VDownloadOverlayPlacement || null
+
   const BTN_ID = 'dy-dl-btn'
   const PANEL_ID = 'dy-dl-panel'
-  const BTN_INSET = 10
+  const BTN_SIZE = PL ? PL.DEFAULT_BTN_SIZE : 32
+  const BTN_INSET = PL ? PL.DEFAULT_INSET : 10
 
   const SVG_DOWNLOAD = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`
   const SVG_VIDEO = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>`
@@ -77,18 +80,25 @@
     return mb >= 100 ? Math.round(mb) + ' MB' : mb.toFixed(1) + ' MB'
   }
 
-  function getAnchor() {
-    return document.querySelector('[data-e2e="feed-active-video"]')
+  function hasDouyinPlayer() {
+    if (PL) return !!PL.getDouyinPlayerRect(PL.getSiteContext())
+    return !!document.querySelector('[data-e2e="feed-active-video"]')
   }
 
   function getPlayerRect() {
-    const anchor = getAnchor()
+    if (PL) return PL.getDouyinPlayerRect(PL.getSiteContext())
+    const anchor = document.querySelector('[data-e2e="feed-active-video"]')
     if (!anchor) return null
     const player = anchor.querySelector('.xgplayer') || anchor.querySelector('video')
     const el = player || anchor
     const r = el.getBoundingClientRect()
     if (r.width < 10 || r.height < 10) return null
     return r
+  }
+
+  function getPlacementStrategy() {
+    if (PL) return PL.getPlacementStrategy(PL.getSiteContext())
+    return 'topRight'
   }
 
   // ── Download button ────────────────────────────────────────────────────────
@@ -125,8 +135,13 @@
       btn.classList.add('dy-dl-hidden')
       return
     }
-    btn.style.top = (rect.top + BTN_INSET) + 'px'
-    btn.style.left = (rect.right - BTN_INSET - 32) + 'px'
+    const strategy = getPlacementStrategy()
+    const pos = PL
+      ? PL.computeButtonPosition(rect, strategy, BTN_SIZE, BTN_INSET)
+      : { top: rect.top + BTN_INSET, left: rect.right - BTN_INSET - BTN_SIZE }
+    if (!pos) return
+    btn.style.top = pos.top + 'px'
+    btn.style.left = pos.left + 'px'
     btn.classList.add('dy-dl-visible')
     btn.classList.remove('dy-dl-hidden')
   }
@@ -403,48 +418,39 @@
     requestAnimationFrame(() => positionPanelRelativeTo(panel, btn))
   }
 
-  function positionPanelRelativeTo(panel, _btn) {
-    const rect = getPlayerRect()
-    if (!rect) return
+  function positionPanelRelativeTo(panel, btn) {
+    const playerRect = getPlayerRect()
+    if (!playerRect) return
 
     const panelW = panel.offsetWidth || 260
     const panelH = panel.offsetHeight || 200
+    const btnRect = btn
+      ? btn.getBoundingClientRect()
+      : (PL ? PL.getDouyinPanelAnchorRect(playerRect, BTN_SIZE, BTN_INSET) : playerRect)
+
+    if (PL) {
+      const pos = PL.computePanelPosition(playerRect, btnRect, panelW, panelH)
+      PL.applyPanelStyles(panel, pos)
+      return
+    }
+
     const vw = window.innerWidth
     const vh = window.innerHeight
-
-    let top = rect.top + BTN_INSET + 32 + 6
-    let left = rect.right - panelW - BTN_INSET
-
+    let top = playerRect.top + BTN_INSET + BTN_SIZE + 6
+    let left = playerRect.right - panelW - BTN_INSET
     if (left < 8) left = 8
     if (left + panelW > vw - 8) left = vw - panelW - 8
     if (top + panelH > vh - 8) top = vh - panelH - 8
     if (top < 8) top = 8
-
     panel.style.top = top + 'px'
     panel.style.left = left + 'px'
   }
 
   function repositionPanel() {
     const panel = document.getElementById(PANEL_ID)
+    const btn = document.getElementById(BTN_ID)
     if (!panel) return
-    const rect = getPlayerRect()
-    if (!rect) return
-
-    const panelW = panel.offsetWidth || 260
-    const panelH = panel.offsetHeight || 200
-    const vw = window.innerWidth
-    const vh = window.innerHeight
-
-    let top = rect.top + BTN_INSET + 32 + 6
-    let left = rect.right - panelW - BTN_INSET
-
-    if (left < 8) left = 8
-    if (left + panelW > vw - 8) left = vw - panelW - 8
-    if (top + panelH > vh - 8) top = vh - panelH - 8
-    if (top < 8) top = 8
-
-    panel.style.top = top + 'px'
-    panel.style.left = left + 'px'
+    positionPanelRelativeTo(panel, btn)
   }
 
   function closePanel() {
@@ -496,10 +502,9 @@
   // Detect when feed-active-video appears (e.g. modal opened on profile page)
 
   function checkAnchor() {
-    const anchor = getAnchor()
     const btn = document.getElementById(BTN_ID)
 
-    if (anchor) {
+    if (hasDouyinPlayer()) {
       const b = btn || ensureButton()
       positionButton(b)
       startRaf()
@@ -531,7 +536,7 @@
     currentData = null
 
     setTimeout(() => {
-      if (getAnchor()) return
+      if (hasDouyinPlayer()) return
       const btn = document.getElementById(BTN_ID)
       if (btn) {
         btn.classList.remove('dy-dl-visible')

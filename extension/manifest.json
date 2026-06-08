@@ -53,7 +53,7 @@
         "*://*.iesdouyin.com/*",
         "*://iesdouyin.com/*"
       ],
-      "js": ["wake-sync.js", "content-douyin.js"],
+      "js": ["wake-sync.js", "overlay-placement.js", "content-douyin.js"],
       "css": ["content-douyin.css"],
       "run_at": "document_idle"
     },
@@ -62,13 +62,22 @@
         "*://*.x.com/*",
         "*://*.twitter.com/*"
       ],
-      "js": ["wake-sync.js", "content-x.js"],
+      "js": ["wake-sync.js", "overlay-placement.js", "content-x.js"],
       "css": ["content-x.css"],
       "run_at": "document_idle"
     },
     {
+      "matches": [
+        "*://*.tiktok.com/*",
+        "*://tiktok.com/*"
+      ],
+      "js": ["wake-sync.js", "overlay-placement.js", "content-tiktok.js"],
+      "css": ["content-tiktok.css"],
+      "run_at": "document_idle"
+    },
+    {
       "matches": ["<all_urls>"],
-      "js": ["wake-sync.js", "media-patterns.js", "content-video-overlay.js"],
+      "js": ["wake-sync.js", "overlay-placement.js", "media-patterns.js", "content-video-overlay.js"],
       "css": ["content-video-overlay.css"],
       "run_at": "document_idle",
       "all_frames": true

@@ -1,8 +1,14 @@
 ;(function () {
   'use strict'
 
+  const PL = globalThis.VDownloadOverlayPlacement || null
+  const BTN_SIZE = PL ? PL.DEFAULT_BTN_SIZE : 32
+  const BTN_INSET = PL ? PL.DEFAULT_INSET : 10
+
   const BTN_ATTR = 'data-vdl-x'
   const SVG_DOWNLOAD = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`
+
+  const videoOverlayButtons = new WeakMap()
 
   function getTweetUrl(article) {
     if (!article) return null
@@ -15,12 +21,26 @@
   }
 
   function isStatusPage() {
-    return /\/(x|twitter)\.com\/[^/]+\/status\/\d+/.test(location.href)
+    return PL ? PL.isXStatusPage() : /\/(x|twitter)\.com\/[^/]+\/status\/\d+/.test(location.href)
   }
 
-  function getStatusUrlFromPage() {
-    const m = location.href.match(/https:\/\/(x|twitter)\.com\/[^/]+\/status\/\d+/)
-    return m ? m[0] : null
+  function getPageType() {
+    return isStatusPage() ? 'statusDetail' : 'timeline'
+  }
+
+  function getPlacementStrategy() {
+    if (PL) return PL.getPlacementStrategy({ site: 'x', pageType: getPageType() })
+    return 'topRight'
+  }
+
+  function getMediaRect(article) {
+    const videoComp = article.querySelector('[data-testid="videoComponent"]')
+    if (!videoComp) return null
+    const video = videoComp.querySelector('video')
+    const target = video || videoComp
+    const r = target.getBoundingClientRect()
+    if (r.width < 10 || r.height < 10) return null
+    return r
   }
 
   function flashButton(btn, cls) {
@@ -43,6 +63,24 @@
       }
       flashButton(btn, resp && !resp.error ? 'vdl-x-sent' : null)
     })
+  }
+
+  function positionVideoOverlayButton(btn, article) {
+    const rect = getMediaRect(article)
+    if (!rect) {
+      btn.classList.remove('vdl-x-video-visible')
+      btn.classList.add('vdl-x-video-hidden')
+      return
+    }
+    const strategy = getPlacementStrategy()
+    const pos = PL
+      ? PL.computeButtonPosition(rect, strategy, BTN_SIZE, BTN_INSET)
+      : { top: rect.top + BTN_INSET, left: rect.right - BTN_INSET - BTN_SIZE }
+    if (!pos) return
+    btn.style.top = `${pos.top}px`
+    btn.style.left = `${pos.left}px`
+    btn.classList.add('vdl-x-video-visible')
+    btn.classList.remove('vdl-x-video-hidden')
   }
 
   // ── Action bar download button ──────────────────────────────────────────
@@ -84,7 +122,7 @@
     }
   }
 
-  // ── Video overlay download button ───────────────────────────────────────
+  // ── Video overlay (top-left on media; timeline also has action bar) ──────
 
   function injectVideoOverlayButton(article) {
     if (article.querySelector(`[${BTN_ATTR}="video"]`)) return
@@ -94,13 +132,8 @@
     const tweetUrl = getTweetUrl(article)
     if (!tweetUrl) return
 
-    const container = videoComp.querySelector('div[style*="position"]') || videoComp
-    if (getComputedStyle(container).position === 'static') {
-      container.style.position = 'relative'
-    }
-
     const btn = document.createElement('button')
-    btn.className = 'vdl-x-video-btn'
+    btn.className = 'vdl-x-video-btn vdl-x-video-hidden'
     btn.title = 'Download with V-Download'
     btn.innerHTML = SVG_DOWNLOAD
     btn.setAttribute(BTN_ATTR, 'video')
@@ -112,7 +145,16 @@
       triggerDownload(tweetUrl, btn)
     })
 
-    container.appendChild(btn)
+    document.documentElement.appendChild(btn)
+    videoOverlayButtons.set(article, btn)
+    positionVideoOverlayButton(btn, article)
+  }
+
+  function updateVideoOverlayPositions() {
+    for (const article of document.querySelectorAll('article[data-testid="tweet"]')) {
+      const btn = videoOverlayButtons.get(article)
+      if (btn) positionVideoOverlayButton(btn, article)
+    }
   }
 
   // ── Scan & inject ──────────────────────────────────────────────────────
@@ -127,6 +169,7 @@
       injectActionBarButton(article)
       injectVideoOverlayButton(article)
     }
+    updateVideoOverlayPositions()
   }
 
   // ── Debounced scan ──────────────────────────────────────────────────────
@@ -159,9 +202,12 @@
     navObserver.observe(document, { subtree: true, childList: true })
 
     window.addEventListener('scroll', () => {
+      updateVideoOverlayPositions()
       if (scanTimer) clearTimeout(scanTimer)
       scanTimer = setTimeout(scanTweets, 400)
     }, { passive: true })
+
+    window.addEventListener('resize', updateVideoOverlayPositions, { passive: true })
 
     setInterval(scanTweets, 3000)
 

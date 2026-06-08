@@ -46,19 +46,17 @@
   color: rgb(0, 186, 124);
 }
 
-/* ── Download button on video player overlay ───────────────────────────── */
+/* ── Download button on video (status detail page, fixed position) ─────── */
 
 .vdl-x-video-btn {
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
-  z-index: 10;
+  position: fixed;
+  z-index: 2147483646;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 32px;
   height: 32px;
-  border-radius: 50%;
+  border-radius: 6px;
   border: none;
   cursor: pointer;
   background: rgba(0, 0, 0, 0.6);
@@ -66,7 +64,8 @@
   padding: 0;
   opacity: 0;
   transition: opacity 0.2s, background-color 0.2s, transform 0.15s;
-  pointer-events: auto;
+  pointer-events: none;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
 .vdl-x-video-btn svg {
@@ -74,18 +73,24 @@
   height: 16px;
 }
 
-[data-testid="videoComponent"]:hover .vdl-x-video-btn,
-.vdl-x-video-btn:hover {
-  opacity: 1;
+.vdl-x-video-btn.vdl-x-video-visible {
+  opacity: 0.55;
+  pointer-events: auto;
 }
 
-.vdl-x-video-btn:hover {
+.vdl-x-video-btn.vdl-x-video-visible:hover {
+  opacity: 1;
   background: rgba(29, 155, 240, 0.85);
-  transform: scale(1.1);
+  transform: scale(1.08);
 }
 
 .vdl-x-video-btn:active {
   transform: scale(0.92);
+}
+
+.vdl-x-video-btn.vdl-x-video-hidden {
+  opacity: 0 !important;
+  pointer-events: none;
 }
 
 .vdl-x-video-btn.vdl-x-sending {

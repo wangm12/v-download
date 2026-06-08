@@ -27,27 +27,49 @@
   let activePanelVideo = null
   let activePanelCleanup = null
 
-  // ── Site detection ───────────────────────────────────────────────────────
+  // ── Placement (shared with site-specific content scripts) ───────────────
+
+  const PL = globalThis.VDownloadOverlayPlacement || null
 
   function isYouTubePage() {
-    return /^https?:\/\/(www\.)?youtube\.com/.test(location.href)
+    return PL ? PL.isYouTubePage() : /^https?:\/\/(www\.)?youtube\.com/.test(location.href)
   }
 
   function isDouyinPage() {
-    return /^https?:\/\/([a-z0-9-]+\.)?(douyin|iesdouyin)\.com/i.test(location.href)
+    return PL ? PL.isDouyinPage() : /^https?:\/\/([a-z0-9-]+\.)?(douyin|iesdouyin)\.com/i.test(location.href)
+  }
+
+  function isTikTokPage() {
+    return PL ? PL.isTikTokPage() : /^https?:\/\/([a-z0-9-]+\.)?tiktok\.com/i.test(location.href)
   }
 
   function isXPage() {
-    return /^https?:\/\/(www\.)?(x\.com|twitter\.com)/.test(location.href)
+    return PL ? PL.isXPage() : /^https?:\/\/(www\.)?(x\.com|twitter\.com)/.test(location.href)
   }
 
   function isYouTubeWatchPage() {
-    try {
-      const u = new URL(location.href)
-      return u.pathname === '/watch' && u.searchParams.has('v')
-    } catch {
-      return false
+    return PL ? PL.isYouTubeWatchPage() : (() => {
+      try {
+        const u = new URL(location.href)
+        return u.pathname === '/watch' && u.searchParams.has('v')
+      } catch {
+        return false
+      }
+    })()
+  }
+
+  function getPlacementStrategy() {
+    if (PL) return PL.getPlacementStrategy(PL.getSiteContext())
+    return 'topRight'
+  }
+
+  function getAnchorRect(video) {
+    if (PL) {
+      const ctx = PL.getSiteContext()
+      const anchored = PL.getPlayerRect(ctx, video)
+      if (anchored) return anchored
     }
+    return video.getBoundingClientRect()
   }
 
   // ── URL helpers ──────────────────────────────────────────────────────────
@@ -491,6 +513,7 @@
       }
     }
 
+    panel._ytdlAnchorRect = getAnchorRect(video)
     positionPanel(panel, btn)
     document.documentElement.appendChild(panel)
     activePanel = panel
@@ -510,19 +533,24 @@
     const ph = panel.offsetHeight || 120
     panel.remove()
 
-    applyPanelPosition(panel, btnRect, pw, ph)
+    applyPanelPosition(panel, btnRect, pw, ph, panel._ytdlAnchorRect || null)
     panel.style.visibility = ''
   }
 
   // Lightweight reposition for rAF loop: panel is already in DOM, no removal.
-  function reposPanel(panel, btn) {
+  function reposPanel(panel, btn, anchorRect) {
     const btnRect = btn.getBoundingClientRect()
     const pw = panel.offsetWidth || 240
     const ph = panel.offsetHeight || 120
-    applyPanelPosition(panel, btnRect, pw, ph)
+    applyPanelPosition(panel, btnRect, pw, ph, anchorRect || panel._ytdlAnchorRect || null)
   }
 
-  function applyPanelPosition(panel, btnRect, pw, ph) {
+  function applyPanelPosition(panel, btnRect, pw, ph, anchorRect) {
+    if (PL) {
+      const pos = PL.computePanelPosition(anchorRect || btnRect, btnRect, pw, ph)
+      PL.applyPanelStyles(panel, pos)
+      return
+    }
     const vw = window.innerWidth
     const vh = window.innerHeight
     let top = btnRect.bottom + 6
@@ -535,7 +563,10 @@
     panel.style.left = `${left}px`
   }
 
+  let scrollAnchorRect = null
+
   function closeActivePanel() {
+    scrollAnchorRect = null
     if (activePanelCleanup) {
       try { activePanelCleanup() } catch {}
       activePanelCleanup = null
@@ -603,8 +634,9 @@
     if (processed.has(video)) return
     processed.add(video)
 
-    const BTN_SIZE = 32
-    const BTN_INSET = 10
+    const BTN_SIZE = PL ? PL.DEFAULT_BTN_SIZE : 32
+    const BTN_INSET = PL ? PL.DEFAULT_INSET : 10
+    const placementStrategy = getPlacementStrategy()
 
     const btn = document.createElement('button')
     btn.className = 'ytdl-overlay-btn ytdl-hidden'
@@ -652,7 +684,8 @@
     function syncPosition() {
       if (suppressed) return
 
-      const rect = video.getBoundingClientRect()
+      const anchorRect = getAnchorRect(video)
+      const rect = anchorRect || video.getBoundingClientRect()
       const fp = currentFingerprint()
       if (fp !== lastVideoFingerprint) {
         lastVideoFingerprint = fp
@@ -664,24 +697,36 @@
       }
 
       if (activePanel && activePanelVideo === video) {
-        const gone = rect.width < 10 || rect.height < 10 ||
-          rect.bottom < 0 || rect.top > window.innerHeight
-        const moved = prevRect && (
-          Math.abs(rect.top - prevRect.top) > 30 ||
-          Math.abs(rect.width - prevRect.width) > 50
-        )
+        const gone = PL
+          ? PL.anchorOffscreen(rect)
+          : (rect.width < 10 || rect.height < 10 ||
+            rect.bottom < 0 || rect.top > window.innerHeight)
+        const moved = PL
+          ? PL.anchorMovedSignificantly(prevRect, rect)
+          : (prevRect && (
+            Math.abs(rect.top - prevRect.top) > 30 ||
+            Math.abs(rect.width - prevRect.width) > 50
+          ))
         if (gone || moved) {
           closeActivePanel()
         } else {
-          reposPanel(activePanel, btn)
+          if (activePanel) activePanel._ytdlAnchorRect = rect
+          reposPanel(activePanel, btn, rect)
         }
       }
-      prevRect = { top: rect.top, width: rect.width }
+      prevRect = rect
 
       if (rect.width < 10 || rect.height < 10) return
 
-      btn.style.top = `${rect.top + (rect.height - BTN_SIZE) / 2}px`
-      btn.style.left = `${rect.right - BTN_SIZE - BTN_INSET}px`
+      const btnPos = PL
+        ? PL.computeButtonPosition(rect, placementStrategy, BTN_SIZE, BTN_INSET)
+        : {
+          top: rect.top + BTN_INSET,
+          left: rect.right - BTN_INSET - BTN_SIZE
+        }
+      if (!btnPos) return
+      btn.style.top = `${btnPos.top}px`
+      btn.style.left = `${btnPos.left}px`
     }
 
     function startRaf() {
@@ -805,6 +850,7 @@
   function isEligibleVideo(video) {
     if (processed.has(video)) return false
     if (isDouyinPage()) return false
+    if (isTikTokPage()) return false
     if (isXPage()) return false
     // On YouTube, only inject on the main watch page and only on actual player videos
     if (isYouTubePage() && !isYouTubeWatchPage()) return false
@@ -838,8 +884,22 @@
   })
 
   window.addEventListener('scroll', () => {
-    if (activePanel) closeActivePanel()
-  }, { passive: true })
+    if (!activePanel || !activePanelVideo) return
+    const site = PL ? PL.getSiteContext().site : 'generic'
+    if (PL && !PL.shouldDismissPanelOnScroll(site)) return
+    const rect = getAnchorRect(activePanelVideo)
+    if (!scrollAnchorRect) {
+      scrollAnchorRect = rect
+      return
+    }
+    if (!rect || (PL ? PL.anchorMovedSignificantly(scrollAnchorRect, rect) : false)) {
+      closeActivePanel()
+      return
+    }
+    scrollAnchorRect = rect
+    const state = videoState.get(activePanelVideo)
+    if (state && state.btn) reposPanel(activePanel, state.btn, rect)
+  }, { passive: true, capture: true })
 
   // ── MutationObserver + initial scan ─────────────────────────────────────
 
