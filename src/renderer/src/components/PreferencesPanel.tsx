@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react'
-import { Folder, RefreshCw, Loader2, X } from 'lucide-react'
+import { Folder, RefreshCw, Loader2, X, Puzzle } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { Stepper } from './Stepper'
 import { HoverHintWrap } from './HoverHintWrap'
@@ -62,6 +62,8 @@ function FieldBlock({
 export function PreferencesPanel({ section }: PreferencesPanelProps) {
   const [cookieSyncNote, setCookieSyncNote] = useState('')
   const [cookieSyncBusy, setCookieSyncBusy] = useState(false)
+  const [extensionPath, setExtensionPath] = useState<string | null>(null)
+  const [extensionInstallBusy, setExtensionInstallBusy] = useState(false)
   const cookieSyncWaitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const awaitingCookiePushRef = useRef(false)
   const [settings, setSettings] = useState<SettingsData>({
@@ -245,6 +247,36 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
     setTurboModalOpen(false)
     await refreshSettingsFromMain()
   }, [refreshSettingsFromMain])
+
+  useEffect(() => {
+    if (section !== 'browser' || !window.api?.getChromeExtensionPath) return
+    void window.api.getChromeExtensionPath().then((res) => {
+      if (res.ok && res.path) setExtensionPath(res.path)
+    })
+  }, [section])
+
+  const handleInstallExtension = async () => {
+    if (!window.api?.installChromeExtension || extensionInstallBusy || cookieSyncBusy) return
+    setExtensionInstallBusy(true)
+    setCookieSyncNote('Opening the extension folder and Chrome Extensions page…')
+    try {
+      const res = await window.api.installChromeExtension()
+      if (res.ok) {
+        if (res.path) setExtensionPath(res.path)
+        setCookieSyncNote(
+          res.path
+            ? `In Chrome: turn on Developer mode → Load unpacked → select the folder shown in Finder.`
+            : 'Follow the steps in Chrome to load the unpacked extension.'
+        )
+      } else {
+        setCookieSyncNote(res.error || 'Could not find the extension folder.')
+      }
+    } catch (err) {
+      setCookieSyncNote(err instanceof Error ? err.message : String(err))
+    } finally {
+      setExtensionInstallBusy(false)
+    }
+  }
 
   const handleForceCookieSync = async () => {
     if (!window.api?.requestBrowserCookieSync || cookieSyncBusy) return
@@ -749,19 +781,21 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
         {section === 'browser' && (
           <div className="max-w-2xl space-y-6">
             <PrefCard title="Chrome companion" subtitle="Extension, cookie sync, and browser profile for logged-in pages.">
-              {(cookieSyncBusy || cookieSyncNote) && (
+              {(cookieSyncBusy || extensionInstallBusy || cookieSyncNote) && (
                 <div
                   className={cn(
                     'rounded-lg border px-3 py-3 flex gap-3 items-start',
-                    cookieSyncBusy ? 'border-border-strong bg-state-active-bg' : 'border-border bg-raised'
+                    cookieSyncBusy || extensionInstallBusy
+                      ? 'border-border-strong bg-state-active-bg'
+                      : 'border-border bg-raised'
                   )}
                   role="status"
                 >
-                  {cookieSyncBusy && (
+                  {(cookieSyncBusy || extensionInstallBusy) && (
                     <Loader2 className="w-5 h-5 shrink-0 mt-0.5 animate-spin text-foreground" aria-hidden />
                   )}
                   <p className="text-sm text-foreground leading-relaxed flex-1 min-w-0">{cookieSyncNote}</p>
-                  {!cookieSyncBusy && cookieSyncNote && (
+                  {!cookieSyncBusy && !extensionInstallBusy && cookieSyncNote && (
                     <HoverHintWrap text="Dismiss message" side="bottom">
                       <button
                         type="button"
@@ -784,15 +818,40 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                     {' '}
                     Douyin uses your real browser profile (see below), not only this file.
                   </p>
+                  {extensionPath ? (
+                    <p className="text-[11px] text-muted-foreground/80 mt-1.5 font-mono break-all leading-relaxed">
+                      {extensionPath}
+                    </p>
+                  ) : null}
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch">
                   <button
                     type="button"
-                    onClick={handleForceCookieSync}
-                    disabled={cookieSyncBusy}
+                    onClick={() => void handleInstallExtension()}
+                    disabled={cookieSyncBusy || extensionInstallBusy}
                     className={cn(
                       'inline-flex min-h-[2.25rem] flex-1 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-colors sm:min-w-0 sm:flex-initial',
-                      cookieSyncBusy
+                      cookieSyncBusy || extensionInstallBusy
+                        ? 'cursor-wait border-border-strong bg-control text-foreground ring-1 ring-inset ring-border'
+                        : 'border-border bg-elevated text-foreground hover:bg-control'
+                    )}
+                    title="Open extension folder and Chrome Extensions for Load unpacked"
+                    aria-busy={extensionInstallBusy}
+                  >
+                    {extensionInstallBusy ? (
+                      <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden />
+                    ) : (
+                      <Puzzle className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    )}
+                    {extensionInstallBusy ? 'Opening…' : 'Install extension'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleForceCookieSync}
+                    disabled={cookieSyncBusy || extensionInstallBusy}
+                    className={cn(
+                      'inline-flex min-h-[2.25rem] flex-1 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-colors sm:min-w-0 sm:flex-initial',
+                      cookieSyncBusy || extensionInstallBusy
                         ? 'cursor-wait border-border-strong bg-control text-foreground ring-1 ring-inset ring-border'
                         : 'border-border bg-elevated text-foreground hover:bg-control'
                     )}
@@ -805,20 +864,6 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                       <RefreshCw className="h-3.5 w-3.5 shrink-0" aria-hidden />
                     )}
                     {cookieSyncBusy ? 'Syncing…' : 'Sync browser cookies'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => window.api?.installChromeExtension?.()}
-                    disabled={cookieSyncBusy}
-                    className={cn(
-                      'inline-flex min-h-[2.25rem] flex-1 items-center justify-center rounded-lg border px-3 py-2 text-xs font-medium transition-colors sm:flex-initial sm:px-4',
-                      cookieSyncBusy
-                        ? 'cursor-not-allowed border-border/50 text-muted-foreground/50'
-                        : 'border-border bg-elevated text-foreground hover:bg-control'
-                    )}
-                    title={cookieSyncBusy ? 'Wait until cookie sync finishes' : undefined}
-                  >
-                    Install guide
                   </button>
                 </div>
               </div>

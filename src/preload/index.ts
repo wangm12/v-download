@@ -114,6 +114,7 @@ const api = {
   cancelDouyinBulk: (id: string) => ipcRenderer.invoke('cancel-douyin-bulk', id),
   runDouyinBulk: (url: string) => ipcRenderer.invoke('run-douyin-bulk', url),
   readClipboard: () => ipcRenderer.invoke('read-clipboard'),
+  getChromeExtensionPath: () => ipcRenderer.invoke('get-chrome-extension-path'),
   installChromeExtension: () => ipcRenderer.invoke('install-chrome-extension'),
   requestBrowserCookieSync: () => ipcRenderer.invoke('request-browser-cookie-sync'),
   openDouyinProfileUrl: (profileUrl: string) =>

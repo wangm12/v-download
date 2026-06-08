@@ -53,7 +53,14 @@ export interface WindowApi {
   onSettingsChanged: (callback: () => void) => () => void
   selectDownloadFolder: () => Promise<string | undefined>
   readClipboard: () => Promise<string>
-  installChromeExtension: () => Promise<{ ok?: boolean; path?: string; error?: string }>
+  getChromeExtensionPath: () => Promise<{ ok: boolean; path?: string }>
+  installChromeExtension: () => Promise<{
+    ok: boolean
+    path?: string
+    openedFolder?: boolean
+    openedChrome?: boolean
+    error?: string
+  }>
   openSettings: () => Promise<void>
   onOpenPreferences: (callback: () => void) => () => void
   closeWindow: () => Promise<void>

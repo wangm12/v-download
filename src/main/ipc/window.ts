@@ -2,6 +2,7 @@ import { ipcMain, shell, dialog, BrowserWindow, nativeTheme } from 'electron'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 import { extractSecUidFromProfileUrl } from '../douyinProfile'
+import { resolveExtensionDir } from '../extensionPath'
 import {
   mapBrowserToOpenApp,
   mapBrowserToWinExecutable,
@@ -9,6 +10,35 @@ import {
 } from '../cookiesBrowser'
 
 const execFileAsync = promisify(execFile)
+
+const CHROME_EXTENSIONS_URL = 'chrome://extensions'
+
+async function openChromeExtensionsPage(): Promise<boolean> {
+  const browser = resolvedCookiesBrowser()
+  try {
+    if (process.platform === 'darwin') {
+      const appName = mapBrowserToOpenApp(browser) || 'Google Chrome'
+      await execFileAsync('open', ['-a', appName, CHROME_EXTENSIONS_URL])
+      return true
+    }
+    if (process.platform === 'win32') {
+      const exe = mapBrowserToWinExecutable(browser)
+      if (exe) {
+        await execFileAsync(exe, [CHROME_EXTENSIONS_URL])
+        return true
+      }
+    }
+    await shell.openExternal(CHROME_EXTENSIONS_URL)
+    return true
+  } catch {
+    try {
+      await shell.openExternal(CHROME_EXTENSIONS_URL)
+      return true
+    } catch {
+      return false
+    }
+  }
+}
 
 const WINDOW_BG_DARK = '#0B0B0B'
 const WINDOW_BG_LIGHT = '#FFFFFF'
@@ -86,28 +116,59 @@ export function registerWindowHandlers(ctx: WindowContext): void {
     }
   })
 
+  ipcMain.handle('get-chrome-extension-path', async () => {
+    const path = resolveExtensionDir()
+    return { ok: !!path, path: path ?? undefined }
+  })
+
   ipcMain.handle('install-chrome-extension', async (event) => {
     const win = BrowserWindow.fromWebContents(event.sender) ?? ctx.getMainWindow() ?? undefined
-    await dialog.showMessageBox(win!, {
+    const extensionPath = resolveExtensionDir()
+    if (!extensionPath) {
+      await dialog.showMessageBox(win!, {
+        type: 'error',
+        title: 'Extension not found',
+        message: 'Could not locate the V-Download extension folder',
+        detail:
+          'If you built from source, ensure the extension/ folder exists next to the app.\n\n' +
+          'In a packaged app it should be at:\n' +
+          'V-Download.app → Contents → Resources → extension',
+        buttons: ['OK'],
+      })
+      return { ok: false, error: 'Extension folder not found' }
+    }
+
+    const openedFolder = (await shell.openPath(extensionPath)) === ''
+    const openedChrome = await openChromeExtensionsPage()
+
+    const chromeHint = openedChrome
+      ? 'Chrome Extensions should have opened.'
+      : `Open ${CHROME_EXTENSIONS_URL} in Chrome manually.`
+
+    const result = await dialog.showMessageBox(win!, {
       type: 'info',
       title: 'Install Chrome Extension',
-      message: 'How to install the V-Download Chrome Extension',
+      message: 'Extension folder ready — load it in Chrome',
       detail:
-        '1. Open Chrome and go to chrome://extensions\n' +
-        '2. Enable "Developer mode" (top right toggle)\n' +
-        '3. Click "Load unpacked"\n' +
-        '4. Select the extension folder from the V-Download app:\n\n' +
-        '   Right-click V-Download.app → Show Package Contents → Contents → Resources → extension\n\n' +
-        'Or if you cloned the repo, select the extension/ folder directly.',
-      buttons: ['Open chrome://extensions', 'OK']
-    }).then((result) => {
-      if (result.response === 0) {
-        shell.openExternal('https://chrome.google.com/extensions').catch(() => {
-          shell.openExternal('chrome://extensions').catch(() => {})
-        })
-      }
+        `1. In Chrome, enable Developer mode (top right)\n` +
+        `2. Click "Load unpacked"\n` +
+        `3. Select this folder:\n\n${extensionPath}\n\n` +
+        chromeHint,
+      buttons: openedFolder ? ['Open folder again', 'OK'] : ['OK'],
+      defaultId: openedFolder ? 1 : 0,
+      cancelId: openedFolder ? 1 : 0,
     })
-    return { ok: true }
+
+    if (openedFolder && result.response === 0) {
+      await shell.openPath(extensionPath)
+    }
+
+    return {
+      ok: true,
+      path: extensionPath,
+      openedFolder,
+      openedChrome,
+    }
   })
 
   ipcMain.handle('open-external-url', async (_event, url: unknown) => {

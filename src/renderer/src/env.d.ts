@@ -49,7 +49,14 @@ interface WindowApi {
   openSettings: () => Promise<void>
   onOpenPreferences: (callback: () => void) => () => void
   closeWindow: () => Promise<void>
-  installChromeExtension?: () => Promise<{ ok: boolean }>
+  getChromeExtensionPath?: () => Promise<{ ok: boolean; path?: string }>
+  installChromeExtension?: () => Promise<{
+    ok: boolean
+    path?: string
+    openedFolder?: boolean
+    openedChrome?: boolean
+    error?: string
+  }>
   requestBrowserCookieSync?: () => Promise<{
     ok: boolean
     openedBrowser?: boolean
