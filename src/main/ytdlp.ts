@@ -136,6 +136,10 @@ function isDouyinUrl(url: string): boolean {
   return /douyin\.com/i.test(url)
 }
 
+function isBilibiliUrl(url: string): boolean {
+  return /bilibili\.com|b23\.tv/i.test(url)
+}
+
 /** Douyin extractor often needs main-site client hints in addition to cookies. */
 function appendDouyinYtdlpArgs(url: string, args: string[], explicitReferer?: string): void {
   if (!isDouyinUrl(url)) return
@@ -153,9 +157,17 @@ function appendDouyinYtdlpArgs(url: string, args: string[], explicitReferer?: st
  * entries and yt-dlp still reports “Fresh cookies needed”.
  * Other sites: extension-synced cookies.txt when present.
  */
-function addYtdlpCookieArgs(url: string, args: string[], cookiesPath?: string): void {
+export function addYtdlpCookieArgs(url: string, args: string[], cookiesPath?: string): void {
   if (isDouyinUrl(url)) {
     args.push('--cookies-from-browser', resolvedCookiesBrowser())
+    return
+  }
+  if (isBilibiliUrl(url)) {
+    if (cookiesPath && existsSync(cookiesPath)) {
+      args.push('--cookies', cookiesPath)
+    } else {
+      args.push('--cookies-from-browser', resolvedCookiesBrowser())
+    }
     return
   }
   if (cookiesPath && existsSync(cookiesPath)) {
@@ -163,9 +175,71 @@ function addYtdlpCookieArgs(url: string, args: string[], cookiesPath?: string): 
   }
 }
 
+/** Single-page yt-dlp info — used when flat-playlist rows lack thumbnails (Bilibili). */
+export async function fetchThumbnailForPageUrl(
+  pageUrl: string,
+  cookiesPath?: string,
+  ytdlpPath?: string
+): Promise<string> {
+  const path = getYtdlpPath(ytdlpPath)
+  const args: string[] = ['--dump-json', '--no-download', '--no-warnings', '--no-check-certificate']
+  addYtdlpCookieArgs(pageUrl, args, cookiesPath)
+  appendDouyinYtdlpArgs(pageUrl, args)
+  args.push(pageUrl)
+
+  return new Promise((resolve) => {
+    const proc = spawn(path, args, { stdio: ['ignore', 'pipe', 'pipe'], env: spawnEnv() })
+    let stdout = ''
+    proc.stdout?.on('data', (chunk: Buffer) => {
+      stdout += chunk.toString()
+    })
+    proc.on('close', () => {
+      try {
+        const line = stdout.trim().split('\n').filter(Boolean).pop()
+        if (!line) {
+          resolve('')
+          return
+        }
+        const json = JSON.parse(line) as Record<string, unknown>
+        const thumbnails = json.thumbnails as Array<{ url: string }> | undefined
+        const raw = thumbnails?.[0]?.url ?? (json.thumbnail as string) ?? ''
+        resolve(normalizeThumbnailUrl(String(raw)))
+      } catch {
+        resolve('')
+      }
+    })
+    proc.on('error', () => resolve(''))
+  })
+}
+
+/** Renderer CSP allows https images only; yt-dlp often returns http:// CDN URLs (e.g. Bilibili). */
+export function normalizeThumbnailUrl(url: string): string {
+  const trimmed = url.trim()
+  if (!trimmed) return ''
+  if (trimmed.startsWith('http://')) return `https://${trimmed.slice('http://'.length)}`
+  if (trimmed.startsWith('//')) return `https:${trimmed}`
+  return trimmed
+}
+
+export function collectPlaylistMetaFromJson(
+  json: Record<string, unknown>,
+  state: { playlistTitle?: string; playlistChannel?: string; playlistCount: number }
+): void {
+  if (!state.playlistTitle && json.playlist_title) {
+    state.playlistTitle = String(json.playlist_title)
+  }
+  if (!state.playlistChannel && (json.playlist_channel || json.playlist_uploader)) {
+    state.playlistChannel = String(json.playlist_channel ?? json.playlist_uploader)
+  }
+  if (!state.playlistCount && typeof json.playlist_count === 'number') {
+    state.playlistCount = json.playlist_count
+  }
+}
+
 function parseVideoInfoFromJson(json: Record<string, unknown>): VideoInfo {
   const thumbnails = json.thumbnails as Array<{ url: string }> | undefined
-  const thumbnail = thumbnails?.[0]?.url ?? (json.thumbnail as string) ?? ''
+  const rawThumbnail = thumbnails?.[0]?.url ?? (json.thumbnail as string) ?? ''
+  const thumbnail = normalizeThumbnailUrl(rawThumbnail)
   const formats = (json.formats as Array<Record<string, unknown>>) ?? []
   const formatInfos: FormatInfo[] = formats
     .filter((f) => f.format_id && f.ext)
@@ -241,53 +315,36 @@ export async function getVideoInfo(
       }
 
       try {
-        if (isPlaylist) {
-          const lines = stdout.trim().split('\n').filter(Boolean)
-          const entries: VideoInfo[] = []
-          let playlistTitle: string | undefined
-          let playlistChannel: string | undefined
-          let playlistCount = 0
+        const lines = stdout.trim().split('\n').filter(Boolean)
+        const entries: VideoInfo[] = []
+        const playlistMeta = { playlistTitle: undefined as string | undefined, playlistChannel: undefined as string | undefined, playlistCount: 0 }
 
-          for (const line of lines) {
-            const json = JSON.parse(line) as Record<string, unknown>
-            if (json._type === 'playlist') {
-              playlistTitle = json.title as string
-              playlistCount = (json.n_entries as number) ?? 0
-            } else if (json._type === 'video' || json._type === 'url' || json.id) {
-              if (!playlistTitle && json.playlist_title) {
-                playlistTitle = json.playlist_title as string
-              }
-              if (!playlistChannel && (json.playlist_channel || json.playlist_uploader)) {
-                playlistChannel = (json.playlist_channel ?? json.playlist_uploader) as string
-              }
-              if (!playlistCount && json.playlist_count) {
-                playlistCount = json.playlist_count as number
-              }
-              entries.push(parseVideoInfoFromJson(json))
-            }
+        for (const line of lines) {
+          const json = JSON.parse(line) as Record<string, unknown>
+          if (isPlaylist && json._type === 'playlist') {
+            playlistMeta.playlistTitle = String(json.title ?? '')
+            playlistMeta.playlistCount = (json.n_entries as number) ?? 0
+            continue
           }
+          if (json._type === 'video' || json._type === 'url' || json.id) {
+            collectPlaylistMetaFromJson(json, playlistMeta)
+            entries.push(parseVideoInfoFromJson(json))
+          }
+        }
 
+        if (entries.length > 1 || (isPlaylist && entries.length > 0)) {
           resolve({
             entries,
-            playlist_title: playlistTitle,
-            playlist_channel: playlistChannel,
-            playlist_count: playlistCount || entries.length
+            playlist_title: playlistMeta.playlistTitle,
+            playlist_channel: playlistMeta.playlistChannel,
+            playlist_count: playlistMeta.playlistCount || entries.length
           })
+        } else if (entries.length === 1) {
+          resolve(entries[0]!)
+        } else if (lines.length > 0) {
+          resolve(parseVideoInfoFromJson(JSON.parse(lines[0]!) as Record<string, unknown>))
         } else {
-          const lines = stdout.trim().split('\n').filter(Boolean)
-          if (lines.length > 1) {
-            const entries: VideoInfo[] = []
-            for (const line of lines) {
-              const json = JSON.parse(line) as Record<string, unknown>
-              if (json._type === 'video' || json.id) {
-                entries.push(parseVideoInfoFromJson(json))
-              }
-            }
-            resolve({ entries, playlist_count: entries.length })
-          } else {
-            const json = JSON.parse(lines[0]) as Record<string, unknown>
-            resolve(parseVideoInfoFromJson(json))
-          }
+          reject(new Error('yt-dlp returned no video info'))
         }
       } catch (err) {
         reject(err instanceof Error ? err : new Error(String(err)))
@@ -306,6 +363,25 @@ const MERGER_REGEX = /\[Merger\]/i
 /** Strip ANSI SGR sequences so progress regexes match colored yt-dlp output. */
 function stripAnsi(s: string): string {
   return s.replace(/\x1b\[[0-9;]*m/g, '')
+}
+
+const DEST_LINE_RE = /^\[download\]\s+Destination:\s+(.+)$/
+const MERGE_LINE_RE = /^\[Merger\]\s+Merging formats into "(.+)"$/
+const ALREADY_LINE_RE = /^\[download\]\s+(.+?)\s+has already been downloaded$/
+
+function extractDestinationsFromOutput(text: string): string[] {
+  const found: string[] = []
+  for (const rawLine of text.split('\n')) {
+    const line = stripAnsi(rawLine).replace(/\r$/, '').trim()
+    if (!line) continue
+    const destMatch = DEST_LINE_RE.exec(line)
+    if (destMatch) found.push(destMatch[1].trim())
+    const mergeMatch = MERGE_LINE_RE.exec(line)
+    if (mergeMatch) found.push(mergeMatch[1].trim())
+    const alreadyMatch = ALREADY_LINE_RE.exec(line)
+    if (alreadyMatch) found.push(alreadyMatch[1].trim())
+  }
+  return found
 }
 
 /**
@@ -442,15 +518,16 @@ export function download(
 
   let onProgress: (progress: DownloadProgress) => void = progressCb ?? (() => {})
 
-  let outputTemplate: string
+  // Relative -o is required: yt-dlp ignores --paths temp when -o is absolute (fragments land in outputDir).
+  let outputFilenameTemplate: string
   if (isPlaylist && playlistTitle) {
-    /** `outputDir` is already the per-playlist folder when the app uses playlist subfolders. */
-    outputTemplate = join(outputDir, '%(playlist_index)03d - %(title)s.%(ext)s')
+    outputFilenameTemplate = '%(playlist_index)03d - %(title)s.%(ext)s'
   } else if (outputTitle) {
     const sanitized = outputTitle.replace(/[/\\?*:|"<>]/g, '-')
-    outputTemplate = join(outputDir, `${sanitized}.%(ext)s`)
+    outputFilenameTemplate = `${sanitized}.%(ext)s`
   } else {
-    outputTemplate = join(outputDir, '%(title)s.%(ext)s')
+    // [%(id)s] avoids collisions when different videos share the same title (common on X/Twitter).
+    outputFilenameTemplate = '%(title).200B [%(id)s].%(ext)s'
   }
 
   /** Direct CDN / sniffed URLs from the browser extension — not multi-format player pages. */
@@ -481,8 +558,9 @@ export function download(
     '--continue',
     ...(mergeOutputMp4 ? (['--merge-output-format', 'mp4'] as const) : []),
     '-f', formatStr,
-    '-o', outputTemplate,
+    '--paths', outputDir,
     '--paths', `temp:${getYtdlpTempDir()}`,
+    '-o', outputFilenameTemplate,
     '--no-warnings',
     '--no-check-certificate'
   ]
@@ -560,17 +638,15 @@ export function download(
   })
 
   let currentPhase = ''
+  let stdoutBuf = ''
   let stderrBuf = ''
   const destinations: string[] = []
 
-  const DEST_RE = /^\[download\]\s+Destination:\s+(.+)$/
-  const MERGE_RE = /^\[Merger\]\s+Merging formats into "(.+)"$/
-
   const parseLine = (line: string) => {
-    const destMatch = DEST_RE.exec(line)
-    if (destMatch) destinations.push(destMatch[1].trim())
-    const mergeMatch = MERGE_RE.exec(line)
-    if (mergeMatch) destinations.push(mergeMatch[1].trim())
+    const plain = stripAnsi(line).replace(/\r$/, '')
+    for (const dest of extractDestinationsFromOutput(plain)) {
+      destinations.push(dest)
+    }
 
     const result = parseProgressLine(line, currentPhase)
     if (result.phase) {
@@ -582,7 +658,9 @@ export function download(
   }
 
   proc.stdout?.on('data', (chunk: Buffer) => {
-    for (const line of chunk.toString().split('\n')) {
+    const text = chunk.toString()
+    stdoutBuf += text
+    for (const line of text.split('\n')) {
       parseLine(line)
     }
   })
@@ -608,7 +686,11 @@ export function download(
       }
     },
     getStderr: () => stderrBuf,
-    getDestinations: () => [...destinations]
+    getOutput: () => `${stdoutBuf}\n${stderrBuf}`,
+    getDestinations: () => {
+      const fromBuffers = extractDestinationsFromOutput(`${stdoutBuf}\n${stderrBuf}`)
+      return [...new Set([...destinations, ...fromBuffers])]
+    }
   }
 
   return downloadProcess

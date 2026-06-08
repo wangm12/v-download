@@ -4,6 +4,7 @@ import type { VideoInfo, SettingsData } from '@/types'
 import { formatDuration, formatViews } from '@/utils/format'
 import { isDouyinProfileHomeUrl } from '@/utils/douyinBulk'
 import { HoverHintWrap } from './HoverHintWrap'
+import { ThumbnailImage } from './ThumbnailImage'
 
 interface FormatDialogProps {
   videoInfo: VideoInfo
@@ -44,10 +45,13 @@ export function FormatDialog({
   const [downloadDir, setDownloadDir] = useState(settings.downloadDir)
   const [bulkNote, setBulkNote] = useState('')
   const [bulkBusy, setBulkBusy] = useState(false)
-  const isDouyinGallery = videoInfo._type === 'douyin_gallery' && Array.isArray(videoInfo.image_urls)
-  const galleryCount = isDouyinGallery ? videoInfo.image_urls!.length : 0
+  const isImageGallery =
+    (videoInfo._type === 'douyin_gallery' || videoInfo._type === 'xhs_gallery') &&
+    Array.isArray(videoInfo.image_urls)
+  const galleryCount = isImageGallery ? videoInfo.image_urls!.length : 0
+  const galleryLabel = videoInfo._type === 'xhs_gallery' ? 'Xiaohongshu' : 'Douyin'
   const pageUrl = videoInfo.webpage_url || ''
-  const showDouyinBulkHint = !isDouyinGallery && isDouyinProfileHomeUrl(pageUrl)
+  const showDouyinBulkHint = !isImageGallery && isDouyinProfileHomeUrl(pageUrl)
   const bulkConfigured = Boolean(
     (settings.douyinBulkRunPyPath ?? '').trim() && (settings.douyinBulkConfigPath ?? '').trim()
   )
@@ -114,22 +118,24 @@ export function FormatDialog({
             </button>
           </HoverHintWrap>
           <div className="w-20 h-[45px] rounded-md overflow-hidden bg-surface flex-shrink-0">
-            {videoInfo.thumbnail ? (
-              <img src={videoInfo.thumbnail} alt="" className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-elevated to-surface" />
-            )}
+            <ThumbnailImage src={videoInfo.thumbnail} referer={pageUrl || undefined} />
           </div>
           <div className="min-w-0 pr-6">
             <p className="text-sm font-semibold text-foreground truncate">
-              {videoInfo.channel || videoInfo.title}
+              {videoInfo.playlist_count
+                ? (videoInfo.playlist_title || videoInfo.title)
+                : videoInfo.title}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               {videoInfo.playlist_count
-                ? `${videoInfo.playlist_count} videos`
+                ? <>
+                    {videoInfo.channel ? `${videoInfo.channel} · ` : ''}
+                    {videoInfo.playlist_count} videos
+                  </>
                 : <>
-                    {videoInfo.title !== videoInfo.channel ? videoInfo.title : ''}
-                    {videoInfo.duration > 0 && ` · ${formatDuration(videoInfo.duration)}`}
+                    {videoInfo.channel && videoInfo.channel !== videoInfo.title ? videoInfo.channel : ''}
+                    {videoInfo.channel && videoInfo.channel !== videoInfo.title && videoInfo.duration > 0 ? ' · ' : ''}
+                    {videoInfo.duration > 0 && formatDuration(videoInfo.duration)}
                     {videoInfo.view_count > 0 && ` · ${formatViews(videoInfo.view_count)}`}
                   </>
               }
@@ -138,7 +144,7 @@ export function FormatDialog({
         </div>
 
         {/* Tabs */}
-        {!isDouyinGallery && (
+        {!isImageGallery && (
           <div className="flex bg-surface px-5 h-10 items-center gap-0">
             {tabs.map((tab) => {
               const Icon = tab.icon
@@ -163,10 +169,10 @@ export function FormatDialog({
 
         {/* Table */}
         <div className="px-5 max-h-[300px] overflow-y-auto">
-          {isDouyinGallery ? (
+          {isImageGallery ? (
             <div className="py-5 space-y-4">
               <div className="rounded-lg border border-border bg-elevated/40 px-4 py-3">
-                <p className="text-sm font-medium text-foreground">Douyin image gallery</p>
+                <p className="text-sm font-medium text-foreground">{galleryLabel} image gallery</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   This post contains {galleryCount} image{galleryCount === 1 ? '' : 's'} and will be saved as numbered files.
                 </p>

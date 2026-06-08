@@ -1,5 +1,6 @@
 import { spawn, execSync } from 'child_process'
-import { existsSync, readdirSync, statSync } from 'fs'
+import { existsSync, mkdirSync, readdirSync, statSync } from 'fs'
+import { tmpdir } from 'os'
 import { join, resolve } from 'path'
 import { config } from './config.js'
 
@@ -221,7 +222,9 @@ export function download(
   formatOverride?: string,
 ): { promise: Promise<string>; cancel: () => void } {
   const ytdlp = getYtdlpPath()
-  const outputTemplate = join(outputDir, '%(title)s.%(ext)s')
+  const outputFilenameTemplate = '%(title)s.%(ext)s'
+  const ytdlpTempDir = join(tmpdir(), 'vdl-server', 'yt-dlp-temp')
+  mkdirSync(ytdlpTempDir, { recursive: true })
   const formatStr = formatOverride ?? 'bv[height<=1080][ext=mp4]+ba[ext=m4a]/bv[height<=1080]+ba/best[height<=1080]/bestvideo+bestaudio/best'
   console.log(`[ytdlp] Download format: ${formatStr}`)
 
@@ -230,7 +233,9 @@ export function download(
     '--continue',
     '--merge-output-format', 'mp4',
     '-f', formatStr,
-    '-o', outputTemplate,
+    '--paths', outputDir,
+    '--paths', `temp:${ytdlpTempDir}`,
+    '-o', outputFilenameTemplate,
     '--no-warnings',
     '--no-check-certificate',
     '--no-playlist',

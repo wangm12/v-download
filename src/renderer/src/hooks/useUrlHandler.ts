@@ -1,7 +1,9 @@
 import { useState, useCallback, useRef } from 'react'
 import type { VideoInfo, SettingsData } from '@/types'
-import { extractUrlFromClipboard, isMediaUrl, isYouTubeUrl, filenameFromUrl, isPlaylistUrl } from '@/utils/youtube'
+import { extractUrlFromClipboard, isMediaUrl, isYouTubeUrl, filenameFromUrl } from '@/utils/youtube'
 import { isDouyinProfileHomeUrl } from '@/utils/douyinBulk'
+import { shouldOpenCollectionPicker } from '@/utils/collectionPicker'
+import { normalizeThumbnailUrl } from '@/utils/thumbnail'
 import type { DetectedMedia } from '@/components/MediaPickerDialog'
 
 interface PendingPlaylistMeta {
@@ -69,6 +71,8 @@ export function useUrlHandler(settings: SettingsData) {
   const [showFormatDialog, setShowFormatDialog] = useState(false)
   const [showDouyinProfilePicker, setShowDouyinProfilePicker] = useState(false)
   const [douyinProfileUrl, setDouyinProfileUrl] = useState('')
+  const [showCollectionPicker, setShowCollectionPicker] = useState(false)
+  const [collectionPickerUrl, setCollectionPickerUrl] = useState('')
   const [pendingVideoInfo, setPendingVideoInfo] = useState<VideoInfo | null>(null)
   const [pendingEntries, setPendingEntries] = useState<VideoInfo[] | null>(null)
   const [pendingPlaylistMeta, setPendingPlaylistMeta] = useState<PendingPlaylistMeta | null>(null)
@@ -120,6 +124,8 @@ export function useUrlHandler(settings: SettingsData) {
     setShowFormatDialog(false)
     setShowDouyinProfilePicker(false)
     setDouyinProfileUrl('')
+    setShowCollectionPicker(false)
+    setCollectionPickerUrl('')
     setPendingVideoInfo(null)
     setPendingEntries(null)
     setPendingPlaylistMeta(null)
@@ -130,6 +136,13 @@ export function useUrlHandler(settings: SettingsData) {
   const closeDouyinProfilePicker = useCallback(() => {
     setShowDouyinProfilePicker(false)
     setDouyinProfileUrl('')
+    dialogOpenRef.current = false
+    advanceQueue()
+  }, [advanceQueue])
+
+  const closeCollectionPicker = useCallback(() => {
+    setShowCollectionPicker(false)
+    setCollectionPickerUrl('')
     dialogOpenRef.current = false
     advanceQueue()
   }, [advanceQueue])
@@ -191,6 +204,16 @@ export function useUrlHandler(settings: SettingsData) {
         return
       }
 
+      if (shouldOpenCollectionPicker(url)) {
+        setCollectionPickerUrl(url.trim())
+        setShowCollectionPicker(true)
+        dialogOpenRef.current = true
+        setLoading(false)
+        setLoadingPhase('')
+        busyRef.current = false
+        return
+      }
+
       const res = await window.api.getVideoInfo(url)
       const resObj = res as { data?: unknown; error?: string }
       if (resObj?.error) {
@@ -244,88 +267,38 @@ export function useUrlHandler(settings: SettingsData) {
       const infoObj = info as Record<string, unknown>
       const entries = infoObj?.entries as unknown[] | undefined
 
-      if (Array.isArray(entries) && entries.length > 0) {
-        const allEntries = entries.map((e) => {
-          const eo = e as Record<string, unknown>
-          return {
-            id: String(eo.id ?? ''),
-            title: String(eo.title ?? ''),
-            thumbnail: String(eo.thumbnail ?? ''),
-            duration: Number(eo.duration ?? 0),
-            channel: String(eo.channel ?? ''),
-            view_count: Number(eo.view_count ?? 0),
-            webpage_url: String(eo.webpage_url ?? eo.url ?? '')
-          } as VideoInfo
-        })
-        const playlistChannel = String(infoObj.playlist_channel ?? allEntries[0]?.channel ?? '')
-        const playlistTitle = String(infoObj.playlist_title ?? (playlistChannel || 'Playlist'))
+      if (Array.isArray(entries) && entries.length > 1) {
+        setCollectionPickerUrl(url.trim())
+        setShowCollectionPicker(true)
+        dialogOpenRef.current = true
+        setLoading(false)
+        setLoadingPhase('')
+        busyRef.current = false
+        return
+      }
 
-        if (settings.showFormatDialog) {
-          const summary: VideoInfo = {
-            ...allEntries[0],
-            title: playlistTitle,
-            channel: playlistChannel,
-            playlist_title: playlistTitle,
-            playlist_count: allEntries.length
-          }
-          setPendingVideoInfo(summary)
-          setPendingEntries(allEntries)
-          setPendingPlaylistMeta({ title: playlistTitle, url })
-          setShowFormatDialog(true)
-          dialogOpenRef.current = true
-        } else {
-          const useNativePlaylist =
-            settings.youtubePlaylistMode === 'native' && isPlaylistUrl(url)
-          if (useNativePlaylist) {
-            await window.api.startDownload({
-              url,
-              title: playlistTitle,
-              format: 'video',
-              quality: settings.defaultVideoQuality,
-              thumbnail: allEntries[0]?.thumbnail,
-              duration: allEntries[0]?.duration ?? 0,
-              playlistId: playlistTitle,
-              metadata: {
-                nativeYoutubePlaylist: true,
-                channel: playlistChannel
-              }
-            })
-          } else {
-            for (let i = 0; i < allEntries.length; i++) {
-              const entry = allEntries[i]
-              const videoUrl = entry.webpage_url || `https://www.youtube.com/watch?v=${entry.id}`
-              await window.api.startDownload({
-                url: videoUrl,
-                title: entry.title,
-                format: 'video',
-                quality: settings.defaultVideoQuality,
-                thumbnail: entry.thumbnail,
-                duration: entry.duration,
-                playlistId: playlistTitle,
-                playlistIndex: i,
-                playlistTitle
-              })
-            }
-          }
-        }
-      } else {
+      {
         const galleryUrls = infoObj?.image_urls
-        const isDouyinGalleryInfo =
-          infoObj?._type === 'douyin_gallery' && Array.isArray(galleryUrls) && galleryUrls.length > 0
+        const galleryType = infoObj?._type
+        const isImageGalleryInfo =
+          (galleryType === 'douyin_gallery' || galleryType === 'xhs_gallery') &&
+          Array.isArray(galleryUrls) &&
+          galleryUrls.length > 0
 
-        if (isDouyinGalleryInfo) {
-          const galleryTitle = String(infoObj?.title ?? 'douyin')
+        if (isImageGalleryInfo) {
+          const galleryTitle = String(infoObj?.title ?? 'gallery')
           const galleryChannel = String(infoObj?.channel ?? '')
+          const imageMetaKey = galleryType === 'xhs_gallery' ? 'xhsImageUrls' : 'douyinImageUrls'
           if (settings.showFormatDialog) {
             const gallerySummary: VideoInfo = {
               id: String(infoObj?.id ?? ''),
               title: galleryTitle,
-              thumbnail: String(infoObj?.thumbnail ?? ''),
+              thumbnail: normalizeThumbnailUrl(String(infoObj?.thumbnail ?? '')),
               duration: 0,
               channel: galleryChannel,
               view_count: 0,
               webpage_url: String(infoObj?.webpage_url ?? url),
-              _type: 'douyin_gallery',
+              _type: String(galleryType),
               image_urls: galleryUrls as string[]
             }
             setPendingVideoInfo(gallerySummary)
@@ -339,10 +312,10 @@ export function useUrlHandler(settings: SettingsData) {
               title: galleryTitle,
               format: 'video',
               quality: settings.defaultVideoQuality,
-              thumbnail: String(infoObj?.thumbnail ?? ''),
+              thumbnail: normalizeThumbnailUrl(String(infoObj?.thumbnail ?? '')),
               duration: 0,
               metadata: {
-                douyinImageUrls: galleryUrls as string[],
+                [imageMetaKey]: galleryUrls as string[],
                 channel: galleryChannel
               }
             })
@@ -351,7 +324,7 @@ export function useUrlHandler(settings: SettingsData) {
           const videoInfo: VideoInfo = {
             id: String(infoObj?.id ?? ''),
             title: String(infoObj?.title ?? ''),
-            thumbnail: String(infoObj?.thumbnail ?? ''),
+            thumbnail: normalizeThumbnailUrl(String(infoObj?.thumbnail ?? '')),
             duration: Number(infoObj?.duration ?? 0),
             channel: String(infoObj?.channel ?? ''),
             view_count: Number(infoObj?.view_count ?? 0),
@@ -371,7 +344,8 @@ export function useUrlHandler(settings: SettingsData) {
               format: 'video',
               quality: settings.defaultVideoQuality,
               thumbnail: videoInfo.thumbnail,
-              duration: videoInfo.duration
+              duration: videoInfo.duration,
+              metadata: videoInfo.id ? { ytdlpId: videoInfo.id } : undefined
             })
           }
         }
@@ -453,6 +427,8 @@ export function useUrlHandler(settings: SettingsData) {
     showFormatDialog,
     showDouyinProfilePicker,
     douyinProfileUrl,
+    showCollectionPicker,
+    collectionPickerUrl,
     pendingVideoInfo,
     pendingEntries,
     pendingPlaylistMeta,
@@ -467,6 +443,7 @@ export function useUrlHandler(settings: SettingsData) {
     clearSniffed,
     clearQueue,
     setShowFormatDialog,
-    closeDouyinProfilePicker
+    closeDouyinProfilePicker,
+    closeCollectionPicker
   }
 }

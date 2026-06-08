@@ -17,6 +17,10 @@ import {
   isDouyinGallery,
   isDouyinAbortError,
 } from './douyin'
+import {
+  downloadXiaohongshuImageGallery,
+  isXhsAbortError,
+} from './xiaohongshu'
 import * as dockProgress from './dockProgress'
 import { dirname } from 'path'
 import { stat, readdir, unlink, rm } from 'fs/promises'
@@ -24,6 +28,95 @@ import { join } from 'path'
 import { sanitizeDownloadBasename } from './sanitizeDownloadBasename'
 
 const MIN_DOUYIN_OUTPUT_BYTES = 512
+const MIN_YTDLP_OUTPUT_BYTES = 512
+
+function ytdlpMediaIdFromOutput(output: string): string {
+  const m = output.match(/\[info\]\s+(\d+):\s+Downloading/i)
+  return m?.[1]?.trim() ?? ''
+}
+
+async function findYtdlpOutputByIdMarker(
+  outDir: string,
+  ytdlpId: string,
+  outputExtGuess: string
+): Promise<{ path: string; size: number } | null> {
+  const marker = `[${ytdlpId}]`
+  const exts = new Set(
+    outputExtGuess === 'mp3'
+      ? ['mp3', 'm4a', 'opus', 'webm']
+      : ['mp4', 'mkv', 'webm', 'm4a']
+  )
+  try {
+    const files = await readdir(outDir)
+    for (const f of files) {
+      if (!f.includes(marker)) continue
+      const dot = f.lastIndexOf('.')
+      if (dot < 1) continue
+      if (!exts.has(f.slice(dot + 1).toLowerCase())) continue
+      const p = join(outDir, f)
+      try {
+        const st = await stat(p)
+        if (st.isFile() && st.size >= MIN_YTDLP_OUTPUT_BYTES) {
+          return { path: p, size: st.size }
+        }
+      } catch {
+        /* skip */
+      }
+    }
+  } catch {
+    /* dir missing */
+  }
+  return null
+}
+
+async function tryAdoptExistingYtdlpOutput(
+  task: DownloadTask,
+  outDir: string,
+  cookiesPath: string | undefined,
+  ytdlpPath: string | undefined,
+  outputExtGuess: string
+): Promise<boolean> {
+  const taskMeta = task.metadata as Record<string, unknown> | undefined
+  if (taskMeta?.douyinImageUrls || taskMeta?.xhsImageUrls) return false
+
+  let ytdlpId = String(taskMeta?.ytdlpId ?? '').trim()
+  if (!ytdlpId) {
+    try {
+      const info = await ytdlp.getVideoInfo(task.url, cookiesPath || undefined, ytdlpPath)
+      const row = info as { id?: string }
+      ytdlpId = String(row?.id ?? '').trim()
+      if (ytdlpId) {
+        const merged = { ...(taskMeta ?? {}), ytdlpId }
+        task.metadata = merged
+        db.updateDownload(task.id, { extras: serializeExtras(merged) })
+      }
+    } catch {
+      return false
+    }
+  }
+  if (!ytdlpId) return false
+
+  const hit = await findYtdlpOutputByIdMarker(outDir, ytdlpId, outputExtGuess)
+  if (!hit || isTaskAborted(task.id)) return false
+
+  task.filePath = hit.path
+  task.status = 'complete'
+  task.progress = 100
+  task.error = null
+  task.updatedAt = new Date().toISOString()
+  taskExtraMeta.delete(task.id)
+  db.updateDownload(task.id, {
+    status: 'complete',
+    progress: 100,
+    file_path: hit.path,
+    file_size: hit.size,
+    error: null,
+    extras: serializeExtras(task.metadata as Record<string, unknown> | undefined)
+  })
+  emitProgress(task)
+  console.log(`[runTask] adopted existing yt-dlp file id=${task.id.slice(0, 8)} path=${hit.path}`)
+  return true
+}
 
 async function tryAdoptExistingDouyinOutput(task: DownloadTask, outDir: string): Promise<boolean> {
   if (!isDouyinUrl(task.url)) return false
@@ -176,6 +269,7 @@ function serializeExtras(metadata?: Record<string, unknown>): string | null {
   const out: Record<string, unknown> = {}
   if (metadata.nativeYoutubePlaylist === true) out.nativeYoutubePlaylist = true
   if (Array.isArray(metadata.douyinImageUrls)) out.douyinImageUrls = metadata.douyinImageUrls
+  if (Array.isArray(metadata.xhsImageUrls)) out.xhsImageUrls = metadata.xhsImageUrls
   // Persist direct-media fields so retry / app restart still routes ffmpeg-first like the original enqueue.
   if (typeof metadata.mediaType === 'string' && metadata.mediaType.trim()) {
     out.mediaType = metadata.mediaType.trim()
@@ -197,6 +291,9 @@ function serializeExtras(metadata?: Record<string, unknown>): string | null {
     out.douyinProfileBatchSize = metadata.douyinProfileBatchSize
   }
   if (typeof metadata.playlistTitle === 'string') out.playlistTitle = metadata.playlistTitle
+  if (typeof metadata.ytdlpId === 'string' && metadata.ytdlpId.trim()) {
+    out.ytdlpId = metadata.ytdlpId.trim()
+  }
   return Object.keys(out).length ? JSON.stringify(out) : null
 }
 
@@ -774,15 +871,22 @@ async function runTask(task: DownloadTask): Promise<void> {
   if (stopIfAborted()) return
 
   const douyinImageUrls = taskMeta?.douyinImageUrls as string[] | undefined
+  const xhsImageUrls = taskMeta?.xhsImageUrls as string[] | undefined
   const galleryFetchOpts = { signal: getTaskAbortSignal(task.id) }
-  if (douyinImageUrls && douyinImageUrls.length > 0) {
+  const galleryImageUrls = douyinImageUrls?.length ? douyinImageUrls : xhsImageUrls
+  const galleryDownloader = douyinImageUrls?.length
+    ? downloadDouyinImageGallery
+    : xhsImageUrls?.length
+      ? downloadXiaohongshuImageGallery
+      : null
+  if (galleryImageUrls && galleryImageUrls.length > 0 && galleryDownloader) {
     task.status = 'downloading'
     task.updatedAt = new Date().toISOString()
     db.updateDownload(task.id, { status: 'downloading', progress: 1 })
     emitProgress(task)
     try {
-      const dir = await downloadDouyinImageGallery(
-        douyinImageUrls,
+      const dir = await galleryDownloader(
+        galleryImageUrls,
         outDir,
         task.title,
         cookiesPath || undefined,
@@ -824,7 +928,7 @@ async function runTask(task: DownloadTask): Promise<void> {
       })
       emitProgress(task)
     } catch (e) {
-      if (stopIfAborted() || isDouyinAbortError(e)) return
+      if (stopIfAborted() || isDouyinAbortError(e) || isXhsAbortError(e)) return
       task.status = 'error'
       task.error = e instanceof Error ? e.message : String(e)
       task.progress = 0
@@ -853,6 +957,16 @@ async function runTask(task: DownloadTask): Promise<void> {
         : 'mp4'
   const sanitizedTitle = task.title.replace(/[/\\?*:|"<>]/g, '-')
   const expectedPath = join(outDir, `${sanitizedTitle}.${outputExtGuess}`)
+
+  if (!mediaType && !useNativePlaylist) {
+    if (await tryAdoptExistingYtdlpOutput(task, outDir, cookiesPath || undefined, ytdlpPath, outputExtGuess)) {
+      if (stopIfAborted()) return
+      releaseSlot()
+      processQueue()
+      return
+    }
+    if (stopIfAborted()) return
+  }
 
   const directEngine = settings.get('directMediaEngine')
   const speedMode = settings.get('downloadSpeedMode')
@@ -1175,7 +1289,15 @@ async function runTask(task: DownloadTask): Promise<void> {
       const expectedPathAlt =
         mediaType === 'jpeg' ? join(outDir, `${sanitizedTitle}.jpeg`) : null
 
-      const MIN_OUTPUT_BYTES = 512
+      const MIN_OUTPUT_BYTES = MIN_YTDLP_OUTPUT_BYTES
+      const ytdlpOutput = dp.getOutput?.() ?? dp.getStderr()
+      const ytdlpId = String(taskMeta?.ytdlpId ?? ytdlpMediaIdFromOutput(ytdlpOutput)).trim()
+      const idMarker = ytdlpId ? `[${ytdlpId}]` : ''
+      if (ytdlpId && !taskMeta?.ytdlpId) {
+        const merged = { ...(taskMeta ?? {}), ytdlpId }
+        task.metadata = merged
+        db.updateDownload(task.id, { extras: serializeExtras(merged) })
+      }
 
       const tryStat = async (p: string): Promise<{ path: string; size: number } | null> => {
         try {
@@ -1187,8 +1309,13 @@ async function runTask(task: DownloadTask): Promise<void> {
         return null
       }
 
+      const destinationMatchesTask = (p: string): boolean => {
+        if (!idMarker) return true
+        return p.includes(idMarker)
+      }
+
       // 1) Paths yt-dlp reported on stdout (authoritative when present)
-      const dests = dp.getDestinations?.() ?? []
+      const dests = (dp.getDestinations?.() ?? []).filter(destinationMatchesTask)
       for (let i = dests.length - 1; i >= 0; i--) {
         const hit = await tryStat(dests[i])
         if (hit) {
@@ -1198,7 +1325,16 @@ async function runTask(task: DownloadTask): Promise<void> {
         }
       }
 
-      // 2) Expected basename from our -o template
+      // 2) Filename contains yt-dlp video id (matches our default -o template)
+      if (!filePath && ytdlpId) {
+        const hit = await findYtdlpOutputByIdMarker(outDir, ytdlpId, outputExtGuess)
+        if (hit) {
+          filePath = hit.path
+          fileSize = hit.size
+        }
+      }
+
+      // 3) Expected basename from our -o template
       if (!filePath) {
         const hit = await tryStat(expectedPath)
         if (hit) {
@@ -1213,7 +1349,7 @@ async function runTask(task: DownloadTask): Promise<void> {
         }
       }
 
-      // 3) Same directory, same title prefix only (never "newest mp4 in folder" — that mis-attributes unrelated files)
+      // 4) Same directory, same title prefix only (never "newest mp4 in folder" — that mis-attributes unrelated files)
       if (!filePath) {
         try {
           const files = await readdir(outDir)
@@ -1495,7 +1631,7 @@ async function deleteTaskFilesForRecord(
       for (const base of knownBases) {
         if (
           f.startsWith(base) &&
-          (f.endsWith('.part') || f.endsWith('.ytdl') ||
+          (f.endsWith('.part') || f.endsWith('.ytdl') || /\.part-Frag\d+$/i.test(f) ||
            /\.f\d+\.\w+$/.test(f) || /\.f\d+\.\w+\.part$/.test(f) ||
            f === `${base}.${ext}` || f === `${base}.mp4` || f === `${base}.webm`)
         ) {

@@ -2,6 +2,11 @@ import { contextBridge, ipcRenderer } from 'electron'
 
 const api = {
   getVideoInfo: (url: string) => ipcRenderer.invoke('get-video-info', url),
+  listPlaylistEntries: (url: string) => ipcRenderer.invoke('list-playlist-entries', url),
+  getEntryThumbnail: (pageUrl: string) => ipcRenderer.invoke('get-entry-thumbnail', pageUrl),
+  openExternalUrl: (url: string) => ipcRenderer.invoke('open-external-url', url),
+  fetchThumbnailDataUrl: (url: string, referer?: string) =>
+    ipcRenderer.invoke('fetch-thumbnail-data-url', url, referer),
   startDownload: (options: {
     url: string
     title: string

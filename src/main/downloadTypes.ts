@@ -16,5 +16,7 @@ export interface DownloadProcess {
   onProgress: (cb: (progress: DownloadProgress) => void) => void
   cancel: () => void
   getStderr: () => string
+  /** Full yt-dlp stdout + stderr (for post-close destination / id parsing). */
+  getOutput?: () => string
   getDestinations: () => string[]
 }

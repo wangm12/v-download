@@ -6,6 +6,7 @@ import { DownloadItem } from '@/components/DownloadItem'
 import { PlaylistGroup } from '@/components/PlaylistGroup'
 import { FormatDialog } from '@/components/FormatDialog'
 import { DouyinProfilePickerDialog } from '@/components/DouyinProfilePickerDialog'
+import { CollectionPickerDialog } from '@/components/CollectionPickerDialog'
 import { MediaPickerDialog } from '@/components/MediaPickerDialog'
 import type { DetectedMedia } from '@/components/MediaPickerDialog'
 import { ClearDialog } from '@/components/ClearDialog'
@@ -111,6 +112,8 @@ function MainApp() {
     showFormatDialog,
     showDouyinProfilePicker,
     douyinProfileUrl,
+    showCollectionPicker,
+    collectionPickerUrl,
     pendingVideoInfo,
     pendingEntries,
     pendingPlaylistMeta,
@@ -124,7 +127,8 @@ function MainApp() {
     clearSniffed,
     clearQueue,
     setShowFormatDialog,
-    closeDouyinProfilePicker
+    closeDouyinProfilePicker,
+    closeCollectionPicker
   } = useUrlHandler(settings)
 
   const [searchQuery, setSearchQuery] = useState('')
@@ -353,7 +357,8 @@ function MainApp() {
               duration: entry.duration,
               playlistId: playlistTitle,
               playlistIndex: i,
-              playlistTitle
+              playlistTitle,
+              metadata: entry.id ? { ytdlpId: entry.id } : undefined
             })
           }
         }
@@ -361,8 +366,10 @@ function MainApp() {
         const title = pendingVideoInfo?.title ?? 'Unknown'
         const pageUrl = pendingVideoInfo?.webpage_url ?? _url
         const imgs = pendingVideoInfo?.image_urls
+        const galleryType = pendingVideoInfo?._type
         const isGallery =
-          pendingVideoInfo?._type === 'douyin_gallery' && imgs && imgs.length > 0
+          (galleryType === 'douyin_gallery' || galleryType === 'xhs_gallery') && imgs && imgs.length > 0
+        const imageMetaKey = galleryType === 'xhs_gallery' ? 'xhsImageUrls' : 'douyinImageUrls'
 
         await window.api.startDownload({
           url: pageUrl,
@@ -373,12 +380,13 @@ function MainApp() {
           duration: pendingVideoInfo?.duration,
           metadata: isGallery
             ? {
-                douyinImageUrls: imgs,
+                [imageMetaKey]: imgs,
                 channel: pendingVideoInfo?.channel ?? ''
               }
-            : pendingVideoInfo?.channel
-              ? { channel: pendingVideoInfo.channel }
-              : undefined
+            : {
+                ...(pendingVideoInfo?.channel ? { channel: pendingVideoInfo.channel } : {}),
+                ...(pendingVideoInfo?.id ? { ytdlpId: pendingVideoInfo.id } : {})
+              }
         })
       }
 
@@ -649,6 +657,14 @@ function MainApp() {
             profileUrl={douyinProfileUrl}
             settings={settings}
             onClose={closeDouyinProfilePicker}
+          />
+        ) : null}
+
+        {showCollectionPicker && collectionPickerUrl ? (
+          <CollectionPickerDialog
+            sourceUrl={collectionPickerUrl}
+            settings={settings}
+            onClose={closeCollectionPicker}
           />
         ) : null}
 

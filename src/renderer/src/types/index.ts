@@ -55,7 +55,7 @@ export interface VideoInfo {
   _type?: string
   playlist_title?: string
   playlist_count?: number
-  /** Douyin image note / gallery — passed through format dialog for metadata.douyinImageUrls */
+  /** Douyin / Xiaohongshu image note — passed through format dialog for gallery metadata */
   image_urls?: string[]
 }
 
@@ -97,6 +97,23 @@ export interface SettingsData {
   turboRiskAcknowledged?: boolean
   /** Optional yt-dlp `--downloader` name (e.g. aria2c). Empty = built-in. */
   ytdlpExternalDownloader?: string
+}
+
+export interface PlaylistEntryRow {
+  id: string
+  title: string
+  channel: string
+  thumbnail: string
+  duration: number
+  pageUrl: string
+  playlistIndex?: number
+}
+
+export interface PlaylistListResult {
+  items: PlaylistEntryRow[]
+  playlistTitle: string
+  playlistChannel: string
+  sourceUrl: string
 }
 
 export type DouyinProfileMediaType = 'video' | 'note' | 'gallery'

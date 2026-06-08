@@ -15,6 +15,10 @@ interface StartDownloadOptions {
 
 interface WindowApi {
   getVideoInfo: (url: string) => Promise<{ data?: unknown; error?: string }>
+  listPlaylistEntries: (url: string) => Promise<{ data?: unknown; error?: string }>
+  getEntryThumbnail: (pageUrl: string) => Promise<{ data?: string; error?: string }>
+  openExternalUrl: (url: string) => Promise<{ ok?: boolean; error?: string }>
+  fetchThumbnailDataUrl: (url: string, referer?: string) => Promise<{ data?: string; error?: string }>
   startDownload: (options: StartDownloadOptions) => Promise<{ data?: unknown; error?: string }>
   cancelDownload: (id: string) => Promise<{ cancelled: boolean }>
   pauseDownload: (id: string) => Promise<{ paused: boolean }>

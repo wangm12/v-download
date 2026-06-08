@@ -110,6 +110,19 @@ export function registerWindowHandlers(ctx: WindowContext): void {
     return { ok: true }
   })
 
+  ipcMain.handle('open-external-url', async (_event, url: unknown) => {
+    try {
+      const parsed = new URL(String(url ?? ''))
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        return { ok: false, error: 'Invalid URL' }
+      }
+      await shell.openExternal(parsed.toString())
+      return { ok: true }
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) }
+    }
+  })
+
   ipcMain.handle('open-douyin-profile-url', async (_event, profileUrl: unknown) => {
     if (typeof profileUrl !== 'string' || !profileUrl.trim()) {
       return { ok: false, error: 'Invalid profile URL' }

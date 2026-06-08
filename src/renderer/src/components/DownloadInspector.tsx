@@ -12,6 +12,7 @@ import type { Download, DownloadActions } from '@/types'
 import { useDownloadActions } from '@/contexts/DownloadActionsContext'
 import { formatDuration, formatFileSize } from '@/utils/format'
 import { cn } from '@/lib/cn'
+import { ThumbnailImage } from './ThumbnailImage'
 
 function statusLabel(status: Download['status']): string {
   switch (status) {
@@ -133,11 +134,7 @@ function InspectorDetailBody({
       className={cn('flex min-h-0 min-w-0 flex-1 flex-col gap-4', 'animate-panel-fade-in motion-reduce:animate-none')}
     >
       <div className="aspect-video w-full rounded-card overflow-hidden bg-raised border border-border shrink-0">
-        {thumbnail ? (
-          <img src={thumbnail} alt="" className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-elevated to-surface" />
-        )}
+        <ThumbnailImage src={thumbnail} referer={url || undefined} />
       </div>
 
       <div className="min-w-0">

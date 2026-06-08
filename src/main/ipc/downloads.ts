@@ -2,11 +2,19 @@ import { ipcMain } from 'electron'
 import * as downloadManager from '../downloadManager'
 import * as ytdlp from '../ytdlp'
 import { getDouyinInfo, getLastDouyinInfoError, isDouyinGallery } from '../douyin'
+import {
+  getXiaohongshuInfo,
+  getLastXhsInfoError,
+  isXiaohongshuGallery,
+  isXiaohongshuUrl,
+} from '../xiaohongshu'
 import { listDouyinProfilePosts } from '../douyinProfile'
 import { runDouyinBulkCli } from '../douyinBulk'
 import { cancelDouyinBulkJob, getDouyinBulkJobStatus, startDouyinBulkJob } from '../douyinBulkJobs'
 import * as settings from '../settings'
 import { sniffMedia } from '../mediaSniffer'
+import { fetchRemoteThumbnailDataUrl } from '../thumbnailFetch'
+import { listPlaylistEntries } from '../playlistList'
 
 const profileListAbortControllers = new Map<string, AbortController>()
 
@@ -19,13 +27,14 @@ export function registerDownloadHandlers(): void {
       const cookiesPath = settings.getCookiesPath()
       const ytdlpPath = settings.get('ytdlpPath')
       const isDouyinUrl = /douyin\.com/i.test(url)
+      const isXhsUrl = isXiaohongshuUrl(url)
 
       const toDouyinData = (douyin: NonNullable<Awaited<ReturnType<typeof getDouyinInfo>>>) => {
         if (isDouyinGallery(douyin)) {
           return {
             id: douyin.id,
             title: douyin.title,
-            thumbnail: douyin.cover,
+            thumbnail: ytdlp.normalizeThumbnailUrl(douyin.cover),
             duration: 0,
             channel: douyin.author,
             view_count: 0,
@@ -38,7 +47,7 @@ export function registerDownloadHandlers(): void {
         return {
           id: douyin.id,
           title: douyin.title,
-          thumbnail: douyin.cover,
+          thumbnail: ytdlp.normalizeThumbnailUrl(douyin.cover),
           duration: douyin.duration,
           channel: douyin.author,
           view_count: 0,
@@ -48,12 +57,33 @@ export function registerDownloadHandlers(): void {
         }
       }
 
+      const toXhsData = (xhs: NonNullable<Awaited<ReturnType<typeof getXiaohongshuInfo>>>) => ({
+        id: xhs.id,
+        title: xhs.title,
+        thumbnail: ytdlp.normalizeThumbnailUrl(xhs.cover),
+        duration: 0,
+        channel: xhs.author,
+        view_count: 0,
+        formats: [],
+        webpage_url: url,
+        _type: 'xhs_gallery',
+        image_urls: xhs.imageUrls,
+      })
+
       let douyinHint: Awaited<ReturnType<typeof getDouyinInfo>> = null
       if (isDouyinUrl) {
         douyinHint = await getDouyinInfo(url, cookiesPath || undefined)
         // Gallery must bypass yt-dlp format-info path; UI should treat it as image set.
         if (isDouyinGallery(douyinHint)) {
           return { data: toDouyinData(douyinHint) }
+        }
+      }
+
+      let xhsHint: Awaited<ReturnType<typeof getXiaohongshuInfo>> = null
+      if (isXhsUrl) {
+        xhsHint = await getXiaohongshuInfo(url, cookiesPath || undefined)
+        if (isXiaohongshuGallery(xhsHint)) {
+          return { data: toXhsData(xhsHint) }
         }
       }
 
@@ -72,12 +102,61 @@ export function registerDownloadHandlers(): void {
             return { error: `${msg} | ${hint}` }
           }
         }
+        if (isXhsUrl) {
+          const xhs = xhsHint ?? (await getXiaohongshuInfo(url, cookiesPath || undefined))
+          if (xhs && isXiaohongshuGallery(xhs)) {
+            return { data: toXhsData(xhs) }
+          }
+          const hint = getLastXhsInfoError()
+          if (hint) {
+            return { error: `${msg} | ${hint}` }
+          }
+        }
         return { error: msg }
       }
     } catch (err) {
       return { error: err instanceof Error ? err.message : String(err) }
     }
   })
+
+  ipcMain.handle('get-entry-thumbnail', async (_event, pageUrl: string) => {
+    try {
+      const cookiesPath = settings.getCookiesPath()
+      const ytdlpPath = settings.get('ytdlpPath')
+      const data = await ytdlp.fetchThumbnailForPageUrl(pageUrl, cookiesPath || undefined, ytdlpPath)
+      if (!data) return { error: 'No thumbnail' }
+      return { data }
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : String(err) }
+    }
+  })
+
+  ipcMain.handle('list-playlist-entries', async (_event, url: string) => {
+    try {
+      if (!ytdlp.isValidDownloadUrl(url)) {
+        return { error: 'Invalid URL' }
+      }
+      const cookiesPath = settings.getCookiesPath()
+      const ytdlpPath = settings.get('ytdlpPath')
+      const data = await listPlaylistEntries(url, cookiesPath || undefined, ytdlpPath)
+      return { data }
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : String(err) }
+    }
+  })
+
+  ipcMain.handle(
+    'fetch-thumbnail-data-url',
+    async (_event, url: string, referer?: string) => {
+      try {
+        const data = await fetchRemoteThumbnailDataUrl(url, referer)
+        if (!data) return { error: 'Thumbnail fetch failed' }
+        return { data }
+      } catch (err) {
+        return { error: err instanceof Error ? err.message : String(err) }
+      }
+    }
+  )
 
   ipcMain.handle('start-download', async (_event, options: {
     url: string
