@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3'
 import { app } from 'electron'
 import { join } from 'path'
+import { migrateDatabase } from './databaseMigrations'
 
 let db: Database.Database | null = null
 
@@ -24,6 +25,7 @@ export interface DownloadRecord {
   /** JSON blob: nativeYoutubePlaylist, douyinImageUrls, etc. */
   extras: string | null
   error: string | null
+  error_code?: string | null
   created_at: string
   updated_at: string
 }
@@ -34,6 +36,10 @@ export function initDB(): void {
   db = new Database(DB_PATH)
 
   db.exec(`
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      version INTEGER PRIMARY KEY,
+      applied_at TEXT NOT NULL
+    );
     CREATE TABLE IF NOT EXISTS downloads (
       id TEXT PRIMARY KEY,
       url TEXT NOT NULL,
@@ -50,6 +56,7 @@ export function initDB(): void {
       playlist_id TEXT,
       playlist_index INTEGER,
       error TEXT,
+      error_code TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
@@ -70,10 +77,7 @@ export function initDB(): void {
     CREATE INDEX IF NOT EXISTS idx_downloads_playlist_id ON downloads(playlist_id);
   `)
 
-  const cols = db.prepare(`PRAGMA table_info(downloads)`).all() as { name: string }[]
-  if (!cols.some((c) => c.name === 'extras')) {
-    db.exec(`ALTER TABLE downloads ADD COLUMN extras TEXT`)
-  }
+  migrateDatabase(db)
 }
 
 export function insertDownload(record: Omit<DownloadRecord, 'created_at' | 'updated_at'>): void {
@@ -130,7 +134,7 @@ export function insertDownloadsBulk(records: Array<Omit<DownloadRecord, 'created
 export function updateDownload(
   id: string,
   updates: Partial<
-    Pick<DownloadRecord, 'status' | 'progress' | 'file_path' | 'file_size' | 'error' | 'title' | 'thumbnail' | 'duration' | 'extras'>
+    Pick<DownloadRecord, 'status' | 'progress' | 'file_path' | 'file_size' | 'error' | 'error_code' | 'title' | 'thumbnail' | 'duration' | 'extras'>
   >
 ): void {
   if (!db) throw new Error('Database not initialized')
@@ -157,6 +161,10 @@ export function updateDownload(
   if (updates.error !== undefined) {
     fields.push('error = ?')
     values.push(updates.error)
+  }
+  if (updates.error_code !== undefined) {
+    fields.push('error_code = ?')
+    values.push(updates.error_code)
   }
   if (updates.title !== undefined) {
     fields.push('title = ?')

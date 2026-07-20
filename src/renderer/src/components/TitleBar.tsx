@@ -5,7 +5,7 @@ import type { ThemePreference } from '@/hooks/useThemePreference'
 import { HoverHintWrap } from './HoverHintWrap'
 
 const titleBarIconBtn =
-  'group flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-transparent bg-raised/50 text-muted-foreground shadow-[0_1px_0_rgba(255,255,255,0.04)] transition-[border-color,background-color,box-shadow,transform] duration-panel ease-panel hover:border-border-strong hover:bg-control hover:text-foreground hover:shadow-[0_2px_8px_rgba(0,0,0,0.22)] data-[state=open]:border-border-strong active:scale-[0.96] motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus'
+  'group flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-transparent bg-raised/50 text-muted-foreground shadow-[0_1px_0_rgba(255,255,255,0.04)] transition-[border-color,background-color,box-shadow,transform] duration-panel ease-panel hover:border-border-strong hover:bg-control hover:text-foreground hover:shadow-[0_2px_8px_rgba(0,0,0,0.22)] data-[state=open]:border-border-strong active:scale-[0.96] motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus'
 
 const panelGlyph = 'h-[18px] w-[18px] shrink-0 text-foreground/80 group-hover:text-foreground'
 
@@ -21,6 +21,7 @@ export interface TitleBarProps {
   trafficInset?: boolean
   showInspectorToggle?: boolean
   inspectorCollapsed?: boolean
+  inspectorAvailable?: boolean
   onToggleInspector?: () => void
   themePreference: ThemePreference
   onThemePreference: (value: ThemePreference) => void
@@ -32,6 +33,7 @@ export function TitleBar({
   trafficInset = false,
   showInspectorToggle = false,
   inspectorCollapsed = false,
+  inspectorAvailable = true,
   onToggleInspector,
   themePreference,
   onThemePreference,
@@ -57,9 +59,9 @@ export function TitleBar({
         className="flex h-full shrink-0 items-center gap-1 pr-2"
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
-        {showInspectorToggle && onToggleInspector && (
+        {showInspectorToggle && inspectorAvailable && onToggleInspector && (
           <HoverHintWrap
-            text={inspectorCollapsed ? 'Expand inspector' : 'Collapse inspector'}
+            text={inspectorCollapsed ? 'Show download details' : 'Hide download details'}
             side="bottom"
           >
             <button
@@ -67,7 +69,7 @@ export function TitleBar({
               onClick={onToggleInspector}
               className={titleBarIconBtn}
               aria-expanded={!inspectorCollapsed}
-              aria-label={inspectorCollapsed ? 'Expand inspector' : 'Collapse inspector'}
+              aria-label={inspectorCollapsed ? 'Show download details' : 'Hide download details'}
             >
               {inspectorCollapsed ? (
                 <PanelRightOpen className={panelGlyph} strokeWidth={1.65} aria-hidden />

@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import {
   FolderOpen,
   File,
@@ -9,10 +10,12 @@ import {
   ExternalLink
 } from 'lucide-react'
 import type { Download, DownloadActions } from '@/types'
+import type { DownloadErrorCode } from '@v-download/shared'
 import { useDownloadActions } from '@/contexts/DownloadActionsContext'
 import { formatDuration, formatFileSize } from '@/utils/format'
 import { cn } from '@/lib/cn'
 import { ThumbnailImage } from './ThumbnailImage'
+import { DOWNLOAD_DETAILS_LABEL, DOWNLOAD_DETAILS_RAIL_CLASS } from './downloadInspectorPresentation'
 
 function statusLabel(status: Download['status']): string {
   switch (status) {
@@ -33,6 +36,21 @@ function statusLabel(status: Download['status']): string {
     default:
       return status
   }
+}
+
+// Keep renderer recovery behavior safe across the CJS shared-package boundary.
+// The shared package still exposes the additive public mapping for consumers,
+// but the renderer does not rely on a runtime named export that Vite may not
+// statically discover from CommonJS.
+const DOWNLOAD_ERROR_ACTIONS: Record<DownloadErrorCode, 'retry' | 'sync-cookies' | 'open-source' | 'open-settings'> = {
+  ENGINE_MISSING: 'open-settings',
+  PO_TOKEN_REQUIRED: 'retry',
+  AUTH_REQUIRED: 'sync-cookies',
+  BROWSER_REQUIRED: 'sync-cookies',
+  NETWORK_RETRYABLE: 'retry',
+  STORAGE_UNAVAILABLE: 'open-settings',
+  UNSUPPORTED: 'open-source',
+  DRM_PROTECTED: 'open-source',
 }
 
 function StatusPill({ status }: { status: Download['status'] }) {
@@ -66,44 +84,52 @@ interface DownloadInspectorProps {
   download: Download | null
   downloadDir: string
   onSyncBrowserCookies?: () => void
+  onClose?: () => void
 }
 
-export function DownloadInspector({ download, downloadDir, onSyncBrowserCookies }: DownloadInspectorProps) {
+export function DownloadInspector({ download, downloadDir, onSyncBrowserCookies, onClose }: DownloadInspectorProps) {
   const actions = useDownloadActions()
+  const panelRef = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    if (!download) return
+    panelRef.current?.focus()
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose?.()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [download?.id, onClose])
+
+  if (!download) return null
 
   const asideShell = cn(
-    'flex h-full min-h-0 w-[328px] shrink-0 flex-col self-stretch border-l border-border bg-sidebar',
-    'items-stretch gap-4 overflow-y-auto overflow-x-hidden px-4 py-4'
+    'z-30 flex min-h-0 flex-col items-stretch gap-4 overflow-y-auto overflow-x-hidden border-border bg-sidebar px-4 py-4 shadow-xl',
+    'absolute inset-y-0 right-0 w-[min(328px,calc(100vw-24px))] border-l',
+    DOWNLOAD_DETAILS_RAIL_CLASS,
+    'animate-panel-fade-in motion-reduce:animate-none'
   )
 
   return (
     <aside
+      ref={panelRef}
       className={asideShell}
       style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-      aria-label="Inspector"
+      aria-label={DOWNLOAD_DETAILS_LABEL}
+      tabIndex={-1}
     >
-      {!download ? (
-        <div
-          className={cn(
-            'flex min-h-0 min-w-0 flex-1 flex-col',
-            'animate-panel-fade-in motion-reduce:animate-none'
-          )}
+      <div className="flex min-h-11 shrink-0 items-center justify-between gap-2 border-b border-border pb-3">
+        <h2 className="min-w-0 truncate text-[15px] font-semibold text-foreground">{DOWNLOAD_DETAILS_LABEL}</h2>
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-button text-muted-foreground transition-colors hover:bg-control hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+          aria-label="Close download details"
         >
-          <h2 className="text-[15px] font-semibold text-foreground mb-3">Inspector</h2>
-          <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-            Select a download to see output format, destination, and actions. Paste a URL, drop a link on the queue, or
-            use the browser companion for logged-in pages.
-          </p>
-          <div className="rounded-card border border-border bg-raised/40 p-3 mt-auto">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-tertiary-foreground mb-1">
-              Save location
-            </p>
-            <p className="text-xs text-muted-foreground break-all leading-snug">{downloadDir || 'Not set'}</p>
-          </div>
-        </div>
-      ) : (
-        <InspectorDetailBody download={download} downloadDir={downloadDir} actions={actions} onSyncBrowserCookies={onSyncBrowserCookies} />
-      )}
+          <span aria-hidden className="text-xl leading-none">×</span>
+        </button>
+      </div>
+      <InspectorDetailBody key={download.id} download={download} downloadDir={downloadDir} actions={actions} onSyncBrowserCookies={onSyncBrowserCookies} />
     </aside>
   )
 }
@@ -119,12 +145,14 @@ function InspectorDetailBody({
   actions: DownloadActions
   onSyncBrowserCookies?: () => void
 }) {
-  const { id, title, format, quality, status, progress, speed, eta, phase, thumbnail, duration, channel, error, file_path, file_size, url } =
+  const [showSafeDetails, setShowSafeDetails] = useState(false)
+  const { id, title, format, quality, status, progress, speed, eta, phase, thumbnail, duration, channel, error, error_code, file_path, file_size, url } =
     download
   const meta = [channel, format, quality, duration != null ? formatDuration(duration) : ''].filter(Boolean).join(' · ')
+  const recoveryAction = error_code ? DOWNLOAD_ERROR_ACTIONS[error_code] : null
 
   const btn =
-    'w-full flex items-center justify-center gap-2 py-2 px-3 rounded-button text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar'
+    'w-full min-h-11 flex items-center justify-center gap-2 py-2 px-3 rounded-button text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar'
   const btnPrimary = `${btn} bg-action text-action-fg hover:bg-action-hover`
   const btnSecondary = `${btn} border border-border bg-control text-foreground hover:bg-state-active-bg`
   const btnDanger = `${btn} border border-dashed border-border-strong text-foreground hover:bg-state-error-bg`
@@ -172,6 +200,15 @@ function InspectorDetailBody({
         </p>
       )}
 
+      {status === 'error' && error_code && (
+        <p className="text-xs text-muted-foreground" role="status">
+          {recoveryAction === 'open-settings' && 'Recovery: Open settings and configure yt-dlp.'}
+          {recoveryAction === 'sync-cookies' && 'Recovery: Sync browser cookies.'}
+          {recoveryAction === 'open-source' && 'Recovery: Open source in your browser.'}
+          {recoveryAction === 'retry' && 'Recovery: Retry the download.'}
+        </p>
+      )}
+
       <div className="min-w-0">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-tertiary-foreground mb-1">Destination</p>
         <p className="text-xs text-muted-foreground break-all leading-snug">{file_path || downloadDir || '—'}</p>
@@ -181,10 +218,13 @@ function InspectorDetailBody({
       <button
         type="button"
         className="text-left text-xs text-muted-foreground hover:text-foreground flex items-start gap-1 break-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus rounded"
-        onClick={() => window.open(url, '_blank')}
+        onClick={() => window.api?.openExternalUrl(url)}
       >
         <ExternalLink className="w-3.5 h-3.5 shrink-0 mt-0.5" aria-hidden />
-        <span className="underline-offset-2 hover:underline">{url}</span>
+        <span className="underline-offset-2 hover:underline">{showSafeDetails ? url : (() => { try { return new URL(url).origin + new URL(url).pathname } catch { return 'Source page' } })()}</span>
+      </button>
+      <button type="button" className="text-left text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus rounded" onClick={() => setShowSafeDetails((v) => !v)} aria-expanded={showSafeDetails}>
+        {showSafeDetails ? 'Hide link details' : 'Show link details'}
       </button>
 
       <div className="flex flex-col gap-2 mt-auto pt-2 border-t border-border">
@@ -251,12 +291,14 @@ function InspectorDetailBody({
               <RotateCcw className="w-4 h-4 shrink-0" aria-hidden />
               Retry now
             </button>
-            {onSyncBrowserCookies && (
+            {onSyncBrowserCookies && recoveryAction === 'sync-cookies' && (
               <button type="button" className={btnSecondary} onClick={onSyncBrowserCookies}>
                 <RefreshCw className="w-4 h-4 shrink-0" aria-hidden />
                 Sync browser cookies
               </button>
             )}
+            {recoveryAction === 'open-settings' && <button type="button" aria-label="Open settings" className={btnSecondary} onClick={() => window.api?.openSettings()}>Open settings</button>}
+            {recoveryAction === 'open-source' && <button type="button" aria-label="Open source" className={btnSecondary} onClick={() => window.api?.openExternalUrl(url)}>Open source</button>}
             <button type="button" className={btnDanger} onClick={() => actions.remove(id)}>
               <Trash2 className="w-4 h-4 shrink-0" aria-hidden />
               Remove

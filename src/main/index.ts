@@ -4,13 +4,15 @@ import { optimizer, is } from '@electron-toolkit/utils'
 import * as database from './database'
 import * as downloadManager from './downloadManager'
 import * as dockProgress from './dockProgress'
-import { startPoTokenServer } from './poTokenServer'
+import { initializePoTokenServer, stopPoTokenServer } from './poTokenServer'
 import { startLocalServer, stopLocalServer, setDownloadHandler, setMediaDownloadHandler, DownloadRequest, LOCAL_SERVER_PORT } from './localServer'
 import * as settings from './settings'
 import { registerDownloadHandlers } from './ipc/downloads'
 import { registerSettingsHandlers } from './ipc/settings'
 import { registerWindowHandlers } from './ipc/window'
 import { initWorklog, worklog } from './worklog'
+import { initializeUpdater } from './updater'
+import { registerUpdaterHandlers } from './ipc/updater'
 
 app.setName('V-Download')
 
@@ -162,6 +164,7 @@ function setupIpcHandlers(): void {
   registerWindowHandlers({
     getMainWindow: () => mainWindow
   })
+  registerUpdaterHandlers()
 }
 
 app.whenReady().then(() => {
@@ -212,7 +215,7 @@ app.whenReady().then(() => {
 
   database.initDB()
   downloadManager.loadFromDbAndRecover()
-  startPoTokenServer()
+  initializePoTokenServer()
   startLocalServer()
   worklog('local_server_started', { port: LOCAL_SERVER_PORT })
   setDownloadHandler((request) => handleDownloadRequest(request))
@@ -247,6 +250,7 @@ app.whenReady().then(() => {
   })
 
   createWindow()
+  void initializeUpdater(mainWindow).catch(() => undefined)
 
   app.on('activate', () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
@@ -280,7 +284,8 @@ app.on('second-instance', (_event, commandLine) => {
   }
 })
 
-app.on('before-quit', () => {
+app.on('before-quit', (event) => {
+  if (!isQuitting) { event.preventDefault(); void stopPoTokenServer().finally(() => app.quit()) }
   isQuitting = true
 })
 

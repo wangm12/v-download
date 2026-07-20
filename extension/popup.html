@@ -6,7 +6,7 @@
 </head>
 <body>
   <div id="app">
-    <div id="last-error" class="last-error" style="display:none" role="status">
+    <div id="last-error" class="last-error" style="display:none" role="alert">
       <div id="last-error-message" class="last-error-message"></div>
       <button id="dismiss-last-error" class="last-error-dismiss" type="button">Dismiss</button>
     </div>
@@ -20,7 +20,8 @@
       <button id="deselect-all-btn" class="selection-link" type="button">Deselect all</button>
       <span id="selected-count" class="selected-count"></span>
     </div>
-    <div id="list" class="list"></div>
+    <div id="list" class="list" aria-live="polite"></div>
+    <div id="send-status" class="send-status" role="status" aria-live="polite"></div>
     <div id="empty" class="empty" style="display:none">
       <p>No media detected on this page</p>
       <p class="hint">Play a video to detect streams</p>
@@ -29,6 +30,7 @@
       <button id="download-btn" class="download-btn">Download Selected</button>
     </div>
   </div>
+  <script src="media-patterns.js"></script>
   <script src="wake-sync.js"></script>
   <script src="popup.js"></script>
 </body>

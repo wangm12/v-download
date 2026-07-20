@@ -195,7 +195,7 @@ export async function collectProfilePostsViaBrowserRecovery(
         break
       }
 
-      await page.evaluate(() => window.scrollBy(0, 3800)).catch(() => {})
+      await page.evaluate(() => globalThis.scrollBy(0, 3800)).catch(() => {})
       await sleep(900)
       const added = ingestHtml(await page.content().catch(() => ''))
       const newBeyond = countNewBeyondExisting()

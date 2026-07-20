@@ -33,3 +33,11 @@ logs/*.log
 
 # Reference files
 reference.js
+# Release-fetched engine binaries and temporary archives are intentionally not tracked.
+resources/engines/**
+!resources/engines/manifest.json
+!resources/engines/SHA256SUMS
+!resources/engines/metadata.json
+.engine-downloads/
+.release-staging/
+release-config.json

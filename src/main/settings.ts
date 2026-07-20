@@ -1,7 +1,8 @@
 import { app } from 'electron'
 import { join } from 'path'
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs'
-import { execSync } from 'child_process'
+import { execFileSync } from 'child_process'
+import { getQueueConcurrencyPolicy, type QueueConcurrencyPolicy } from '@v-download/shared'
 
 export interface SettingsSchema {
   downloadDir: string
@@ -55,9 +56,28 @@ export interface SettingsSchema {
    * Must be a short safe token; validated in normalizeLoadedSettings.
    */
   ytdlpExternalDownloader: string
+  siteRules: SiteRule[]
+}
+
+export interface SiteRule {
+  id: string
+  domain: string
+  format: 'best' | 'video' | 'audio'
+  quality: string
+  enabled: boolean
+}
+
+export type DownloadSpeedMode = SettingsSchema['downloadSpeedMode']
+export type DownloadConcurrencyPolicy = QueueConcurrencyPolicy
+
+/** Additive policy description for queue/settings consumers; legacy fields remain authoritative. */
+export function getDownloadConcurrencyPolicy(mode: DownloadSpeedMode = get('downloadSpeedMode')): DownloadConcurrencyPolicy {
+  return getQueueConcurrencyPolicy(mode)
 }
 
 function findBinary(name: string): string {
+  const packaged = join(process.resourcesPath ?? join(process.cwd(), 'resources'), 'engines', `${process.platform}-${process.arch}`, process.platform === 'win32' ? `${name}.exe` : name)
+  if (existsSync(packaged)) return packaged
   const platformPaths: Record<string, string[]> = {
     darwin: [`/opt/homebrew/bin/${name}`, `/usr/local/bin/${name}`],
     linux: [`/usr/bin/${name}`, `/usr/local/bin/${name}`, `/snap/bin/${name}`],
@@ -71,9 +91,10 @@ function findBinary(name: string): string {
 
   try {
     const which = process.platform === 'win32' ? 'where' : 'which'
-    return execSync(`${which} ${name}`, { encoding: 'utf-8' }).trim().split('\n')[0]
+    // `name` is an internal constant, never renderer-controlled; argv avoids shell parsing.
+    return execFileSync(which, [name], { encoding: 'utf-8' }).trim().split('\n')[0]
   } catch {
-    return candidates[0] ?? name
+    return ''
   }
 }
 
@@ -102,7 +123,8 @@ const defaults: SettingsSchema = {
   concurrentFragments: 5,
   downloadSpeedMode: 'balanced',
   turboRiskAcknowledged: false,
-  ytdlpExternalDownloader: ''
+  ytdlpExternalDownloader: '',
+  siteRules: []
 }
 
 let settingsPath = ''
@@ -131,6 +153,9 @@ function load(): SettingsSchema {
 }
 
 function normalizeLoadedSettings(s: SettingsSchema): void {
+  let concurrency = Number(s.concurrency)
+  if (!Number.isFinite(concurrency)) concurrency = 3
+  s.concurrency = Math.min(3, Math.max(1, Math.floor(concurrency)))
   if (s.directMediaEngine !== 'auto' && s.directMediaEngine !== 'ffmpeg' && s.directMediaEngine !== 'ytdlp') {
     s.directMediaEngine = 'auto'
   }
@@ -148,6 +173,11 @@ function normalizeLoadedSettings(s: SettingsSchema): void {
   if (!Number.isFinite(bt)) bt = 5
   s.douyinBulkThreads = Math.min(32, Math.max(1, Math.floor(bt)))
   s.douyinBulkVerboseWarnings = Boolean(s.douyinBulkVerboseWarnings)
+  s.siteRules = Array.isArray(s.siteRules) ? s.siteRules.filter((rule): rule is SiteRule => {
+    return Boolean(rule && typeof rule.id === 'string' && typeof rule.domain === 'string' && rule.domain.trim() &&
+      ['best', 'video', 'audio'].includes(rule.format) && typeof rule.quality === 'string' &&
+      true)
+  }).map((rule) => { const { engine: _ignored, ...clean } = rule as SiteRule & { engine?: unknown }; const quality = Number(clean.quality); const fallback = clean.format === 'audio' ? '320' : '1080'; return { ...clean, domain: clean.domain.trim().toLowerCase(), quality: Number.isFinite(quality) && quality > 0 ? String(Math.round(quality)) : fallback, enabled: Boolean(clean.enabled) } }) : []
 }
 
 function save(): void {
@@ -176,7 +206,7 @@ export function applyDownloadSpeedMode(
     cache.concurrentFragments = 5
     cache.directMediaEngine = 'auto'
   } else if (mode === 'turbo') {
-    cache.concurrency = Math.min(10, Math.max(1, 8))
+    cache.concurrency = 3
     cache.sleepInterval = 0
     cache.concurrentFragments = Math.min(32, Math.max(1, 16))
     cache.directMediaEngine = 'ytdlp'
@@ -206,6 +236,27 @@ export function set<K extends keyof SettingsSchema>(key: K, value: SettingsSchem
   cache![key] = value
   normalizeLoadedSettings(cache!)
   save()
+}
+
+export function validateSettingUpdate(key: string, value: unknown): value is SettingsSchema[keyof SettingsSchema] {
+  if (key === 'cookiesPath') return false
+  if (typeof value === 'string' && value.length > 4096) return false
+  if (['downloadDir', 'douyinBulkRunPyPath', 'douyinBulkConfigPath', 'douyinBulkOutputPath', 'ytdlpPath', 'ffmpegPath'].includes(key) && typeof value === 'string' && (value.length === 0 || /[\0\r\n]/.test(value))) return false
+  if (['showFormatDialog', 'playlistSubfolder', 'douyinUseCloakBrowser', 'turboRiskAcknowledged', 'douyinBulkVerboseWarnings'].includes(key)) return typeof value === 'boolean'
+  // Accept legacy persisted/update values (including 0 and values above 3); set() normalizes concurrency to 1..3.
+  if (['concurrency', 'sleepInterval', 'youtubePlaylistSleepRequests', 'youtubePlaylistMaxDownloads', 'douyinBulkThreads', 'concurrentFragments'].includes(key)) return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 100
+  if (['defaultVideoQuality', 'defaultAudioQuality'].includes(key)) return typeof value === 'string' && /^(?:\d{1,4}|best)$/.test(value)
+  if (['cookiesFromBrowser', 'douyinBulkRunPyPath', 'douyinBulkConfigPath', 'douyinBulkOutputPath', 'ytdlpPath', 'ffmpegPath', 'ytdlpExternalDownloader'].includes(key)) return typeof value === 'string' && !/[\0\r\n]/.test(value)
+  if (key === 'downloadDir') return typeof value === 'string' && value.length > 0
+  if (key === 'directMediaEngine') return value === 'auto' || value === 'ffmpeg' || value === 'ytdlp'
+  if (key === 'youtubePlaylistMode') return value === 'native' || value === 'fanout'
+  if (key === 'siteRules') return Array.isArray(value) && value.length <= 100 && value.every((rule) => {
+    if (!rule || typeof rule !== 'object' || Array.isArray(rule)) return false
+    const r = rule as Record<string, unknown>; const allowed = new Set(['id', 'domain', 'format', 'quality', 'enabled'])
+    if (Object.keys(r).some((k) => !allowed.has(k))) return false
+    return typeof r.id === 'string' && /^[a-zA-Z0-9_-]{1,64}$/.test(r.id) && typeof r.domain === 'string' && /^[a-z0-9.-]{1,253}$/i.test(r.domain) && !r.domain.startsWith('.') && typeof r.quality === 'string' && /^(?:\d{1,4}|best)$/.test(r.quality) && (r.format === 'best' || r.format === 'video' || r.format === 'audio') && typeof r.enabled === 'boolean'
+  })
+  return false
 }
 
 export function getCookiesPath(): string {

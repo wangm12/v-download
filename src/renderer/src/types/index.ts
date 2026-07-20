@@ -1,3 +1,5 @@
+import type { DownloadErrorCode } from '@v-download/shared'
+
 export type DownloadStatus =
   | 'queued'
   | 'downloading'
@@ -27,6 +29,7 @@ export interface Download {
   playlist_id: string | null
   playlist_index: number | null
   error: string | null
+  error_code?: DownloadErrorCode | null
   created_at: string
   updated_at: string
 }
@@ -57,6 +60,7 @@ export interface VideoInfo {
   playlist_count?: number
   /** Douyin / Xiaohongshu image note — passed through format dialog for gallery metadata */
   image_urls?: string[]
+  formats?: Array<{ format_id?: string; format?: string; ext?: string; container?: string; height?: number; width?: number; abr?: number; bitrate?: number; tbr?: number; filesize?: number; filesize_approx?: number; vcodec?: string; acodec?: string; source?: string }>
 }
 
 export interface SettingsData {
@@ -97,6 +101,15 @@ export interface SettingsData {
   turboRiskAcknowledged?: boolean
   /** Optional yt-dlp `--downloader` name (e.g. aria2c). Empty = built-in. */
   ytdlpExternalDownloader?: string
+  siteRules?: SiteRule[]
+}
+
+export interface SiteRule {
+  id: string
+  domain: string
+  format: 'best' | 'video' | 'audio'
+  quality: string
+  enabled: boolean
 }
 
 export interface PlaylistEntryRow {

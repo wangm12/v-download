@@ -1,17 +1,5 @@
-interface StartDownloadOptions {
-  url: string
-  title: string
-  format: string
-  quality?: string
-  outputDir?: string
-  thumbnail?: string
-  duration?: number
-  metadata?: Record<string, unknown>
-  playlistId?: string
-  playlistIndex?: number
-  isPlaylist?: boolean
-  playlistTitle?: string
-}
+/// <reference types="vite/client" />
+import type { StartDownloadOptions } from '@v-download/shared'
 
 interface WindowApi {
   getVideoInfo: (url: string) => Promise<{ data?: unknown; error?: string }>
@@ -44,6 +32,10 @@ interface WindowApi {
   onYtdlUrl: (callback: (url: string) => void) => () => void
   onSettingsChanged: (callback: () => void) => () => void
   onCookiesSynced: (callback: (data: { count: number }) => void) => () => void
+  startDouyinBulk: (url: string) => Promise<{ data?: { id: string }; error?: string }>
+  getDouyinBulkStatus: (id: string) => Promise<{ data?: DouyinBulkJobStatus; error?: string }>
+  cancelDouyinBulk: (id: string) => Promise<{ ok: boolean; error?: string }>
+  runDouyinBulk: (url: string) => Promise<{ data?: { code: number | null; stderr: string }; error?: string }>
   selectDownloadFolder: () => Promise<string | undefined>
   readClipboard: () => Promise<string>
   openSettings: () => Promise<void>
@@ -94,7 +86,8 @@ interface WindowApi {
     }>
   ) => Promise<{ data?: { count: number; ids: string[] }; error?: string }>
   setNativeThemeSource?: (source: 'dark' | 'light' | 'system') => Promise<{ ok: boolean; error?: string }>
-  platform: NodeJS.Platform
+  getAppVersion?: () => Promise<string>
+  platform: string
 }
 
 declare global {

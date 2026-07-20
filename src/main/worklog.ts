@@ -3,6 +3,15 @@ import { appendFileSync, mkdirSync, existsSync, renameSync, statSync } from 'fs'
 import { join, dirname } from 'path'
 
 const MAX_BYTES_BEFORE_ROTATE = 4 * 1024 * 1024
+export function redact(value: unknown): unknown {
+  if (typeof value === 'string') return value
+    .replace(/([?&](?:token|sig|signature|expires|auth|key|cookie|headers)=)[^&\s]*/gi, '$1REDACTED')
+    .replace(/((?:cookie|authorization|x-vdownload-capability)\s*[:=]\s*)[^,\s]+/gi, '$1REDACTED')
+    .replace(/\/(?:Users|home|tmp)\/[^\s'"`]+/g, '[PATH]')
+  if (Array.isArray(value)) return value.map(redact)
+  if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, /cookie|authorization|headers|secret|token|password|capability|pairing/i.test(k) ? '[REDACTED]' : redact(v)]))
+  return value
+}
 
 let worklogFilePath = ''
 let handlersInstalled = false
@@ -87,19 +96,19 @@ export function worklog(event: string, data?: Record<string, unknown>): void {
   appendLine({
     ts: new Date().toISOString(),
     event,
-    ...data
+    ...(redact(data) as Record<string, unknown>)
   })
 }
 
 export function worklogError(event: string, err: unknown, extra?: Record<string, unknown>): void {
-  const message = err instanceof Error ? err.message : String(err)
-  const stack = err instanceof Error ? err.stack : undefined
+  const message = redact(err instanceof Error ? err.message : String(err)) as string
+  const stack = redact(err instanceof Error ? err.stack : undefined) as string | undefined
   appendLine({
     ts: new Date().toISOString(),
     event,
     error: message,
     stack,
-    ...extra
+    ...(redact(extra ?? {}) as Record<string, unknown>)
   })
   console.error(`[worklog] ${event}:`, message)
 }

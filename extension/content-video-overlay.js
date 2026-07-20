@@ -135,6 +135,8 @@
   // ── Build format options list ─────────────────────────────────────────────
 
   function buildOptions(video, sniffed, videoLoadTime, listMode) {
+    const shared = globalThis.VDownloadMediaPatterns
+    sniffed = shared && shared.mergeCandidates ? shared.mergeCandidates(sniffed) : (sniffed || [])
     const seen = new Map() // dedup key → original entry
     const options = []
 
@@ -154,7 +156,10 @@
     const resLabel = hasResolution ? `${video.videoHeight}p` : null
 
     for (const { url, mimeType } of srcs) {
-      const type = inferTypeFromUrl(url) || (mimeType.includes('webm') ? 'webm' : 'mp4')
+      const sharedCandidate = { url, mime: mimeType, contentType: mimeType, source: 'element', size: null }
+      const shared = globalThis.VDownloadMediaPatterns
+      if (!shared || !shared.isReliableCandidate(sharedCandidate)) continue
+      const type = shared.inferType(url, mimeType)
       const key = buildDedupKey(url, type, listMode)
       if (seen.has(key)) continue
       seen.set(key, true)
@@ -163,7 +168,8 @@
         type,
         label: resLabel ? `${type} (${resLabel})` : type,
         size: null,
-        source: 'element'
+        source: 'element',
+        confidence: 100
       })
     }
 
@@ -191,7 +197,8 @@
           label: entry.type.toUpperCase(),
           size: entry.size,
           initiator: entry.initiator,
-          source: 'sniffed'
+          source: 'sniffed',
+          confidence: Math.min(100, Number(entry.confidence || 0))
         })
       }
       return options
@@ -251,7 +258,8 @@
           label: entry.type.toUpperCase(),
           size: entry.size,
           initiator: entry.initiator,
-          source: 'sniffed'
+          source: entry.source || 'network',
+          confidence: Math.min(100, Number(entry.confidence || 0))
         })
       }
     }
@@ -290,6 +298,10 @@
       sz.textContent = formatSize(opt.size)
       meta.appendChild(sz)
     }
+    const source = document.createElement('span')
+    source.className = 'ytdl-format-size'
+    source.textContent = `${opt.source || 'network'} · ${Math.min(100, Number(opt.confidence || 0))}/100`
+    meta.appendChild(source)
 
     info.appendChild(label)
     info.appendChild(meta)
@@ -304,6 +316,15 @@
     })
 
     item.addEventListener('click', () => onDownload(opt))
+
+    const setState = (state, message) => {
+      item.dataset.downloadState = state || ''
+      dlBtn.disabled = state === 'sending'
+      dlBtn.setAttribute('aria-label', message || 'Download')
+      dlBtn.title = message || 'Download'
+      label.textContent = message || opt.label
+    }
+    item._ytdlSetState = setState
 
     item.appendChild(icon)
     item.appendChild(info)
@@ -384,7 +405,7 @@
         closeActivePanel()
         flashButton(btn, 'ytdl-sending')
         chrome.runtime.sendMessage({ type: 'DOWNLOAD_VIDEO', url: location.href, surfacedWake: true }, (resp) => {
-          flashButton(btn, resp && !resp.error ? 'ytdl-sent' : null)
+          flashButton(btn, resp && !resp.error ? 'ytdl-sent' : 'ytdl-error')
         })
       }
       dlBtn.addEventListener('click', (e) => { e.stopPropagation(); doYTDownload() })
@@ -396,6 +417,7 @@
     } else {
       const content = document.createElement('div')
       panel.appendChild(content)
+      const itemStates = new Map()
 
       let latestSniffed = Array.isArray(sniffed) ? sniffed : []
       let lastSniffedKey = sniffedFingerprint(latestSniffed)
@@ -439,14 +461,19 @@
         }
 
         for (const opt of options) {
-          content.appendChild(buildPanelItem(opt, async (clickedOpt) => {
-            closeActivePanel()
+          const row = buildPanelItem(opt, async (clickedOpt) => {
+            const key = buildDedupKey(clickedOpt.url, clickedOpt.type, listMode)
+            const previous = itemStates.get(key)
+            if (previous === 'sending' || previous === 'queued') return
+            itemStates.set(key, 'sending')
+            row._ytdlSetState('sending', 'Sending…')
             flashButton(btn, 'ytdl-sending')
 
             const latestOpt = await getLatestSniffedOption(clickedOpt)
             if (!latestOpt) {
-              // Source likely switched (ad -> main content); ask user to reopen panel.
-              flashButton(btn, null)
+              flashButton(btn, 'ytdl-error')
+              itemStates.set(key, 'error')
+              row._ytdlSetState('error', 'Error — stream expired; retry')
               return
             }
             const item = {
@@ -456,12 +483,23 @@
             }
             chrome.runtime.sendMessage({ type: 'DOWNLOAD_MEDIA_FROM_CONTENT', item, surfacedWake: true }, (resp) => {
               if (chrome.runtime.lastError) {
-                flashButton(btn, null)
+                flashButton(btn, 'ytdl-error')
+                itemStates.set(key, 'error')
+                row._ytdlSetState('error', 'Error — retry')
                 return
               }
-              flashButton(btn, resp && resp.ok ? 'ytdl-sent' : null)
+              if (resp && resp.ok) {
+                itemStates.set(key, 'queued')
+                row._ytdlSetState('queued', 'Added to queue')
+                flashButton(btn, 'ytdl-sent')
+              } else {
+                itemStates.set(key, 'error')
+                row._ytdlSetState('error', `Error — ${resp?.error || 'retry'}`)
+                flashButton(btn, null)
+              }
             })
-          }))
+          })
+          content.appendChild(row)
         }
         return options
       }
@@ -581,7 +619,7 @@
   // ── Flash feedback on overlay button ────────────────────────────────────
 
   function flashButton(btn, cls) {
-    btn.classList.remove('ytdl-sending', 'ytdl-sent')
+    btn.classList.remove('ytdl-sending', 'ytdl-sent', 'ytdl-error')
     if (cls) {
       btn.classList.add(cls)
       setTimeout(() => btn.classList.remove(cls), 1200)
@@ -612,6 +650,7 @@
       if (!state) continue
       state.btn.classList.remove('ytdl-visible')
       state.btn.classList.add('ytdl-hidden')
+      state.stopCandidateRefresh?.()
     }
     closeActivePanel()
   }
@@ -620,8 +659,9 @@
     for (const video of document.querySelectorAll('video')) {
       const state = videoState.get(video)
       if (!state) continue
+      state.rearmCandidateDiscovery?.()
       const rect = video.getBoundingClientRect()
-      if (rect.width >= MIN_VIDEO_WIDTH && rect.height >= MIN_VIDEO_HEIGHT) {
+      if (state.hasReliableCandidate && rect.width >= MIN_VIDEO_WIDTH && rect.height >= MIN_VIDEO_HEIGHT) {
         state.btn.classList.remove('ytdl-hidden')
         state.btn.classList.add('ytdl-visible')
       }
@@ -649,6 +689,44 @@
     let isInViewport = false
     let prevRect = null
     let lastVideoFingerprint = ''
+    let hasReliableCandidate = false
+    let candidateRefreshTimer = null
+    const isYTResolver = () => isYouTubePage() && isYouTubeWatchPage()
+    const setCandidateVisibility = (available) => {
+      hasReliableCandidate = isYTResolver() || available
+      if (!hasReliableCandidate) {
+        btn.classList.remove('ytdl-visible')
+        btn.classList.add('ytdl-hidden')
+      } else if (isInViewport && !suppressed) {
+        btn.classList.remove('ytdl-hidden')
+        btn.classList.add('ytdl-visible')
+        syncPosition()
+        startRaf()
+      }
+    }
+    const refreshCandidateVisibility = async () => {
+      if (isYTResolver()) { setCandidateVisibility(true); return }
+      const elementCandidate = Array.from(video.querySelectorAll('source')).some((source) => {
+        const candidate = { url: source.src, mime: source.type || '', source: 'element' }
+        return globalThis.VDownloadMediaPatterns?.isReliableCandidate(candidate)
+      }) || globalThis.VDownloadMediaPatterns?.isReliableCandidate({ url: video.currentSrc, source: 'element' })
+      if (elementCandidate) { setCandidateVisibility(true); return }
+      try {
+        const resp = await fetchFrameMediaSnapshot()
+        setCandidateVisibility((resp.media || []).some((candidate) => globalThis.VDownloadMediaPatterns?.isReliableCandidate(candidate)))
+      } catch { setCandidateVisibility(false) }
+    }
+    const startCandidateRefresh = () => {
+      if (candidateRefreshTimer || isYTResolver() || !isInViewport || suppressed) return
+      candidateRefreshTimer = setInterval(() => {
+        if (!isInViewport || suppressed || hasReliableCandidate) return
+        void refreshCandidateVisibility()
+      }, 1500)
+    }
+    const stopCandidateRefresh = () => {
+      if (candidateRefreshTimer) clearInterval(candidateRefreshTimer)
+      candidateRefreshTimer = null
+    }
 
     let videoLoadTime = Date.now()
     const currentFingerprint = () =>
@@ -665,6 +743,9 @@
       if (activePanel && activePanelVideo === video) {
         closeActivePanel()
       }
+      setCandidateVisibility(false)
+      if (isInViewport && !suppressed) startCandidateRefresh()
+      void refreshCandidateVisibility()
     }
     lastVideoFingerprint = currentFingerprint()
     video.addEventListener('loadstart', onSourceChange)
@@ -753,21 +834,24 @@
     const observer = new IntersectionObserver((entries) => {
       for (const entry of entries) {
         isInViewport = entry.isIntersecting
-        if (isInViewport && !suppressed) {
+        if (isInViewport && !suppressed && hasReliableCandidate) {
           btn.classList.remove('ytdl-hidden')
           btn.classList.add('ytdl-visible')
           syncPosition()
           startRaf()
+          stopCandidateRefresh()
         } else {
           btn.classList.remove('ytdl-visible')
           btn.classList.add('ytdl-hidden')
           if (activePanel && activePanelVideo === video) closeActivePanel()
           stopRaf()
+          if (isInViewport && !suppressed && !hasReliableCandidate) startCandidateRefresh()
         }
       }
     }, { threshold: 0.1 })
 
     observer.observe(video)
+    void refreshCandidateVisibility()
     const onWindowResize = () => {
       syncPosition()
       if (activePanel && activePanelVideo === video) {
@@ -800,7 +884,9 @@
               else resolve(r)
             })
           })
-          sniffed = resp.media || []
+          sniffed = (globalThis.VDownloadMediaPatterns && globalThis.VDownloadMediaPatterns.mergeCandidates)
+            ? globalThis.VDownloadMediaPatterns.mergeCandidates(resp.media || [])
+            : (resp.media || [])
           sourceLabel = resp.source || ''
           isYouTube = resp.isYouTube && isYouTubeWatchPage()
         } catch (err) {
@@ -825,12 +911,21 @@
 
       const blobDetected = isBlobOrStream(video.currentSrc)
 
+      if (!isYouTube && buildOptions(video, sniffed, videoLoadTime, getListMode()).length === 0) {
+        btn.classList.remove('ytdl-visible')
+        btn.classList.add('ytdl-hidden')
+        return
+      }
+
       showPanel(video, btn, sniffed, isYouTube, blobDetected, sourceLabel, videoLoadTime)
     })
 
     const cleanup = () => {
+      if (cleanup.done) return
+      cleanup.done = true
       observer.disconnect()
       stopRaf()
+      stopCandidateRefresh()
       btn.remove()
       video.removeEventListener('loadstart', onSourceChange)
       video.removeEventListener('loadeddata', onSourceChange)
@@ -840,9 +935,21 @@
       sourceObserver.disconnect()
       window.removeEventListener('resize', onWindowResize)
       if (activePanel && activePanelVideo === video) closeActivePanel()
+      processed.delete(video)
+      videoState.delete(video)
     }
 
-    videoState.set(video, { btn, cleanup, observer })
+    videoState.set(video, {
+      btn, cleanup, observer,
+      get hasReliableCandidate() { return hasReliableCandidate },
+      rearmCandidateDiscovery: () => {
+        if (!hasReliableCandidate && isInViewport && !suppressed) {
+          startCandidateRefresh()
+          void refreshCandidateVisibility()
+        }
+      },
+      stopCandidateRefresh
+    })
   }
 
   // ── Video eligibility check ──────────────────────────────────────────────
@@ -912,6 +1019,11 @@
   const mutationObserver = new MutationObserver((mutations) => {
     let needsScan = false
     for (const mutation of mutations) {
+      for (const node of mutation.removedNodes) {
+        if (node.nodeType !== 1) continue
+        const removed = node.tagName === 'VIDEO' ? [node] : (node.querySelectorAll ? Array.from(node.querySelectorAll('video')) : [])
+        for (const video of removed) videoState.get(video)?.cleanup()
+      }
       for (const node of mutation.addedNodes) {
         if (node.nodeType !== 1) continue
         if (node.tagName === 'VIDEO') {

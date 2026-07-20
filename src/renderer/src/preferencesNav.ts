@@ -33,7 +33,7 @@ export const PREF_SECTION_HEADER: Record<
   },
   sites: {
     title: 'Sites',
-    subtitle: 'Per-site rules and defaults (coming soon).'
+    subtitle: 'Per-site rules and defaults for matching domains.'
   },
   advanced: {
     title: 'Advanced',

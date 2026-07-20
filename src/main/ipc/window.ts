@@ -1,6 +1,9 @@
-import { ipcMain, shell, dialog, BrowserWindow, nativeTheme } from 'electron'
+import { app, ipcMain, shell, dialog, BrowserWindow, nativeTheme } from 'electron'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
+import { existsSync, statSync, realpathSync } from 'fs'
+import { resolve, relative } from 'path'
+import * as settings from '../settings'
 import { extractSecUidFromProfileUrl } from '../douyinProfile'
 import { resolveExtensionDir } from '../extensionPath'
 import {
@@ -48,6 +51,17 @@ interface WindowContext {
 }
 
 export function registerWindowHandlers(ctx: WindowContext): void {
+  ipcMain.handle('get-app-version', () => app.getVersion())
+
+  const safeDownloadPath = (candidate: unknown): string | null => {
+    if (typeof candidate !== 'string' || candidate.length === 0 || candidate.length > 4096 || !existsSync(candidate)) return null
+    try {
+      const file = realpathSync(candidate); const root = realpathSync(settings.get('downloadDir'))
+      const rel = relative(root, file)
+      if (!statSync(file).isFile() || rel.startsWith('..') || resolve(root, rel) !== file) return null
+      return file
+    } catch { return null }
+  }
   ipcMain.handle('set-native-theme-source', (_event, source: unknown) => {
     if (source !== 'dark' && source !== 'light' && source !== 'system') {
       return { ok: false as const, error: 'invalid theme source' }
@@ -70,18 +84,20 @@ export function registerWindowHandlers(ctx: WindowContext): void {
     }
   })
 
-  ipcMain.handle('open-file-location', async (_event, path: string) => {
+  ipcMain.handle('open-file-location', async (_event, path: unknown) => {
     try {
-      shell.showItemInFolder(path)
+      const safePath = safeDownloadPath(path); if (!safePath) return { ok: false, error: 'File is outside the download folder' }
+      shell.showItemInFolder(safePath)
       return { ok: true }
     } catch (err) {
       return { error: err instanceof Error ? err.message : String(err) }
     }
   })
 
-  ipcMain.handle('open-file', async (_event, path: string) => {
+  ipcMain.handle('open-file', async (_event, path: unknown) => {
     try {
-      await shell.openPath(path)
+      const safePath = safeDownloadPath(path); if (!safePath) return { ok: false, error: 'File is outside the download folder' }
+      await shell.openPath(safePath)
       return { ok: true }
     } catch (err) {
       return { error: err instanceof Error ? err.message : String(err) }

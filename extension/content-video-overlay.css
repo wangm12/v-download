@@ -31,6 +31,8 @@
   transform: scale(1.08);
 }
 
+.ytdl-overlay-btn.ytdl-error { background: rgba(185, 28, 28, 0.9); opacity: 1; }
+
 .ytdl-overlay-btn:active {
   transform: scale(0.93);
 }
@@ -142,6 +144,14 @@
   background: #27272a;
 }
 
+.ytdl-format-item[data-download-state="sending"] { background: rgba(96, 165, 250, 0.12); }
+.ytdl-format-item[data-download-state="queued"] { background: rgba(52, 211, 153, 0.12); }
+.ytdl-format-item[data-download-state="error"] { background: rgba(248, 113, 113, 0.12); }
+.ytdl-format-item[data-download-state="sending"] .ytdl-format-label { color: #93c5fd; }
+.ytdl-format-item[data-download-state="queued"] .ytdl-format-label { color: #6ee7b7; }
+.ytdl-format-item[data-download-state="error"] .ytdl-format-label { color: #fca5a5; }
+.ytdl-format-dl-btn:disabled { cursor: wait; opacity: 0.55; }
+
 .ytdl-format-icon {
   flex-shrink: 0;
   width: 18px;
@@ -237,6 +247,10 @@
   text-align: center;
   font-size: 12px;
   color: #52525b;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ytdl-format-panel, .ytdl-overlay-btn, .ytdl-format-dl-btn { animation: none; transition: none; }
 }
 
 .ytdl-panel-error {

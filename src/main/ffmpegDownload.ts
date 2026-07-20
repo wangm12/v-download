@@ -60,8 +60,9 @@ export function isFfmpegDirectMediaEligible(mediaType: string | undefined, url: 
   if (!mediaType) return false
   const mt = mediaType.toLowerCase()
   if (mt === 'jpeg') return false
-  if (['hls', 'mp4', 'webm', 'flv', 'mkv', 'mp3', 'm4a'].includes(mt)) return true
+  if (['hls', 'dash', 'mpd', 'mp4', 'webm', 'flv', 'mkv', 'mp3', 'm4a'].includes(mt)) return true
   if (/\.m3u8(\?|#|$)/i.test(url)) return true
+  if (/\.mpd(\?|#|$)/i.test(url)) return true
   return false
 }
 

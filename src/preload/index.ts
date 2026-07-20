@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import type { StartDownloadOptions } from '@v-download/shared'
 
 const api = {
   getVideoInfo: (url: string) => ipcRenderer.invoke('get-video-info', url),
@@ -7,23 +8,7 @@ const api = {
   openExternalUrl: (url: string) => ipcRenderer.invoke('open-external-url', url),
   fetchThumbnailDataUrl: (url: string, referer?: string) =>
     ipcRenderer.invoke('fetch-thumbnail-data-url', url, referer),
-  startDownload: (options: {
-    url: string
-    title: string
-    format: string
-    quality?: string
-    outputDir?: string
-    thumbnail?: string
-    duration?: number
-    metadata?: Record<string, unknown>
-    playlistId?: string
-    playlistIndex?: number
-    isPlaylist?: boolean
-    playlistTitle?: string
-    mediaType?: string
-    referer?: string
-    customHeaders?: Record<string, string>
-  }) => ipcRenderer.invoke('start-download', options),
+  startDownload: (options: StartDownloadOptions) => ipcRenderer.invoke('start-download', options),
   cancelDownload: (id: string) => ipcRenderer.invoke('cancel-download', id),
   pauseDownload: (id: string) => ipcRenderer.invoke('pause-download', id),
   deleteTask: (id: string) => ipcRenderer.invoke('delete-task', id),
@@ -121,6 +106,13 @@ const api = {
     ipcRenderer.invoke('open-douyin-profile-url', profileUrl),
   setNativeThemeSource: (source: 'dark' | 'light' | 'system') =>
     ipcRenderer.invoke('set-native-theme-source', source),
+  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+  getUpdateStatus: () => ipcRenderer.invoke('get-update-status'),
+  onUpdateStatus: (callback: (data: unknown) => void) => {
+    const sub = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data)
+    ipcRenderer.on('update-status', sub)
+    return () => ipcRenderer.removeListener('update-status', sub)
+  },
   platform: process.platform
 }
 

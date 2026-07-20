@@ -19,11 +19,13 @@ export function registerSettingsHandlers(): void {
 
   ipcMain.handle('update-settings', async (_event, key: string, value: unknown) => {
     const all = settings.getAll()
-    if (key in all) {
+    const allowed = new Set<keyof SettingsSchema>(Object.keys(all).filter((k) => k !== 'cookiesPath') as Array<keyof SettingsSchema>)
+    if (allowed.has(key as keyof SettingsSchema) && settings.validateSettingUpdate(key, value)) {
       settings.set(key as keyof SettingsSchema, value as never)
       broadcastSettingsChanged()
+      return { ok: true }
     }
-    return { ok: true }
+    return { ok: false, error: 'Unsupported or protected setting' }
   })
 
   ipcMain.handle(

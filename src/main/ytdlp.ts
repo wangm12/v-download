@@ -1,10 +1,12 @@
-import { spawn, ChildProcess, execSync } from 'child_process'
+import { spawn, ChildProcess, execFileSync } from 'child_process'
 import { existsSync, mkdirSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import * as settings from './settings'
 import { resolvedCookiesBrowser } from './cookiesBrowser'
 import type { DownloadProgress, DownloadProcess } from './downloadTypes'
+import { classifyResolverError } from './mediaResolver'
+import { resolveMediaCandidates, type ResolverCandidate } from './mediaResolver'
 
 export type { DownloadProgress, DownloadProcess } from './downloadTypes'
 
@@ -45,6 +47,7 @@ export interface VideoInfo {
   entries?: VideoInfo[]
   _type?: string
   webpage_url: string
+  candidates?: ResolverCandidate[]
 }
 
 export interface FormatInfo {
@@ -54,6 +57,20 @@ export interface FormatInfo {
   filesize?: number
   acodec?: string
   vcodec?: string
+  protocol?: string
+  mimeType?: string
+  container?: string
+  width?: number
+  bitrate?: number
+  filesize_approx?: number
+  approximateSize?: number
+  id?: string
+  formatId?: string
+  hasAudio?: boolean
+  hasVideo?: boolean
+  url?: string
+  webpage_url?: string
+  confidence?: number
 }
 
 export interface DownloadOptions {
@@ -80,6 +97,9 @@ export interface DownloadOptions {
   externalDownloader?: string
   /** Each string is passed as `--retry-sleep` (e.g. `fragment:linear=2::5`). */
   retrySleeps?: string[]
+  /** Optional local PO-token provider args; absent means normal yt-dlp flow. */
+  extractorArgs?: string
+  pluginDir?: string
   onProgress?: (progress: DownloadProgress) => void
 }
 
@@ -102,7 +122,7 @@ export function isValidYouTubeUrl(url: string): boolean {
   return YOUTUBE_REGEX.test(url) && url.trim().length > 0
 }
 
-const MEDIA_URL_REGEX = /\.(m3u8|mp4|webm|flv|mkv)(\?|#|$)/i
+const MEDIA_URL_REGEX = /\.(m3u8|mpd|mp4|webm|flv|mkv|mp3|m4a|aac|opus|ogg)(\?|#|$)/i
 
 export function isMediaUrl(url: string): boolean {
   return MEDIA_URL_REGEX.test(url)
@@ -112,23 +132,25 @@ export function isValidDownloadUrl(url: string): boolean {
   return isValidYouTubeUrl(url) || isMediaUrl(url) || /^https?:\/\/.+/i.test(url)
 }
 
+export { classifyResolverError }
+
 export function isPlaylistUrl(url: string): boolean {
   return PLAYLIST_REGEX.test(url) || CHANNEL_REGEX.test(url)
 }
 
 export function getYtdlpPath(customPath?: string): string {
+  const names = process.platform === 'win32' ? ['yt-dlp.exe'] : ['yt-dlp']
+  const roots = [process.resourcesPath, join(process.cwd(), 'resources')].filter((p): p is string => Boolean(p))
+  for (const root of roots) { const bundled = join(root, 'engines', `${process.platform}-${process.arch}`, names[0]); if (existsSync(bundled)) return bundled }
   if (customPath && existsSync(customPath)) {
     return customPath
   }
-  const homebrewPath = '/opt/homebrew/bin/yt-dlp'
-  if (existsSync(homebrewPath)) {
-    return homebrewPath
-  }
   try {
-    const result = execSync('which yt-dlp', { encoding: 'utf-8' }).trim()
-    return result || homebrewPath
+    // The binary name is a fixed internal constant; use argv rather than a shell string.
+    const result = execFileSync(process.platform === 'win32' ? 'where' : 'which', ['yt-dlp'], { encoding: 'utf-8' }).trim().split(/\r?\n/)[0]
+    return result
   } catch {
-    return homebrewPath
+    return ''
   }
 }
 
@@ -237,6 +259,10 @@ export function collectPlaylistMetaFromJson(
 }
 
 function parseVideoInfoFromJson(json: Record<string, unknown>): VideoInfo {
+  const positiveNumber = (value: unknown): number | undefined => {
+    const n = typeof value === 'number' ? value : Number(value)
+    return Number.isFinite(n) && n > 0 ? n : undefined
+  }
   const thumbnails = json.thumbnails as Array<{ url: string }> | undefined
   const rawThumbnail = thumbnails?.[0]?.url ?? (json.thumbnail as string) ?? ''
   const thumbnail = normalizeThumbnailUrl(rawThumbnail)
@@ -246,10 +272,24 @@ function parseVideoInfoFromJson(json: Record<string, unknown>): VideoInfo {
     .map((f) => ({
       format_id: String(f.format_id),
       ext: String(f.ext),
-      height: typeof f.height === 'number' ? f.height : undefined,
-      filesize: typeof f.filesize === 'number' ? f.filesize : undefined,
+      height: positiveNumber(f.height),
+      filesize: positiveNumber(f.filesize),
+      filesize_approx: positiveNumber(f.filesize_approx),
+      approximateSize: positiveNumber(f.filesize_approx),
+      id: String(f.format_id),
+      formatId: String(f.format_id),
       acodec: f.acodec as string | undefined,
-      vcodec: f.vcodec as string | undefined
+      vcodec: f.vcodec as string | undefined,
+      protocol: typeof f.protocol === 'string' ? f.protocol : undefined,
+      mimeType: typeof f.mimetype === 'string' ? f.mimetype : undefined,
+      container: typeof f.container === 'string' ? f.container : String(f.ext),
+      width: positiveNumber(f.width),
+      bitrate: positiveNumber(f.tbr),
+      hasAudio: Boolean(f.acodec && f.acodec !== 'none'),
+      hasVideo: Boolean(f.vcodec && f.vcodec !== 'none'),
+      url: typeof f.url === 'string' ? f.url : undefined,
+      webpage_url: typeof f.webpage_url === 'string' ? f.webpage_url : undefined,
+      confidence: 0.9
     }))
 
   return {
@@ -263,7 +303,8 @@ function parseVideoInfoFromJson(json: Record<string, unknown>): VideoInfo {
     playlist_title: json.playlist_title as string | undefined,
     playlist_count: typeof json.playlist_count === 'number' ? json.playlist_count : undefined,
     webpage_url: String(json.webpage_url ?? json.url ?? ''),
-    _type: json._type as string | undefined
+    _type: json._type as string | undefined,
+    candidates: resolveMediaCandidates(formatInfos.filter((f) => f.url).map((f) => ({ ...f, url: f.url! } as ResolverCandidate)), { pageUrl: String(json.webpage_url ?? ''), source: 'yt-dlp' })
   }
 }
 
@@ -513,6 +554,8 @@ export function download(
     concurrentFragments,
     externalDownloader,
     retrySleeps,
+    extractorArgs,
+    pluginDir,
     onProgress: progressCb
   } = options
 
@@ -566,6 +609,9 @@ export function download(
   ]
 
   addYtdlpCookieArgs(url, args, cookiesPath)
+
+  if (extractorArgs && isValidYouTubeUrl(url)) args.push('--extractor-args', extractorArgs)
+  if (pluginDir && isValidYouTubeUrl(url)) args.push('--plugin-dirs', pluginDir)
 
   if (sleepInterval > 0 && !mediaType) {
     args.push('--sleep-interval', String(sleepInterval))

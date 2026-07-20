@@ -15,6 +15,7 @@ import * as settings from '../settings'
 import { sniffMedia } from '../mediaSniffer'
 import { fetchRemoteThumbnailDataUrl } from '../thumbnailFetch'
 import { listPlaylistEntries } from '../playlistList'
+import { resolveMediaCandidates, protocolFor, mediaTypeForCandidate } from '../mediaResolver'
 
 const profileListAbortControllers = new Map<string, AbortController>()
 
@@ -28,6 +29,11 @@ export function registerDownloadHandlers(): void {
       const ytdlpPath = settings.get('ytdlpPath')
       const isDouyinUrl = /douyin\.com/i.test(url)
       const isXhsUrl = isXiaohongshuUrl(url)
+
+      if (ytdlp.isMediaUrl(url)) {
+        const candidate = resolveMediaCandidates([{ url, type: protocolFor(url), pageUrl: url, source: 'extension' }])[0]
+        return { data: { id: url, title: 'Direct media', thumbnail: '', duration: 0, channel: '', view_count: 0, formats: candidate ? [candidate] : [], candidates: candidate ? [candidate] : [], webpage_url: url, _type: 'video' } }
+      }
 
       const toDouyinData = (douyin: NonNullable<Awaited<ReturnType<typeof getDouyinInfo>>>) => {
         if (isDouyinGallery(douyin)) {
@@ -174,9 +180,12 @@ export function registerDownloadHandlers(): void {
     mediaType?: string
     referer?: string
     customHeaders?: Record<string, string>
+    candidates?: Array<Record<string, unknown>>
   }) => {
     try {
-      const task = downloadManager.addTask(options)
+      const candidates = resolveMediaCandidates((options.candidates || []).filter((c) => typeof c?.url === 'string') as Array<{ url: string } & Record<string, unknown>>)
+      const selected = candidates[0]
+      const task = downloadManager.addTask({ ...options, mediaType: options.mediaType || (selected ? mediaTypeForCandidate(selected) : undefined), metadata: { ...(options.metadata || {}), ...(selected ? { candidate: { url: selected.url, formatId: selected.formatId, container: selected.container, protocol: selected.protocol, mimeType: selected.mimeType } } : {}) } })
       return { data: task }
     } catch (err) {
       return { error: err instanceof Error ? err.message : String(err) }
@@ -359,7 +368,7 @@ export function registerDownloadHandlers(): void {
   ipcMain.handle('sniff-media', async (_event, url: string) => {
     try {
       const media = await sniffMedia(url)
-      return { data: media }
+      return { data: { ...media, candidates: media.media.map((item) => item.candidate).filter(Boolean) } }
     } catch (err) {
       return { error: err instanceof Error ? err.message : String(err) }
     }

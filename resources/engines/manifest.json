@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 2,
+  "platform": "darwin",
+  "architectures": ["arm64", "x64"],
+  "engines": {
+    "yt-dlp": {
+      "version": "2026.07.04",
+      "archive": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.07.04/yt-dlp_macos.zip",
+      "sha256": "b0724470a0cf6dae5175a87eee05d6e75c5a0c10d2c3015166bd4d34e92b1b7b",
+      "member": "yt-dlp_macos", "versionArgs": ["--version"], "kind": "zip"
+    },
+    "ffmpeg": {"version": "8.1.2", "archives": {"arm64": {"archive": "https://ffmpeg.martin-riedl.de/download/macos/arm64/1783011502_8.1.2/ffmpeg.zip", "sha256": "ef1aa60006c7b77ce170c1608c08d8e4ba1c30c5746f2ac986ded932d0ac2c3c"}, "x64": {"archive": "https://ffmpeg.martin-riedl.de/download/macos/amd64/1783018342_8.1.2/ffmpeg.zip", "sha256": "a52ef43883f44c219766d4b3bdde4e635b35465d0b704c01c3a0566b59775df9"}}, "member": "ffmpeg", "versionArgs": ["-version"], "kind": "zip"},
+    "ffprobe": {"version": "8.1.2", "archives": {"arm64": {"archive": "https://ffmpeg.martin-riedl.de/download/macos/arm64/1783011502_8.1.2/ffprobe.zip", "sha256": "c39787f4af7a3932502d2d48db6f6feaaa836b48a73ef78c32cc3285df61dfaf"}, "x64": {"archive": "https://ffmpeg.martin-riedl.de/download/macos/amd64/1783018342_8.1.2/ffprobe.zip", "sha256": "5408ca588c8c72b0dde3afe676d0a7acf25ef97e55ae6eba5c7bede1cda42695"}}, "member": "ffprobe", "versionArgs": ["-version"], "kind": "zip"},
+    "bgutil-provider": {
+      "version": "0.8.1",
+      "archives": {
+        "arm64": {"url": "https://github.com/jim60105/bgutil-ytdlp-pot-provider-rs/releases/download/v0.8.1/bgutil-pot-macos-aarch64", "sha256": "34b83baf0a557fecaa6d67a8177e53e169c2ccf987182883a4bae289a7176883"},
+        "x64": {"url": "https://github.com/jim60105/bgutil-ytdlp-pot-provider-rs/releases/download/v0.8.1/bgutil-pot-macos-x86_64", "sha256": "0391175fa938c7fabbb8b40a40bd43182ef75af97e1dd3fab56eb23b4ac3e113"}
+      },
+      "member": null, "versionArgs": ["--version"], "kind": "raw",
+      "launchArgs": ["server", "--host", "127.0.0.1", "--port", "PORT"], "healthPath": "/ping",
+      "plugin": {"version": "0.8.1", "archive": "https://github.com/jim60105/bgutil-ytdlp-pot-provider-rs/releases/download/v0.8.1/bgutil-ytdlp-pot-provider-rs.zip", "sha256": "99fd83b98fa93b193d6a3b69dc74410d76e7a2b889868c54d16121cac9060344"}
+    }
+  }
+}

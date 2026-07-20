@@ -65,6 +65,15 @@ function shouldSniffAfterYtdlpFailure(url: string, err: string): boolean {
 }
 
 export function useUrlHandler(settings: SettingsData) {
+  const siteDefaults = useCallback((url: string) => {
+    try {
+      const hostname = new URL(url).hostname.toLowerCase()
+      return (settings.siteRules ?? []).find((rule) => {
+        const domain = rule.domain.trim().toLowerCase()
+        return rule.enabled && domain && (hostname === domain || hostname.endsWith(`.${domain}`))
+      })
+    } catch { return undefined }
+  }, [settings.siteRules])
   const [loading, setLoading] = useState(false)
   const [loadingPhase, setLoadingPhase] = useState<LoadingPhase>('')
   const [errorMsg, setErrorMsg] = useState('')
@@ -181,12 +190,13 @@ export function useUrlHandler(settings: SettingsData) {
         (extensionDirectTypes as readonly string[]).includes(meta.type) &&
         /^https?:\/\//i.test(url)
       if ((isMediaUrl(url) || fromExtension) && !isYouTubeUrl(url)) {
+        const rule = siteDefaults(url)
         const title = meta?.title || filenameFromUrl(url)
         await window.api.startDownload({
           url,
           title,
-          format: 'video',
-          quality: settings.defaultVideoQuality,
+          format: rule?.format === 'audio' ? 'mp3' : 'video',
+          quality: rule?.quality || settings.defaultVideoQuality,
           referer: meta?.referer,
           customHeaders: meta?.headers,
           mediaType: meta?.type
@@ -328,7 +338,8 @@ export function useUrlHandler(settings: SettingsData) {
             duration: Number(infoObj?.duration ?? 0),
             channel: String(infoObj?.channel ?? ''),
             view_count: Number(infoObj?.view_count ?? 0),
-            webpage_url: String(infoObj?.webpage_url ?? infoObj?.url ?? url)
+            webpage_url: String(infoObj?.webpage_url ?? infoObj?.url ?? url),
+            formats: Array.isArray(infoObj?.formats) ? infoObj.formats as VideoInfo['formats'] : undefined
           }
 
           if (settings.showFormatDialog) {
@@ -338,11 +349,12 @@ export function useUrlHandler(settings: SettingsData) {
             setShowFormatDialog(true)
             dialogOpenRef.current = true
           } else {
+            const rule = siteDefaults(url)
             await window.api.startDownload({
               url,
               title: videoInfo.title,
-              format: 'video',
-              quality: settings.defaultVideoQuality,
+              format: rule?.format === 'audio' ? 'mp3' : 'video',
+              quality: rule?.quality || settings.defaultVideoQuality,
               thumbnail: videoInfo.thumbnail,
               duration: videoInfo.duration,
               metadata: videoInfo.id ? { ytdlpId: videoInfo.id } : undefined
@@ -362,6 +374,7 @@ export function useUrlHandler(settings: SettingsData) {
   }, [
     settings.showFormatDialog,
     settings.defaultVideoQuality,
+    siteDefaults,
     settings.youtubePlaylistMode,
     scheduleAutoAdvance
   ])

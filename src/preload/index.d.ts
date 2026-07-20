@@ -1,17 +1,5 @@
-export interface StartDownloadOptions {
-  url: string
-  title: string
-  format: string
-  quality?: string
-  outputDir?: string
-  thumbnail?: string
-  duration?: number
-  metadata?: Record<string, unknown>
-  playlistId?: string
-  playlistIndex?: number
-  isPlaylist?: boolean
-  playlistTitle?: string
-}
+import type { AppResult, StartDownloadOptions } from '@v-download/shared'
+export type { AppResult, StartDownloadOptions } from '@v-download/shared'
 
 export interface DouyinBulkJobStatus {
   id: string
@@ -79,6 +67,9 @@ export interface WindowApi {
     error?: string
   }>
   setNativeThemeSource: (source: 'dark' | 'light' | 'system') => Promise<{ ok: boolean; error?: string }>
+  getAppVersion: () => Promise<string>
+  getUpdateStatus: () => Promise<{ state: 'disabled' | 'idle' | 'checking' | 'available' | 'downloaded' | 'error'; version?: string; error?: string }>
+  onUpdateStatus: (callback: (data: unknown) => void) => () => void
   sniffMedia?: (url: string) => Promise<{ data?: unknown; error?: string }>
   douyinProfileListPosts?: (
     profileUrl: string,

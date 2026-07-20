@@ -199,6 +199,7 @@ export async function listDouyinProfilePosts(options: {
 
   async function tryBrowserRecovery(): Promise<DouyinProfileListResult | null> {
     if (!options.browserRecovery || !browserRecoveryEnabled()) return null
+    if (!secUid) return null
     logProfile('browser recovery (user requested)', secUid)
     try {
       const recovered = await collectProfilePostsViaBrowserRecovery({
@@ -339,11 +340,11 @@ export async function listDouyinProfilePosts(options: {
   }
 
   // Unsigned web API often returns a short first page + has_more=false; profile HTML embed usually has more.
-  let htmlExtract = {
+  let htmlExtract: Awaited<ReturnType<typeof fetchHtmlProfileExtract>> = {
     rows: [] as DouyinProfilePostRow[],
     maxCursor: null as string | null,
     hasMore: false,
-    source: 'html' as const,
+    source: 'html',
     lastLen: 0,
   }
   const shouldHtmlEnrich = !apiMapped || !apiMapped.hasMore || merged.size === 0

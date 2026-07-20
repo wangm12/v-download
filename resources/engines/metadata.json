@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-18T03:53:15.217Z",
+  "buildIdentity": "local",
+  "architectures": {
+    "darwin-x64": {
+      "yt-dlp": {
+        "version": "2026.07.04",
+        "sourceUrl": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.07.04/yt-dlp_macos.zip",
+        "archiveSha256": "b0724470a0cf6dae5175a87eee05d6e75c5a0c10d2c3015166bd4d34e92b1b7b",
+        "installedSha256": "ff7d4fc44b8fbf42da021c1bca950da0326cdb0cdb84992fdc7fb7ec215df435",
+        "architecture": "x64",
+        "verifiedAt": "2026-07-18T03:53:23.587Z",
+        "buildIdentity": "local"
+      },
+      "yt-dlp-sidecar": {
+        "installedSha256": "a6d0992a3e4296dc726f3e8470125cb4ee75949413ce8c0c124e7105c6cba49b",
+        "path": "resources/engines/darwin-x64/_internal",
+        "requiredFile": "Python",
+        "architecture": "x64",
+        "buildIdentity": "local"
+      },
+      "ffmpeg": {
+        "version": "8.1.2",
+        "sourceUrl": "https://ffmpeg.martin-riedl.de/download/macos/amd64/1783018342_8.1.2/ffmpeg.zip",
+        "archiveSha256": "a52ef43883f44c219766d4b3bdde4e635b35465d0b704c01c3a0566b59775df9",
+        "installedSha256": "1ca59dda73668c59898a0b305afd8a88817a989187f222ec62d64e775d614d23",
+        "architecture": "x64",
+        "verifiedAt": "2026-07-18T03:53:30.434Z",
+        "buildIdentity": "local"
+      },
+      "ffprobe": {
+        "version": "8.1.2",
+        "sourceUrl": "https://ffmpeg.martin-riedl.de/download/macos/amd64/1783018342_8.1.2/ffprobe.zip",
+        "archiveSha256": "5408ca588c8c72b0dde3afe676d0a7acf25ef97e55ae6eba5c7bede1cda42695",
+        "installedSha256": "bdb6aff0f1f414382effd97040f7862dc85e67996ac296cb4288beed0e06498f",
+        "architecture": "x64",
+        "verifiedAt": "2026-07-18T03:53:36.709Z",
+        "buildIdentity": "local"
+      },
+      "bgutil-provider": {
+        "version": "0.8.1",
+        "sourceUrl": "https://github.com/jim60105/bgutil-ytdlp-pot-provider-rs/releases/download/v0.8.1/bgutil-pot-macos-x86_64",
+        "archiveSha256": "0391175fa938c7fabbb8b40a40bd43182ef75af97e1dd3fab56eb23b4ac3e113",
+        "installedSha256": "0391175fa938c7fabbb8b40a40bd43182ef75af97e1dd3fab56eb23b4ac3e113",
+        "architecture": "x64",
+        "verifiedAt": "2026-07-18T03:53:42.542Z",
+        "buildIdentity": "local"
+      },
+      "bgutil-plugin": {
+        "version": "0.8.1",
+        "sourceUrl": "https://github.com/jim60105/bgutil-ytdlp-pot-provider-rs/releases/download/v0.8.1/bgutil-ytdlp-pot-provider-rs.zip",
+        "archiveSha256": "99fd83b98fa93b193d6a3b69dc74410d76e7a2b889868c54d16121cac9060344",
+        "installedSha256": "c71422f0c72e34fdbfb2497096e7a324aa69320d37e06a67e66dd8dd579ca8b0",
+        "installPath": "resources/engines/po-token/darwin-x64/yt_dlp_plugins",
+        "architecture": "x64",
+        "buildIdentity": "local"
+      }
+    },
+    "darwin-arm64": {
+      "yt-dlp": {
+        "version": "2026.07.04",
+        "sourceUrl": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.07.04/yt-dlp_macos.zip",
+        "archiveSha256": "b0724470a0cf6dae5175a87eee05d6e75c5a0c10d2c3015166bd4d34e92b1b7b",
+        "installedSha256": "ff7d4fc44b8fbf42da021c1bca950da0326cdb0cdb84992fdc7fb7ec215df435",
+        "architecture": "arm64",
+        "verifiedAt": "2026-07-18T03:53:17.475Z",
+        "buildIdentity": "local"
+      },
+      "yt-dlp-sidecar": {
+        "installedSha256": "a6d0992a3e4296dc726f3e8470125cb4ee75949413ce8c0c124e7105c6cba49b",
+        "path": "resources/engines/darwin-arm64/_internal",
+        "requiredFile": "Python",
+        "architecture": "arm64",
+        "buildIdentity": "local"
+      },
+      "ffmpeg": {
+        "version": "8.1.2",
+        "sourceUrl": "https://ffmpeg.martin-riedl.de/download/macos/arm64/1783011502_8.1.2/ffmpeg.zip",
+        "archiveSha256": "ef1aa60006c7b77ce170c1608c08d8e4ba1c30c5746f2ac986ded932d0ac2c3c",
+        "installedSha256": "eaf91238e104dd0e262bc6510e25061855cc99a6955a721b0ac99660d58c473d",
+        "architecture": "arm64",
+        "verifiedAt": "2026-07-18T03:53:18.532Z",
+        "buildIdentity": "local"
+      },
+      "ffprobe": {
+        "version": "8.1.2",
+        "sourceUrl": "https://ffmpeg.martin-riedl.de/download/macos/arm64/1783011502_8.1.2/ffprobe.zip",
+        "archiveSha256": "c39787f4af7a3932502d2d48db6f6feaaa836b48a73ef78c32cc3285df61dfaf",
+        "installedSha256": "ed9dc5871914b466b96b402c9ec0ba68ce4f836e72faa464b1b4e279835bd4a6",
+        "architecture": "arm64",
+        "verifiedAt": "2026-07-18T03:53:20.052Z",
+        "buildIdentity": "local"
+      },
+      "bgutil-provider": {
+        "version": "0.8.1",
+        "sourceUrl": "https://github.com/jim60105/bgutil-ytdlp-pot-provider-rs/releases/download/v0.8.1/bgutil-pot-macos-aarch64",
+        "archiveSha256": "34b83baf0a557fecaa6d67a8177e53e169c2ccf987182883a4bae289a7176883",
+        "installedSha256": "34b83baf0a557fecaa6d67a8177e53e169c2ccf987182883a4bae289a7176883",
+        "architecture": "arm64",
+        "verifiedAt": "2026-07-18T03:53:21.150Z",
+        "buildIdentity": "local"
+      },
+      "bgutil-plugin": {
+        "version": "0.8.1",
+        "sourceUrl": "https://github.com/jim60105/bgutil-ytdlp-pot-provider-rs/releases/download/v0.8.1/bgutil-ytdlp-pot-provider-rs.zip",
+        "archiveSha256": "99fd83b98fa93b193d6a3b69dc74410d76e7a2b889868c54d16121cac9060344",
+        "installedSha256": "c71422f0c72e34fdbfb2497096e7a324aa69320d37e06a67e66dd8dd579ca8b0",
+        "installPath": "resources/engines/po-token/darwin-arm64/yt_dlp_plugins",
+        "architecture": "arm64",
+        "buildIdentity": "local"
+      }
+    }
+  }
+}

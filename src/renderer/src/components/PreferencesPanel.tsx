@@ -1,12 +1,17 @@
 import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react'
-import { Folder, RefreshCw, Loader2, X, Puzzle } from 'lucide-react'
+import { Check, Folder, RefreshCw, Loader2, X, Puzzle } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { Stepper } from './Stepper'
 import { HoverHintWrap } from './HoverHintWrap'
 import type { PrefSection } from '@/preferencesNav'
 import { PREF_SECTION_HEADER } from '@/preferencesNav'
-import type { DouyinBulkJobStatus, SettingsData } from '@/types'
+import type { DouyinBulkJobStatus, SettingsData, SiteRule } from '@/types'
 import { DOUYIN_BULK_URL_PREFILL_SESSION_KEY } from '@/utils/douyinBulk'
+import {
+  GENERAL_SECTION_CLASS,
+  PREFERENCES_WORKSPACE_CLASS
+} from './preferencesPanelPresentation'
+import { DOWNLOAD_SPEED_MODES, getDownloadSpeedPresentation, getEffectiveIndividualLimit } from './preferencesPanelPresentation'
 
 const VIDEO_QUALITIES = ['2160', '1080', '720', '360', '240', '144']
 const AUDIO_QUALITIES = ['320', '256', '128']
@@ -18,14 +23,16 @@ export interface PreferencesPanelProps {
 function PrefCard({
   title,
   subtitle,
-  children
+  children,
+  className
 }: {
   title: string
   subtitle?: string
   children: ReactNode
+  className?: string
 }) {
   return (
-    <div className="rounded-xl border border-border bg-surface p-4 space-y-4">
+    <section className={cn('rounded-2xl border border-border bg-surface/80 p-5 space-y-5 shadow-sm', className)}>
       <div>
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>
         {subtitle ? (
@@ -33,7 +40,7 @@ function PrefCard({
         ) : null}
       </div>
       {children}
-    </div>
+    </section>
   )
 }
 
@@ -64,6 +71,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
   const [cookieSyncBusy, setCookieSyncBusy] = useState(false)
   const [extensionPath, setExtensionPath] = useState<string | null>(null)
   const [extensionInstallBusy, setExtensionInstallBusy] = useState(false)
+  const [appVersion, setAppVersion] = useState<string | null>(null)
   const cookieSyncWaitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const awaitingCookiePushRef = useRef(false)
   const [settings, setSettings] = useState<SettingsData>({
@@ -91,7 +99,8 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
     concurrentFragments: 5,
     downloadSpeedMode: 'balanced',
     turboRiskAcknowledged: false,
-    ytdlpExternalDownloader: ''
+    ytdlpExternalDownloader: '',
+    siteRules: []
   })
   const [bulkUrl, setBulkUrl] = useState('')
   const [bulkJobId, setBulkJobId] = useState('')
@@ -99,6 +108,17 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
   const [bulkJobBusy, setBulkJobBusy] = useState(false)
   const [bulkJobNote, setBulkJobNote] = useState('')
   const [turboModalOpen, setTurboModalOpen] = useState(false)
+  const turboDialogRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!turboModalOpen) return
+    turboDialogRef.current?.focus()
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { event.preventDefault(); setTurboModalOpen(false) }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [turboModalOpen])
 
   const header = PREF_SECTION_HEADER[section]
 
@@ -108,6 +128,11 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
       const data = (res as { data?: SettingsData })?.data ?? res
       if (data) setSettings((prev) => ({ ...prev, ...data }))
     })
+  }, [])
+
+  useEffect(() => {
+    if (!window.api?.getAppVersion) return
+    void window.api.getAppVersion().then(setAppVersion).catch(() => setAppVersion(null))
   }, [])
 
   useEffect(() => {
@@ -401,28 +426,34 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
       </header>
 
       <div
-        className="flex-1 overflow-y-auto p-6 min-h-0"
+        className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6 min-h-0"
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
         {section === 'general' && (
-          <div className="max-w-2xl space-y-6">
-            <PrefCard title="Behavior" subtitle="What happens before each download starts.">
-              <ToggleRow
-                label="Show format picker before download"
-                checked={settings.showFormatDialog}
-                onChange={(v) => onUpdate('showFormatDialog', v)}
-              />
-              <ToggleRow
-                label="Create playlist and channel subfolders"
-                checked={settings.playlistSubfolder}
-                onChange={(v) => onUpdate('playlistSubfolder', v)}
-              />
+          <div className={PREFERENCES_WORKSPACE_CLASS}>
+            <PrefCard
+              title="Behavior"
+              subtitle="What happens before each download starts."
+              className={GENERAL_SECTION_CLASS}
+            >
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                <ToggleRow
+                  label="Show format picker before download"
+                  checked={settings.showFormatDialog}
+                  onChange={(v) => onUpdate('showFormatDialog', v)}
+                />
+                <ToggleRow
+                  label="Create playlist and channel subfolders"
+                  checked={settings.playlistSubfolder}
+                  onChange={(v) => onUpdate('playlistSubfolder', v)}
+                />
+              </div>
             </PrefCard>
           </div>
         )}
 
         {section === 'downloads' && (
-          <div className="max-w-2xl space-y-6">
+          <div className={PREFERENCES_WORKSPACE_CLASS}>
             <PrefCard
               title="Storage"
               subtitle="Default folder for completed files (you can still pick another destination in the format dialog)."
@@ -436,7 +467,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                   <button
                     type="button"
                     onClick={handleBrowse}
-                    className="px-4 py-2 rounded-lg bg-elevated border border-border text-sm font-medium text-foreground hover:bg-control transition-colors shrink-0"
+                    className="min-h-11 px-4 py-2 rounded-lg bg-elevated border border-border text-sm font-medium text-foreground hover:bg-control transition-colors shrink-0"
                   >
                     Browse
                   </button>
@@ -446,28 +477,37 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
 
             <PrefCard
               title="Download speed"
-              subtitle="Presets tune parallel queue slots, yt-dlp sleep between operations, fragment concurrency, and the direct-media engine. Default is Balanced."
+              subtitle="Presets tune process/task concurrency and media-engine behavior. These are concurrent downloads, not JavaScript threads. Default is Balanced."
             >
               <FieldBlock
                 label="Mode"
-                description="Turbo enables higher parallelism and zero sleep between operations; some CDNs may return HTTP 429 (rate limit)."
+                description="Collections have their own limits in addition to the individual-video pool. Choose a preset to change its start delay, fragment slots, and media path."
               >
-                <div className="flex flex-wrap gap-2">
-                  {(['balanced', 'turbo', 'gentle'] as const).map((mode) => (
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3" role="group" aria-label="Download speed mode">
+                  {DOWNLOAD_SPEED_MODES.map((mode) => {
+                    const presentation = getDownloadSpeedPresentation(mode)
+                    const selected = (settings.downloadSpeedMode ?? 'balanced') === mode
+                    return (
                     <button
                       key={mode}
                       type="button"
+                      aria-pressed={selected}
                       onClick={() => void handleDownloadSpeedMode(mode)}
                       className={cn(
-                        'px-4 py-2 rounded-lg border text-sm font-medium transition-colors capitalize',
-                        (settings.downloadSpeedMode ?? 'balanced') === mode
-                          ? 'border-white/40 bg-control text-foreground'
-                          : 'border-border bg-elevated text-foreground hover:bg-control'
+                        'min-h-11 rounded-lg border px-3 py-2 text-left text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-action focus:ring-offset-2 focus:ring-offset-surface',
+                        selected ? 'border-action bg-action text-action-fg shadow-sm' : 'border-border bg-elevated text-foreground hover:bg-control'
                       )}
                     >
-                      {mode === 'balanced' ? 'Balanced' : mode === 'turbo' ? 'Turbo' : 'Gentle'}
+                      <span className="flex items-center gap-2">
+                        {selected ? <Check className="h-4 w-4 shrink-0" aria-hidden /> : <span className="h-4 w-4 shrink-0" aria-hidden />}
+                        <span>{presentation.label}{selected ? ' · Selected' : ''}</span>
+                      </span>
                     </button>
-                  ))}
+                    )
+                  })}
+                </div>
+                <div className="grid gap-2 text-xs leading-relaxed text-muted-foreground sm:grid-cols-3" aria-label="Download speed mode details">
+                  {DOWNLOAD_SPEED_MODES.map((mode) => <p key={mode}><span className="font-semibold text-foreground">{getDownloadSpeedPresentation(mode).label}:</span> {getDownloadSpeedPresentation(mode).description}</p>)}
                 </div>
               </FieldBlock>
             </PrefCard>
@@ -477,10 +517,10 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
               subtitle="Balance speed with system and network reliability. A short delay between starts helps with rate limits."
             >
               <FieldBlock
-                label="Concurrent downloads"
-                description="Limit parallel downloads when the host or your connection is sensitive to bursts."
+                label="Individual-video pool limit"
+                description={`Allows up to ${getEffectiveIndividualLimit(settings.downloadSpeedMode ?? 'balanced', settings.concurrency)} individual-video tasks. Collections use their own ${getDownloadSpeedPresentation(settings.downloadSpeedMode ?? 'balanced').policy.collectionLimit}-task and ${getDownloadSpeedPresentation(settings.downloadSpeedMode ?? 'balanced').policy.activeCollectionLimit}-collection caps.`}
               >
-                <Stepper value={settings.concurrency} min={1} max={10} onChange={(v) => onUpdate('concurrency', v)} />
+                <Stepper value={getEffectiveIndividualLimit(settings.downloadSpeedMode ?? 'balanced', settings.concurrency)} min={1} max={3} onChange={(v) => onUpdate('concurrency', v)} />
               </FieldBlock>
               <FieldBlock
                 label="Delay between download starts"
@@ -494,10 +534,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                   onChange={(v) => onUpdate('sleepInterval', v)}
                 />
               </FieldBlock>
-              <p className="text-[11px] text-muted-foreground leading-relaxed border-t border-border pt-3">
-                Automatic retry for interrupted items and battery-aware pauses are on the roadmap (see v2 Downloads
-                mockup); today you can use <span className="text-foreground">Retry</span> on failed rows in the queue.
-              </p>
+              <p className="text-[11px] text-muted-foreground leading-relaxed border-t border-border pt-3">Failed and interrupted items expose Retry in the queue and inspector. Pause and cancel remain available while a task is active.</p>
             </PrefCard>
 
             <PrefCard
@@ -587,6 +624,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
             <PrefCard
               title="Douyin bulk (optional)"
               subtitle="Creator/profile bulk via external jiji262/douyin-downloader. Align `-p` with your app download folder using the fields below; `mode`, `number`, and cookies stay in config.yml per upstream README."
+              className="lg:col-span-2"
             >
               <div className="text-xs text-muted-foreground leading-relaxed">
                 <a
@@ -632,7 +670,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                   <button
                     type="button"
                     onClick={handleBrowseBulkOutput}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-elevated text-xs font-medium text-foreground hover:bg-control"
+                      className="inline-flex min-h-11 items-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-elevated text-xs font-medium text-foreground hover:bg-control"
                   >
                     <Folder size={14} aria-hidden />
                     Choose folder
@@ -682,7 +720,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                       onClick={handleStartDouyinBulk}
                       disabled={!bulkUrl.trim() || bulkJobBusy || bulkJob?.state === 'running'}
                       className={cn(
-                        'px-4 py-2 rounded-lg border text-sm font-medium transition-colors',
+                        'min-h-11 px-4 py-2 rounded-lg border text-sm font-medium transition-colors',
                         !bulkUrl.trim() || bulkJobBusy || bulkJob?.state === 'running'
                           ? 'border-border/50 text-muted-foreground/50 cursor-not-allowed'
                           : 'border-border bg-elevated text-foreground hover:bg-control'
@@ -762,24 +800,12 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                   ))}
                 </select>
               </FieldBlock>
-              <FieldBlock
-                label="Filename template"
-                description="Custom patterns like {title} - {site} - {quality} will ship with per-site rules; not persisted yet."
-              >
-                <input
-                  type="text"
-                  readOnly
-                  value="{title} - {site} - {quality}"
-                  className="w-full max-w-md px-3 py-2 rounded-lg bg-raised/50 border border-dashed border-border text-sm text-muted-foreground cursor-not-allowed"
-                  aria-readonly
-                />
-              </FieldBlock>
             </PrefCard>
           </div>
         )}
 
         {section === 'browser' && (
-          <div className="max-w-2xl space-y-6">
+          <div className={PREFERENCES_WORKSPACE_CLASS}>
             <PrefCard title="Chrome companion" subtitle="Extension, cookie sync, and browser profile for logged-in pages.">
               {(cookieSyncBusy || extensionInstallBusy || cookieSyncNote) && (
                 <div
@@ -916,19 +942,15 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
         )}
 
         {section === 'sites' && (
-          <div className="max-w-2xl space-y-6">
-            <div className="rounded-xl border border-dashed border-border-strong bg-surface p-6">
-              <p className="text-sm text-foreground font-medium">Coming soon</p>
-              <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-                Per-site download rules, allowlists, and overrides will live here. The v2 design pack includes table
-                mockups for this section.
-              </p>
-            </div>
+          <div className={PREFERENCES_WORKSPACE_CLASS}>
+            <PrefCard title="Per-site defaults" subtitle="Match a hostname such as youtube.com. Rules are saved immediately and applied to future queue items.">
+              <SiteRulesEditor settings={settings} onUpdate={onUpdate} />
+            </PrefCard>
           </div>
         )}
 
         {section === 'advanced' && (
-          <div className="max-w-2xl space-y-6">
+          <div className={PREFERENCES_WORKSPACE_CLASS}>
             <PrefCard title="Engine" subtitle="Resolved paths from your environment (read-only).">
               <div>
                 <label className="block text-xs text-muted-foreground mb-2">yt-dlp path</label>
@@ -950,7 +972,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
               </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-2">Version</label>
-                <p className="text-sm text-muted-foreground">1.0.0</p>
+                <p className="text-sm text-muted-foreground">{appVersion ?? '—'}</p>
               </div>
             </PrefCard>
           </div>
@@ -964,12 +986,13 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
           aria-modal="true"
           aria-labelledby="turbo-modal-title"
         >
-          <div className="w-full max-w-md rounded-xl border border-border bg-surface p-5 shadow-xl space-y-3">
+          <div ref={turboDialogRef} tabIndex={-1} className="w-full max-w-md rounded-xl border border-border bg-surface p-5 shadow-xl space-y-3 outline-none">
             <h2 id="turbo-modal-title" className="text-sm font-semibold text-foreground">
               Enable Turbo mode?
             </h2>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Turbo raises parallel fragment downloads and removes the delay between yt-dlp operations. Some hosts may
+              Turbo keeps the same 12-task queue cap, but removes the start delay, uses 16 fragment downloads, and uses
+              the yt-dlp direct-media path. It is faster, but some hosts may
               respond with HTTP 429 (Too Many Requests) or throttle your connection. You can switch back to Balanced
               anytime.
             </p>
@@ -996,6 +1019,22 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
   )
 }
 
+function SiteRulesEditor({ settings, onUpdate }: { settings: SettingsData; onUpdate: (key: string, value: unknown) => Promise<void> }) {
+  const rules = settings.siteRules ?? []
+  const add = () => void onUpdate('siteRules', [...rules, { id: crypto.randomUUID(), domain: '', format: 'best', quality: '1080', enabled: true } satisfies SiteRule])
+  return <div className="space-y-3">
+    {rules.map((rule, index) => <div key={rule.id} className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto_auto] gap-2 items-center">
+      <input aria-label={`Site rule ${index + 1} domain`} value={rule.domain} onChange={(e) => void onUpdate('siteRules', rules.map((r) => r.id === rule.id ? { ...r, domain: e.target.value } : r))} placeholder="example.com" className="w-full min-w-0 px-3 py-2 rounded-lg bg-raised border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-border-focus" />
+      <select aria-label={`Site rule ${index + 1} output type`} value={rule.format} onChange={(e) => void onUpdate('siteRules', rules.map((r) => r.id === rule.id ? { ...r, format: e.target.value as SiteRule['format'] } : r))} className="px-2 py-2 rounded-lg bg-raised border border-border text-sm"><option value="best">Best</option><option value="video">Video</option><option value="audio">Audio</option></select>
+      <input aria-label={`Site rule ${index + 1} quality`} inputMode="numeric" value={rule.quality} onChange={(e) => void onUpdate('siteRules', rules.map((r) => r.id === rule.id ? { ...r, quality: e.target.value.replace(/[^0-9]/g, '') } : r))} onBlur={() => { const n = Number(rule.quality); if (!Number.isFinite(n) || n <= 0) void onUpdate('siteRules', rules.map((r) => r.id === rule.id ? { ...r, quality: r.format === 'audio' ? '320' : '1080' } : r)) }} className="w-20 px-2 py-2 rounded-lg bg-raised border border-border text-sm" />
+      <label className="inline-flex items-center gap-2 text-sm whitespace-nowrap"><input type="checkbox" checked={rule.enabled} onChange={(e) => void onUpdate('siteRules', rules.map((r) => r.id === rule.id ? { ...r, enabled: e.target.checked } : r))} /> Enabled</label>
+      <button type="button" aria-label={`Remove ${rule.domain || 'site'} rule`} onClick={() => void onUpdate('siteRules', rules.filter((r) => r.id !== rule.id))} className="min-h-11 px-3 py-2 rounded-lg border border-border text-sm hover:bg-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus">Remove</button>
+    </div>)}
+    <button type="button" onClick={add} className="min-h-11 px-3 py-2 rounded-lg border border-border bg-elevated text-sm font-medium hover:bg-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus">Add site rule</button>
+    {rules.length === 0 ? <p className="text-xs text-muted-foreground">No site overrides yet. Add one to choose defaults for a domain.</p> : null}
+  </div>
+}
+
 function ToggleRow({
   label,
   checked,
@@ -1006,20 +1045,22 @@ function ToggleRow({
   onChange: (v: boolean) => void
 }) {
   return (
-    <div className="flex items-center justify-between gap-4">
+    <div className="flex min-h-11 items-center justify-between gap-4">
       <label className="text-sm text-foreground">{label}</label>
       <button
         type="button"
         onClick={() => onChange(!checked)}
-        className={cn('w-11 h-6 rounded-full transition-colors shrink-0', checked ? 'bg-foreground' : 'bg-border')}
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
         aria-pressed={checked}
       >
-        <span
-          className={cn(
-            'block w-5 h-5 rounded-full bg-background shadow transition-transform',
-            checked ? 'translate-x-5' : 'translate-x-0.5'
-          )}
-        />
+        <span className={cn('flex h-6 w-11 items-center rounded-full transition-colors', checked ? 'bg-foreground' : 'bg-border')}>
+          <span
+            className={cn(
+              'block h-5 w-5 rounded-full bg-background shadow transition-transform',
+              checked ? 'translate-x-[1.375rem]' : 'translate-x-0.5'
+            )}
+          />
+        </span>
       </button>
     </div>
   )

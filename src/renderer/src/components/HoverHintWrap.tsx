@@ -3,7 +3,7 @@ import type {
   ForwardedRef,
   MouseEvent,
   MutableRefObject,
-  PointerEvent,
+  PointerEvent as ReactPointerEvent,
   ReactElement
 } from 'react'
 import {
@@ -147,7 +147,7 @@ export const HoverHintWrap = forwardRef<HTMLSpanElement, HoverHintWrapProps>(fun
   }, [clearLeaveTimer, clearShowTimer])
 
   const primeAndScheduleOpen = useCallback(
-    (e: PointerEvent<HTMLSpanElement> | MouseEvent<HTMLSpanElement>) => {
+    (e: ReactPointerEvent<HTMLSpanElement> | MouseEvent<HTMLSpanElement>) => {
       lastPointerRef.current = { x: e.clientX, y: e.clientY }
       clearLeaveTimer()
       clearShowTimer()
@@ -212,7 +212,7 @@ export const HoverHintWrap = forwardRef<HTMLSpanElement, HoverHintWrapProps>(fun
   }, [open, syncPosition])
 
   useEffect(() => {
-    const track = (e: PointerEvent) => {
+    const track = (e: globalThis.PointerEvent) => {
       lastPointerRef.current = { x: e.clientX, y: e.clientY }
     }
     globalThis.window.addEventListener('pointermove', track, { passive: true })
@@ -221,7 +221,7 @@ export const HoverHintWrap = forwardRef<HTMLSpanElement, HoverHintWrapProps>(fun
 
   useEffect(() => {
     if (!open) return
-    const onDocPointerDown = (e: PointerEvent) => {
+    const onDocPointerDown = (e: globalThis.PointerEvent) => {
       const t = e.target as Node | null
       if (anchorRef.current?.contains(t)) return
       close()

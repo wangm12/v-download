@@ -1,5 +1,6 @@
-import { Play, Pause, Settings, Trash2, ArrowDown, RefreshCw, Loader2 } from 'lucide-react'
+import { Play, Pause, Trash2, ArrowDown, RefreshCw, Loader2 } from 'lucide-react'
 import { HoverHintWrap } from './HoverHintWrap'
+import type { CSSProperties } from 'react'
 
 interface BottomBarProps {
   statusText: string
@@ -14,7 +15,6 @@ interface BottomBarProps {
   syncCookiesBusy?: boolean
   /** Finer phase for tooltip / short label */
   syncCookiesPhase?: 'opening' | 'waiting' | null
-  onSettings: () => void
   onClear: () => void
 }
 
@@ -29,7 +29,6 @@ export function BottomBar({
   onSyncCookies,
   syncCookiesBusy = false,
   syncCookiesPhase = null,
-  onSettings,
   onClear,
 }: BottomBarProps) {
   const syncTitle =
@@ -42,15 +41,15 @@ export function BottomBar({
     syncCookiesPhase === 'opening' ? 'Opening…' : syncCookiesPhase === 'waiting' ? 'Waiting…' : null
   return (
     <footer
-      className="h-10 flex-shrink-0 relative flex items-center px-4 bg-window border-t border-border"
-      style={{ WebkitAppRegion: 'no-drag' }}
+      className="h-11 flex-shrink-0 relative flex items-center px-4 bg-window border-t border-border"
+      style={{ WebkitAppRegion: 'no-drag' } as CSSProperties}
     >
       <div className="flex items-center gap-2">
         <HoverHintWrap text="Start all downloads">
           <button
             type="button"
             onClick={onResumeAll}
-            className={`p-1.5 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus ${
+            className={`min-h-11 min-w-11 p-1.5 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus ${
               hasResumable
                 ? 'text-muted-foreground hover:text-foreground hover:bg-control'
                 : 'text-muted-foreground/40 cursor-default'
@@ -65,7 +64,7 @@ export function BottomBar({
           <button
             type="button"
             onClick={onPauseAll}
-            className={`p-1.5 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus ${
+            className={`min-h-11 min-w-11 p-1.5 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus ${
               hasActive
                 ? 'text-muted-foreground hover:text-foreground hover:bg-control'
                 : 'text-muted-foreground/40 cursor-default'
@@ -81,7 +80,7 @@ export function BottomBar({
             type="button"
             onClick={onClear}
             disabled={!hasDownloads}
-            className={`p-1.5 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus ${
+            className={`min-h-11 min-w-11 p-1.5 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus ${
               hasDownloads
                 ? 'text-muted-foreground hover:text-foreground hover:bg-control'
                 : 'text-muted-foreground/40 cursor-default'
@@ -94,8 +93,8 @@ export function BottomBar({
       </div>
 
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-muted-foreground">{statusText}</span>
+        <div className="flex min-w-0 max-w-[45%] items-center gap-3">
+          <span className="truncate text-xs text-muted-foreground">{statusText}</span>
           {totalSpeed && (
             <span className="flex items-center gap-1 text-xs text-foreground tabular-nums">
               <ArrowDown className="w-3 h-3 text-muted-foreground" />
@@ -112,10 +111,10 @@ export function BottomBar({
               type="button"
               onClick={onSyncCookies}
               disabled={syncCookiesBusy}
-              className={`flex items-center gap-1.5 rounded-md pl-1.5 pr-2 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus ${
+              className={`min-h-11 min-w-11 max-w-full flex items-center justify-center gap-1.5 rounded-md p-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus ${
                 syncCookiesBusy
                   ? 'text-foreground cursor-wait ring-1 ring-inset ring-border-strong bg-control'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-control'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-control active:text-foreground'
               }`}
               aria-busy={syncCookiesBusy}
               aria-label={syncTitle}
@@ -133,16 +132,6 @@ export function BottomBar({
             </button>
           </HoverHintWrap>
         )}
-        <HoverHintWrap text="Settings">
-          <button
-            type="button"
-            onClick={onSettings}
-            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-control transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
-            aria-label="Settings"
-          >
-            <Settings className="w-4 h-4" aria-hidden />
-          </button>
-        </HoverHintWrap>
       </div>
     </footer>
   )

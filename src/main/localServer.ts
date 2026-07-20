@@ -1,15 +1,39 @@
 import { createServer, IncomingMessage, ServerResponse } from 'http'
 import { app, BrowserWindow } from 'electron'
+import { writeFileSync, mkdirSync, existsSync, chmodSync, readFileSync } from 'fs'
+import { randomBytes } from 'crypto'
 import { join } from 'path'
-import { writeFileSync, mkdirSync, existsSync } from 'fs'
 import { buildNetscapeCookieFile, type ChromeSyncedCookie } from '@v-download/shared'
 import * as settings from './settings'
+import { isAllowedOrigin, hasValidCapability, validateCookieRecord, validateDownloadPayload } from './securityValidation'
 
 export const LOCAL_SERVER_PORT = 18765
 let server: ReturnType<typeof createServer> | null = null
 
 /** When true, Chrome extension should run syncCookies() (poll or cookie-sync-landing page). */
 let cookieSyncRequested = false
+const MAX_BODY_BYTES = 2 * 1024 * 1024
+const MAX_COOKIES = 2000
+const MAX_COOKIE_VALUE_BYTES = 16 * 1024
+const ALLOWED_COOKIE_DOMAINS = new Set(['youtube.com', '.youtube.com', 'google.com', '.google.com', 'douyin.com', '.douyin.com', 'tiktok.com', '.tiktok.com', 'bilibili.com', '.bilibili.com', 'xiaohongshu.com', '.xiaohongshu.com', 'x.com', '.x.com'])
+let pairingSecret = ''
+
+function getPairingSecret(): string {
+  if (pairingSecret) return pairingSecret
+  const path = join(app.getPath('userData'), 'extension-pairing.secret')
+  try { pairingSecret = readFileSync(path, 'utf8').trim() } catch { pairingSecret = randomBytes(32).toString('hex'); mkdirSync(app.getPath('userData'), { recursive: true }); writeFileSync(path, pairingSecret, { encoding: 'utf8', mode: 0o600 }); chmodSync(path, 0o600) }
+  return pairingSecret
+}
+
+export function getExtensionPairingSecret(): string { return getPairingSecret() }
+
+const originAllowed = (origin: string | undefined) => isAllowedOrigin(origin)
+
+function authorized(req: IncomingMessage): boolean {
+  const token = req.headers['x-vdownload-capability']
+  if (typeof token !== 'string' || !originAllowed(req.headers.origin)) return false
+  return hasValidCapability(token, getPairingSecret())
+}
 
 export function setCookieSyncRequested(value: boolean): void {
   cookieSyncRequested = value
@@ -57,7 +81,8 @@ function saveCookiesFile(cookies: ChromeSyncedCookie[]): string {
   const content = buildNetscapeCookieFile(cookies, {
     headerNote: 'This file is auto-synced from Chrome via V-Download extension',
   })
-  writeFileSync(cookiesPath, content, 'utf-8')
+  writeFileSync(cookiesPath, content, { encoding: 'utf-8', mode: 0o600 })
+  chmodSync(cookiesPath, 0o600)
 
   settings.set('cookiesPath', cookiesPath)
   return cookiesPath
@@ -66,16 +91,18 @@ function saveCookiesFile(cookies: ChromeSyncedCookie[]): string {
 function readBody(req: IncomingMessage): Promise<string> {
   return new Promise((resolve, reject) => {
     let body = ''
-    req.on('data', (chunk) => { body += chunk })
+    let size = 0
+    req.on('data', (chunk) => { size += chunk.length; if (size > MAX_BODY_BYTES) { reject(new Error('Request body too large')); req.destroy() } else body += chunk })
     req.on('end', () => resolve(body))
     req.on('error', reject)
   })
 }
 
-function cors(res: ServerResponse): void {
-  res.setHeader('Access-Control-Allow-Origin', '*')
+function cors(res: ServerResponse, origin?: string): void {
+  if (origin && originAllowed(origin)) res.setHeader('Access-Control-Allow-Origin', origin)
+  res.setHeader('Vary', 'Origin')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-VDownload-Capability')
 }
 
 function json(res: ServerResponse, status: number, data: Record<string, unknown>): void {
@@ -88,9 +115,10 @@ export function startLocalServer(): void {
   if (server) return
 
   server = createServer(async (req, res) => {
-    cors(res)
+    cors(res, req.headers.origin)
 
     if (req.method === 'OPTIONS') {
+      if (!originAllowed(req.headers.origin)) { res.writeHead(403); res.end(); return }
       res.writeHead(204)
       res.end()
       return
@@ -99,7 +127,8 @@ export function startLocalServer(): void {
     const pathname = (req.url ?? '').split('?')[0] || '/'
 
     if (req.method === 'GET' && pathname === '/cookie-sync-poll') {
-      json(res, 200, { pending: cookieSyncRequested })
+      if (!originAllowed(req.headers.origin)) { json(res, 403, { error: 'Extension origin required' }); return }
+      json(res, 200, { pending: cookieSyncRequested, capability: getPairingSecret() })
       return
     }
 
@@ -124,43 +153,41 @@ export function startLocalServer(): void {
 
     if (req.method === 'POST' && pathname === '/cookies') {
       try {
+        if (!authorized(req)) { json(res, 403, { error: 'Pairing required' }); return }
         const body = await readBody(req)
         const cookies = JSON.parse(body) as ChromeSyncedCookie[]
         if (!Array.isArray(cookies)) {
           json(res, 400, { error: 'Expected array of cookies' })
           return
         }
+        if (cookies.length > MAX_COOKIES || cookies.some((c) => !validateCookieRecord(c))) { json(res, 400, { error: 'Invalid cookie payload' }); return }
         const path = saveCookiesFile(cookies)
         cookieSyncRequested = false
-        console.log(`Cookies synced: ${cookies.length} cookies saved to ${path}`)
+        console.log(`Cookies synced: ${cookies.length} cookies saved`)
         broadcastSettingsChanged()
         broadcastCookiesSynced(cookies.length)
-        json(res, 200, { ok: true, count: cookies.length, path })
-      } catch (err) {
-        json(res, 500, { error: String(err) })
+        json(res, 200, { ok: true, count: cookies.length })
+      } catch (_err) {
+        json(res, 400, { error: 'Invalid cookie request' })
       }
       return
     }
 
     if (req.method === 'POST' && pathname === '/download') {
       try {
+        if (!authorized(req)) { json(res, 403, { error: 'Pairing required' }); return }
         const body = await readBody(req)
-        const parsed = JSON.parse(body) as DownloadRequest
-        if (!parsed.url) {
-          json(res, 400, { error: 'Missing url' })
-          return
-        }
-        console.log(
-          `[localServer] POST /download type=${parsed.type ?? '(page)'} urlLen=${parsed.url.length} title=${(parsed.title || '').slice(0, 40)}`
-        )
+        const checked = validateDownloadPayload(JSON.parse(body))
+        if (!checked.ok) { json(res, 400, { error: checked.error }); return }
+        const parsed = checked.value as unknown as DownloadRequest
         if (parsed.type && onMediaDownloadRequest) {
           onMediaDownloadRequest(parsed)
-        } else if (onDownloadRequest) {
+        } else if (!parsed.type && onDownloadRequest) {
           onDownloadRequest(parsed)
-        }
-        json(res, 200, { ok: true, url: parsed.url })
-      } catch (err) {
-        json(res, 500, { error: String(err) })
+        } else { json(res, 503, { error: 'Download service unavailable' }); return }
+        json(res, 200, { ok: true })
+      } catch (_err) {
+        json(res, 400, { error: 'Invalid download request' })
       }
       return
     }

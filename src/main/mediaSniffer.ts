@@ -1,10 +1,12 @@
 import { BrowserWindow, session } from 'electron'
+import { resolveMediaCandidates, type ResolverCandidate } from './mediaResolver'
 
 export interface DetectedMedia {
   url: string
-  type: 'hls' | 'mp4' | 'webm' | 'flv'
+  type: 'hls' | 'dash' | 'mp4' | 'webm' | 'flv' | 'mp3' | 'm4a'
   size: number | null
   contentType: string | null
+  candidate?: ResolverCandidate
 }
 
 export interface SniffResult {
@@ -14,13 +16,15 @@ export interface SniffResult {
 
 const MEDIA_PATTERNS: { pattern: RegExp; type: DetectedMedia['type'] }[] = [
   { pattern: /\.m3u8(\?|#|$)/i, type: 'hls' },
+  { pattern: /\.mpd(\?|#|$)/i, type: 'dash' },
   { pattern: /\.mp4(\?|#|$)/i, type: 'mp4' },
   { pattern: /\.webm(\?|#|$)/i, type: 'webm' },
-  { pattern: /\.flv(\?|#|$)/i, type: 'flv' }
+  { pattern: /\.flv(\?|#|$)/i, type: 'flv' },
+  { pattern: /\.(mp3|m4a|aac|opus)(\?|#|$)/i, type: 'mp3' }
 ]
 
 const MIN_VIDEO_SIZE = 16_000
-const SIZE_EXEMPT_TYPES = new Set<string>(['hls'])
+const SIZE_EXEMPT_TYPES = new Set<string>(['hls', 'dash'])
 const DEFAULT_TIMEOUT_MS = 45_000
 const GRACE_AFTER_PLAY_MS = 16_000
 
@@ -78,7 +82,7 @@ const AUTOPLAY_SCRIPT = `
 
 function detectMediaType(
   url: string,
-  responseHeaders?: Electron.WebRequest.HeadersReceivedResponse['responseHeaders']
+  responseHeaders?: Record<string, string[]>
 ): DetectedMedia['type'] | null {
   for (const { pattern, type } of MEDIA_PATTERNS) {
     if (pattern.test(url)) return type
@@ -91,9 +95,11 @@ function detectMediaType(
     const ct = ctHeader ? responseHeaders[ctHeader]?.[0]?.toLowerCase() : null
     if (ct) {
       if (ct.includes('mpegurl') || ct.includes('x-mpegurl')) return 'hls'
+      if (ct.includes('dash+xml')) return 'dash'
       if (ct.includes('video/mp4')) return 'mp4'
       if (ct.includes('video/webm')) return 'webm'
       if (ct.includes('video/x-flv')) return 'flv'
+      if (ct.includes('audio/')) return 'mp3'
     }
   }
 
@@ -153,9 +159,10 @@ export async function sniffMedia(
     win.webContents.executeJavaScript('document.exitFullscreen().catch(()=>{})').catch(() => {})
   })
 
-  ses.webRequest.onHeadersReceived(
-    { urls: ['<all_urls>'] },
-    (details, callback) => {
+  const responseHandler = (
+    details: Electron.OnHeadersReceivedListenerDetails,
+    callback: (response: Electron.HeadersReceivedResponse) => void
+  ): void => {
       const mediaType = detectMediaType(details.url, details.responseHeaders)
       if (mediaType && !detected.has(details.url)) {
         if (!SIZE_EXEMPT_TYPES.has(mediaType)) {
@@ -171,13 +178,13 @@ export async function sniffMedia(
         detected.set(details.url, {
           url: details.url,
           type: mediaType,
-          size: cl ? parseInt(cl) : null,
+          size: cl && Number.isFinite(Number(cl)) && Number(cl) > 0 ? Number(cl) : null,
           contentType: ct
         })
       }
       callback({ cancel: false })
     }
-  )
+  ses.webRequest.onHeadersReceived({ urls: ['<all_urls>'] }, responseHandler)
 
   return new Promise<SniffResult>((resolve) => {
     let settled = false
@@ -187,14 +194,26 @@ export async function sniffMedia(
       if (settled) return
       settled = true
       if (graceTimer) clearTimeout(graceTimer)
+      clearTimeout(hardTimeout)
+      // Electron webRequest removes a listener by registering null for the event.
+      ses.webRequest.onHeadersReceived(null)
+      win.removeAllListeners()
+      ses.clearStorageData().catch(() => {})
       let pageTitle = ''
       try {
         pageTitle = win.webContents.getTitle() || ''
       } catch {}
       try {
+        win.webContents.removeAllListeners()
         win.destroy()
       } catch {}
-      resolve({ media: Array.from(detected.values()), pageTitle })
+      const media = Array.from(detected.values())
+      const candidates = resolveMediaCandidates(media.map((m) => ({ url: m.url, type: m.type, mimeType: m.contentType ?? undefined, fileSize: m.size ?? undefined, pageUrl: targetUrl, source: 'sniffer' as const })))
+      const filtered: DetectedMedia[] = candidates.flatMap((candidate) => {
+        const original = media.find((item) => item.url === candidate.url)
+        return original ? [{ ...original, candidate }] : []
+      })
+      resolve({ media: filtered, pageTitle })
     }
 
     const hardTimeout = setTimeout(finish, timeoutMs)

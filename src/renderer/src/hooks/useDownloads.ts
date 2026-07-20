@@ -22,6 +22,7 @@ function normalizeTask(t: Record<string, unknown>): Download {
     playlist_id: (t.playlist_id ?? t.playlistId ?? null) as string | null,
     playlist_index: (t.playlist_index ?? t.playlistIndex ?? null) as number | null,
     error: (t.error ?? null) as string | null,
+    error_code: (t.error_code ?? t.errorCode ?? null) as Download['error_code'],
     created_at: String(t.created_at ?? t.createdAt ?? ''),
     updated_at: String(t.updated_at ?? t.updatedAt ?? '')
   }
@@ -47,6 +48,7 @@ function progressPatchFromIpc(data: Record<string, unknown>): Partial<Download> 
   if (typeof data.title === 'string' && data.title.trim()) patch.title = data.title
   if (typeof data.thumbnail === 'string') patch.thumbnail = data.thumbnail
   if (typeof data.error === 'string') patch.error = data.error
+  if ('errorCode' in data || 'error_code' in data) patch.error_code = (data.errorCode ?? data.error_code ?? null) as Download['error_code']
   return patch
 }
 

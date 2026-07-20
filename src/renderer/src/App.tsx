@@ -18,6 +18,10 @@ import { AppSidebar } from '@/components/AppSidebar'
 import { HoverHintWrap } from '@/components/HoverHintWrap'
 import { QueueToolbar } from '@/components/QueueToolbar'
 import { DownloadInspector } from '@/components/DownloadInspector'
+import {
+  shouldOpenDownloadDetails,
+  shouldRenderDownloadDetails
+} from '@/components/downloadInspectorPresentation'
 import { useDownloads } from '@/hooks/useDownloads'
 import { useSettings } from '@/hooks/useSettings'
 import { useUrlHandler } from '@/hooks/useUrlHandler'
@@ -174,6 +178,15 @@ function MainApp() {
     setMainView('preferences')
     setSelectedId(null)
     setPrefSection('general')
+  }, [])
+
+  const selectDownload = useCallback((id: string) => {
+    if (shouldOpenDownloadDetails(selectedId, id)) setRightInspectorCollapsed(false)
+    setSelectedId(id)
+  }, [selectedId])
+
+  const closeDownloadDetails = useCallback(() => {
+    setRightInspectorCollapsed(true)
   }, [])
 
   const openDouyinBulkPreferences = useCallback((homepageUrl: string) => {
@@ -500,6 +513,7 @@ function MainApp() {
           title={preferencesMode ? 'Preferences' : 'V-Download'}
           trafficInset={trafficInset}
           showInspectorToggle={!preferencesMode}
+          inspectorAvailable={Boolean(selectedDownload)}
           inspectorCollapsed={rightInspectorCollapsed}
           onToggleInspector={() => setRightInspectorCollapsed((c) => !c)}
           themePreference={themePreference}
@@ -562,7 +576,7 @@ function MainApp() {
           {preferencesMode ? (
             <PreferencesPanel section={prefSection} />
           ) : (
-            <div className="flex min-h-0 min-w-0 flex-1 flex-row overflow-hidden">
+            <div className="relative flex min-h-0 min-w-0 flex-1 flex-row overflow-hidden">
               <div
                 className={cn(
                   'flex min-h-0 min-w-0 flex-1 flex-col bg-window',
@@ -608,14 +622,14 @@ function MainApp() {
                             key={item.id}
                             playlist={item as Playlist}
                             selectedId={selectedId}
-                            onSelectDownload={setSelectedId}
+                            onSelectDownload={selectDownload}
                           />
                         ) : 'status' in item ? (
                           <DownloadItem
                             key={item.id}
                             download={item as Download}
                             selected={selectedId === (item as Download).id}
-                            onSelect={() => setSelectedId((item as Download).id)}
+                            onSelect={() => selectDownload((item as Download).id)}
                           />
                         ) : null
                       )}
@@ -624,11 +638,12 @@ function MainApp() {
                 </main>
               </div>
 
-              {!rightInspectorCollapsed && (
+              {shouldRenderDownloadDetails(selectedDownload?.id ?? null, rightInspectorCollapsed) && selectedDownload && (
                 <DownloadInspector
                   download={selectedDownload}
                   downloadDir={settings.downloadDir}
                   onSyncBrowserCookies={handleBrowserCookieSync}
+                  onClose={closeDownloadDetails}
                 />
               )}
             </div>
@@ -647,7 +662,6 @@ function MainApp() {
             onSyncCookies={handleBrowserCookieSync}
             syncCookiesBusy={cookieSyncBusy}
             syncCookiesPhase={syncCookiesPhase}
-            onSettings={openPreferences}
             onClear={() => setShowClearDialog(true)}
           />
         )}
@@ -677,6 +691,7 @@ function MainApp() {
             }}
             onDownload={handleDownload}
             settings={settings}
+            siteRule={(() => { try { const host = new URL(pendingVideoInfo.webpage_url).hostname.toLowerCase(); return (settings.siteRules ?? []).find((r) => { const domain = r.domain.trim().toLowerCase(); return r.enabled && domain && (host === domain || host.endsWith(`.${domain}`)) }) } catch { return undefined } })()}
             queueCount={queueCount}
             onSkipAll={() => {
               clearQueue()

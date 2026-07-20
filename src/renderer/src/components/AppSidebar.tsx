@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
-  ListMusic,
   Globe,
   Settings,
   Download,
@@ -40,6 +39,7 @@ function prefPrimaryIcon(id: (typeof PREF_SECTION_PRIMARY)[number]['id']): Lucid
     case 'sites':
       return LayoutGrid
   }
+  return Settings
 }
 
 function NavRow({
@@ -230,24 +230,7 @@ export function AppSidebar({
                 <span className="tabular-nums font-semibold text-foreground">4</span> concurrent downloads in Settings →
                 Downloads → Queue.
               </div>
-            ) : (
-              <>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-tertiary-foreground px-2">
-                  Capture
-                </p>
-                <div className="rounded-lg border border-dashed border-border-strong bg-control px-2 py-2 text-xs text-muted-foreground">
-                  <p className="flex items-center gap-2">
-                    <Globe className="w-3.5 h-3.5 shrink-0 text-tertiary-foreground" aria-hidden />
-                    Browser capture
-                  </p>
-                  <p className="flex items-center gap-2 mt-1.5 opacity-80">
-                    <ListMusic className="w-3.5 h-3.5 shrink-0 text-tertiary-foreground" aria-hidden />
-                    Playlists & audio
-                  </p>
-                  <p className="text-[10px] text-tertiary-foreground mt-1.5 leading-snug">Coming in a later update</p>
-                </div>
-              </>
-            )}
+            ) : null}
           </div>
         </div>
       ) : (

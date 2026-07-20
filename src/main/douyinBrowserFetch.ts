@@ -565,9 +565,10 @@ export async function downloadUrlWithDouyinSession(
     request.setHeader('Accept-Language', 'zh-CN,zh;q=0.9,en;q=0.8')
 
     request.on('response', (response) => {
+      const streamResponse = response as unknown as { pause: () => void; resume: () => void }
       const code = response.statusCode ?? 0
       if (code !== 200) {
-        response.resume()
+        streamResponse.resume()
         reject(new Error(`Download failed: ${code} ${response.statusMessage ?? ''}`.trim()))
         return
       }
@@ -579,8 +580,8 @@ export async function downloadUrlWithDouyinSession(
       response.on('data', (chunk: Buffer) => {
         reporter.addBytes(chunk.length)
         if (!fileStream.write(chunk)) {
-          response.pause()
-          fileStream.once('drain', () => response.resume())
+          streamResponse.pause()
+          fileStream.once('drain', () => streamResponse.resume())
         }
       })
 

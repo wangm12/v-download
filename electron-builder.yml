@@ -2,24 +2,26 @@
 # CloakBrowser Chromium binary (downloaded at runtime to the user/cache when enabled in Settings).
 appId: com.ytdownload.app
 productName: V-Download
+# build-mac-release.mjs performs the target Electron rebuild explicitly.
+npmRebuild: false
 directories:
   buildResources: resources
   output: dist
 files:
   - out/**/*
   - resources/**/*
+  # Engine binaries are staged per target architecture by build-mac-release.mjs.
+  - '!resources/engines/**/*'
 extraResources:
   - from: extension
     to: extension
     filter:
       - "**/*"
-protocols:
-  - name: V-Download
-    schemes:
-      - ytdl
-      # Browser extension cold-start uses vdownload://wake so macOS does not hand
-      # ytdl:// to a stray node_modules Electron.app from local dev runs.
-      - vdownload
+  - from: .release-staging/current/engines
+    to: engines
+    filter:
+      - "**/*"
+asar: true
 mac:
   icon: resources/icon.icns
   category: public.app-category.utilities
@@ -28,6 +30,18 @@ mac:
   target:
     - dmg
     - zip
+  hardenedRuntime: true
+  # Release verification runs spctl again against the final artifact; keep builder assessment enabled.
+  gatekeeperAssess: true
+  entitlements: resources/entitlements.mac.plist
+  entitlementsInherit: resources/entitlements.mac.plist
+protocols:
+  - name: V-Download
+    schemes:
+      - ytdl
+      # Browser extension cold-start uses vdownload://wake so macOS does not hand
+      # ytdl:// to a stray node_modules Electron.app from local dev runs.
+      - vdownload
 win:
   icon: resources/icon.png
   target:

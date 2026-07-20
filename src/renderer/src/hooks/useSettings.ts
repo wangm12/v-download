@@ -25,7 +25,8 @@ const DEFAULT_SETTINGS: SettingsData = {
   concurrentFragments: 5,
   downloadSpeedMode: 'balanced',
   turboRiskAcknowledged: false,
-  ytdlpExternalDownloader: ''
+  ytdlpExternalDownloader: '',
+  siteRules: []
 }
 
 export function useSettings() {
