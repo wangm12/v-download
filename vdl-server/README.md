@@ -8,7 +8,7 @@ Video download Telegram bot powered by yt-dlp. Send a video URL, get it back in 
 - **Multi-platform** — YouTube, Douyin, TikTok, Bilibili, Xiaohongshu, X/Twitter, Instagram, and any site supported by yt-dlp
 - **Douyin fallback** — server-side scraping when yt-dlp's extractor fails
 - **Quality options** — full quality (download link) or compact (sent in chat)
-- **Cookie sync** — Chrome extension syncs cookies for authenticated downloads
+- **Authenticated cookie upload** — `/api/cookies` is disabled by default and requires `COOKIE_SYNC_TOKEN`
 - **Auto-cleanup** — configurable expiry for temporary download links
 - **Cloudflare Tunnel** — stable public URL for webhook and download links
 
@@ -82,8 +82,9 @@ vdl-server/
 | `PORT` | No | `3000` | Server port |
 | `HOST` | No | `0.0.0.0` | Bind address |
 | `BASE_URL` | No | `http://localhost:3000` | Public URL (set by tunnel script) |
-| `COOKIE_MODE` | No | `browser` | `browser` (yt-dlp `--cookies-from-browser chrome` on the **server host**) or `file` (yt-dlp `--cookies` at `COOKIES_FILE_PATH`). Use **`file`** when the Chrome extension syncs cookies to `/api/cookies` — otherwise the uploaded Netscape file is not used by yt-dlp. |
+| `COOKIE_MODE` | No | `browser` | `browser` (yt-dlp `--cookies-from-browser chrome` on the **server host**) or `file` (yt-dlp `--cookies` at `COOKIES_FILE_PATH`). Use **`file`** when an authenticated client uploads cookies to `/api/cookies`. |
 | `COOKIES_FILE_PATH` | No | `./cookies.txt` | Path to Netscape cookie file (also used by the **Douyin HTML fallback** in `douyin.ts`, not only yt-dlp) |
+| `COOKIE_SYNC_TOKEN` | No | disabled | Required as `Authorization: Bearer …` or `X-VDownload-Cookie-Token` for `/api/cookies`; keep the endpoint private and use HTTPS for remote access. |
 | `DOUYIN_PLAYWRIGHT` | No | **on** (unset) | After plain `fetch` fails on Douyin, run **Playwright** on mobile share then canonical. Set to **`0` / `false` / `off`** to disable (recommended for **Docker** without Chromium). Requires **`npx playwright install chromium`** on the host. |
 | `TEMP_DIR` | No | `./tmp` | Temp file directory |
 | `TEMP_LINK_EXPIRY_HOURS` | No | `3` | Hours before download links expire |
@@ -96,7 +97,7 @@ Douyin often needs a **real browser session** (cookies + risk checks). If yt-dlp
 **Do this first (no code changes):**
 
 1. **Keep `yt-dlp` current** on the host that runs the bot (`yt-dlp -U`).
-2. **Refresh cookies** while logged into [douyin.com](https://www.douyin.com/) in Chrome (or whatever browser you export from). Re-sync via your extension to `POST /api/cookies`, or overwrite `COOKIES_FILE_PATH` with a new Netscape export. Stale files cause both yt-dlp and the **direct Douyin fallback** to fail, because both reuse that file in `file` mode.
+2. **Refresh cookies** while logged into [douyin.com](https://www.douyin.com/) in Chrome (or whatever browser you export from). Use an authenticated client to `POST /api/cookies`, or overwrite `COOKIES_FILE_PATH` with a new Netscape export. Stale files cause both yt-dlp and the **direct Douyin fallback** to fail, because both reuse that file in `file` mode.
 3. **`COOKIE_MODE=file`** (when logs show `Using cookie file: …`): the Douyin fallback **only** sends cookies from that file in a `Cookie` header on plain `fetch` — it does **not** run a headless browser unless you enable Playwright (below). The **v-download desktop app** can still do better on hard links because it uses Electron’s Chromium.
 4. **Network / region**: Douyin may return tiny placeholder pages (~6KB) or large pages without parseable JSON from some IPs; a VPN or different network is sometimes required in addition to cookies.
 

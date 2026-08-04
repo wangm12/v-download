@@ -41,7 +41,7 @@ export function BottomBar({
     syncCookiesPhase === 'opening' ? 'Opening…' : syncCookiesPhase === 'waiting' ? 'Waiting…' : null
   return (
     <footer
-      className="h-11 flex-shrink-0 relative flex items-center px-4 bg-window border-t border-border"
+      className="h-11 flex-shrink-0 relative flex items-center px-4 bg-window border-t border-divider-subtle"
       style={{ WebkitAppRegion: 'no-drag' } as CSSProperties}
     >
       <div className="flex items-center gap-2">
@@ -113,7 +113,7 @@ export function BottomBar({
               disabled={syncCookiesBusy}
               className={`min-h-11 min-w-11 max-w-full flex items-center justify-center gap-1.5 rounded-md p-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus ${
                 syncCookiesBusy
-                  ? 'text-foreground cursor-wait ring-1 ring-inset ring-border-strong bg-control'
+                  ? 'text-foreground cursor-wait ring-1 ring-inset ring-accent/35 bg-selection'
                   : 'text-muted-foreground hover:text-foreground hover:bg-control active:text-foreground'
               }`}
               aria-busy={syncCookiesBusy}

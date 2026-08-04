@@ -15,6 +15,15 @@ npm run build:mac:x64
 RELEASE_ARCH=x64 RELEASE_ARTIFACT=/absolute/path/V-Download.app npm run verify:release
 ```
 
+Before packaging, create the ignored release configuration and fill in the real Chrome Web Store ID; do not use a placeholder ID:
+
+```sh
+cp release-config.example.json release-config.json
+# edit release-config.json: chrome.extensionId, updater.provider, updater.metadata
+```
+
+`build:mac:*` stages this ID into the packaged app. A packaged app without a matching ID rejects all browser-extension origins at the local server boundary.
+
 `prepare:release` and `verify:release` invoke the existing engine verifier for every requested architecture and independently enforce yt-dlp, its `_internal/Python` sidecar, ffmpeg, ffprobe, the provider binary, provider plugin, metadata, and tree/file checksums. The artifact must also contain the requested architecture; `.app`, `.dmg`, and `.zip` are the only supported artifact types.
 
 `build:mac:arm64` and `build:mac:x64` are isolated packaging commands. Each invokes preparation with its explicit architecture, stages only that architecture's engine/provider trees, excludes source engine binaries from the generic Electron file set, and removes its marker-owned staging directory after packaging. Use separate commands for separate releases; the builder refuses to reuse unmarked staging or mix architectures.

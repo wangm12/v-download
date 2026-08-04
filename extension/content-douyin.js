@@ -22,7 +22,6 @@
 
   let currentData = null   // Latest DOUYIN_VIDEO_DATA payload
   let activePanel = null   // DOM node of the open panel, or null
-  let rafId = null         // rAF loop handle
   let lastHref = location.href
   let lastLoggedAwemeId = null
 
@@ -146,28 +145,6 @@
     btn.classList.remove('dy-dl-hidden')
   }
 
-  // ── rAF loop ───────────────────────────────────────────────────────────────
-
-  function startRaf() {
-    if (rafId) return
-    const tick = () => {
-      const btn = document.getElementById(BTN_ID)
-      if (btn) {
-        positionButton(btn)
-        if (activePanel) repositionPanel()
-      }
-      rafId = requestAnimationFrame(tick)
-    }
-    rafId = requestAnimationFrame(tick)
-  }
-
-  function stopRaf() {
-    if (rafId) {
-      cancelAnimationFrame(rafId)
-      rafId = null
-    }
-  }
-
   // ── Panel ──────────────────────────────────────────────────────────────────
 
   function buildRow(iconSvg, label, sizeStr, typeClass, typeBadge, onClick) {
@@ -210,31 +187,88 @@
     row.appendChild(info)
 
     const dlBtn = document.createElement('button')
+    dlBtn.type = 'button'
     dlBtn.className = 'dy-dl-format-dl-btn'
     dlBtn.innerHTML = SVG_DOWNLOAD
     dlBtn.setAttribute('aria-label', `Download ${label}`)
     row.appendChild(dlBtn)
 
+    // A Douyin feed can stop events while they bubble through its player tree.
+    // Keep one activation path for the row and its child button, and lock it
+    // briefly so pointerup + click (or row + button capture) cannot enqueue twice.
+    const handledEvents = new WeakSet()
+    let activationLocked = false
     const handle = (e) => {
-      e.preventDefault()
-      e.stopPropagation()
+      if (e && typeof e === 'object') {
+        if (handledEvents.has(e)) return
+        handledEvents.add(e)
+        e.preventDefault()
+        e.stopPropagation()
+        e.stopImmediatePropagation?.()
+      }
+      if (activationLocked || row.dataset.downloadState === 'sending' || row.dataset.downloadState === 'queued') return
+      activationLocked = true
+      setTimeout(() => { activationLocked = false }, 500)
       logCs('format-row-click', { label: row.querySelector('.dy-dl-format-label')?.textContent || '?' })
-      onClick()
+      onClick(row)
     }
-    // Capture phase: Douyin often stops propagation in bubble phase on the player tree.
+
+    // Capture phase handles normal clicks. pointerup is the fallback for pages
+    // that interfere with click synthesis; the short lock deduplicates both.
+    row.addEventListener('pointerup', handle, true)
     row.addEventListener('click', handle, true)
+    dlBtn.addEventListener('pointerup', handle, true)
     dlBtn.addEventListener('click', handle, true)
     row.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault()
-        onClick()
+        handle(e)
       }
     })
+
+    // Used by the window-level delegated capture listener below. This catches
+    // cases where a site-level document listener stops propagation before the
+    // event reaches the generated row.
+    row._dyActivate = handle
+
+    row._dySetState = (state, message) => {
+      row.dataset.downloadState = state || ''
+      dlBtn.disabled = state === 'sending'
+      row.setAttribute('aria-busy', state === 'sending' ? 'true' : 'false')
+      dlBtn.setAttribute('aria-label', message || `Download ${label}`)
+      dlBtn.title = message || `Download ${label}`
+      labelEl.textContent = message || label
+    }
 
     return row
   }
 
-  function triggerDownload(url, type, rowSuffix) {
+  function getPanelRowFromEvent(e) {
+    const path = typeof e?.composedPath === 'function' ? e.composedPath() : []
+    for (const node of path) {
+      if (!node || node.nodeType !== 1) continue
+      if (node.classList?.contains('dy-dl-format-item')) return node
+    }
+    return null
+  }
+
+  function handlePanelEvent(e) {
+    if (!activePanel || (e.type !== 'pointerup' && e.type !== 'click')) return
+    const row = getPanelRowFromEvent(e)
+    if (!row || !activePanel.contains(row) || typeof row._dyActivate !== 'function') return
+    row._dyActivate(e)
+  }
+
+  // Register before the panel is created so page-level handlers cannot swallow
+  // the generated controls before their own listeners see the event.
+  window.addEventListener('pointerup', handlePanelEvent, true)
+  window.addEventListener('click', handlePanelEvent, true)
+
+  function buildDouyinPageUrl() {
+    const awemeId = String(currentData?.awemeId || '').trim()
+    return /^\d{6,32}$/.test(awemeId) ? `https://www.douyin.com/video/${awemeId}` : ''
+  }
+
+  function triggerDownload(url, type, rowSuffix, row, preferredQuality) {
     if (!url || !String(url).trim()) {
       logCs('trigger-download-skip', { reason: 'empty-url', type })
       return
@@ -247,45 +281,48 @@
       downloadTitle: downloadTitle.slice(0, 80)
     })
     flashButton('dy-dl-sending')
+    row?._dySetState?.('sending', 'Sending…')
+    const wakeFromGesture = globalThis.__vdownloadWakeFromUserGesture
+    const surfacedWake = typeof wakeFromGesture === 'function' ? wakeFromGesture() === true : false
+    const pageUrl = type === 'mp4' ? buildDouyinPageUrl() : ''
+    const quality = Number(preferredQuality) > 0 ? String(Math.round(Number(preferredQuality))) : ''
     const item = {
       url,
       type,
       initiator: 'https://www.douyin.com/',
-      title: downloadTitle
+      title: downloadTitle,
+      ...(pageUrl ? { pageUrl, ...(quality ? { quality } : {}), autoStart: true } : {})
     }
-    const done = (ok) => {
-      logCs('trigger-download-finished', { ok, awemeId: currentData?.awemeId || null })
+    const done = (ok, error) => {
+      logCs('trigger-download-finished', { ok, error, awemeId: currentData?.awemeId || null })
       if (ok) {
+        row?._dySetState?.('queued', 'Added to queue')
         closePanel()
         flashButton('dy-dl-sent')
       } else {
+        row?._dySetState?.('error', `Error — ${error || 'retry'}`)
         flashButton(null)
       }
     }
     try {
-      const p = chrome.runtime.sendMessage({ type: 'DOWNLOAD_MEDIA_FROM_CONTENT', item, surfacedWake: true })
-      if (p && typeof p.then === 'function') {
-        p.then((resp) => {
-          logCs('trigger-download-reply', { ok: !!(resp && resp.ok), error: resp?.error })
-          done(resp && resp.ok)
-        }).catch((err) => {
-          logCs('trigger-download-promise-reject', { err: String(err) })
-          done(false)
-        })
-      } else {
-        chrome.runtime.sendMessage({ type: 'DOWNLOAD_MEDIA_FROM_CONTENT', item, surfacedWake: true }, (resp) => {
-          if (chrome.runtime.lastError) {
-            logCs('trigger-download-last-error', { message: chrome.runtime.lastError.message })
-            done(false)
-            return
-          }
-          logCs('trigger-download-callback-reply', { ok: !!(resp && resp.ok), error: resp?.error })
-          done(resp && resp.ok)
-        })
-      }
+      // The background listener intentionally uses sendResponse + return true.
+      // Use the callback form here because Chrome's Promise wrapper can resolve
+      // before a delayed MV3 response on some versions, making a real failure
+      // look like a silent no-op.
+      chrome.runtime.sendMessage({ type: 'DOWNLOAD_MEDIA_FROM_CONTENT', item, surfacedWake }, (resp) => {
+        if (chrome.runtime.lastError) {
+          const error = chrome.runtime.lastError.message || 'retry'
+          logCs('trigger-download-last-error', { message: error })
+          done(false, error)
+          return
+        }
+        const error = resp?.error || ''
+        logCs('trigger-download-callback-reply', { ok: !!(resp && resp.ok), error })
+        done(!!(resp && resp.ok), error)
+      })
     } catch (err) {
       logCs('trigger-download-send-throw', { err: String(err) })
-      done(false)
+      done(false, 'Unable to contact extension')
     }
   }
 
@@ -358,7 +395,7 @@
           formatSize(fmt.size),
           typeClass,
           codecBadge,
-          () => triggerDownload(fmt.url, 'mp4', `${fmt.label} ${codecBadge}`)
+          (row) => triggerDownload(fmt.url, 'mp4', `${fmt.label} ${codecBadge}`, row, fmt.height)
         )
         panel.appendChild(row)
         hasOptions = true
@@ -378,7 +415,7 @@
         '',
         'image',
         'JPEG',
-        () => triggerDownload(currentData.cover.url, 'jpeg', 'cover')
+        (row) => triggerDownload(currentData.cover.url, 'jpeg', 'cover', row)
       )
       panel.appendChild(row)
       hasOptions = true
@@ -398,7 +435,7 @@
         '',
         'audio',
         'MP3',
-        () => triggerDownload(currentData.music.url, 'mp3', 'audio')
+        (row) => triggerDownload(currentData.music.url, 'mp3', 'audio', row)
       )
       panel.appendChild(row)
       hasOptions = true
@@ -461,10 +498,55 @@
 
   // ── Message listener (receive from bridge) ─────────────────────────────────
 
+  const BRIDGE_MEDIA_TYPES = new Set(['mp4', 'mp3', 'jpeg'])
+  function isBridgeUrl(value) {
+    if (typeof value !== 'string' || value.length < 1 || value.length > 8192) return false
+    try {
+      const u = new URL(value)
+      return u.protocol === 'http:' || u.protocol === 'https:'
+    } catch {
+      return false
+    }
+  }
+
+  function normalizeBridgeData(raw) {
+    if (!raw || typeof raw !== 'object') return null
+    const awemeId = String(raw.awemeId || '').trim()
+    if (!awemeId || awemeId.length > 128) return null
+    const formats = Array.isArray(raw.formats)
+      ? raw.formats.slice(0, 8).map((format) => {
+        if (!format || typeof format !== 'object' || !isBridgeUrl(format.url)) return null
+        const type = String(format.type || 'mp4').toLowerCase()
+        if (!BRIDGE_MEDIA_TYPES.has(type)) return null
+        return {
+          label: String(format.label || type).slice(0, 64),
+          width: Number.isFinite(Number(format.width)) ? Number(format.width) : 0,
+          height: Number.isFinite(Number(format.height)) ? Number(format.height) : 0,
+          url: format.url,
+          size: Number.isFinite(Number(format.size)) && Number(format.size) > 0 ? Number(format.size) : 0,
+          isH265: format.isH265 === true,
+        }
+      }).filter(Boolean)
+      : []
+    const cover = raw.cover && isBridgeUrl(raw.cover.url) ? { url: raw.cover.url, type: 'jpeg' } : null
+    const music = raw.music && isBridgeUrl(raw.music.url)
+      ? { url: raw.music.url, title: String(raw.music.title || '').slice(0, 128), type: 'mp3' }
+      : null
+    return {
+      awemeId,
+      desc: String(raw.desc || '').slice(0, 200),
+      author: String(raw.author || '').slice(0, 80),
+      formats,
+      cover,
+      music,
+    }
+  }
+
   window.addEventListener('message', (e) => {
+    if (e.source !== window || e.origin !== location.origin) return
     if (!e.data || e.data.type !== 'DOUYIN_VIDEO_DATA' || e.data.source !== 'douyin-bridge') return
-    const data = e.data.data
-    if (!data || !data.awemeId) return
+    const data = normalizeBridgeData(e.data.data)
+    if (!data) return
 
     // New video — close stale panel
     if (currentData && currentData.awemeId !== data.awemeId && activePanel) {
@@ -485,7 +567,7 @@
 
     const btn = ensureButton()
     positionButton(btn)
-    startRaf()
+    if (activePanel) repositionPanel()
 
     // User may have opened the panel while waiting for bridge data — replace loading UI.
     if (activePanel) {
@@ -502,19 +584,20 @@
   // Detect when feed-active-video appears (e.g. modal opened on profile page)
 
   function checkAnchor() {
+    if (document.hidden) return
     const btn = document.getElementById(BTN_ID)
 
     if (hasDouyinPlayer()) {
       const b = btn || ensureButton()
       positionButton(b)
-      startRaf()
+      if (activePanel) repositionPanel()
     } else if (btn) {
       btn.classList.remove('dy-dl-visible')
       btn.classList.add('dy-dl-hidden')
     }
   }
 
-  setInterval(checkAnchor, 500)
+  const anchorInterval = setInterval(checkAnchor, 1500)
   setTimeout(checkAnchor, 300)
   setTimeout(checkAnchor, 1000)
 
@@ -546,4 +629,10 @@
   })
 
   navObserver.observe(document.documentElement, { subtree: false, childList: true })
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) checkAnchor()
+  })
+
+  window.addEventListener('beforeunload', () => clearInterval(anchorInterval))
 })()

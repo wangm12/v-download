@@ -52,7 +52,7 @@ This repository ships **two related products** and a small **shared library**:
 - **Dock progress animation** — macOS dock icon fills top-to-bottom during downloads with live speed display (e.g. `12 MB/s`)
 - **Real-time progress** — Live progress bar, network speed, ETA, and download phase (video/audio/merging)
 - **Download management** — Pause, resume, retry, cancel, and delete individual or all tasks
-- **Cookie sync** — Automatically syncs YouTube cookies from Chrome for authenticated downloads
+- **Explicit cookie sync** — Syncs supported site cookies from Chrome only after the user requests it; cookies stay on the local desktop app by default
 - **Crash recovery** — Interrupted downloads are detected and can be resumed on restart
 - **Dark UI** — Clean, minimal dark theme with black and white accents
 
@@ -93,7 +93,7 @@ Use only in line with Douyin’s terms and for legitimate personal access.
 
 1. Download the latest `.dmg` from [Releases](https://github.com/wangm12/v-download/releases)
 2. Open the DMG and drag **V-Download** to your Applications folder
-3. Right-click → Open (first launch only, since the app is unsigned)
+3. Official notarized builds should open normally; source or ad-hoc builds may require right-click → Open on first launch
 
 ### Build from source
 
@@ -126,7 +126,7 @@ The built app will be in `dist/mac-arm64/V-Download.app` and a DMG installer in 
 4. **X/Twitter pages** — Download buttons appear on tweets with video (in the action bar and on the video player); click to send to yt-dlp
 5. **Douyin pages** — A download button appears on the active video with full quality selection, cover image, and music download
 6. **Other pages** — A download overlay appears on detected video elements; click the extension icon to open a popup showing all detected media streams (HLS, MP4, WebM, FLV)
-7. Cookies are synced automatically every 5 minutes for authenticated access
+7. Cookies are synced only after you click **Sync cookies** in the app; the extension does not upload cookies to the optional server automatically
 8. **Cold start** — If the desktop app is not running, the extension opens `vdownload://wake` from the **same click** as the download (or from the extension popup) so Chrome ties the request to that page and can offer **“Always allow … to open links of this type”**. Install the **packaged** V-Download build from `/dist` (or your release); the dev `npm run dev` binary does not register URL schemes and should not be the default handler. If Chrome still says **“Open Electron?”**, choose **V-Download** in `/Applications` (or your install location) instead of any `Electron.app` under `node_modules`, then try again.
 
 ### Keyboard Shortcuts
@@ -181,7 +181,7 @@ flowchart TB
   end
   tg[Telegram_Cloud]
   ext -->|"POST_/cookies_/download"| http
-  ext -->|"optional_POST_/api/cookies"| api
+  client -->|"authenticated_POST_/api/cookies"| api
   main -->|spawn| ytdlp
   queue -->|spawn| ytdlp
   queue --> douyin[Douyin_HTTP_fallback]
@@ -189,9 +189,9 @@ flowchart TB
 ```
 
 - **Desktop path:** Renderer controls UI; main process runs [ytdlp.ts](src/main/ytdlp.ts), [downloadManager.ts](src/main/downloadManager.ts), [localServer.ts](src/main/localServer.ts) on port **18765** for the extension.
-- **Extension:** Content scripts detect media / inject UI; [background.js](extension/background.js) forwards URLs and periodically syncs cookies (see `COOKIE_SYNC_DOMAINS` via `importScripts('cookie-sync-domains.js')`).
+- **Extension:** Content scripts detect media / inject UI; [background.js](extension/background.js) forwards URLs and handles explicit local cookie sync (see `COOKIE_SYNC_DOMAINS` via `importScripts('cookie-sync-domains.js')`).
 - **vdl-server path:** [index.ts](vdl-server/src/index.ts) serves health, cookie upload, static files, and Telegram webhook; [queue.ts](vdl-server/src/queue.ts) runs yt-dlp or [douyin.ts](vdl-server/src/douyin.ts) fallback; [bot/index.ts](vdl-server/src/bot/index.ts) sends videos or temp links. When `BASE_URL` is `https://...`, the bot uses **webhooks**; otherwise **polling**.
-- **Cookies on the bot:** For extension-synced Netscape cookies to be passed to yt-dlp as `--cookies`, set **`COOKIE_MODE=file`** on the server (see [vdl-server/README.md](vdl-server/README.md)); default `browser` reads Chrome on the **server host**, not the uploaded file.
+- **Cookies on the bot:** The server’s `/api/cookies` endpoint is disabled unless `COOKIE_SYNC_TOKEN` is configured. For authenticated uploads, set **`COOKIE_MODE=file`** (see [vdl-server/README.md](vdl-server/README.md)); default `browser` reads Chrome on the **server host**, not an uploaded file.
 
 ### Tech stack
 
@@ -267,7 +267,7 @@ extension/                  # Chrome Extension (Manifest V3)
 | **Use the extension** | Load the [`extension/`](extension/) folder in Chrome; keep the desktop app running for `127.0.0.1:18765`. |
 | **Change cookie sync domains** | Edit [packages/shared/src/cookie-sync-domains.ts](packages/shared/src/cookie-sync-domains.ts), then run `npm run sync:extension-constants` at the repo root and reload the extension. |
 | **vdl-server from repo root (Make)** | Run `make help` for a list. Common: `make vdl-install`, `make vdl-build`, `make vdl-dev` (polling), `make vdl-server` (Cloudflare tunnel + server), `make vdl-docker-build` / `make vdl-docker-up` (Docker; compose cwd is still `vdl-server/`). |
-| **Run the Telegram bot** | Put `.env` in [`vdl-server/`](vdl-server/) (see [vdl-server/README.md](vdl-server/README.md)). Use **`make vdl-*`** from the repo root **or** `cd vdl-server` and follow that README (`make server`, Docker). Use **`COOKIE_MODE=file`** if the extension posts cookies to the bot and you want yt-dlp to use that file. |
+| **Run the Telegram bot** | Put `.env` in [`vdl-server/`](vdl-server/) (see [vdl-server/README.md](vdl-server/README.md)). Use **`make vdl-*`** from the repo root **or** `cd vdl-server` and follow that README (`make server`, Docker). Set **`COOKIE_SYNC_TOKEN`** before accepting authenticated cookie uploads. |
 | **Deploy the bot** | See [vdl-server/DEPLOYMENT.md](vdl-server/DEPLOYMENT.md) (tunnel, webhook, database). |
 | **Test releases** | See [docs/MANUAL_TESTING.md](docs/MANUAL_TESTING.md). |
 | **Future / research backlog** | See [docs/FUTURE_ENHANCEMENTS.md](docs/FUTURE_ENHANCEMENTS.md) (Douyin hydration, URL/parser work, optional CloakBrowser). |
@@ -308,6 +308,8 @@ make vdl-dev
 2. Enable **Developer mode**
 3. Click **Load unpacked** and select the `extension/` folder
 4. The extension will auto-reload when files change
+
+Before Chrome Web Store publication, review the [privacy notes](docs/PRIVACY.md), provide the store's data-use disclosures, and publish the extension with the fixed ID configured in [release-config.example.json](release-config.example.json).
 
 ## License
 

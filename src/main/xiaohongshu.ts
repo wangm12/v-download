@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { sanitizeDownloadBasename } from './sanitizeDownloadBasename'
+import { delayWithAbort, fetchWithTimeout } from './httpClient'
 
 const DESKTOP_UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
@@ -79,7 +80,7 @@ function extractNoteId(url: string): string | null {
 
 async function resolveShortUrl(url: string): Promise<string> {
   if (!/xhslink\.com/i.test(url)) return url.trim()
-  const res = await fetch(url.trim(), {
+  const res = await fetchWithTimeout(url.trim(), {
     method: 'GET',
     redirect: 'follow',
     headers: {
@@ -198,7 +199,7 @@ function parseGalleryFromNote(
 
 async function fetchPageHtml(pageUrl: string, cookiesFilePath?: string): Promise<string> {
   const cookieHeader = buildXhsCookieHeader(cookiesFilePath)
-  const res = await fetch(pageUrl, {
+  const res = await fetchWithTimeout(pageUrl, {
     headers: {
       'User-Agent': DESKTOP_UA,
       Referer: 'https://www.xiaohongshu.com/',
@@ -266,7 +267,7 @@ function extFromImageUrl(u: string): string {
 }
 
 async function fetchWith429Backoff(url: string, init: RequestInit): Promise<Response> {
-  let res = await fetch(url, init)
+  let res = await fetchWithTimeout(url, init, { timeoutMs: 30_000 })
   if (res.status === 429) {
     const ra = res.headers.get('retry-after')
     let ms = 3000
@@ -274,8 +275,8 @@ async function fetchWith429Backoff(url: string, init: RequestInit): Promise<Resp
       const sec = parseInt(ra, 10)
       if (Number.isFinite(sec) && sec > 0 && sec < 3600) ms = sec * 1000
     }
-    await new Promise((r) => setTimeout(r, ms))
-    res = await fetch(url, init)
+    await delayWithAbort(ms, init.signal)
+    res = await fetchWithTimeout(url, init, { timeoutMs: 30_000 })
   }
   return res
 }
@@ -324,6 +325,7 @@ export async function downloadXiaohongshuImageGallery(
       const res = await fetchWith429Backoff(url, {
         headers,
         redirect: 'follow',
+        signal: options?.signal,
       })
       if (!res.ok) {
         throw new Error(`Image ${i} failed: ${res.status} ${res.statusText}`)

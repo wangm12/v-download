@@ -19,12 +19,13 @@ const expect = (condition: boolean, message: string) => {
 }
 
 expect(hasSingleColumnPolicy(PREFERENCES_WORKSPACE_CLASS), 'workspace must provide desktop and single-column policies')
-expect(GENERAL_SECTION_CLASS.includes('lg:col-span-2'), 'General must span the desktop workspace')
+expect(GENERAL_SECTION_CLASS.includes('w-full'), 'General must use the single-column workspace')
 expect(componentSource.includes('className={PREFERENCES_WORKSPACE_CLASS}'), 'General must use the workspace class')
 expect(componentSource.includes('className={GENERAL_SECTION_CLASS}'), 'General must use the full-width class')
-expect(PREFERENCES_SECTION_TITLES.includes('Behavior'), 'Behavior section is missing')
-expect(PREFERENCES_SECTION_TITLES.includes('Per-site defaults'), 'Sites section is missing')
-expect(PREFERENCES_SECTION_TITLES.length === 11, 'unexpected Preferences section count')
+expect(PREFERENCES_SECTION_TITLES.includes('Download behavior'), 'Download behavior section is missing')
+expect(PREFERENCES_SECTION_TITLES.includes('Per-site rules'), 'Sites section is missing')
+expect(PREFERENCES_SECTION_TITLES.includes('Power-user download controls'), 'Advanced disclosure is missing')
+expect(PREFERENCES_SECTION_TITLES.length === 8, 'unexpected Preferences section count')
 const forbiddenMarkers = [['Coming', ' soon'], ['road', 'map'], ['not persisted', ' yet']].map((parts) => parts.join(''))
 for (const marker of forbiddenMarkers) {
   expect(!componentSource.toLowerCase().includes(marker.toLowerCase()), `placeholder found: ${marker}`)

@@ -23,7 +23,7 @@ export function ActionButton({ icon: Icon, title, disabled, size = 'md', onClick
         aria-label={title}
         className={cn(
           padding,
-          'rounded-md text-muted-foreground hover:text-foreground hover:bg-control transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus',
+          'rounded-button text-muted-foreground hover:text-foreground hover:bg-surface-hover transition-[background-color,color,transform] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100',
           disabled && 'opacity-30 cursor-default'
         )}
       >

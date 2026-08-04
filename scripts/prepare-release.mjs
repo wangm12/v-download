@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process'
 
 const root = new URL('..', import.meta.url).pathname
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
+const configPath = process.env.RELEASE_CONFIG || join(root, 'release-config.json')
 const requested = process.env.RELEASE_ARCH || process.env.npm_config_arch
 const arches = requested === 'both' ? ['arm64', 'x64'] : [requested || 'arm64']
 const valid = new Set(['arm64', 'x64'])
@@ -28,6 +29,13 @@ const required = arches.flatMap((a) => [
 for (const path of required) if (!existsSync(join(root, path))) errors.push(`missing release input: ${path}`)
 const manifest = JSON.parse(readFileSync(join(root, 'extension/manifest.json'), 'utf8'))
 if (pkg.version !== manifest.version) errors.push(`extension version ${manifest.version} != app version ${pkg.version}`)
+try {
+  const config = JSON.parse(readFileSync(configPath, 'utf8'))
+  const extensionId = process.env.CHROME_EXTENSION_ID || config.chrome?.extensionId
+  if (!/^[a-p]{32}$/.test(extensionId || '')) errors.push('release config is missing a valid stable Chrome Web Store extension ID')
+} catch {
+  errors.push(`missing or invalid release config: ${configPath}`)
+}
 
 if (errors.length) { console.error('RELEASE PREPARATION BLOCKED'); errors.forEach((e) => console.error(`- ${e}`)); process.exit(1) }
 console.log(`Release inputs prepared for darwin-${arches.join(' and darwin-')}; signing, notarization, updater, and Chrome publication remain gated by verify:release.`)

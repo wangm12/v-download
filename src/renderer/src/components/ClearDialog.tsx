@@ -1,4 +1,5 @@
 import { AlertTriangle, CircleCheck, Trash2 } from 'lucide-react'
+import { useDialogFocus } from '@/hooks/useDialogFocus'
 
 interface ClearDialogProps {
   onClose: () => void
@@ -7,6 +8,7 @@ interface ClearDialogProps {
 }
 
 export function ClearDialog({ onClose, onClearCompleted, onClearAll }: ClearDialogProps) {
+  const dialogRef = useDialogFocus<HTMLDivElement>(onClose)
   const handleClearCompleted = () => {
     onClearCompleted()
     onClose()
@@ -21,17 +23,24 @@ export function ClearDialog({ onClose, onClearCompleted, onClearAll }: ClearDial
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
       onClick={onClose}
+      role="presentation"
     >
       <div
-        className="w-[340px] bg-background rounded-2xl shadow-2xl p-6 border border-border"
+        ref={dialogRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="clear-dialog-title"
+        aria-describedby="clear-dialog-description"
+        className="w-[340px] rounded-panel bg-background p-6 shadow-2xl ring-1 ring-inset ring-divider-strong"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex flex-col items-center text-center mb-6">
-          <div className="w-12 h-12 rounded-full border border-dashed border-border-strong bg-state-error-bg flex items-center justify-center mb-4">
-            <AlertTriangle className="w-6 h-6 text-foreground" />
+          <div className="w-12 h-12 rounded-full bg-error/[0.12] text-error flex items-center justify-center mb-4">
+            <AlertTriangle className="w-6 h-6" />
           </div>
-          <h2 className="text-lg font-semibold text-foreground mb-2">Clear Downloads</h2>
-          <p className="text-sm text-muted-foreground">
+          <h2 id="clear-dialog-title" className="text-lg font-semibold text-foreground mb-2">Clear Downloads</h2>
+          <p id="clear-dialog-description" className="text-sm text-muted-foreground">
             This will remove tasks from the list. Downloaded files will not be deleted.
           </p>
         </div>
@@ -40,7 +49,7 @@ export function ClearDialog({ onClose, onClearCompleted, onClearAll }: ClearDial
           <button
             type="button"
             onClick={handleClearCompleted}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-action text-action-fg font-medium hover:bg-action-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+            className="w-full min-h-11 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-action text-action-fg font-medium hover:bg-action-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
           >
             <CircleCheck className="w-4 h-4" />
             Remove Completed Tasks
@@ -48,7 +57,7 @@ export function ClearDialog({ onClose, onClearCompleted, onClearAll }: ClearDial
           <button
             type="button"
             onClick={handleClearAll}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-dashed border-border-strong bg-transparent text-foreground font-medium hover:bg-state-error-bg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+            className="w-full min-h-11 flex items-center justify-center gap-2 py-2.5 rounded-button bg-error/10 text-error font-medium hover:bg-error/15 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
           >
             <Trash2 className="w-4 h-4" />
             Remove All Tasks
@@ -56,7 +65,7 @@ export function ClearDialog({ onClose, onClearCompleted, onClearAll }: ClearDial
           <button
             type="button"
             onClick={onClose}
-            className="w-full py-2.5 rounded-lg bg-control text-foreground font-medium hover:bg-state-active-bg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+            className="w-full min-h-11 py-2.5 rounded-lg bg-control text-foreground font-medium hover:bg-state-active-bg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
           >
             Cancel
           </button>

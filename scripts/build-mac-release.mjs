@@ -27,6 +27,11 @@ async function stage() {
     await safeRemoveManagedStage()
     await mkdir(stagedEngines, { recursive: true })
     await writeFile(marker, `managed release staging for darwin-${arch}; do not edit\n`)
+    const configPath = process.env.RELEASE_CONFIG || join(root, 'release-config.json')
+    const releaseConfig = JSON.parse(await readFile(configPath, 'utf8'))
+    const extensionId = process.env.CHROME_EXTENSION_ID || releaseConfig.chrome?.extensionId
+    if (!/^[a-p]{32}$/.test(extensionId || '')) throw new Error('release config is missing a valid Chrome Web Store extension ID')
+    await writeFile(join(staging, 'extension-config.json'), `${JSON.stringify({ extensionId }, null, 2)}\n`)
     for (const name of ['manifest.json']) await cp(join(engineSource, name), join(stagedEngines, name))
     const metadata = JSON.parse(await readFile(join(engineSource, 'metadata.json'), 'utf8'))
     const key = `darwin-${arch}`

@@ -1,9 +1,9 @@
 (function () {
   'use strict'
 
-  const BUTTON_ID = 'ytdl-download-btn'
-  const CARD_ATTR = 'data-ytdl-card-dl'
-  const SHORTS_ATTR = 'data-ytdl-shorts-dl'
+  const BUTTON_ID = 'vdl-download-btn'
+  const CARD_ATTR = 'data-vdl-card-dl'
+  const SHORTS_ATTR = 'data-vdl-shorts-dl'
   const SVG_DOWNLOAD = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`
   const SVG_DOWNLOAD_SM = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`
   const SVG_DOWNLOAD_SHORTS = `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M17 18v1H6v-1h11zm-.5-6.6-.7-.7-3.8 3.7V4h-1v10.4l-3.8-3.8-.7.7 5 5 5-4.9z"/></svg>`
@@ -11,12 +11,14 @@
   // ── Shared ──────────────────────────────────────────────────────────────
 
   function showFeedback(btn) {
-    btn.classList.add('ytdl-btn-active')
-    setTimeout(() => btn.classList.remove('ytdl-btn-active'), 800)
+    btn.classList.add('vdl-btn-active')
+    setTimeout(() => btn.classList.remove('vdl-btn-active'), 800)
   }
 
   function sendDownload(url) {
-    chrome.runtime.sendMessage({ type: 'DOWNLOAD_VIDEO', url, surfacedWake: true })
+    const wakeFromGesture = globalThis.__vdownloadWakeFromUserGesture
+    const surfacedWake = typeof wakeFromGesture === 'function' ? wakeFromGesture() === true : false
+    chrome.runtime.sendMessage({ type: 'DOWNLOAD_VIDEO', url, surfacedWake })
   }
 
   // ── Watch page download button ──────────────────────────────────────────
@@ -27,7 +29,8 @@
 
     const btn = document.createElement('button')
     btn.id = BUTTON_ID
-    btn.className = 'ytdl-btn'
+    btn.className = 'vdl-btn'
+    btn.setAttribute('aria-label', 'Download with V-Download')
     btn.title = 'Download with V-Download'
     btn.innerHTML = SVG_DOWNLOAD
 
@@ -74,23 +77,24 @@
 
       const wrapper = document.createElement('div')
       wrapper.setAttribute(SHORTS_ATTR, '1')
-      wrapper.className = 'ytdl-shorts-action'
+      wrapper.className = 'vdl-shorts-action'
 
       const btn = document.createElement('button')
-      btn.className = 'ytdl-shorts-btn'
+      btn.className = 'vdl-shorts-btn'
+      btn.setAttribute('aria-label', 'Download with V-Download')
       btn.title = 'Download with V-Download'
       btn.innerHTML = SVG_DOWNLOAD_SHORTS
 
       const label = document.createElement('span')
-      label.className = 'ytdl-shorts-label'
+      label.className = 'vdl-shorts-label'
       label.textContent = 'Download'
 
       btn.addEventListener('click', (e) => {
         e.preventDefault()
         e.stopPropagation()
         sendDownload(window.location.href)
-        btn.classList.add('ytdl-btn-active')
-        setTimeout(() => btn.classList.remove('ytdl-btn-active'), 800)
+        btn.classList.add('vdl-btn-active')
+        setTimeout(() => btn.classList.remove('vdl-btn-active'), 800)
       })
 
       wrapper.appendChild(btn)
@@ -114,7 +118,8 @@
 
     const btn = document.createElement('button')
     btn.setAttribute(CARD_ATTR, '1')
-    btn.className = 'ytdl-card-btn'
+    btn.className = 'vdl-card-btn'
+    btn.setAttribute('aria-label', 'Download with V-Download')
     btn.title = 'Download with V-Download'
     btn.innerHTML = SVG_DOWNLOAD_SM
 
@@ -122,8 +127,8 @@
       e.preventDefault()
       e.stopPropagation()
       sendDownload(getCardVideoUrl(card) || videoUrl)
-      btn.classList.add('ytdl-btn-active')
-      setTimeout(() => btn.classList.remove('ytdl-btn-active'), 800)
+      btn.classList.add('vdl-btn-active')
+      setTimeout(() => btn.classList.remove('vdl-btn-active'), 800)
     })
 
     menuBtnContainer.style.display = 'flex'
@@ -176,6 +181,7 @@
   // ── Lifecycle ──────────────────────────────────────────────────────────
 
   function runAllInjections() {
+    if (document.hidden) return
     if (isWatchPage()) injectWatchButton()
     if (isShortsPage()) injectShortsButton()
     scanCards()
@@ -206,7 +212,11 @@
     debouncedScan()
   })
 
-  const checkInterval = setInterval(runAllInjections, 2000)
+  const checkInterval = setInterval(runAllInjections, 5000)
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) runAllInjections()
+  })
 
   runAllInjections()
   onPageChange()

@@ -59,8 +59,10 @@
     const url = record.url;
     if (!url || !record.article.isConnected) return;
     flashButton(btn, "vdl-x-sending");
+    const wakeFromGesture = globalThis.__vdownloadWakeFromUserGesture;
+    const surfacedWake = typeof wakeFromGesture === "function" ? wakeFromGesture() === true : false;
     chrome.runtime.sendMessage(
-      { type: "DOWNLOAD_VIDEO", url, surfacedWake: true },
+      { type: "DOWNLOAD_VIDEO", url, surfacedWake },
       (resp) => {
         if (chrome.runtime.lastError) return flashButton(btn, null);
         flashButton(btn, resp && !resp.error ? "vdl-x-sent" : null);
@@ -91,6 +93,7 @@
   function makeButton(kind, record) {
     const b = document.createElement("button");
     b.className = kind === "action" ? "vdl-x-btn" : "vdl-x-video-btn";
+    b.setAttribute("aria-label", "Download with V-Download");
     b.title = "Download with V-Download";
     b.innerHTML = SVG_DOWNLOAD;
     b.setAttribute(BTN_ATTR, kind);

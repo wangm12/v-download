@@ -17,6 +17,10 @@ extraResources:
     to: extension
     filter:
       - "**/*"
+  # Created by build-mac-release.mjs from the signed release configuration.
+  # Packaged builds fail closed if this fixed Chrome Web Store ID is absent.
+  - from: .release-staging/current/extension-config.json
+    to: extension-config.json
   - from: .release-staging/current/engines
     to: engines
     filter:

@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@v-download/shared": "file:../packages/shared",
-    "@fastify/static": "^9.1.0",
+    "@fastify/static": "^10.1.2",
     "better-sqlite3": "^12.8.0",
     "dotenv": "^17.4.1",
     "fastify": "^5.8.4",

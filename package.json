@@ -15,7 +15,8 @@
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json",
     "lint": "tsc --noEmit -p tsconfig.web.json && tsc --noEmit -p tsconfig.node.json",
-    "test": "npm run test:grouped-queue && npm run test:douyin-profile && npm run test:foundation && npm run test:media-resolver && npm run test:extension",
+    "test": "npm run test:selection && npm run test:grouped-queue && npm run test:douyin-profile && npm run test:profile-picker-selection && npm run test:foundation && npm run test:media-resolver && npm run test:thumbnail-fetch && npm run test:http-client && npm run test:extension && npm run test:ui-contract",
+    "test:selection": "npx tsx scripts/test-selection.ts",
     "test:grouped-queue": "npx tsx scripts/test-grouped-queue-scheduler.ts",
     "test:foundation": "npx tsx scripts/test-foundation.ts",
     "build:mac": "node scripts/build-mac-release.mjs",
@@ -29,9 +30,13 @@
     "postinstall": "npm run build --workspace=@v-download/shared && node scripts/write-extension-cookie-sync.mjs && electron-builder install-app-deps",
     "sync:extension-constants": "npm run build --workspace=@v-download/shared && node scripts/write-extension-cookie-sync.mjs",
     "test:douyin-profile": "npx tsx scripts/test-douyin-profile.ts",
+    "test:profile-picker-selection": "npx tsx src/renderer/src/components/douyinProfilePickerState.test.ts",
     "test:media-resolver": "npx tsx scripts/test-media-resolver.ts",
     "test:extension": "node scripts/test-extension-media.js && node scripts/test-extension-download.js",
+    "test:ui-contract": "node scripts/test-ui-contract.mjs",
     "test:engines": "node scripts/test-engines.mjs",
+    "test:thumbnail-fetch": "npx tsx scripts/test-thumbnail-fetch.ts",
+    "test:http-client": "npx tsx scripts/test-http-client.ts",
     "test:release-gates": "node scripts/test-release-gates.mjs",
     "test:security": "npx tsx scripts/test-security.ts",
     "test:updater": "npx tsx scripts/test-updater-contract.ts",
@@ -52,7 +57,7 @@
       "ip-address": "^10.2.0"
     },
     "cloakbrowser": {
-      "tar": "^7.5.20"
+      "tar": "^7.5.22"
     }
   },
   "devDependencies": {

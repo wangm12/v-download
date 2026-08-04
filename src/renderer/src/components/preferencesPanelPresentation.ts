@@ -1,24 +1,21 @@
 import { getQueueConcurrencyPolicy, type QueueSpeedMode } from '@v-download/shared'
 
-export const PREFERENCES_WORKSPACE_CLASS = 'mx-auto grid w-full max-w-[1120px] grid-cols-1 gap-4 lg:grid-cols-2'
-export const GENERAL_SECTION_CLASS = 'lg:col-span-2'
+export const PREFERENCES_WORKSPACE_CLASS = 'mx-auto flex w-full max-w-[760px] flex-col space-y-4'
+export const GENERAL_SECTION_CLASS = 'w-full'
 
 export const PREFERENCES_SECTION_TITLES = [
-  'Behavior',
-  'Storage',
+  'Download behavior',
+  'Save files',
+  'Default format',
   'Download speed',
-  'Queue',
-  'Direct media (sniff / extension)',
-  'YouTube playlists',
-  'Douyin bulk (optional)',
-  'Output format',
-  'Chrome companion',
-  'Per-site defaults',
-  'Engine'
+  'Browser connection',
+  'Per-site rules',
+  'Power-user download controls',
+  'System'
 ] as const
 
 export function hasSingleColumnPolicy(className: string): boolean {
-  return className.includes('grid-cols-1') && className.includes('lg:grid-cols-2')
+  return className.includes('max-w-') && className.includes('space-y-')
 }
 
 export const DOWNLOAD_SPEED_MODES: QueueSpeedMode[] = ['balanced', 'turbo', 'gentle']
@@ -31,7 +28,12 @@ export function getDownloadSpeedPresentation(mode: QueueSpeedMode) {
     turbo: `Same ${policy.theoreticalMax}-task cap as Balanced. Removes the start delay, uses 16 fragment slots, and the yt-dlp direct-media path; faster, but more likely to trigger HTTP 429/rate limits.`,
     gentle: `Up to ${policy.individualLimit} individual task, ${policy.collectionLimit} task per collection, and ${policy.activeCollectionLimit} active collection (${policy.theoreticalMax} active engine tasks theoretical maximum). Uses a slower start interval, 2 fragment slots, and the automatic media path.`
   }
-  return { label: labels[mode], description: descriptions[mode], policy }
+  const shortDescriptions: Record<QueueSpeedMode, string> = {
+    balanced: 'Recommended for most downloads.',
+    turbo: 'Faster starts; some sites may rate-limit you.',
+    gentle: 'Slower starts for stricter sites and weaker connections.'
+  }
+  return { label: labels[mode], description: descriptions[mode], shortDescription: shortDescriptions[mode], policy }
 }
 
 export function getEffectiveIndividualLimit(mode: QueueSpeedMode, configuredConcurrency: unknown): number {

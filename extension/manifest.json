@@ -3,6 +3,7 @@
   "name": "V-Download",
   "version": "1.1.7",
   "description": "Download videos and detect media streams on any website",
+  "homepage_url": "https://github.com/wangm12/v-download",
   "permissions": [
     "cookies",
     "storage",
@@ -27,7 +28,7 @@
         "*://music.youtube.com/*"
       ],
       "js": ["wake-sync.js", "content.js"],
-      "css": ["content.css"],
+      "css": ["theme.css", "content.css"],
       "run_at": "document_idle"
     },
     {
@@ -54,7 +55,7 @@
         "*://iesdouyin.com/*"
       ],
       "js": ["wake-sync.js", "overlay-placement.js", "content-douyin.js"],
-      "css": ["content-douyin.css"],
+      "css": ["theme.css", "content-douyin.css"],
       "run_at": "document_idle"
     },
     {
@@ -63,7 +64,7 @@
         "*://*.twitter.com/*"
       ],
       "js": ["wake-sync.js", "overlay-placement.js", "content-x.js"],
-      "css": ["content-x.css"],
+      "css": ["theme.css", "content-x.css"],
       "run_at": "document_idle"
     },
     {
@@ -72,15 +73,14 @@
         "*://tiktok.com/*"
       ],
       "js": ["wake-sync.js", "overlay-placement.js", "content-tiktok.js"],
-      "css": ["content-tiktok.css"],
+      "css": ["theme.css", "content-tiktok.css"],
       "run_at": "document_idle"
     },
     {
       "matches": ["<all_urls>"],
       "js": ["wake-sync.js", "overlay-placement.js", "media-patterns.js", "content-video-overlay.js"],
-      "css": ["content-video-overlay.css"],
-      "run_at": "document_idle",
-      "all_frames": true
+      "css": ["theme.css", "content-video-overlay.css"],
+      "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [

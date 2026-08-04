@@ -5,6 +5,7 @@
 import { buildDouyinCookieHeader, resolveDouyinCookieContext } from './browserCookies'
 import { DOUYIN_DESKTOP_UA } from './douyinParseUtils'
 import { buildSignedAwemePostUrl } from './douyinProfileSign'
+import { fetchWithTimeout } from './httpClient'
 
 export interface WebAwemePostApiResult {
   aweme_list: Record<string, unknown>[]
@@ -73,7 +74,7 @@ async function fetchOnce(
     Accept: 'application/json, text/plain, */*',
   }
   if (cookieHeader) headers.Cookie = cookieHeader
-  const res = await fetch(url, { headers, redirect: 'follow', signal })
+  const res = await fetchWithTimeout(url, { headers, redirect: 'follow', signal })
   const bodyText = await res.text()
   return { status: res.status, bodyText }
 }

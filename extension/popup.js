@@ -160,7 +160,7 @@ function renderMedia(media, tabUrl, tabTitle) {
     list.appendChild(row)
   })
 
-  const triggerDownload = (items) => {
+  const triggerDownload = async (items) => {
     if (!Array.isArray(items) || items.length === 0) return
     if (inFlight) return
 
@@ -170,13 +170,18 @@ function renderMedia(media, tabUrl, tabTitle) {
     inFlight = true
     downloadBtn.disabled = true
 
+    // Give immediate visible feedback before any async work or popup-closing
+    // side effect. The anchor must still run in this click's user gesture.
+    const wakeFromGesture = globalThis.__vdownloadWakeFromUserGesture
+    const surfacedWake = typeof wakeFromGesture === 'function' ? wakeFromGesture() === true : false
+
     chrome.runtime.sendMessage(
       {
         type: 'DOWNLOAD_MEDIA',
         items,
         tabUrl,
         tabTitle,
-        surfacedWake: true
+        surfacedWake
       },
       (response) => {
         const results = Array.isArray(response?.results) ? response.results : []
@@ -185,7 +190,10 @@ function renderMedia(media, tabUrl, tabTitle) {
         const succeeded = results.filter((result) => result?.ok).length
         if (chrome.runtime.lastError || !response || !response.ok || !validResults || failed.length) {
           const detail = results.length ? ` ${succeeded} succeeded, ${failed.length} failed (items ${failed.join(', ')}).` : ''
-          const msg = (response?.error || 'The app did not accept every item.') + detail + ' Retry the selected items.'
+          const categories = [...new Set(results.filter((result) => !result?.ok).map((result) => result?.category).filter(Boolean))]
+          const categoryLabels = { 'app-unavailable': 'app unavailable', 'invalid-media-candidate': 'invalid media candidate', 'authorization-required': 'authorization required', 'network-retryable': 'network retryable', 'app-rejected': 'app rejected' }
+          const categoryText = categories.length ? ` ${categories.map((category) => categoryLabels[category] || 'download error').join(', ')}.` : ''
+          const msg = (response?.error || 'The app did not accept every item.') + categoryText + detail + ' Retry the selected items.'
           if (status) status.textContent = msg
           downloadBtn.disabled = false
           inFlight = false
@@ -203,6 +211,11 @@ function renderMedia(media, tabUrl, tabTitle) {
 
   const updateSelectionUi = () => {
     pendingRetryItems = []
+    const rows = list.querySelectorAll('.media-item')
+    rows.forEach((row) => {
+      const checkbox = row.querySelector('input[type="checkbox"]')
+      row.dataset.selected = String(checkbox?.checked === true)
+    })
     const selected = list.querySelectorAll('input[type="checkbox"]:checked').length
     selectedCount.textContent = `${selected}/${media.length} selected`
     downloadBtn.disabled = selected === 0

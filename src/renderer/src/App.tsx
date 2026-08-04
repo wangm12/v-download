@@ -2,22 +2,21 @@ import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { Loader2, CheckCircle2, Info, X } from 'lucide-react'
 import { TitleBar } from '@/components/TitleBar'
 import { BottomBar } from '@/components/BottomBar'
-import { DownloadItem } from '@/components/DownloadItem'
-import { PlaylistGroup } from '@/components/PlaylistGroup'
 import { FormatDialog } from '@/components/FormatDialog'
 import { DouyinProfilePickerDialog } from '@/components/DouyinProfilePickerDialog'
 import { CollectionPickerDialog } from '@/components/CollectionPickerDialog'
 import { MediaPickerDialog } from '@/components/MediaPickerDialog'
 import type { DetectedMedia } from '@/components/MediaPickerDialog'
 import { ClearDialog } from '@/components/ClearDialog'
+import { DeleteSelectionDialog } from '@/components/DeleteSelectionDialog'
 import { PreferencesPanel } from '@/components/PreferencesPanel'
-import { CoinLoader } from '@/components/CoinLoader'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { DownloadActionsProvider } from '@/contexts/DownloadActionsContext'
 import { AppSidebar } from '@/components/AppSidebar'
 import { HoverHintWrap } from '@/components/HoverHintWrap'
 import { QueueToolbar } from '@/components/QueueToolbar'
 import { DownloadInspector } from '@/components/DownloadInspector'
+import { VirtualizedQueue } from '@/components/VirtualizedQueue'
 import {
   shouldOpenDownloadDetails,
   shouldRenderDownloadDetails
@@ -31,11 +30,24 @@ import { filterDownloadsBySearch } from '@/utils/queueFilters'
 import { isPlaylistUrl } from '@/utils/youtube'
 import { DOUYIN_BULK_URL_PREFILL_SESSION_KEY } from '@/utils/douyinBulk'
 import { parseSpeedToBytes, formatSpeed } from '@/utils/format'
+import {
+  applySelectionClick,
+  clearSelection,
+  retainSelection,
+  selectAllInOrder
+} from '@/utils/selection'
+import {
+  expandQueueSelectionToDownloadIds,
+  getPlaylistIdFromSelectionId,
+  getPlaylistSelectionId,
+  getVisibleQueueSelectionIds
+} from '@/utils/queueSelection'
+import type { PlaylistViewState } from '@/utils/queueSelection'
 import { useThrottledValue } from '@/hooks/useThrottledValue'
 import { useThemePreference } from '@/hooks/useThemePreference'
 import { cn } from '@/lib/cn'
-import type { Download, Playlist } from '@/types'
 import type { PrefSection } from '@/preferencesNav'
+import { EmptyState, StatusBlock } from '@/components/ui'
 
 export default function App() {
   return (
@@ -59,7 +71,7 @@ function normalizeSettingsHash(): void {
 
 const LS_LEFT_SIDEBAR = 'v-download:ui:left-sidebar-collapsed'
 const LS_RIGHT_INSPECTOR = 'v-download:ui:right-inspector-collapsed'
-
+const RESUMABLE_STATUSES = new Set(['paused', 'interrupted', 'error', 'queued'])
 function readCollapsedFromStorage(key: string): boolean {
   try {
     return localStorage.getItem(key) === '1'
@@ -86,18 +98,6 @@ type CookieSyncBanner =
       title: string
       detail?: string
     }
-
-function collectIdsFromGrouped(grouped: (Download | Playlist)[]): Set<string> {
-  const ids = new Set<string>()
-  for (const item of grouped) {
-    if ('downloads' in item && Array.isArray(item.downloads)) {
-      for (const d of item.downloads) ids.add(d.id)
-    } else if ('status' in item) {
-      ids.add((item as Download).id)
-    }
-  }
-  return ids
-}
 
 function MainApp() {
   const [mainView, setMainView] = useState<MainView>(readSettingsHash)
@@ -136,13 +136,26 @@ function MainApp() {
   } = useUrlHandler(settings)
 
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [searchFocusSignal, setSearchFocusSignal] = useState(0)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
+  const [selectionAnchorId, setSelectionAnchorId] = useState<string | null>(null)
+  const [focusedId, setFocusedId] = useState<string | null>(null)
+  const [playlistViewStates, setPlaylistViewStates] = useState<Record<string, PlaylistViewState>>({})
   const [showClearDialog, setShowClearDialog] = useState(false)
+  const [pendingDeleteIds, setPendingDeleteIds] = useState<string[] | null>(null)
   const [cookieSyncBanner, setCookieSyncBanner] = useState<CookieSyncBanner>(null)
   const cookieSyncWaitRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const cookieSyncDismissRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const cookieSyncSessionRef = useRef(false)
   const cookieSyncInFlightRef = useRef(false)
+
+  const clearQueueSelection = useCallback(() => {
+    const cleared = clearSelection<string>()
+    setSelectedIds(cleared.selected)
+    setSelectionAnchorId(cleared.anchor)
+    setFocusedId(null)
+    setRightInspectorCollapsed(true)
+  }, [])
 
   const clearCookieSyncTimers = useCallback(() => {
     if (cookieSyncWaitRef.current) {
@@ -176,14 +189,9 @@ function MainApp() {
 
   const openPreferences = useCallback(() => {
     setMainView('preferences')
-    setSelectedId(null)
+    clearQueueSelection()
     setPrefSection('general')
-  }, [])
-
-  const selectDownload = useCallback((id: string) => {
-    if (shouldOpenDownloadDetails(selectedId, id)) setRightInspectorCollapsed(false)
-    setSelectedId(id)
-  }, [selectedId])
+  }, [clearQueueSelection])
 
   const closeDownloadDetails = useCallback(() => {
     setRightInspectorCollapsed(true)
@@ -196,9 +204,9 @@ function MainApp() {
       /* ignore */
     }
     setMainView('preferences')
-    setSelectedId(null)
+    clearQueueSelection()
     setPrefSection('downloads')
-  }, [])
+  }, [clearQueueSelection])
 
   useEffect(() => {
     if (mainView === 'preferences' && window.location.hash === '#/settings') {
@@ -210,7 +218,7 @@ function MainApp() {
     const syncFromHash = () => {
       if (window.location.hash === '#/settings') {
         setMainView('preferences')
-        setSelectedId(null)
+        clearQueueSelection()
         setPrefSection('general')
         normalizeSettingsHash()
       }
@@ -218,7 +226,7 @@ function MainApp() {
     syncFromHash()
     window.addEventListener('hashchange', syncFromHash)
     return () => window.removeEventListener('hashchange', syncFromHash)
-  }, [])
+  }, [clearQueueSelection])
 
   useEffect(() => {
     try {
@@ -240,11 +248,11 @@ function MainApp() {
     if (!window.api?.onOpenPreferences) return
     const unsub = window.api.onOpenPreferences(() => {
       setMainView('preferences')
-      setSelectedId(null)
+      clearQueueSelection()
       setPrefSection('general')
     })
     return unsub
-  }, [])
+  }, [clearQueueSelection])
 
   useEffect(() => {
     if (!window.api?.onCookiesSynced) return
@@ -321,11 +329,6 @@ function MainApp() {
       : cookieSyncBanner?.kind === 'wait'
         ? ('waiting' as const)
         : null
-
-  useKeyboardShortcuts({
-    onPaste: handlePaste,
-    onOpenPreferences: mainView === 'downloads' ? openPreferences : undefined
-  })
 
   useEffect(() => {
     if (!window.api?.onYtdlUrl) return
@@ -464,30 +467,168 @@ function MainApp() {
   )
 
   const grouped = useMemo(() => groupDownloadsByPlaylist(filteredDownloads), [filteredDownloads])
-
-  const visibleIds = useMemo(() => collectIdsFromGrouped(grouped), [grouped])
+  const visibleSelectionIds = useMemo(
+    () => getVisibleQueueSelectionIds(grouped, playlistViewStates),
+    [grouped, playlistViewStates]
+  )
+  const visibleSelectionIdSet = useMemo(() => new Set(visibleSelectionIds), [visibleSelectionIds])
 
   useEffect(() => {
-    if (selectedId && !visibleIds.has(selectedId)) {
-      setSelectedId(null)
-    }
-  }, [selectedId, visibleIds])
+    setSelectedIds((previous) => {
+      const next = retainSelection(previous, visibleSelectionIdSet)
+      if (next.size === previous.size && Array.from(next).every((id) => previous.has(id))) return previous
+      return next
+    })
+    setSelectionAnchorId((previous) => (previous && visibleSelectionIdSet.has(previous) ? previous : null))
+    setFocusedId((previous) => (previous && visibleSelectionIdSet.has(previous) ? previous : null))
+  }, [visibleSelectionIdSet])
 
-  const selectedDownload = useMemo(
-    () => (selectedId ? downloads.find((d) => d.id === selectedId) ?? null : null),
-    [downloads, selectedId]
+  const selectDownload = useCallback(
+    (id: string, modifiers = {}) => {
+      const next = applySelectionClick(
+        visibleSelectionIds,
+        selectedIds,
+        selectionAnchorId,
+        id,
+        modifiers
+      )
+      const wasSingle = selectedIds.size === 1
+      setSelectedIds(next.selected)
+      setSelectionAnchorId(next.anchor)
+      setFocusedId(next.selected.size === 1 && next.selected.has(id) ? id : null)
+      if (next.selected.size === 1 && (!wasSingle || shouldOpenDownloadDetails(focusedId, id))) {
+        setRightInspectorCollapsed(false)
+      }
+    },
+    [visibleSelectionIds, selectedIds, selectionAnchorId, focusedId]
   )
 
-  const completeCount = downloads.filter((d) => d.status === 'complete').length
-  /** Matches resumeAll(): bulk resume skips user-cancelled tasks. */
-  const resumableStatuses = ['paused', 'interrupted', 'error', 'queued']
-  const hasResumable = downloads.some((d) => resumableStatuses.includes(d.status))
-  const hasActive = downloads.some((d) => d.status === 'downloading' || d.status === 'queued')
-  const statusText = `${downloads.length} Download${downloads.length !== 1 ? 's' : ''} · ${completeCount} Complete`
+  const selectPlaylist = useCallback(
+    (playlistId: string, modifiers = {}) => {
+      const selectionId = getPlaylistSelectionId(playlistId)
+      const next = applySelectionClick(
+        visibleSelectionIds,
+        selectedIds,
+        selectionAnchorId,
+        selectionId,
+        modifiers
+      )
+      setSelectedIds(next.selected)
+      setSelectionAnchorId(next.anchor)
+      const onlySelectedId = next.selected.size === 1 ? next.selected.values().next().value ?? null : null
+      const nextFocusedId = onlySelectedId && !getPlaylistIdFromSelectionId(onlySelectedId) ? onlySelectedId : null
+      setFocusedId(nextFocusedId)
+      setRightInspectorCollapsed(!nextFocusedId)
+    },
+    [visibleSelectionIds, selectedIds, selectionAnchorId]
+  )
 
-  const totalSpeedBytes = downloads
-    .filter((d) => d.status === 'downloading' && d.speed)
-    .reduce((sum, d) => sum + parseSpeedToBytes(d.speed!), 0)
+  const selectAllVisible = useCallback(() => {
+    const next = selectAllInOrder(visibleSelectionIds, selectionAnchorId)
+    setSelectedIds(next.selected)
+    setSelectionAnchorId(next.anchor)
+    setFocusedId(next.selected.size === 1 && next.anchor && !getPlaylistIdFromSelectionId(next.anchor) ? next.anchor : null)
+    if (next.selected.size === 1 && next.anchor && !getPlaylistIdFromSelectionId(next.anchor)) {
+      setRightInspectorCollapsed(false)
+    } else {
+      setRightInspectorCollapsed(true)
+    }
+  }, [visibleSelectionIds, selectionAnchorId])
+
+  const selectedDownloadIds = useMemo(() => {
+    return expandQueueSelectionToDownloadIds(selectedIds, grouped)
+  }, [grouped, selectedIds])
+
+  const requestDeleteSelectedDownloads = useCallback(() => {
+    if (selectedDownloadIds.length === 0) return
+    setPendingDeleteIds(selectedDownloadIds)
+  }, [selectedDownloadIds])
+
+  const confirmDeleteSelectedDownloads = useCallback(() => {
+    const ids = pendingDeleteIds
+    if (!ids || ids.length === 0) return
+
+    // Cmd/Ctrl+Delete removes queue records but deliberately keeps files on
+    // disk. Deleting files remains an explicit action in the row/inspector.
+    setPendingDeleteIds(null)
+    clearQueueSelection()
+    removeDownloads(ids)
+    if (window.api?.deleteTasks) {
+      void window.api.deleteTasks(ids).catch(() => {
+        void refreshDownloads()
+      })
+    }
+  }, [pendingDeleteIds, clearQueueSelection, removeDownloads, refreshDownloads])
+
+  const downloadShortcutScopeEnabled =
+    mainView === 'downloads' &&
+    !showFormatDialog &&
+    !showDouyinProfilePicker &&
+    !showCollectionPicker &&
+    !showClearDialog &&
+    pendingDeleteIds === null
+
+  const focusDownloadSearch = useCallback(() => {
+    if (!downloadShortcutScopeEnabled) return
+    setSearchFocusSignal((value) => value + 1)
+  }, [downloadShortcutScopeEnabled])
+
+  const refreshDownloadQueue = useCallback(() => {
+    if (!downloadShortcutScopeEnabled) return
+    void refreshDownloads()
+  }, [downloadShortcutScopeEnabled, refreshDownloads])
+
+  useEffect(() => {
+    const unsubscribeFocus = window.api?.onFocusDownloadSearch?.(focusDownloadSearch)
+    const unsubscribeRefresh = window.api?.onRefreshDownloads?.(refreshDownloadQueue)
+    return () => {
+      unsubscribeFocus?.()
+      unsubscribeRefresh?.()
+    }
+  }, [focusDownloadSearch, refreshDownloadQueue])
+
+  useKeyboardShortcuts({
+    onPaste: handlePaste,
+    onOpenPreferences: mainView === 'downloads' ? openPreferences : undefined,
+    onFocusSearch: downloadShortcutScopeEnabled ? focusDownloadSearch : undefined,
+    onRefresh: downloadShortcutScopeEnabled ? refreshDownloadQueue : undefined,
+    onSelectAll: selectAllVisible,
+    onClearSelection: clearQueueSelection,
+    onDeleteSelection: requestDeleteSelectedDownloads,
+    selectionEnabled: downloadShortcutScopeEnabled
+  })
+
+  const selectedDownload = useMemo(
+    () => (focusedId ? downloads.find((d) => d.id === focusedId) ?? null : null),
+    [downloads, focusedId]
+  )
+
+  const handlePlaylistViewStateChange = useCallback(
+    (playlistId: string, state: PlaylistViewState) => {
+      setPlaylistViewStates((previous) => {
+        const current = previous[playlistId]
+        if (current?.expanded === state.expanded && current?.showAll === state.showAll) return previous
+        return { ...previous, [playlistId]: state }
+      })
+    },
+    []
+  )
+
+  const queueSummary = useMemo(() => {
+    let completeCount = 0
+    let hasResumable = false
+    let hasActive = false
+    let totalSpeedBytes = 0
+    for (const download of downloads) {
+      if (download.status === 'complete') completeCount += 1
+      if (RESUMABLE_STATUSES.has(download.status)) hasResumable = true
+      if (download.status === 'downloading' || download.status === 'queued') hasActive = true
+      if (download.status === 'downloading' && download.speed) totalSpeedBytes += parseSpeedToBytes(download.speed)
+    }
+    return { completeCount, hasResumable, hasActive, totalSpeedBytes }
+  }, [downloads])
+  const { completeCount, hasResumable, hasActive, totalSpeedBytes } = queueSummary
+  const statusText = `${downloads.length} Download${downloads.length !== 1 ? 's' : ''} · ${completeCount} Complete`
   const rawTotalSpeed = totalSpeedBytes > 0 ? formatSpeed(totalSpeedBytes) : null
   const totalSpeed = useThrottledValue(rawTotalSpeed, 2000)
 
@@ -513,7 +654,7 @@ function MainApp() {
           title={preferencesMode ? 'Preferences' : 'V-Download'}
           trafficInset={trafficInset}
           showInspectorToggle={!preferencesMode}
-          inspectorAvailable={Boolean(selectedDownload)}
+          inspectorAvailable={selectedIds.size === 1 && Boolean(selectedDownload)}
           inspectorCollapsed={rightInspectorCollapsed}
           onToggleInspector={() => setRightInspectorCollapsed((c) => !c)}
           themePreference={themePreference}
@@ -524,10 +665,10 @@ function MainApp() {
         {cookieSyncBanner && (
           <div
             className={cn(
-              'flex-shrink-0 flex items-start gap-3 px-4 py-3 border-b border-border',
-              cookieSyncBanner.kind === 'ok' && 'bg-state-complete-bg',
-              (cookieSyncBanner.kind === 'progress' || cookieSyncBanner.kind === 'wait') && 'bg-state-active-bg',
-              cookieSyncBanner.kind === 'warn' && 'bg-state-error-bg border-dashed'
+              'flex-shrink-0 flex items-start gap-3 px-4 py-3 border-b border-divider-subtle',
+              cookieSyncBanner.kind === 'ok' && 'bg-success/[0.1]',
+              (cookieSyncBanner.kind === 'progress' || cookieSyncBanner.kind === 'wait') && 'bg-selection',
+              cookieSyncBanner.kind === 'warn' && 'bg-error/[0.1]'
             )}
             style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
             role="status"
@@ -580,19 +721,22 @@ function MainApp() {
               <div
                 className={cn(
                   'flex min-h-0 min-w-0 flex-1 flex-col bg-window',
-                  !rightInspectorCollapsed && 'border-r border-border'
+                  selectedIds.size === 1 && selectedDownload && !rightInspectorCollapsed && 'border-r border-border'
                 )}
               >
                 <QueueToolbar
                   searchQuery={searchQuery}
                   onSearchQuery={setSearchQuery}
                   onDropUrl={onDropUrl}
+                  selectedCount={selectedIds.size}
+                  onClearSelection={clearQueueSelection}
+                  focusSearchSignal={searchFocusSignal > 0 ? searchFocusSignal : undefined}
                 />
 
-                <main className="relative min-h-0 min-w-0 flex-1 overflow-y-auto">
+                <main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
                   {loading && (
                     <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-background/85 backdrop-blur-sm">
-                      <CoinLoader />
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-label="Loading" />
                       <p className="mt-4 text-sm text-muted-foreground">
                         {loadingPhase === 'sniffing' ? 'Scanning page for media' : 'Fetching video info…'}
                       </p>
@@ -600,45 +744,31 @@ function MainApp() {
                   )}
 
                   {errorMsg && (
-                    <div className="shrink-0 border-b border-dashed border-border-strong bg-state-error-bg px-4 py-2">
-                      <p className="text-xs text-foreground">{errorMsg}</p>
-                    </div>
+                    <StatusBlock tone="error" className="shrink-0 rounded-none border-b border-divider-subtle px-4 py-2 text-xs">
+                      {errorMsg}
+                    </StatusBlock>
                   )}
 
                   {grouped.length === 0 && !loading ? (
-                    <div className="flex h-full flex-col items-center justify-center px-8 py-12 text-center">
-                      <p className="mb-2 max-w-sm text-sm text-muted-foreground">
-                        Paste a URL (Cmd+V), drop a link on the queue, or use the browser companion for logged-in pages.
-                      </p>
-                      <p className="max-w-sm text-xs text-tertiary-foreground">
-                        Supports YouTube, direct media links, and page scanning
-                      </p>
-                    </div>
+                    <EmptyState
+                      className="flex-1"
+                      title="Your queue is ready"
+                      description="Paste a URL with Cmd+V, drop a link here, or use the browser companion for logged-in pages."
+                    />
                   ) : (
-                    <div className="flex flex-col gap-1 px-2 py-2">
-                      {grouped.map((item) =>
-                        'downloads' in item && Array.isArray(item.downloads) ? (
-                          <PlaylistGroup
-                            key={item.id}
-                            playlist={item as Playlist}
-                            selectedId={selectedId}
-                            onSelectDownload={selectDownload}
-                          />
-                        ) : 'status' in item ? (
-                          <DownloadItem
-                            key={item.id}
-                            download={item as Download}
-                            selected={selectedId === (item as Download).id}
-                            onSelect={() => selectDownload((item as Download).id)}
-                          />
-                        ) : null
-                      )}
-                    </div>
+                    <VirtualizedQueue
+                      items={grouped}
+                      selectedIds={selectedIds}
+                      onSelectDownload={selectDownload}
+                      onSelectPlaylist={selectPlaylist}
+                      playlistViewStates={playlistViewStates}
+                      onPlaylistViewStateChange={handlePlaylistViewStateChange}
+                    />
                   )}
                 </main>
               </div>
 
-              {shouldRenderDownloadDetails(selectedDownload?.id ?? null, rightInspectorCollapsed) && selectedDownload && (
+              {selectedIds.size === 1 && shouldRenderDownloadDetails(selectedDownload?.id ?? null, rightInspectorCollapsed) && selectedDownload && (
                 <DownloadInspector
                   download={selectedDownload}
                   downloadDir={settings.downloadDir}
@@ -722,6 +852,14 @@ function MainApp() {
             onClose={() => setShowClearDialog(false)}
             onClearCompleted={handleClearCompleted}
             onClearAll={handleClearAll}
+          />
+        )}
+
+        {pendingDeleteIds && (
+          <DeleteSelectionDialog
+            count={pendingDeleteIds.length}
+            onClose={() => setPendingDeleteIds(null)}
+            onConfirm={confirmDeleteSelectedDownloads}
           />
         )}
       </div>

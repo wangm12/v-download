@@ -20,7 +20,8 @@
       root.appendChild(a)
       a.click()
       root.removeChild(a)
-    } catch (_) {}
+      return true
+    } catch (_) { return false }
   }
 
   globalThis.__vdownloadWakeFromUserGesture = wakeFromUserGesture

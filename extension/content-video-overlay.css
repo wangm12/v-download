@@ -1,14 +1,16 @@
 /* ── Overlay download button ─────────────────────────────────────────────── */
 
-.ytdl-overlay-btn {
+.vdl-overlay-btn {
   position: fixed;
+  top: 0;
+  left: 0;
   width: 32px;
   height: 32px;
   border-radius: 6px;
   border: none;
   cursor: pointer;
   background: rgba(0, 0, 0, 0.5);
-  color: #fff;
+  color: var(--vdl-text);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -18,31 +20,32 @@
   pointer-events: none;
   padding: 0;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  transform: translate3d(var(--vdl-overlay-x, 0px), var(--vdl-overlay-y, 0px), 0);
 }
 
-.ytdl-overlay-btn.ytdl-visible {
+.vdl-overlay-btn.vdl-visible {
   opacity: 0.45;
   pointer-events: auto;
 }
 
-.ytdl-overlay-btn.ytdl-visible:hover {
+.vdl-overlay-btn.vdl-visible:hover {
   opacity: 1;
   background: rgba(0, 0, 0, 0.82);
-  transform: scale(1.08);
+  transform: translate3d(var(--vdl-overlay-x, 0px), var(--vdl-overlay-y, 0px), 0) scale(1.08);
 }
 
-.ytdl-overlay-btn.ytdl-error { background: rgba(185, 28, 28, 0.9); opacity: 1; }
+.vdl-overlay-btn.vdl-error { background: color-mix(in srgb, var(--vdl-error) 90%, transparent); opacity: 1; }
 
-.ytdl-overlay-btn:active {
-  transform: scale(0.93);
+.vdl-overlay-btn:active {
+  transform: translate3d(var(--vdl-overlay-x, 0px), var(--vdl-overlay-y, 0px), 0) scale(0.93);
 }
 
-.ytdl-overlay-btn.ytdl-hidden {
+.vdl-overlay-btn.vdl-hidden {
   opacity: 0 !important;
   pointer-events: none;
 }
 
-.ytdl-overlay-btn svg {
+.vdl-overlay-btn svg {
   width: 16px;
   height: 16px;
   flex-shrink: 0;
@@ -50,10 +53,10 @@
 
 /* ── Format panel ─────────────────────────────────────────────────────────── */
 
-.ytdl-format-panel {
+.vdl-format-panel {
   position: fixed;
-  background: #1a1a1e;
-  border: 1px solid #3f3f46;
+  background: var(--vdl-bg);
+  border: 1px solid var(--vdl-divider-strong);
   border-radius: 10px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
   min-width: 220px;
@@ -63,57 +66,57 @@
   z-index: 2147483647;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 13px;
-  color: #e4e4e7;
+  color: var(--vdl-text);
   padding: 6px 0;
   /* Smooth appear */
-  animation: ytdl-panel-in 0.12s ease;
+  animation: vdl-panel-in 0.12s ease;
 }
 
-@keyframes ytdl-panel-in {
+@keyframes vdl-panel-in {
   from { opacity: 0; transform: translateY(-6px) scale(0.97); }
   to   { opacity: 1; transform: translateY(0)   scale(1); }
 }
 
-.ytdl-format-panel::-webkit-scrollbar {
+.vdl-format-panel::-webkit-scrollbar {
   width: 4px;
 }
 
-.ytdl-format-panel::-webkit-scrollbar-track {
+.vdl-format-panel::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.ytdl-format-panel::-webkit-scrollbar-thumb {
-  background: #3f3f46;
+.vdl-format-panel::-webkit-scrollbar-thumb {
+  background: var(--vdl-divider-strong);
   border-radius: 2px;
 }
 
 /* Panel header */
-.ytdl-panel-header {
+.vdl-panel-header {
   padding: 8px 14px 6px;
   font-size: 11px;
   font-weight: 600;
-  color: #71717a;
+  color: var(--vdl-subtle);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  border-bottom: 1px solid #27272a;
+  border-bottom: 1px solid var(--vdl-divider);
   margin-bottom: 4px;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.ytdl-panel-source-badge {
+.vdl-panel-source-badge {
   font-size: 10px;
   font-weight: 500;
-  color: #52525b;
+  color: var(--vdl-subtle);
   text-transform: none;
   letter-spacing: 0;
 }
 
-.ytdl-panel-mode-btn {
-  border: 1px solid #3f3f46;
-  background: #27272a;
-  color: #d4d4d8;
+.vdl-panel-mode-btn {
+  border: 1px solid var(--vdl-divider-strong);
+  background: var(--vdl-raised);
+  color: var(--vdl-muted);
   border-radius: 999px;
   font-size: 10px;
   line-height: 1;
@@ -123,14 +126,14 @@
   letter-spacing: 0;
 }
 
-.ytdl-panel-mode-btn:hover {
-  color: #ffffff;
-  border-color: #52525b;
+.vdl-panel-mode-btn:hover {
+  color: var(--vdl-text);
+  border-color: var(--vdl-subtle);
 }
 
 /* ── Format items ─────────────────────────────────────────────────────────── */
 
-.ytdl-format-item {
+.vdl-format-item {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -140,55 +143,56 @@
   border-radius: 0;
 }
 
-.ytdl-format-item:hover {
-  background: #27272a;
+.vdl-format-item:hover {
+  background: var(--vdl-raised);
 }
 
-.ytdl-format-item[data-download-state="sending"] { background: rgba(96, 165, 250, 0.12); }
-.ytdl-format-item[data-download-state="queued"] { background: rgba(52, 211, 153, 0.12); }
-.ytdl-format-item[data-download-state="error"] { background: rgba(248, 113, 113, 0.12); }
-.ytdl-format-item[data-download-state="sending"] .ytdl-format-label { color: #93c5fd; }
-.ytdl-format-item[data-download-state="queued"] .ytdl-format-label { color: #6ee7b7; }
-.ytdl-format-item[data-download-state="error"] .ytdl-format-label { color: #fca5a5; }
-.ytdl-format-dl-btn:disabled { cursor: wait; opacity: 0.55; }
+.vdl-format-item + .vdl-format-item { box-shadow: inset 0 1px 0 var(--vdl-divider); }
+.vdl-format-item[data-download-state="sending"] { background: var(--vdl-selection); }
+.vdl-format-item[data-download-state="queued"] { background: color-mix(in srgb, var(--vdl-success) 12%, transparent); }
+.vdl-format-item[data-download-state="error"] { background: color-mix(in srgb, var(--vdl-error) 12%, transparent); }
+.vdl-format-item[data-download-state="sending"] .vdl-format-label { color: var(--vdl-accent); }
+.vdl-format-item[data-download-state="queued"] .vdl-format-label { color: var(--vdl-success); }
+.vdl-format-item[data-download-state="error"] .vdl-format-label { color: var(--vdl-error); }
+.vdl-format-dl-btn:disabled { cursor: wait; opacity: 0.55; }
 
-.ytdl-format-icon {
+.vdl-format-icon {
   flex-shrink: 0;
   width: 18px;
   height: 18px;
-  color: #71717a;
+  color: var(--vdl-subtle);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.ytdl-format-icon svg {
+.vdl-format-icon svg {
   width: 18px;
   height: 18px;
 }
 
-.ytdl-format-info {
+.vdl-format-info {
   flex: 1;
   min-width: 0;
 }
 
-.ytdl-format-label {
+.vdl-format-label {
   font-size: 13px;
   font-weight: 500;
-  color: #e4e4e7;
+  color: var(--vdl-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.ytdl-format-meta {
+.vdl-format-meta {
   display: flex;
   align-items: center;
   gap: 6px;
   margin-top: 2px;
 }
 
-.ytdl-format-type {
+.vdl-format-type {
   padding: 1px 5px;
   border-radius: 3px;
   font-size: 10px;
@@ -197,25 +201,25 @@
   line-height: 1.4;
 }
 
-.ytdl-type-hls  { background: rgba(255, 255, 255, 0.12); color: #A1A1AA; }
-.ytdl-type-mp4  { background: rgba(37, 99, 235, 0.2);  color: #60a5fa; }
-.ytdl-type-webm { background: rgba(5, 150, 105, 0.2);  color: #34d399; }
-.ytdl-type-flv  { background: rgba(217, 119, 6, 0.2);  color: #fbbf24; }
-.ytdl-type-yt   { background: rgba(220, 38, 38, 0.2);  color: #f87171; }
+.vdl-type-hls  { background: var(--vdl-hover); color: #A1A1AA; }
+.vdl-type-mp4  { background: rgba(37, 99, 235, 0.2);  color: #60a5fa; }
+.vdl-type-webm { background: rgba(5, 150, 105, 0.2);  color: #34d399; }
+.vdl-type-flv  { background: rgba(217, 119, 6, 0.2);  color: #fbbf24; }
+.vdl-type-yt   { background: rgba(220, 38, 38, 0.2);  color: #f87171; }
 
-.ytdl-format-size {
+.vdl-format-size {
   font-size: 11px;
-  color: #52525b;
+  color: var(--vdl-subtle);
 }
 
-.ytdl-format-dl-btn {
+.vdl-format-dl-btn {
   flex-shrink: 0;
   width: 28px;
   height: 28px;
   border-radius: 50%;
   border: none;
   background: transparent;
-  color: #71717a;
+  color: var(--vdl-subtle);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -224,56 +228,56 @@
   padding: 0;
 }
 
-.ytdl-format-dl-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
+.vdl-format-dl-btn:hover {
+  background: var(--vdl-hover);
   color: #A1A1AA;
 }
 
-.ytdl-format-dl-btn:active {
+.vdl-format-dl-btn:active {
   transform: scale(0.9);
 }
 
-.ytdl-format-dl-btn svg {
+.vdl-format-dl-btn svg {
   width: 15px;
   height: 15px;
 }
 
 /* ── Special states ───────────────────────────────────────────────────────── */
 
-.ytdl-panel-empty,
-.ytdl-panel-error,
-.ytdl-panel-loading {
+.vdl-panel-empty,
+.vdl-panel-error,
+.vdl-panel-loading {
   padding: 18px 14px;
   text-align: center;
   font-size: 12px;
-  color: #52525b;
+  color: var(--vdl-subtle);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ytdl-format-panel, .ytdl-overlay-btn, .ytdl-format-dl-btn { animation: none; transition: none; }
+  .vdl-format-panel, .vdl-overlay-btn, .vdl-format-dl-btn { animation: none; transition: none; }
 }
 
-.ytdl-panel-error {
+.vdl-panel-error {
   color: #f87171;
 }
 
-.ytdl-panel-note {
+.vdl-panel-note {
   padding: 6px 14px 10px;
   font-size: 11px;
-  color: #52525b;
+  color: var(--vdl-subtle);
   line-height: 1.5;
-  border-top: 1px solid #27272a;
+  border-top: 1px solid var(--vdl-divider);
   margin-top: 4px;
 }
 
 /* ── Download success flash on button ────────────────────────────────────── */
 
-.ytdl-overlay-btn.ytdl-sending {
+.vdl-overlay-btn.vdl-sending {
   opacity: 1;
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--vdl-accent);
 }
 
-.ytdl-overlay-btn.ytdl-sent {
+.vdl-overlay-btn.vdl-sent {
   opacity: 1;
-  background: rgba(50, 213, 131, 0.8);
+  background: var(--vdl-success);
 }

@@ -60,7 +60,7 @@
   border: none;
   cursor: pointer;
   background: rgba(0, 0, 0, 0.6);
-  color: #fff;
+  color: var(--vdl-text);
   padding: 0;
   opacity: 0;
   transition: opacity 0.2s, background-color 0.2s, transform 0.15s;

@@ -40,6 +40,8 @@ interface WindowApi {
   readClipboard: () => Promise<string>
   openSettings: () => Promise<void>
   onOpenPreferences: (callback: () => void) => () => void
+  onFocusDownloadSearch: (callback: () => void) => () => void
+  onRefreshDownloads: (callback: () => void) => () => void
   closeWindow: () => Promise<void>
   getChromeExtensionPath?: () => Promise<{ ok: boolean; path?: string }>
   installChromeExtension?: () => Promise<{

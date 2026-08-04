@@ -175,7 +175,7 @@
         cover,
         music: musicData
       }
-    }, '*')
+    }, location.origin)
 
     lastAwemeId = awemeId
   }
@@ -183,6 +183,7 @@
   // ── Polling ──────────────────────────────────────────────────────────────
 
   function poll() {
+    if (document.hidden) return
     const el = document.querySelector('[data-e2e="feed-active-video"]')
     if (!el) return
     const vid = el.getAttribute('data-e2e-vid') || ''
@@ -190,7 +191,13 @@
     extractAndBroadcast(el)
   }
 
-  setInterval(poll, 300)
+  const pollTimer = setInterval(poll, 600)
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      lastAwemeId = null
+      poll()
+    }
+  })
 
   // ── SPA navigation reset ─────────────────────────────────────────────────
 
@@ -205,4 +212,5 @@
     return _replace(...args)
   }
   window.addEventListener('popstate', () => { lastAwemeId = null })
+  window.addEventListener('beforeunload', () => clearInterval(pollTimer))
 })()

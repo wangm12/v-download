@@ -32,7 +32,9 @@ function normalizeTasks(data: unknown[]): Download[] {
   return data.map((t) => normalizeTask(t as Record<string, unknown>))
 }
 
-const PROGRESS_FLUSH_MS = 250
+// The main-process reporter already throttles progress to roughly this cadence.
+// Matching it avoids rendering intermediate IPC events that cannot be displayed.
+const PROGRESS_FLUSH_MS = 400
 
 /** Only merge IPC fields that are actually present — never wipe title/thumbnail with undefined. */
 function progressPatchFromIpc(data: Record<string, unknown>): Partial<Download> {
@@ -55,7 +57,15 @@ function progressPatchFromIpc(data: Record<string, unknown>): Partial<Download> 
 export function useDownloads() {
   const [downloads, setDownloads] = useState<Download[]>([])
   const pendingRef = useRef(new Map<string, Partial<Download>>())
+  const downloadIndexRef = useRef(new Map<string, number>())
   const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const refreshPromiseRef = useRef<Promise<void> | null>(null)
+
+  const rebuildDownloadIndex = useCallback((items: Download[]) => {
+    const index = new Map<string, number>()
+    items.forEach((download, position) => index.set(download.id, position))
+    downloadIndexRef.current = index
+  }, [])
 
   const flushPending = useCallback(() => {
     flushTimerRef.current = null
@@ -64,16 +74,28 @@ export function useDownloads() {
     const snapshot = new Map(batch)
     batch.clear()
     setDownloads((prev) => {
-      let changed = false
-      const next = prev.map((d) => {
-        const u = snapshot.get(d.id)
-        if (!u) return d
-        changed = true
-        return { ...d, ...u }
-      })
-      return changed ? next : prev
+      let next: Download[] | null = null
+      for (const [id, updates] of snapshot) {
+        let position = downloadIndexRef.current.get(id)
+        if (position == null || prev[position]?.id !== id) {
+          position = prev.findIndex((download) => download.id === id)
+        }
+        if (position < 0 || position >= prev.length) continue
+
+        const current = next?.[position] ?? prev[position]
+        const changed = Object.entries(updates).some(
+          ([key, value]) => current[key as keyof Download] !== value
+        )
+        if (!changed) continue
+
+        if (!next) next = prev.slice()
+        next[position] = { ...current, ...updates }
+      }
+      if (!next) return prev
+      rebuildDownloadIndex(next)
+      return next
     })
-  }, [])
+  }, [rebuildDownloadIndex])
 
   const queueProgressUpdate = useCallback(
     (id: string, updates: Partial<Download>, immediate = false) => {
@@ -96,36 +118,57 @@ export function useDownloads() {
 
   const removeDownload = useCallback((id: string) => {
     pendingRef.current.delete(id)
-    setDownloads((prev) => prev.filter((d) => d.id !== id))
-  }, [])
+    setDownloads((prev) => {
+      const next = prev.filter((d) => d.id !== id)
+      if (next.length !== prev.length) rebuildDownloadIndex(next)
+      return next
+    })
+  }, [rebuildDownloadIndex])
 
   const removeDownloads = useCallback((ids: string[]) => {
     if (ids.length === 0) return
     const drop = new Set(ids)
     for (const id of drop) pendingRef.current.delete(id)
-    setDownloads((prev) => prev.filter((d) => !drop.has(d.id)))
-  }, [])
+    setDownloads((prev) => {
+      const next = prev.filter((d) => !drop.has(d.id))
+      if (next.length !== prev.length) rebuildDownloadIndex(next)
+      return next
+    })
+  }, [rebuildDownloadIndex])
 
   const updateDownload = useCallback((id: string, updates: Partial<Download>) => {
     queueProgressUpdate(id, updates, true)
   }, [queueProgressUpdate])
 
   const refreshDownloads = useCallback(async () => {
-    if (typeof window !== 'undefined' && window.api) {
-      const res = await window.api.getDownloads()
-      const data = (res as { data?: unknown[] })?.data ?? res
-      pendingRef.current.clear()
-      setDownloads(Array.isArray(data) ? normalizeTasks(data) : [])
-    }
-  }, [])
+    if (typeof window === 'undefined' || !window.api) return
+    if (refreshPromiseRef.current) return refreshPromiseRef.current
+    const refresh = (async () => {
+      try {
+        const res = await window.api.getDownloads()
+        const data = (res as { data?: unknown[] })?.data ?? res
+        pendingRef.current.clear()
+        if (flushTimerRef.current) {
+          clearTimeout(flushTimerRef.current)
+          flushTimerRef.current = null
+        }
+        const next = Array.isArray(data) ? normalizeTasks(data) : []
+        rebuildDownloadIndex(next)
+        setDownloads(next)
+      } catch {
+        /* Keep the current queue visible when a transient IPC refresh fails. */
+      } finally {
+        refreshPromiseRef.current = null
+      }
+    })()
+    refreshPromiseRef.current = refresh
+    return refresh
+  }, [rebuildDownloadIndex])
 
   useEffect(() => {
     if (typeof window === 'undefined' || !window.api) return
 
-    window.api.getDownloads().then((res) => {
-      const data = (res as { data?: unknown[] })?.data ?? res
-      setDownloads(Array.isArray(data) ? normalizeTasks(data) : [])
-    })
+    void refreshDownloads()
 
     const unsubProgress = window.api.onDownloadProgress((data) => {
       if (data?.cleared || data?.bulkAdded || data?.bulkRemoved) {
@@ -134,10 +177,7 @@ export function useDownloads() {
           flushTimerRef.current = null
         }
         pendingRef.current.clear()
-        window.api.getDownloads().then((res) => {
-          const arr = (res as { data?: unknown[] })?.data ?? res
-          setDownloads(Array.isArray(arr) ? normalizeTasks(arr) : [])
-        })
+        void refreshDownloads()
         return
       }
       const id = data?.id as string | undefined
@@ -155,16 +195,26 @@ export function useDownloads() {
 
     const unsubNew = window.api.onNewDownload((data) => {
       if (data && typeof data === 'object') {
-        setDownloads((prev) => [normalizeTask(data), ...prev])
+        const nextTask = normalizeTask(data)
+        setDownloads((prev) => {
+          if (prev.some((download) => download.id === nextTask.id)) return prev
+          const next = [nextTask, ...prev]
+          rebuildDownloadIndex(next)
+          return next
+        })
       }
     })
 
     return () => {
       unsubProgress()
       unsubNew()
-      if (flushTimerRef.current) clearTimeout(flushTimerRef.current)
+      if (flushTimerRef.current) {
+        clearTimeout(flushTimerRef.current)
+        flushTimerRef.current = null
+      }
+      pendingRef.current.clear()
     }
-  }, [queueProgressUpdate])
+  }, [queueProgressUpdate, rebuildDownloadIndex, refreshDownloads])
 
   return { downloads, removeDownload, removeDownloads, updateDownload, refreshDownloads }
 }

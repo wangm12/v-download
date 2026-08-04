@@ -1,6 +1,10 @@
-import { useState } from 'react'
+import { useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { X, Download, Globe, Link2 } from 'lucide-react'
 import { HoverHintWrap } from './HoverHintWrap'
+import { AnimatedList } from './reactbits/AnimatedList'
+import { DialogShell } from './ui'
+import { useDialogFocus } from '@/hooks/useDialogFocus'
+import { applySelectionClick, clearSelection, isSelectAllShortcut, selectAllInOrder } from '@/utils/selection'
 
 export interface DetectedMedia {
   url: string
@@ -20,10 +24,10 @@ interface MediaPickerDialogProps {
 }
 
 const TYPE_STYLES: Record<string, string> = {
-  hls: 'bg-control text-foreground border border-border-strong',
-  mp4: 'bg-control text-muted-foreground border border-border',
-  webm: 'bg-control text-muted-foreground border border-border',
-  flv: 'bg-control text-muted-foreground border border-border'
+  hls: 'bg-accent/15 text-accent',
+  mp4: 'bg-control text-muted-foreground',
+  webm: 'bg-control text-muted-foreground',
+  flv: 'bg-warning/15 text-warning'
 }
 
 function getDisplayName(url: string): string {
@@ -55,17 +59,15 @@ function formatSize(bytes: number): string {
 
 export function MediaPickerDialog({ media, pageUrl, pageTitle, onClose, onDownload, queueCount = 0, onSkipAll }: MediaPickerDialogProps) {
   const [selected, setSelected] = useState<Set<number>>(() => new Set())
+  const [selectionAnchor, setSelectionAnchor] = useState<number | null>(null)
+  const dialogRef = useDialogFocus<HTMLDivElement>(onClose)
 
-  const toggle = (index: number) => {
-    setSelected((prev) => {
-      const next = new Set(prev)
-      if (next.has(index)) {
-        next.delete(index)
-      } else {
-        next.add(index)
-      }
-      return next
-    })
+  const mediaIds = media.map((_, index) => index)
+
+  const selectMedia = (index: number, modifiers: { shiftKey?: boolean; metaKey?: boolean; ctrlKey?: boolean } = {}) => {
+    const next = applySelectionClick(mediaIds, selected, selectionAnchor, index, modifiers)
+    setSelected(next.selected)
+    setSelectionAnchor(next.anchor)
   }
 
   const handleDownload = () => {
@@ -74,11 +76,22 @@ export function MediaPickerDialog({ media, pageUrl, pageTitle, onClose, onDownlo
   }
 
   const selectAll = () => {
-    setSelected(new Set(media.map((_, i) => i)))
+    const next = selectAllInOrder(mediaIds, selectionAnchor)
+    setSelected(next.selected)
+    setSelectionAnchor(next.anchor)
   }
 
   const deselectAll = () => {
-    setSelected(new Set())
+    const next = clearSelection<number>()
+    setSelected(next.selected)
+    setSelectionAnchor(next.anchor)
+  }
+
+  const handleDialogKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (!isSelectAllShortcut(event)) return
+    event.preventDefault()
+    event.stopPropagation()
+    selectAll()
   }
 
   let pageDomain = ''
@@ -87,21 +100,28 @@ export function MediaPickerDialog({ media, pageUrl, pageTitle, onClose, onDownlo
   } catch {}
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-5" onClick={onClose}>
-      <div
-        className="w-[860px] max-w-[96vw] max-h-[86vh] overflow-hidden rounded-2xl border border-border bg-background shadow-2xl"
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-5" onClick={onClose} role="presentation">
+      <DialogShell
+        ref={dialogRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="media-picker-title"
+        aria-describedby="media-picker-description"
+        className="w-[860px] max-w-[96vw] max-h-[86vh] bg-background shadow-2xl"
         onClick={(e) => e.stopPropagation()}
+        onKeyDownCapture={handleDialogKeyDown}
       >
-        <div className="bg-elevated px-5 py-4 flex items-center gap-3 border-b border-border">
-          <div className="h-9 w-9 rounded-xl bg-control border border-border flex items-center justify-center flex-shrink-0">
+        <div className="bg-elevated px-5 py-4 flex items-center gap-3 border-b border-divider-subtle">
+          <div className="h-9 w-9 rounded-xl bg-control ring-1 ring-inset ring-divider-subtle flex items-center justify-center flex-shrink-0">
             <Globe size={16} className="text-muted-foreground" />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2.5 min-w-0">
-              <h2 className="text-[15px] font-semibold text-foreground truncate tracking-[-0.01em]">
+              <h2 id="media-picker-title" className="text-[15px] font-semibold text-foreground truncate tracking-[-0.01em]">
                 {pageTitle || 'Detected Media'}
               </h2>
-              <span className="rounded-full border border-border-strong bg-control px-2.5 py-0.5 text-[11px] font-semibold text-foreground flex-shrink-0">
+              <span className="rounded-full bg-control px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground flex-shrink-0">
                 {media.length} found
               </span>
             </div>
@@ -117,50 +137,56 @@ export function MediaPickerDialog({ media, pageUrl, pageTitle, onClose, onDownlo
               type="button"
               onClick={onClose}
               aria-label="Close"
-              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-control transition-colors flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+              className="h-11 w-11 rounded-lg text-muted-foreground hover:text-foreground hover:bg-control transition-colors flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
             >
               <X size={16} aria-hidden />
             </button>
           </HoverHintWrap>
         </div>
 
-        <div className="flex items-center justify-between gap-3 px-5 py-3 bg-surface/60 border-b border-border">
-          <p className="text-[12px] text-muted-foreground">
+        <div className="flex items-center justify-between gap-3 px-5 py-3 bg-surface/60 border-b border-divider-subtle">
+          <p id="media-picker-description" className="text-[12px] text-muted-foreground">
             Choose the streams you want to queue. HLS entries are usually the best candidates.
           </p>
           <div className="flex items-center gap-2 text-[12px] flex-shrink-0">
             <button
               type="button"
               onClick={selectAll}
-              className="rounded-md px-2.5 py-1.5 text-muted-foreground hover:bg-control hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+              className="min-h-11 rounded-md px-2.5 py-1.5 text-muted-foreground hover:bg-control hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
             >
               Select all
             </button>
             <button
               type="button"
               onClick={deselectAll}
-              className="rounded-md px-2.5 py-1.5 text-muted-foreground hover:bg-control hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+              className="min-h-11 rounded-md px-2.5 py-1.5 text-muted-foreground hover:bg-control hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
             >
               Deselect all
             </button>
           </div>
         </div>
 
-        <div className="max-h-[440px] overflow-y-auto px-3 py-3 space-y-1.5">
-          {media.map((item, index) => (
+        <div className="max-h-[440px] overflow-y-auto px-3 py-3">
+          <AnimatedList items={media} getKey={(item, index) => `${item.url}-${index}`}>
+            {(item, index) => (
             <label
               key={`${item.url}-${index}`}
-              className={`group grid grid-cols-[24px_minmax(0,1fr)_76px_96px] items-center gap-3 rounded-xl border px-3 py-3 cursor-pointer transition-colors ${
+              data-selected={selected.has(index)}
+              onClick={(event) => {
+                event.preventDefault()
+                selectMedia(index, event)
+              }}
+              className={`v-list-row group grid grid-cols-[24px_minmax(0,1fr)_76px_96px] items-center gap-3 rounded-xl px-3 py-3 cursor-pointer transition-colors ${
                 selected.has(index)
-                  ? 'border-border-strong bg-elevated'
-                  : 'border-transparent hover:border-border hover:bg-elevated/50'
+                  ? 'bg-selection'
+                  : 'hover:bg-surface-hover'
               }`}
             >
               <input
                 type="checkbox"
                 checked={selected.has(index)}
-                onChange={() => toggle(index)}
-                className="h-4 w-4 accent-white cursor-pointer"
+                readOnly
+                className="h-4 w-4 accent-[rgb(var(--color-accent))] cursor-pointer"
               />
               <div className="min-w-0">
                 <p className="text-[13px] font-medium text-foreground truncate" title={item.url}>
@@ -184,10 +210,11 @@ export function MediaPickerDialog({ media, pageUrl, pageTitle, onClose, onDownlo
                 {item.size ? formatSize(item.size) : 'Unknown'}
               </span>
             </label>
-          ))}
+            )}
+          </AnimatedList>
         </div>
 
-        <div className="bg-elevated border-t border-border px-5 py-4">
+        <div className="bg-elevated border-t border-divider-subtle px-5 py-4">
           <div className="flex items-center gap-4">
             <div className="min-w-0 flex-1">
               <p className="text-[13px] font-medium text-foreground">
@@ -200,7 +227,7 @@ export function MediaPickerDialog({ media, pageUrl, pageTitle, onClose, onDownlo
             <button
               onClick={handleDownload}
               disabled={selected.size === 0}
-              className="min-w-[180px] flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-action text-action-fg text-sm font-semibold hover:bg-action-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+              className="min-w-[180px] min-h-11 flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-action text-action-fg text-sm font-semibold hover:bg-action-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
             >
               <Download size={15} />
               Download {selected.size > 0 ? `(${selected.size})` : ''}
@@ -222,7 +249,7 @@ export function MediaPickerDialog({ media, pageUrl, pageTitle, onClose, onDownlo
             </div>
           )}
         </div>
-      </div>
+      </DialogShell>
     </div>
   )
 }

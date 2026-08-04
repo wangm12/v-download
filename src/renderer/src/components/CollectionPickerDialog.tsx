@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { X, Loader2, Download, CheckSquare, Square } from 'lucide-react'
 import type { PlaylistEntryRow, PlaylistListResult, SettingsData } from '@/types'
 import { cn } from '@/lib/cn'
@@ -6,6 +6,10 @@ import { HoverHintWrap } from './HoverHintWrap'
 import { EntryThumbnail } from './EntryThumbnail'
 import { formatDuration } from '@/utils/format'
 import { collectionPickerLabel } from '@/utils/collectionPicker'
+import { useDialogFocus } from '@/hooks/useDialogFocus'
+import { applySelectionClick, clearSelection, isSelectAllShortcut, selectAllInOrder } from '@/utils/selection'
+import { AnimatedList } from './reactbits/AnimatedList'
+import { DialogShell } from './ui'
 
 export interface CollectionPickerDialogProps {
   sourceUrl: string
@@ -19,6 +23,8 @@ export function CollectionPickerDialog({ sourceUrl, settings, onClose }: Collect
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [selectionAnchor, setSelectionAnchor] = useState<string | null>(null)
+  const dialogRef = useDialogFocus<HTMLDivElement>(onClose)
 
   const platformLabel = useMemo(() => collectionPickerLabel(sourceUrl), [sourceUrl])
 
@@ -52,6 +58,7 @@ export function CollectionPickerDialog({ sourceUrl, settings, onClose }: Collect
       setError('')
       setList(null)
       setSelected(new Set())
+      setSelectionAnchor(null)
       try {
         const data = await loadList()
         if (!alive) return
@@ -69,18 +76,33 @@ export function CollectionPickerDialog({ sourceUrl, settings, onClose }: Collect
 
   const rowKey = (row: PlaylistEntryRow) => row.pageUrl || row.id
 
-  const toggle = (key: string) => {
-    setSelected((prev) => {
-      const n = new Set(prev)
-      if (n.has(key)) n.delete(key)
-      else n.add(key)
-      return n
-    })
+  const orderedKeys = items.map(rowKey)
+
+  const selectItem = (key: string, modifiers: { shiftKey?: boolean; metaKey?: boolean; ctrlKey?: boolean } = {}) => {
+    const next = applySelectionClick(orderedKeys, selected, selectionAnchor, key, modifiers)
+    setSelected(next.selected)
+    setSelectionAnchor(next.anchor)
   }
 
   const selectAll = () => {
-    if (selected.size === items.length) setSelected(new Set())
-    else setSelected(new Set(items.map(rowKey)))
+    if (selected.size === items.length) {
+      const next = clearSelection<string>()
+      setSelected(next.selected)
+      setSelectionAnchor(next.anchor)
+      return
+    }
+    const next = selectAllInOrder(orderedKeys, selectionAnchor)
+    setSelected(next.selected)
+    setSelectionAnchor(next.anchor)
+  }
+
+  const handleDialogKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (!isSelectAllShortcut(event)) return
+    event.preventDefault()
+    event.stopPropagation()
+    const next = selectAllInOrder(orderedKeys, selectionAnchor)
+    setSelected(next.selected)
+    setSelectionAnchor(next.anchor)
   }
 
   const handleDownload = async () => {
@@ -126,11 +148,11 @@ export function CollectionPickerDialog({ sourceUrl, settings, onClose }: Collect
   }
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60">
-      <div className="w-[min(720px,94vw)] max-h-[min(640px,90vh)] bg-background rounded-xl overflow-hidden shadow-2xl flex flex-col">
-        <div className="bg-elevated px-5 py-4 flex items-start justify-between gap-3 border-b border-border">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60" role="presentation">
+      <DialogShell ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="collection-picker-title" className="w-[min(720px,94vw)] max-h-[min(640px,90vh)] bg-background shadow-2xl flex flex-col outline-none" onKeyDownCapture={handleDialogKeyDown}>
+        <div className="bg-elevated px-5 py-4 flex items-start justify-between gap-3 border-b border-divider-subtle">
           <div className="min-w-0">
-            <h2 className="text-sm font-semibold text-foreground">{headerTitle}</h2>
+            <h2 id="collection-picker-title" className="text-sm font-semibold text-foreground">{headerTitle}</h2>
             <p className="text-[11px] text-muted-foreground mt-1 break-all line-clamp-2">{sourceUrl}</p>
           </div>
           <HoverHintWrap text="Close" side="bottom">
@@ -138,7 +160,7 @@ export function CollectionPickerDialog({ sourceUrl, settings, onClose }: Collect
               type="button"
               onClick={onClose}
               aria-label="Close"
-              className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-control shrink-0"
+              className="h-11 w-11 rounded-md text-muted-foreground hover:text-foreground hover:bg-control shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
             >
               <X size={18} />
             </button>
@@ -154,7 +176,7 @@ export function CollectionPickerDialog({ sourceUrl, settings, onClose }: Collect
           ) : items.length === 0 ? (
             <>
               {error ? (
-                <div className="rounded-lg border border-border bg-raised px-3 py-2 text-sm text-foreground mb-3">
+                <div className="rounded-button bg-error/10 px-3 py-2 text-sm text-error mb-3">
                   {error}
                 </div>
               ) : null}
@@ -163,23 +185,23 @@ export function CollectionPickerDialog({ sourceUrl, settings, onClose }: Collect
           ) : (
             <>
               {error ? (
-                <div className="rounded-lg border border-border bg-raised px-3 py-2 text-sm text-foreground mb-3">
+                <div className="rounded-button bg-error/10 px-3 py-2 text-sm text-error mb-3">
                   {error}
                 </div>
               ) : null}
               {countSummary ? (
                 <div
                   role="status"
-                  className="mb-3 rounded-lg border border-border bg-raised px-3 py-2.5 text-sm leading-snug text-foreground"
+                  className="mb-3 rounded-button bg-control px-3 py-2.5 text-sm leading-snug text-foreground"
                 >
                   <span className="font-medium tabular-nums">{countSummary}</span>
                 </div>
               ) : null}
-              <div className="flex flex-wrap gap-2 pb-2 border-b border-border">
+              <div className="flex flex-wrap gap-2 pb-2 border-b border-divider-subtle">
                 <button
                   type="button"
                   onClick={selectAll}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border text-xs font-medium hover:bg-control"
+                  className="inline-flex min-h-11 items-center gap-1.5 px-2.5 py-1 rounded-button bg-control text-xs font-medium hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
                 >
                   {selected.size === items.length ? <CheckSquare size={14} /> : <Square size={14} />}
                   {selected.size === items.length ? 'Deselect all' : 'Select all'}
@@ -187,13 +209,14 @@ export function CollectionPickerDialog({ sourceUrl, settings, onClose }: Collect
                 <button
                   type="button"
                   onClick={openInBrowser}
-                  className="px-2.5 py-1 rounded-lg border border-border text-xs font-medium hover:bg-control"
+                  className="min-h-11 px-2.5 py-1 rounded-button bg-control text-xs font-medium hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
                 >
                   Open in browser
                 </button>
               </div>
-              <div className="flex-1 min-h-0 overflow-y-auto mt-2 space-y-1">
-                {items.map((row) => {
+              <div className="flex-1 min-h-0 overflow-y-auto mt-2">
+                <AnimatedList items={items} getKey={(row) => rowKey(row)}>
+                  {(row) => {
                   const key = rowKey(row)
                   const isOn = selected.has(key)
                   const meta = [
@@ -206,10 +229,11 @@ export function CollectionPickerDialog({ sourceUrl, settings, onClose }: Collect
                     <button
                       type="button"
                       key={key}
-                      onClick={() => toggle(key)}
+                      onClick={(event) => selectItem(key, event)}
+                      data-selected={isOn}
                       className={cn(
-                        'w-full flex gap-3 items-center text-left rounded-lg border px-2 py-2 transition-colors',
-                        isOn ? 'border-foreground/40 bg-elevated' : 'border-transparent hover:bg-elevated/60'
+                        'v-list-row w-full flex gap-3 items-center text-left rounded-lg px-2 py-2 transition-colors',
+                        isOn ? 'bg-selection' : 'hover:bg-surface-hover'
                       )}
                     >
                       <div className="w-14 h-14 rounded-md overflow-hidden bg-surface shrink-0">
@@ -230,17 +254,18 @@ export function CollectionPickerDialog({ sourceUrl, settings, onClose }: Collect
                       </span>
                     </button>
                   )
-                })}
+                }}
+                </AnimatedList>
               </div>
             </>
           )}
         </div>
 
-        <div className="border-t border-border bg-elevated px-5 py-3 flex justify-end gap-2">
+        <div className="border-t border-divider-subtle bg-elevated px-5 py-3 flex justify-end gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="px-3 py-1.5 rounded-lg border border-border text-sm text-muted-foreground hover:bg-control"
+            className="min-h-11 px-3 py-1.5 rounded-button bg-control text-sm text-muted-foreground hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
           >
             Cancel
           </button>
@@ -249,7 +274,7 @@ export function CollectionPickerDialog({ sourceUrl, settings, onClose }: Collect
             disabled={selected.size === 0 || busy || loading}
             onClick={() => void handleDownload()}
             className={cn(
-              'inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-semibold',
+              'inline-flex min-h-11 items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus',
               selected.size === 0 || busy || loading
                 ? 'bg-muted text-muted-foreground cursor-not-allowed'
                 : 'bg-action text-action-fg hover:bg-action-hover'
@@ -259,7 +284,7 @@ export function CollectionPickerDialog({ sourceUrl, settings, onClose }: Collect
             Add {selected.size} to queue
           </button>
         </div>
-      </div>
+      </DialogShell>
     </div>
   )
 }

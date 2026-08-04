@@ -11,11 +11,20 @@ interface PendingPlaylistMeta {
   url: string
 }
 
+type UrlMeta = {
+  type?: string
+  quality?: string
+  autoStart?: boolean
+  referer?: string
+  title?: string
+  headers?: Record<string, string>
+}
+
 export type LoadingPhase = '' | 'info' | 'sniffing'
 
 interface QueuedUrl {
   url: string
-  meta?: { type?: string; referer?: string; title?: string; headers?: Record<string, string> }
+  meta?: UrlMeta
 }
 
 /** Page sniff looks for raw .m3u8/.mp4 — useful as fallback on unknown sites when yt-dlp parsing fails. */
@@ -96,7 +105,7 @@ export function useUrlHandler(settings: SettingsData) {
   const dialogOpenRef = useRef(false)
   const sniffOpenRef = useRef(false)
   const autoAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const fetchAndShowRef = useRef<((url: string, meta?: { type?: string; referer?: string; title?: string; headers?: Record<string, string> }) => Promise<void>) | null>(null)
+  const fetchAndShowRef = useRef<((url: string, meta?: UrlMeta) => Promise<void>) | null>(null)
 
   const updatePendingUrls = useCallback((updater: QueuedUrl[] | ((prev: QueuedUrl[]) => QueuedUrl[])) => {
     setPendingUrls((prev) => {
@@ -168,7 +177,7 @@ export function useUrlHandler(settings: SettingsData) {
     updatePendingUrls([])
   }, [updatePendingUrls])
 
-  const fetchAndShow = useCallback(async (url: string, meta?: { type?: string; referer?: string; title?: string; headers?: Record<string, string> }) => {
+  const fetchAndShow = useCallback(async (url: string, meta?: UrlMeta) => {
     if (!window.api) {
       setErrorMsg('App API not available')
       return
@@ -196,7 +205,7 @@ export function useUrlHandler(settings: SettingsData) {
           url,
           title,
           format: rule?.format === 'audio' ? 'mp3' : 'video',
-          quality: rule?.quality || settings.defaultVideoQuality,
+          quality: meta?.quality || rule?.quality || settings.defaultVideoQuality,
           referer: meta?.referer,
           customHeaders: meta?.headers,
           mediaType: meta?.type
@@ -299,7 +308,7 @@ export function useUrlHandler(settings: SettingsData) {
           const galleryTitle = String(infoObj?.title ?? 'gallery')
           const galleryChannel = String(infoObj?.channel ?? '')
           const imageMetaKey = galleryType === 'xhs_gallery' ? 'xhsImageUrls' : 'douyinImageUrls'
-          if (settings.showFormatDialog) {
+          if (settings.showFormatDialog && !meta?.autoStart) {
             const gallerySummary: VideoInfo = {
               id: String(infoObj?.id ?? ''),
               title: galleryTitle,
@@ -321,7 +330,7 @@ export function useUrlHandler(settings: SettingsData) {
               url,
               title: galleryTitle,
               format: 'video',
-              quality: settings.defaultVideoQuality,
+              quality: meta?.quality || settings.defaultVideoQuality,
               thumbnail: normalizeThumbnailUrl(String(infoObj?.thumbnail ?? '')),
               duration: 0,
               metadata: {
@@ -342,7 +351,7 @@ export function useUrlHandler(settings: SettingsData) {
             formats: Array.isArray(infoObj?.formats) ? infoObj.formats as VideoInfo['formats'] : undefined
           }
 
-          if (settings.showFormatDialog) {
+          if (settings.showFormatDialog && !meta?.autoStart) {
             setPendingVideoInfo(videoInfo)
             setPendingEntries(null)
             setPendingPlaylistMeta(null)
@@ -352,9 +361,9 @@ export function useUrlHandler(settings: SettingsData) {
             const rule = siteDefaults(url)
             await window.api.startDownload({
               url,
-              title: videoInfo.title,
+              title: meta?.title || videoInfo.title,
               format: rule?.format === 'audio' ? 'mp3' : 'video',
-              quality: rule?.quality || settings.defaultVideoQuality,
+              quality: meta?.quality || rule?.quality || settings.defaultVideoQuality,
               thumbnail: videoInfo.thumbnail,
               duration: videoInfo.duration,
               metadata: videoInfo.id ? { ytdlpId: videoInfo.id } : undefined
@@ -381,7 +390,7 @@ export function useUrlHandler(settings: SettingsData) {
 
   fetchAndShowRef.current = fetchAndShow
 
-  const handleUrl = useCallback(async (url: string, meta?: { type?: string; referer?: string; title?: string; headers?: Record<string, string> }) => {
+  const handleUrl = useCallback(async (url: string, meta?: UrlMeta) => {
     if (isBusy()) {
       updatePendingUrls((prev) => {
         const isDuplicate = prev.some((p) => p.url === url)
@@ -406,7 +415,7 @@ export function useUrlHandler(settings: SettingsData) {
 
   const handleExternalUrl = useCallback(async (rawUrl: string) => {
     let url = rawUrl
-    let meta: { type?: string; referer?: string; title?: string; headers?: Record<string, string> } | undefined
+    let meta: UrlMeta | undefined
 
     if (url.startsWith('ytdl://') || url.startsWith('vdownload://')) {
       try {
@@ -417,12 +426,14 @@ export function useUrlHandler(settings: SettingsData) {
         // searchParams.get already percent-decodes once; avoid decodeURIComponent (throws on stray %)
         url = parsed.searchParams.get('url') || ''
         const type = parsed.searchParams.get('type') || undefined
+        const quality = parsed.searchParams.get('quality') || undefined
+        const autoStart = parsed.searchParams.get('autoStart') === '1' ? true : undefined
         const referer = parsed.searchParams.get('referer') || undefined
         const title = parsed.searchParams.get('title') || undefined
         const headersStr = parsed.searchParams.get('headers')
         const headers = headersStr ? JSON.parse(headersStr) : undefined
-        if (type || referer || title || headers) {
-          meta = { type, referer, title, headers }
+        if (type || quality || autoStart || referer || title || headers) {
+          meta = { type, quality, autoStart, referer, title, headers }
         }
       } catch {
         return

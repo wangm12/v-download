@@ -4,32 +4,72 @@ const MP = globalThis.VDownloadMediaPatterns
 const DT = globalThis.VDownloadDownloadTransport
 
 const APP_URL = 'http://127.0.0.1:18765'
-const VDL_SERVER_URL = 'http://127.0.0.1:30010'
+const APP_REQUEST_TIMEOUT_MS = 8_000
+const APP_DOWNLOAD_TIMEOUT_MS = 2_500
+const APP_PROBE_TIMEOUT_MS = 5_000
 const LAST_DOWNLOAD_ERROR_TTL_MS = 10 * 60 * 1000
 let appCapability = ''
-try { chrome.storage.local.get(['appCapability'], (v) => { appCapability = typeof v.appCapability === 'string' ? v.appCapability : '' }) } catch {}
+let appCapabilityLoadPromise = Promise.resolve()
+try {
+  appCapabilityLoadPromise = new Promise((resolve) => {
+    chrome.storage.local.get(['appCapability'], (v) => {
+      if (!appCapability) appCapability = typeof v.appCapability === 'string' ? v.appCapability : ''
+      resolve()
+    })
+  })
+} catch {}
 function appJsonHeaders() { return { 'Content-Type': 'application/json', 'X-VDownload-Capability': appCapability } }
+async function fetchApp(path, init = {}, timeoutMs = APP_REQUEST_TIMEOUT_MS) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetch(`${APP_URL}${path}`, { ...init, signal: controller.signal })
+  } finally {
+    clearTimeout(timer)
+  }
+}
 async function ensureCapability(force = false) {
+  // Wait for the initial storage read before using a cached token. Without
+  // this barrier, a stale callback can overwrite a freshly paired token while
+  // the first download is already being posted.
+  await appCapabilityLoadPromise
+  if (force) appCapability = ''
   if (appCapability && !force) return true
   try {
-    const poll = await fetch(`${APP_URL}/cookie-sync-poll?pair=1`)
+    const poll = await fetchApp('/cookie-sync-poll?pair=1', {}, APP_PROBE_TIMEOUT_MS)
     if (!poll.ok) return false
     const data = await poll.json()
     if (typeof data.capability !== 'string' || data.capability.length < 32) return false
     appCapability = data.capability
-    await chrome.storage.local.set({ appCapability })
+    try {
+      await chrome.storage.local.set({ appCapability })
+    } catch {
+      // The in-memory token is enough for the current request. Persistence is
+      // best-effort and must not turn a successful handshake into HTTP 403.
+    }
     return true
   } catch { return false }
 }
-async function postAppJson(path, body) {
-  const maxAttempts = 3
+async function postAppJson(path, body, options = {}) {
+  const requestedMaxAttempts = Number.isInteger(options.maxAttempts) ? Math.max(1, options.maxAttempts) : 3
+  let maxAttempts = requestedMaxAttempts
+  const timeoutMs = Number.isFinite(options.timeoutMs) ? Math.max(250, options.timeoutMs) : APP_REQUEST_TIMEOUT_MS
+  let authRetryUsed = false
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    if (!(await ensureCapability(false))) return new Response(null, { status: 403 })
+    // A cold-started development app can be listening before its pairing
+    // probe is ready. Still send the request with the current in-memory
+    // capability; dev mode authorizes the unpacked extension by origin and
+    // packaged mode will return 403 and enter the forced refresh path below.
+    await ensureCapability(false)
     try {
-      const response = await fetch(`${APP_URL}${path}`, { method: 'POST', headers: appJsonHeaders(), body: JSON.stringify(body) })
+      const response = await fetchApp(path, { method: 'POST', headers: appJsonHeaders(), body: JSON.stringify(body) }, timeoutMs)
       if (response.status !== 401 && response.status !== 403 && !DT.isTransientStatus(response.status)) return response
       if (response.status === 401 || response.status === 403) {
-        if (attempt === maxAttempts - 1 || !(await ensureCapability(true))) return new Response(null, { status: 403 })
+        if (authRetryUsed || !(await ensureCapability(true))) return new Response(null, { status: 403 })
+        authRetryUsed = true
+        // Even a fast-path request with maxAttempts=1 gets one retry after
+        // refreshing a stale pairing capability.
+        if (attempt === maxAttempts - 1) maxAttempts++
       } else if (!DT.shouldRetry({ status: response.status, attempt, maxAttempts })) return response
     } catch (error) {
       if (!DT.shouldRetry({ error, attempt, maxAttempts })) throw error
@@ -43,6 +83,27 @@ function safeLogUrl(u) { return MP.safeUrl(u) }
 function safeError(err) {
   const name = String(err?.name || 'Error').replace(/[^A-Za-z]/g, '').slice(0, 24) || 'Error'
   return { name, message: 'Request failed' }
+}
+
+const CONTENT_MEDIA_TYPES = new Set(['hls', 'dash', 'mpd', 'mp4', 'webm', 'flv', 'mkv', 'mp3', 'm4a', 'aac', 'opus', 'ogg', 'jpeg'])
+function isSafeHttpUrl(value) {
+  if (typeof value !== 'string' || value.length < 1 || value.length > 8192) return false
+  try {
+    const url = new URL(value)
+    return url.protocol === 'http:' || url.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+function isValidContentItem(item) {
+  if (!item || typeof item !== 'object' || !isSafeHttpUrl(item.url)) return false
+  if (item.type !== undefined && (typeof item.type !== 'string' || !CONTENT_MEDIA_TYPES.has(item.type.toLowerCase()))) return false
+  if (item.pageUrl !== undefined && (!isSafeHttpUrl(item.pageUrl) || !isDouyinUrl(item.pageUrl))) return false
+  if (item.quality !== undefined && (typeof item.quality !== 'string' || !/^(?:\d{1,4}|best)$/.test(item.quality))) return false
+  if (item.autoStart !== undefined && typeof item.autoStart !== 'boolean') return false
+  if (item.initiator !== undefined && typeof item.initiator !== 'string') return false
+  if (item.title !== undefined && (typeof item.title !== 'string' || item.title.length > 512)) return false
+  return true
 }
 
 /** Service worker console: chrome://extensions → V-Download → “service worker” → Inspect */
@@ -110,21 +171,38 @@ async function postDownloadsQueueWhenReady(requests, maxAttempts = 48, delayMs =
   })
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
-      const ping = await fetch(`${APP_URL}/ping`)
+      const ping = await fetchApp('/ping', {}, APP_PROBE_TIMEOUT_MS)
       if (ping.ok) {
         logBg('post-queue-ping-ok', { rid, attempt })
-        await syncCookies()
         for (let i = 0; i < requests.length; i++) {
           if (results[i].ok) continue
           const req = requests[i]
-          const res = await postAppJson('/download', req)
-          results[i] = { ok: res.ok, status: res.status, error: res.ok ? undefined : `HTTP ${res.status}` }
-          logBg('post-queue-download-post', { rid, i, status: res.status, ok: res.ok })
+          try {
+            const res = await postAppJson('/download', req, { maxAttempts: 2, timeoutMs: APP_DOWNLOAD_TIMEOUT_MS })
+            const failure = res.ok ? null : DT.classifyFailure({ status: res.status })
+            results[i] = { ok: res.ok, status: res.status, ...(failure || {}), error: res.ok ? undefined : `HTTP ${res.status}` }
+            logBg('post-queue-download-post', { rid, i, status: res.status, ok: res.ok })
+          } catch (error) {
+            results[i] = { ok: false, status: null, ...DT.classifyFailure({ error }), error: 'Network request failed' }
+            logBg('post-queue-download-catch', { rid, i, err: safeError(error) })
+          }
         }
         const ok = results.every((result) => result.ok)
         logBg('post-queue-done', { rid, ok })
         if (ok) clearLastDownloadError()
-        return { ok, results }
+        if (ok) return { ok, results }
+
+        // A live /ping only means that the local server is listening. During
+        // app startup its capability can still be refreshing, and a transient
+        // POST failure must not be reported as a final no-op. Retry only when
+        // the server classified the failure as retryable; invalid candidates
+        // still fail immediately.
+        const retryable = results.some((result) => {
+          if (result.ok) return false
+          if (result.retryable === true) return true
+          return DT.shouldRetry({ status: result.status, attempt, maxAttempts })
+        })
+        if (!retryable || attempt === maxAttempts - 1) return { ok, results }
       }
       if (attempt === 0 || attempt % 10 === 0) {
         logBg('post-queue-ping-notok', { rid, attempt, status: ping.status })
@@ -143,15 +221,138 @@ async function postDownloadsQueueWhenReady(requests, maxAttempts = 48, delayMs =
   return { ok: false, results }
 }
 
-function postDownloadWhenAppReady(request) {
-  return postDownloadsQueueWhenReady([request]).then((result) => result.ok)
+function postDownloadWhenAppReady(request, maxAttempts = 30, delayMs = 500) {
+  return postDownloadsQueueWhenReady([request], maxAttempts, delayMs).then((result) => result.ok)
 }
 
 // tabMedia: Map<tabId, Map<frameId, Map<url, mediaEntry>>>
 const tabMedia = new Map()
+const MEDIA_CACHE_STORAGE_KEY = 'tabMediaCache'
+let mediaCacheReady = false
+let mediaCachePersistTimer = null
+
+function storageSessionGet(key) {
+  return new Promise((resolve) => {
+    try {
+      if (!chrome.storage.session?.get) { resolve({}); return }
+      chrome.storage.session.get(key, (value) => resolve(value || {}))
+    } catch {
+      resolve({})
+    }
+  })
+}
+
+function storageSessionSet(value) {
+  return new Promise((resolve) => {
+    try {
+      if (!chrome.storage.session?.set) { resolve(); return }
+      chrome.storage.session.set(value, () => resolve())
+    } catch {
+      resolve()
+    }
+  })
+}
+
+function persistedMediaEntry(raw) {
+  if (!raw || typeof raw !== 'object' || typeof raw.url !== 'string') return null
+  const type = typeof raw.type === 'string' ? raw.type : MP.inferType(raw.url, raw.mime || raw.contentType)
+  const entry = {
+    url: raw.url,
+    type,
+    mime: typeof raw.mime === 'string' ? raw.mime : '',
+    contentType: typeof raw.contentType === 'string' ? raw.contentType : '',
+    size: Number.isFinite(Number(raw.size)) && Number(raw.size) > 0 ? Number(raw.size) : null,
+    requestKind: typeof raw.requestKind === 'string' ? raw.requestKind : '',
+    initiator: typeof raw.initiator === 'string' ? raw.initiator : '',
+    pageUrl: typeof raw.pageUrl === 'string' ? raw.pageUrl : '',
+    timestamp: Number.isFinite(Number(raw.timestamp)) ? Number(raw.timestamp) : 0,
+    source: typeof raw.source === 'string' ? raw.source : 'network',
+    confidence: Number.isFinite(Number(raw.confidence)) ? Number(raw.confidence) : 0,
+  }
+  return MP.isReliableCandidate(entry) ? entry : null
+}
+
+function serializeMediaCache() {
+  const cache = {}
+  for (const [tabId, frames] of tabMedia) {
+    const serializedFrames = {}
+    for (const [frameId, bucket] of frames) {
+      serializedFrames[frameId] = Array.from(bucket.values()).map((entry) => ({
+        url: entry.url,
+        type: entry.type,
+        mime: entry.mime || '',
+        contentType: entry.contentType || '',
+        size: entry.size || null,
+        requestKind: entry.requestKind || '',
+        initiator: entry.initiator || '',
+        pageUrl: entry.pageUrl || '',
+        timestamp: entry.timestamp || 0,
+        source: entry.source || 'network',
+        confidence: entry.confidence || 0,
+      }))
+    }
+    cache[tabId] = serializedFrames
+  }
+  return cache
+}
+
+function scheduleMediaCachePersist() {
+  if (!mediaCacheReady) return
+  if (mediaCachePersistTimer) clearTimeout(mediaCachePersistTimer)
+  mediaCachePersistTimer = setTimeout(() => {
+    mediaCachePersistTimer = null
+    void storageSessionSet({ [MEDIA_CACHE_STORAGE_KEY]: serializeMediaCache() })
+  }, 250)
+}
+
+async function loadMediaCache() {
+  const data = await storageSessionGet(MEDIA_CACHE_STORAGE_KEY)
+  const saved = data?.[MEDIA_CACHE_STORAGE_KEY]
+  if (saved && typeof saved === 'object') {
+    for (const [tabKey, savedFrames] of Object.entries(saved)) {
+      const tabId = Number(tabKey)
+      if (!Number.isInteger(tabId) || !savedFrames || typeof savedFrames !== 'object') continue
+      const frames = new Map()
+      for (const [frameKey, savedEntries] of Object.entries(savedFrames)) {
+        const frameId = Number(frameKey)
+        if (!Number.isInteger(frameId) || !Array.isArray(savedEntries)) continue
+        const bucket = new Map()
+        for (const raw of savedEntries) {
+          const entry = persistedMediaEntry(raw)
+          if (entry) bucket.set(MP.canonicalizeUrl(entry.url), entry)
+        }
+        if (bucket.size) frames.set(frameId, bucket)
+      }
+      if (frames.size) tabMedia.set(tabId, frames)
+    }
+  }
+
+  // Avoid retaining candidates for tabs that no longer exist after a browser
+  // or extension restart. The session store survives a worker restart.
+  try {
+    const tabs = await chrome.tabs.query({})
+    const openTabIds = new Set(tabs.map((tab) => tab.id).filter((id) => Number.isInteger(id)))
+    for (const tabId of tabMedia.keys()) if (!openTabIds.has(tabId)) tabMedia.delete(tabId)
+  } catch {
+    /* best effort; TTL pruning still protects the cache */
+  }
+
+  pruneMedia()
+  mediaCacheReady = true
+  scheduleMediaCachePersist()
+  try {
+    const tabs = await chrome.tabs.query({})
+    for (const tab of tabs) updateTabUI(tab)
+  } catch {
+    /* ignore startup badge refresh failures */
+  }
+}
+
+const mediaCacheReadyPromise = loadMediaCache()
 let lastClickTime = 0
 let lastWakeBgAt = 0
 const WAKE_DEBOUNCE_MS = 2000
+const WAKE_TAB_RETENTION_MS = 6000
 
 // --- Frame-aware storage helpers ---
 
@@ -180,6 +381,7 @@ function addMediaEntry(tabId, frameId, url, entry) {
     all.sort((a, b) => a.timestamp - b.timestamp)
     for (const old of all.slice(0, all.length - FRAME_BUCKET_MAX * 4)) tab.get(old.fid)?.delete(old.candidateUrl)
   }
+  scheduleMediaCachePersist()
 }
 
 function getFrameMedia(tabId, frameId) {
@@ -208,13 +410,26 @@ function getAllTabMedia(tabId) {
 
 function pruneMedia() {
   const cutoff = Date.now() - MEDIA_TTL_MS
+  let changed = false
   for (const [tabId, frames] of tabMedia) {
     for (const [frameId, bucket] of frames) {
-      for (const [url, entry] of bucket) if ((entry.timestamp || 0) < cutoff) bucket.delete(url)
-      if (!bucket.size) frames.delete(frameId)
+      for (const [url, entry] of bucket) {
+        if ((entry.timestamp || 0) < cutoff) {
+          bucket.delete(url)
+          changed = true
+        }
+      }
+      if (!bucket.size) {
+        frames.delete(frameId)
+        changed = true
+      }
     }
-    if (!frames.size) tabMedia.delete(tabId)
+    if (!frames.size) {
+      tabMedia.delete(tabId)
+      changed = true
+    }
   }
+  if (changed) scheduleMediaCachePersist()
 }
 
 // --- Action / tab event handlers ---
@@ -273,7 +488,6 @@ chrome.action.onClicked.addListener(async (tab) => {
 
   if (isDouyinUrl(tab.url)) {
     try {
-      await syncCookies()
       await chrome.scripting.executeScript({
         target: { tabId: tab.id },
         func: () => {
@@ -306,15 +520,21 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   }
   if (changeInfo.url) {
     tabMedia.delete(tabId)
+    scheduleMediaCachePersist()
     updateBadge(tabId, 0)
   }
 })
 
 chrome.tabs.onRemoved.addListener((tabId) => {
   tabMedia.delete(tabId)
+  scheduleMediaCachePersist()
 })
 
 function updateTabUI(tab) {
+  if (!mediaCacheReady) {
+    void mediaCacheReadyPromise.then(() => updateTabUI(tab))
+    return
+  }
   if (!tab.active || !tab.id) return
   const isYT = tab.url && isYouTubeUrl(tab.url)
   const isDouyin = tab.url && isDouyinUrl(tab.url)
@@ -344,24 +564,29 @@ function updateBadge(tabId, count) {
 
 chrome.webRequest.onCompleted.addListener(
   (details) => {
-    if (details.tabId < 0) return
-    if (isYouTubeUrl(details.url)) return
-    if (isDouyinUrl(details.initiator || '') || isDouyinUrl(details.url)) return
-    if (isXUrl(details.initiator || '') || /video\.twimg\.com/.test(details.url)) return
-    if (details.statusCode < 200 || details.statusCode >= 400) return
+    void mediaCacheReadyPromise.then(() => {
+      if (details.tabId < 0) return
+      if (isYouTubeUrl(details.url)) return
+      if (isDouyinUrl(details.initiator || '') || isDouyinUrl(details.url)) return
+      if (isXUrl(details.initiator || '') || /video\.twimg\.com/.test(details.url)) return
+      if (details.statusCode < 200 || details.statusCode >= 400) return
 
-    const mime = getHeader(details.responseHeaders, 'content-type') || ''
-    const contentLength = getHeader(details.responseHeaders, 'content-length')
-    const parsedSize = contentLength == null || contentLength === '' ? null : Number(contentLength)
-    if (parsedSize !== null && (!Number.isFinite(parsedSize) || parsedSize < 0)) return
-    const mediaType = MP.inferType(details.url, mime)
-    const candidate = { url: details.url, type: mediaType, mime, contentType: mime, size: parsedSize, requestKind: details.type, initiator: details.initiator || '', pageUrl: details.documentUrl || details.initiator || '', timestamp: Date.now(), source: 'network' }
-    if (!MP.isReliableCandidate(candidate)) return
-    const frameId = details.frameId ?? 0
-    candidate.confidence = MP.scoreCandidate(candidate)
-    addMediaEntry(details.tabId, frameId, details.url, candidate)
+      const mime = getHeader(details.responseHeaders, 'content-type') || ''
+      const urlLooksMedia = /\.(m3u8|mpd|mp4|webm|flv|mkv|mp3|m4a|aac|opus|ogg)(?:[?#]|$)/i.test(details.url)
+      const mimeLooksMedia = /^(?:video|audio)\//i.test(mime) || /mpegurl|dash\+xml/i.test(mime)
+      if (details.type !== 'media' && !urlLooksMedia && !mimeLooksMedia) return
+      const contentLength = getHeader(details.responseHeaders, 'content-length')
+      const parsedSize = contentLength == null || contentLength === '' ? null : Number(contentLength)
+      if (parsedSize !== null && (!Number.isFinite(parsedSize) || parsedSize < 0)) return
+      const mediaType = MP.inferType(details.url, mime)
+      const candidate = { url: details.url, type: mediaType, mime, contentType: mime, size: parsedSize, requestKind: details.type, initiator: details.initiator || '', pageUrl: details.documentUrl || details.initiator || '', timestamp: Date.now(), source: 'network' }
+      if (!MP.isReliableCandidate(candidate)) return
+      const frameId = details.frameId ?? 0
+      candidate.confidence = MP.scoreCandidate(candidate)
+      addMediaEntry(details.tabId, frameId, details.url, candidate)
 
-    updateBadge(details.tabId, getAllTabMedia(details.tabId).length)
+      updateBadge(details.tabId, getAllTabMedia(details.tabId).length)
+    })
   },
   { urls: ['<all_urls>'], types: ['media', 'xmlhttprequest', 'other'] },
   ['responseHeaders']
@@ -407,6 +632,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Existing: YouTube content.js download button
   if (message.type === 'DOWNLOAD_VIDEO') {
     const surfacedWake = message.surfacedWake === true
+    if (!isSafeHttpUrl(message.url)) {
+      sendResponse({ ok: false, error: 'Invalid download URL' })
+      return false
+    }
     sendDownloadRequest({ url: message.url }, sender.tab?.id, { surfacedWake })
       .then((ok) => sendResponse(ok ? { ok: true } : { error: true }))
       .catch(() => sendResponse({ error: true }))
@@ -421,8 +650,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ media: [], tabUrl: '', tabTitle: '' })
         return
       }
-      const media = MP.mergeCandidates(getAllTabMedia(tabId))
-      sendResponse({ media, tabUrl: tabs[0].url || '', tabTitle: tabs[0].title || '' })
+      void mediaCacheReadyPromise.then(() => {
+        const media = MP.mergeCandidates(getAllTabMedia(tabId))
+        sendResponse({ media, tabUrl: tabs[0].url || '', tabTitle: tabs[0].title || '' })
+      })
     })
     return true
   }
@@ -438,22 +669,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const baseTitle = tabTitle || 'download'
     chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
       const tabId = tabs[0]?.id || null
-      const requests = MP.mergeCandidates(items).map((item, i) => ({
+      const requests = items.map((item, i) => MP.isReliableCandidate(item) ? ({
         url: item.url,
         type: item.type,
-        referer: item.initiator || tabUrl || '',
+        referer: isSafeHttpUrl(item.initiator) ? item.initiator : (isSafeHttpUrl(tabUrl) ? tabUrl : ''),
         title: items.length > 1 ? `${baseTitle} (${i + 1})` : baseTitle
-      }))
-
-      if (!requests.length) { sendResponse({ ok: false, error: 'No reliable media items selected.', results: [] }); return }
-      const directResults = requests.map(() => ({ ok: false, status: null, error: 'Not sent' }))
-      let pendingRequests = requests
+      }) : null)
+      const directResults = requests.map((request) => request ? ({ ok: false, status: null, error: 'Not sent' }) : ({ ok: false, status: 422, category: 'invalid-media-candidate', error: 'Invalid media candidate' }))
+      const pendingIndexes = []
       try {
-        await syncCookies()
         for (let i = 0; i < requests.length; i++) {
           const request = requests[i]
-        const response = await postAppJson('/download', request)
-          directResults[i] = { ok: response.ok, status: response.status, error: response.ok ? undefined : `HTTP ${response.status}` }
+          if (!request) continue
+          let response
+          try { response = await postAppJson('/download', request) } catch (error) {
+            directResults[i] = { ok: false, status: null, category: DT.classifyFailure({ error }).category, error: 'Network request failed' }
+            pendingIndexes.push(i)
+            continue
+          }
+          const failure = response.ok ? null : DT.classifyFailure({ status: response.status })
+          directResults[i] = { ok: response.ok, status: response.status, ...(failure || {}), error: response.ok ? undefined : `HTTP ${response.status}` }
+          if (!response.ok && DT.shouldFallback({ status: response.status })) pendingIndexes.push(i)
         }
         const results = directResults
         if (results.every((result) => result.ok)) {
@@ -461,35 +697,32 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse({ ok: true, results })
           return
         }
-        sendResponse({ ok: false, partial: results.some((result) => result.ok), results, error: 'Some downloads were rejected by the app.' })
-        return
-      } catch {
-        pendingRequests = requests.filter((_, i) => !directResults[i].ok)
+        if (pendingIndexes.length === 0) {
+          sendResponse({ ok: false, partial: results.some((result) => result.ok), results, error: 'Some downloads were rejected by the app.' })
+          return
+        }
+      } catch (error) {
+        requests.forEach((request, i) => { if (request && !directResults[i].ok && !pendingIndexes.includes(i)) pendingIndexes.push(i) })
       }
 
       if (!surfacedWake) {
         launchWakeToFocusApp(tabId)
       }
-      let posted = await postDownloadsQueueWhenReady(pendingRequests)
-      if (pendingRequests.length !== requests.length) {
-        const combined = [...directResults]
-        let j = 0
-        for (let i = 0; i < combined.length; i++) if (!combined[i].ok && posted.results[j]) combined[i] = posted.results[j++]
-        posted = { ok: combined.every((result) => result.ok), results: combined }
-      }
-      if (!posted.ok && surfacedWake) {
-        logBg('download-media-fallback-bg-wake', { tabId })
-        launchWakeToFocusApp(tabId, { force: true })
-        const pending = requests.filter((_, i) => !posted.results[i]?.ok)
-        const retry = await postDownloadsQueueWhenReady(pending)
-        const combined = requests.map((_, i) => posted.results[i] || { ok: false, error: 'Not sent' })
-        let retryIndex = 0
-        for (let i = 0; i < combined.length; i++) if (!combined[i].ok && retry.results[retryIndex]) combined[i] = retry.results[retryIndex++]
-        posted = { ok: combined.every((result) => result.ok), results: combined }
-      }
+      const pendingRequests = pendingIndexes.map((i) => requests[i])
+      // A user-gesture protocol click is not proof that an app was launched.
+      // Verify briefly, then return actionable feedback in dev where the
+      // protocol is intentionally not registered. Background-launched
+      // packaged wake keeps the normal cold-start retry window.
+      // surfacedWake only proves that Chrome accepted the protocol URL; it
+      // does not prove that the Electron server is ready. Keep the full cold
+      // start window for both paths.
+      const wakeAttempts = 48
+      let posted = await postDownloadsQueueWhenReady(pendingRequests, wakeAttempts)
+      let combined = DT.mergeRetryResults(directResults, pendingIndexes, posted.results)
+      posted = { ok: combined.every((result) => result.ok), results: combined }
       if (!posted.ok) {
         setLastDownloadError(
-          'Could not queue download: app unreachable after wake. Check that V-Download is running.'
+          'Could not queue download after wake. Start the V-Download desktop app (make-dev does not register vdownload://), then retry.'
         )
       }
       sendResponse({
@@ -503,41 +736,43 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   // New: content overlay queries media for its specific frame, with tab-level fallback
   if (message.type === 'GET_FRAME_MEDIA') {
-    pruneMedia()
-    const tabId = sender.tab?.id
-    const frameId = sender.frameId ?? 0
-    if (!tabId) {
-      sendResponse({ media: [], source: 'none', frameId })
-      return true
-    }
-    const frameMedia = getFrameMedia(tabId, frameId)
-    const tabMedia = getAllTabMedia(tabId)
+    void mediaCacheReadyPromise.then(() => {
+      pruneMedia()
+      const tabId = sender.tab?.id
+      const frameId = sender.frameId ?? 0
+      if (!tabId) {
+        sendResponse({ media: [], source: 'none', frameId })
+        return
+      }
+      const frameMedia = getFrameMedia(tabId, frameId)
+      const tabMedia = getAllTabMedia(tabId)
 
-    const mergedByKey = new Map()
-    for (const m of frameMedia) {
-      const key = `${MP.canonicalizeUrl(m.url)}|${m.type}`
-      mergedByKey.set(key, m)
-    }
-    for (const m of tabMedia) {
-      const key = `${MP.canonicalizeUrl(m.url)}|${m.type}`
-      const prev = mergedByKey.get(key)
-      if (!prev || (m.timestamp || 0) > (prev.timestamp || 0)) {
+      const mergedByKey = new Map()
+      for (const m of frameMedia) {
+        const key = `${MP.canonicalizeUrl(m.url)}|${m.type}`
         mergedByKey.set(key, m)
       }
-    }
-    const media = MP.mergeCandidates(Array.from(mergedByKey.values()))
+      for (const m of tabMedia) {
+        const key = `${MP.canonicalizeUrl(m.url)}|${m.type}`
+        const prev = mergedByKey.get(key)
+        if (!prev || (m.timestamp || 0) > (prev.timestamp || 0)) {
+          mergedByKey.set(key, m)
+        }
+      }
+      const media = MP.mergeCandidates(Array.from(mergedByKey.values()))
 
-    let source = 'frame'
-    if (frameMedia.length > 0 && tabMedia.length > 0) source = 'frame+tab'
-    else if (frameMedia.length === 0 && tabMedia.length > 0) source = 'tab-fallback'
-    else if (frameMedia.length === 0) source = 'none'
+      let source = 'frame'
+      if (frameMedia.length > 0 && tabMedia.length > 0) source = 'frame+tab'
+      else if (frameMedia.length === 0 && tabMedia.length > 0) source = 'tab-fallback'
+      else if (frameMedia.length === 0) source = 'none'
 
-    sendResponse({
-      media,
-      source,
-      frameId,
-      isYouTube: isYouTubeUrl(sender.tab.url || ''),
-      pageTitle: sender.tab.title || ''
+      sendResponse({
+        media,
+        source,
+        frameId,
+        isYouTube: isYouTubeUrl(sender.tab?.url || ''),
+        pageTitle: sender.tab?.title || ''
+      })
     })
     return true
   }
@@ -550,23 +785,34 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const tabUrl = sender.tab?.url || ''
     const tabTitle = sender.tab?.title || 'download'
 
-    if (!item || !item.url) {
+    if (!isValidContentItem(item)) {
       logBg('download-from-content-bad-item', { tabId, hasItem: !!item })
-      sendResponse({ ok: false, error: 'Missing item or url' })
+      sendResponse({ ok: false, error: 'Invalid media item' })
       return false
     }
 
-    const request = {
-      url: item.url,
-      type: item.type,
-      referer: item.initiator || tabUrl,
-      title: (item.title && String(item.title).trim()) || tabTitle
-    }
+    const referer = isSafeHttpUrl(item.initiator) ? item.initiator : (isSafeHttpUrl(tabUrl) ? tabUrl : '')
+    const title = (item.title && String(item.title).trim()) || tabTitle
+    const pageUrl = isSafeHttpUrl(item.pageUrl) && isDouyinUrl(item.pageUrl) ? item.pageUrl : ''
+    const request = pageUrl
+      ? {
+          url: pageUrl,
+          quality: item.quality || undefined,
+          autoStart: item.autoStart === true,
+          referer,
+          title
+        }
+      : {
+          url: item.url,
+          type: item.type,
+          referer,
+          title
+        }
 
     logBg('download-from-content-start', {
       tabId,
-      type: item.type,
-      url: safeLogUrl(item.url),
+      type: pageUrl ? 'page' : item.type,
+      url: safeLogUrl(pageUrl || item.url),
       referer: safeLogUrl(request.referer),
       title: (request.title || '').slice(0, 80)
     })
@@ -584,9 +830,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     ;(async () => {
       try {
-        const cookiesOk = await syncCookies()
-        logBg('download-from-content-sync-cookies', { cookiesOk })
-        const res = await postAppJson('/download', request)
+        const res = await postAppJson('/download', request, { maxAttempts: 2, timeoutMs: APP_DOWNLOAD_TIMEOUT_MS })
         logBg('download-from-content-fetch', { status: res.status, ok: res.ok })
         if (res.ok) {
           clearLastDownloadError()
@@ -597,24 +841,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         logBg('download-from-content-fetch-catch', { err: safeError(e) })
       }
       try {
-        logBg('download-from-content-cold-wake', { tabId, surfacedWake })
+        logBg('download-from-content-cold-wake', { tabId, surfacedWake, wakeOwnedByCaller: surfacedWake === true })
         if (!surfacedWake) {
           launchWakeToFocusApp(tabId)
         }
-        let ok = await postDownloadWhenAppReady(request)
-        if (!ok && surfacedWake) {
-          logBg('download-from-content-fallback-bg-wake', { tabId })
-          launchWakeToFocusApp(tabId, { force: true })
-          ok = await postDownloadWhenAppReady(request)
-        }
-        logBg('download-from-content-after-wake', { ok })
+        // The user-gesture wake can launch Electron asynchronously. Wait for
+        // the same full startup window instead of returning a silent failure
+        // after six seconds.
+        const queued = await postDownloadsQueueWhenReady([request], 48)
+        const ok = queued.ok
+        const failure = queued.results?.find((result) => !result.ok)
+        logBg('download-from-content-after-wake', { ok, status: failure?.status ?? null, category: failure?.category || '' })
         if (ok) clearLastDownloadError()
         else {
           setLastDownloadError(
             'Could not send this stream to V-Download. Confirm the app is running and try again.'
           )
         }
-        safeSend({ ok })
+        const error = failure?.category === 'authorization-required'
+          ? 'V-Download rejected this Chrome extension. Reload the extension or install the matching extension folder, then retry.'
+          : failure?.error || 'App is not running or did not accept the media.'
+        safeSend({ ok, error: ok ? undefined : error })
       } catch (err) {
         logBg('download-from-content-wake-catch', { err: safeError(err) })
         safeSend({ ok: false, error: 'Unable to send this stream. Please retry.' })
@@ -647,8 +894,7 @@ async function sendDownloadRequest(request, tabId, opts = {}) {
   const { surfacedWake = false } = opts
   const payload = typeof request === 'object' && request !== null ? request : { url: String(request) }
   try {
-    await syncCookies()
-    const res = await postAppJson('/download', payload)
+    const res = await postAppJson('/download', payload, { maxAttempts: 2, timeoutMs: APP_DOWNLOAD_TIMEOUT_MS })
     if (res.ok) {
       clearLastDownloadError()
       return true
@@ -659,12 +905,7 @@ async function sendDownloadRequest(request, tabId, opts = {}) {
   if (!surfacedWake) {
     launchWakeToFocusApp(tabId)
   }
-  let ok = await postDownloadWhenAppReady(payload)
-  if (!ok && surfacedWake) {
-    logBg('sendDownload-fallback-bg-wake', { tabId })
-    launchWakeToFocusApp(tabId, { force: true })
-    ok = await postDownloadWhenAppReady(payload)
-  }
+  let ok = await postDownloadsQueueWhenReady([payload], 48).then((result) => result.ok)
   if (!ok) {
     setLastDownloadError('Could not open or reach V-Download from the extension.')
   } else {
@@ -686,49 +927,18 @@ function launchWakeToFocusApp(tabId, opts = {}) {
   const wakeUrl = 'vdownload://wake'
   chrome.tabs.create({ url: wakeUrl, active: true }, (created) => {
     if (chrome.runtime.lastError || !created?.id) {
-      logBg('launch-wake-fallback-inject', {
+      logBg('launch-wake-protocol-unavailable', {
         err: chrome.runtime.lastError?.message,
         tabId
       })
-      protocolLaunchInjectTab(wakeUrl, tabId)
       return
     }
     logBg('launch-wake-tab-created', { newTabId: created.id })
     const id = created.id
     setTimeout(() => {
       chrome.tabs.remove(id, () => void chrome.runtime.lastError)
-    }, 2000)
+    }, WAKE_TAB_RETENTION_MS)
   })
-}
-
-/** Legacy fallback: navigate an existing tab (fragile on some SPAs). */
-function protocolLaunchInjectTab(ytdlUrl, tabId) {
-  const execTabId = tabId || undefined
-  if (execTabId) {
-    chrome.scripting
-      .executeScript({
-        target: { tabId: execTabId },
-        func: (u) => {
-          window.location.href = u
-        },
-        args: [ytdlUrl]
-      })
-      .catch(() => {})
-  } else {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]?.id) {
-        chrome.scripting
-          .executeScript({
-            target: { tabId: tabs[0].id },
-            func: (u) => {
-              window.location.href = u
-            },
-            args: [ytdlUrl]
-          })
-          .catch(() => {})
-      }
-    })
-  }
 }
 
 async function syncCookies() {
@@ -747,24 +957,10 @@ async function syncCookies() {
       })))
     }
 
-    const body = JSON.stringify(allCookies)
-    const headers = { 'Content-Type': 'application/json' }
-
-    let appOk = false
-    const appFetch = postAppJson('/cookies', allCookies)
-      .then((r) => {
-        appOk = r.ok
-        return r
-      })
-      .catch(() => {})
-
-    await Promise.allSettled([
-      appFetch,
-      fetch(`${VDL_SERVER_URL}/api/cookies`, { method: 'POST', headers, body }).catch(() => {}),
-    ])
+    const response = await postAppJson('/cookies', allCookies)
 
     console.log(`Synced ${allCookies.length} cookies across ${COOKIE_SYNC_DOMAINS.length} domains`)
-    return appOk
+    return response.ok
   } catch {
     return false
   }
@@ -772,7 +968,7 @@ async function syncCookies() {
 
 async function pollPendingCookieSync() {
   try {
-    const poll = await fetch(`${APP_URL}/cookie-sync-poll?pair=1`)
+    const poll = await fetchApp('/cookie-sync-poll?pair=1', {}, APP_PROBE_TIMEOUT_MS)
     if (!poll.ok) return
     const data = await poll.json()
     if (typeof data.capability === 'string' && data.capability.length >= 32) { appCapability = data.capability; chrome.storage.local.set({ appCapability }) }
@@ -784,22 +980,19 @@ async function pollPendingCookieSync() {
 }
 
 chrome.runtime.onInstalled.addListener(() => {
-  syncCookies()
   cleanupLastDownloadError()
 })
 
 chrome.runtime.onStartup.addListener(() => {
-  syncCookies()
   cleanupLastDownloadError()
 })
 
-chrome.alarms.create('sync-cookies', { periodInMinutes: 5 })
+// Cookie sync is intentionally user-triggered. Keep only the lightweight
+// pending-pair poll so the desktop app can wait for an explicit request.
 chrome.alarms.create('cookie-sync-force-poll', { periodInMinutes: 1 })
 chrome.alarms.create('last-download-error-gc', { periodInMinutes: 5 })
 chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === 'sync-cookies') {
-    syncCookies()
-  } else if (alarm.name === 'cookie-sync-force-poll') {
+  if (alarm.name === 'cookie-sync-force-poll') {
     void pollPendingCookieSync()
   } else if (alarm.name === 'last-download-error-gc') {
     cleanupLastDownloadError()

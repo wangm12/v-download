@@ -27,6 +27,7 @@ import {
 import { buildDouyinCookieHeader, resolveDouyinCookieContext } from './browserCookies'
 import { getCachedProfileAwemeItem } from './douyinProfileAwemeCache'
 import { buildSignedAwemeDetailUrl } from './douyinProfileSign'
+import { delayWithAbort, fetchWithTimeout } from './httpClient'
 
 const DETAIL_API_RETRY_DELAYS_MS = [1000, 2000, 5000]
 const DETAIL_API_MAX_ATTEMPTS = 3
@@ -88,10 +89,11 @@ export function isDouyinUrl(url: string): boolean {
   return /douyin\.com/i.test(url)
 }
 
-async function resolveShortUrl(url: string): Promise<string> {
-  const res = await fetch(url, {
+async function resolveShortUrl(url: string, signal?: AbortSignal): Promise<string> {
+  const res = await fetchWithTimeout(url, {
     method: 'GET',
     redirect: 'follow',
+    signal,
     headers: {
       'User-Agent': MOBILE_UA,
       Referer: 'https://www.douyin.com/',
@@ -617,7 +619,11 @@ async function fetchAwemeDetailItem(
           Accept: 'application/json, text/plain, */*',
           ...(cookieHeader ? { Cookie: cookieHeader } : {}),
         }
-        const res = await fetch(url, { headers, redirect: 'follow', signal: options?.signal })
+        const res = await fetchWithTimeout(url, {
+          headers,
+          redirect: 'follow',
+          signal: options?.signal,
+        })
         status = res.status
         bodyText = await res.text()
         if (!res.ok) {
@@ -852,7 +858,7 @@ export async function getDouyinInfo(
 
   try {
     console.log(`[douyin] Resolving URL host=${safeHost(url)}`)
-    const resolved = await resolveShortUrl(url)
+    const resolved = await resolveShortUrl(url, options?.signal)
     throwIfDouyinAborted(options?.signal)
     console.log(`[douyin] Resolved host=${safeHost(resolved)}`)
 
@@ -1110,6 +1116,7 @@ export async function downloadDouyinVideo(
       const res = await fetchWith429Backoff(url, {
         headers: await buildDouyinMediaDownloadHeaders(cookiesFilePath, ua),
         redirect: 'follow',
+        signal: options?.signal,
       })
       if (!res.ok || !res.body) {
         lastErr = `Download failed: ${res.status} ${res.statusText}`
@@ -1155,7 +1162,7 @@ function extFromImageUrl(u: string): string {
 const GALLERY_IMAGE_PARALLEL = 6
 
 async function fetchWith429Backoff(url: string, init: RequestInit): Promise<Response> {
-  let res = await fetch(url, init)
+  let res = await fetchWithTimeout(url, init, { timeoutMs: 30_000 })
   if (res.status === 429) {
     const ra = res.headers.get('retry-after')
     let ms = 3000
@@ -1163,8 +1170,8 @@ async function fetchWith429Backoff(url: string, init: RequestInit): Promise<Resp
       const sec = parseInt(ra, 10)
       if (Number.isFinite(sec) && sec > 0 && sec < 3600) ms = sec * 1000
     }
-    await new Promise((r) => setTimeout(r, ms))
-    res = await fetch(url, init)
+    await delayWithAbort(ms, init.signal)
+    res = await fetchWithTimeout(url, init, { timeoutMs: 30_000 })
   }
   return res
 }
@@ -1217,6 +1224,7 @@ export async function downloadDouyinImageGallery(
       const res = await fetchWith429Backoff(url, {
         headers,
         redirect: 'follow',
+        signal: options?.signal,
       })
       if (!res.ok) {
         throw new Error(`Image ${i} failed: ${res.status} ${res.statusText}`)

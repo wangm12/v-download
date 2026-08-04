@@ -368,7 +368,7 @@ async function fetchDouyinHtmlWithElectronChromium(
       session: ses,
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
+      sandbox: true,
       /** Reduces offscreen Skia / shared-image glitches on macOS for hidden windows. */
       offscreen: true,
     },

@@ -1,5 +1,5 @@
 import type { DouyinProfilePostRow } from '@/types'
-import { mergeProfilePosts, profilePickerStatus, selectedProfileCount } from './douyinProfilePickerState'
+import { applyProfilePickerClick, mergeProfilePosts, profilePickerStatus, selectedProfileCount } from './douyinProfilePickerState'
 
 function equal(actual: unknown, expected: unknown, message: string) {
   if (actual !== expected) throw new Error(`${message}: expected ${String(expected)}, got ${String(actual)}`)
@@ -19,6 +19,15 @@ for (const activity of ['loading-page', 'loading-all', 'browser-import'] as cons
 
 equal(selectedProfileCount(new Set(['a', 'missing']), [post('a'), post('b')]), 1, 'selection scope')
 
+const firstPick = applyProfilePickerClick(['a', 'b', 'c'], new Set(), null, 'a')
+equal(Array.from(firstPick.selected).join(','), 'a', 'plain click selects the first post')
+const secondPick = applyProfilePickerClick(['a', 'b', 'c'], firstPick.selected, firstPick.anchor, 'b')
+equal(Array.from(secondPick.selected).join(','), 'a,b', 'plain click adds another post')
+const togglePick = applyProfilePickerClick(['a', 'b', 'c'], secondPick.selected, secondPick.anchor, 'a')
+equal(Array.from(togglePick.selected).join(','), 'b', 'plain click toggles an existing post')
+const rangePick = applyProfilePickerClick(['a', 'b', 'c', 'd'], new Set(['a']), 'a', 'c', { shiftKey: true })
+equal(Array.from(rangePick.selected).join(','), 'a,b,c', 'shift click selects a range')
+
 const merged = mergeProfilePosts([post('a'), post('b')], [{ ...post('b'), title: 'updated' }, post('c')])
 equal(merged.map((row) => row.awemeId).join(','), 'a,b,c', 'dedupe order')
 equal(merged[1]?.title, 'updated', 'dedupe update')
@@ -28,3 +37,5 @@ let aborted = ''
 const abort = () => { aborted = abortKey }
 abort()
 equal(aborted, abortKey, 'abort key')
+
+console.log('Douyin profile picker selection passed')

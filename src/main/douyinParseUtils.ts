@@ -4,6 +4,7 @@
  */
 import { existsSync, readFileSync } from 'fs'
 import { resolve } from 'path'
+import { fetchWithTimeout } from './httpClient'
 
 export const DOUYIN_MOBILE_UA =
   'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1'
@@ -102,7 +103,7 @@ export async function fetchDouyinPageHtml(
     if (cookieHeader) headers.Cookie = cookieHeader
   }
 
-  const res = await fetch(pageUrl, { headers, redirect: 'follow' })
+  const res = await fetchWithTimeout(pageUrl, { headers, redirect: 'follow' })
   if (!res.ok) throw new Error(`Page fetch failed: ${res.status}`)
   return res.text()
 }

@@ -1,6 +1,6 @@
 /* ── Watch page download button ────────────────────────────────────────── */
 
-.ytdl-btn {
+.vdl-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -16,31 +16,31 @@
   vertical-align: middle;
 }
 
-.ytdl-btn:hover {
+.vdl-btn:hover {
   background: rgba(0, 0, 0, 0.1);
   transform: scale(1.1);
 }
 
-.ytdl-btn:active {
+.vdl-btn:active {
   transform: scale(0.95);
 }
 
-html[dark] .ytdl-btn {
-  color: #fff;
+html[dark] .vdl-btn {
+  color: var(--vdl-text);
 }
 
-html[dark] .ytdl-btn:hover {
+html[dark] .vdl-btn:hover {
   background: rgba(255, 255, 255, 0.1);
 }
 
-.ytdl-btn-active {
+.vdl-btn-active {
   color: #32D583 !important;
   background: rgba(50, 213, 131, 0.15) !important;
 }
 
 /* ── Card download button (homepage / shorts / search) ─────────────────── */
 
-.ytdl-card-btn {
+.vdl-card-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -55,28 +55,28 @@ html[dark] .ytdl-btn:hover {
   transition: background 0.15s, color 0.15s, transform 0.12s;
 }
 
-.ytdl-card-btn:hover {
+.vdl-card-btn:hover {
   background: rgba(0, 0, 0, 0.1);
   color: #030303;
   transform: scale(1.1);
 }
 
-.ytdl-card-btn:active {
+.vdl-card-btn:active {
   transform: scale(0.92);
 }
 
-html[dark] .ytdl-card-btn {
+html[dark] .vdl-card-btn {
   color: #aaa;
 }
 
-html[dark] .ytdl-card-btn:hover {
+html[dark] .vdl-card-btn:hover {
   background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  color: var(--vdl-text);
 }
 
 /* ── Shorts detail page download button ────────────────────────────────── */
 
-.ytdl-shorts-action {
+.vdl-shorts-action {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -85,7 +85,7 @@ html[dark] .ytdl-card-btn:hover {
   padding-bottom: 8px;
 }
 
-.ytdl-shorts-btn {
+.vdl-shorts-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -100,29 +100,29 @@ html[dark] .ytdl-card-btn:hover {
   transition: background 0.15s, transform 0.12s;
 }
 
-.ytdl-shorts-btn:hover {
+.vdl-shorts-btn:hover {
   background: rgba(0, 0, 0, 0.1);
   transform: scale(1.08);
 }
 
-.ytdl-shorts-btn:active {
+.vdl-shorts-btn:active {
   transform: scale(0.92);
 }
 
-html[dark] .ytdl-shorts-btn {
+html[dark] .vdl-shorts-btn {
   background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  color: var(--vdl-text);
 }
 
-html[dark] .ytdl-shorts-btn:hover {
+html[dark] .vdl-shorts-btn:hover {
   background: rgba(255, 255, 255, 0.2);
 }
 
-.ytdl-shorts-btn.ytdl-btn-active {
-  background: rgba(50, 213, 131, 0.3);
+.vdl-shorts-btn.vdl-btn-active {
+  background: color-mix(in srgb, var(--vdl-success) 30%, transparent);
 }
 
-.ytdl-shorts-label {
+.vdl-shorts-label {
   font-size: 12px;
   color: #030303;
   text-align: center;
@@ -130,6 +130,6 @@ html[dark] .ytdl-shorts-btn:hover {
   font-family: 'Roboto', 'Arial', sans-serif;
 }
 
-html[dark] .ytdl-shorts-label {
-  color: #fff;
+html[dark] .vdl-shorts-label {
+  color: var(--vdl-text);
 }

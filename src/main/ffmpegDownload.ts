@@ -35,10 +35,16 @@ function buildHeaderMap(
   customHeaders: Record<string, string> | undefined
 ): Record<string, string> {
   const h: Record<string, string> = { ...(customHeaders || {}) }
-  if (!h['User-Agent']) {
+  const hasHeader = (name: string) =>
+    Object.keys(h).some((key) => key.toLowerCase() === name.toLowerCase())
+
+  if (!hasHeader('User-Agent')) {
     h['User-Agent'] = DEFAULT_DIRECT_MEDIA_UA
   }
-  if (referer && !h['Origin']) {
+  if (referer && !hasHeader('Referer')) {
+    h['Referer'] = referer
+  }
+  if (referer && !hasHeader('Origin')) {
     try {
       h['Origin'] = new URL(referer).origin
     } catch {

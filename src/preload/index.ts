@@ -45,6 +45,16 @@ const api = {
     ipcRenderer.on('open-preferences', sub)
     return () => ipcRenderer.removeListener('open-preferences', sub)
   },
+  onFocusDownloadSearch: (callback: () => void) => {
+    const sub = () => callback()
+    ipcRenderer.on('focus-download-search', sub)
+    return () => ipcRenderer.removeListener('focus-download-search', sub)
+  },
+  onRefreshDownloads: (callback: () => void) => {
+    const sub = () => callback()
+    ipcRenderer.on('refresh-downloads', sub)
+    return () => ipcRenderer.removeListener('refresh-downloads', sub)
+  },
   closeWindow: () => ipcRenderer.invoke('close-window'),
   onSettingsChanged: (callback: () => void) => {
     const sub = () => callback()

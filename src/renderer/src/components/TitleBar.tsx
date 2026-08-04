@@ -5,12 +5,12 @@ import type { ThemePreference } from '@/hooks/useThemePreference'
 import { HoverHintWrap } from './HoverHintWrap'
 
 const titleBarIconBtn =
-  'group flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-transparent bg-raised/50 text-muted-foreground shadow-[0_1px_0_rgba(255,255,255,0.04)] transition-[border-color,background-color,box-shadow,transform] duration-panel ease-panel hover:border-border-strong hover:bg-control hover:text-foreground hover:shadow-[0_2px_8px_rgba(0,0,0,0.22)] data-[state=open]:border-border-strong active:scale-[0.96] motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus'
+  'group flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-raised/50 text-muted-foreground ring-1 ring-inset ring-divider-subtle transition-[background-color,box-shadow,transform] duration-panel ease-panel hover:bg-surface-hover hover:text-foreground hover:ring-accent/40 hover:shadow-[0_6px_18px_rgb(0_0_0/0.18)] data-[state=open]:ring-accent/50 active:scale-[0.96] motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus'
 
 const panelGlyph = 'h-[18px] w-[18px] shrink-0 text-foreground/80 group-hover:text-foreground'
 
 const menuContentClass =
-  'z-[200] min-w-[11.5rem] overflow-hidden rounded-lg border border-border bg-raised py-1 shadow-lg'
+  'z-[200] min-w-[11.5rem] overflow-hidden rounded-lg bg-raised py-1 shadow-lg ring-1 ring-inset ring-divider-strong'
 
 const menuItemClass =
   'relative flex cursor-pointer select-none items-center gap-2 rounded-md px-2 py-2 text-sm text-foreground outline-none data-[disabled]:pointer-events-none data-[highlighted]:bg-control data-[disabled]:opacity-40'

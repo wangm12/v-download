@@ -87,11 +87,29 @@ function createWindow(): void {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false
+      sandbox: true
     }
   })
 
   downloadManager.setMainWindow(mainWindow)
+
+  const allowedDevOrigin = is.dev && VITE_DEV_SERVER_URL
+    ? (() => {
+        try { return new URL(VITE_DEV_SERVER_URL).origin } catch { return null }
+      })()
+    : null
+  const isAllowedRendererUrl = (url: string): boolean => {
+    if (url.startsWith('file://')) return true
+    return Boolean(allowedDevOrigin && (() => {
+      try { return new URL(url).origin === allowedDevOrigin } catch { return false }
+    })())
+  }
+  mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+  const blockExternalNavigation = (event: Electron.Event, url: string): void => {
+    if (!isAllowedRendererUrl(url)) event.preventDefault()
+  }
+  mainWindow.webContents.on('will-navigate', blockExternalNavigation)
+  mainWindow.webContents.on('will-redirect', blockExternalNavigation)
 
   if (is.dev && VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(VITE_DEV_SERVER_URL)
@@ -111,8 +129,9 @@ function createWindow(): void {
     downloadManager.setMainWindow(null)
   })
 
-  mainWindow.webContents.on('before-input-event', (_event, input) => {
+  mainWindow.webContents.on('before-input-event', (event, input) => {
     if ((input.meta || input.control) && input.key === 'w') {
+      event.preventDefault()
       mainWindow?.hide()
     }
   })
@@ -134,6 +153,8 @@ function createWindow(): void {
 function handleDownloadRequest(request: DownloadRequest): void {
   const params = new URLSearchParams({ url: request.url })
   if (request.type) params.set('type', request.type)
+  if (request.quality) params.set('quality', request.quality)
+  if (request.autoStart) params.set('autoStart', '1')
   if (request.referer) params.set('referer', request.referer)
   if (request.title) params.set('title', request.title)
   if (request.headers) params.set('headers', JSON.stringify(request.headers))
@@ -142,6 +163,9 @@ function handleDownloadRequest(request: DownloadRequest): void {
 }
 
 function handleYtdlUrl(url: string): void {
+  // The macOS app can stay resident after its window closes. Keep the
+  // localhost bridge available for extension requests in that state.
+  if (app.isReady()) startLocalServer()
   if (isWakeDeepLink(url)) {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.show()
@@ -152,6 +176,10 @@ function handleYtdlUrl(url: string): void {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.show()
     mainWindow.focus()
+    if (mainWindow.webContents.isLoading()) {
+      pendingYtdlUrl = url
+      return
+    }
     mainWindow.webContents.send('ytdl-url', url)
   } else {
     pendingYtdlUrl = url
@@ -207,6 +235,38 @@ app.whenReady().then(() => {
         { role: 'paste' },
         { role: 'selectAll' }
       ]
+    },
+    {
+      label: 'View',
+      submenu: [
+        {
+          label: 'Find Downloads',
+          accelerator: 'CmdOrCtrl+F',
+          click: () => {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.webContents.send('focus-download-search')
+            }
+          }
+        },
+        {
+          label: 'Refresh Downloads',
+          accelerator: 'CmdOrCtrl+R',
+          click: () => {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.webContents.send('refresh-downloads')
+            }
+          }
+        }
+      ]
+    },
+    {
+      label: 'Window',
+      submenu: [
+        { role: 'minimize' },
+        { role: 'zoom' },
+        { type: 'separator' },
+        { role: 'close' }
+      ]
     }
   ]
   Menu.setApplicationMenu(Menu.buildFromTemplate(template))
@@ -216,8 +276,6 @@ app.whenReady().then(() => {
   database.initDB()
   downloadManager.loadFromDbAndRecover()
   initializePoTokenServer()
-  startLocalServer()
-  worklog('local_server_started', { port: LOCAL_SERVER_PORT })
   setDownloadHandler((request) => handleDownloadRequest(request))
   setMediaDownloadHandler((request) => {
     const quality = settings.get('defaultVideoQuality')
@@ -235,6 +293,11 @@ app.whenReady().then(() => {
       mainWindow.focus()
     }
   })
+  // Register handlers before opening the port. The extension uses /ping as a
+  // readiness check during cold start, so a successful probe must mean that
+  // /download can already enqueue work instead of briefly returning 503.
+  startLocalServer()
+  worklog('local_server_started', { port: LOCAL_SERVER_PORT })
   // Only the packaged app should claim URL schemes. Dev Electron from
   // node_modules would otherwise become the OS handler and open the generic
   // Electron splash when the extension triggers ytdl:// or vdownload:// wake.
@@ -253,6 +316,7 @@ app.whenReady().then(() => {
   void initializeUpdater(mainWindow).catch(() => undefined)
 
   app.on('activate', () => {
+    startLocalServer()
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.show()
       mainWindow.focus()
@@ -274,6 +338,7 @@ app.on('open-url', (event, url) => {
 })
 
 app.on('second-instance', (_event, commandLine) => {
+  startLocalServer()
   const deepLink = commandLine.find((arg) => isDeepLinkUrl(arg))
   if (deepLink) {
     handleYtdlUrl(deepLink)
@@ -290,9 +355,9 @@ app.on('before-quit', (event) => {
 })
 
 app.on('window-all-closed', () => {
-  database.closeDB()
-  stopLocalServer()
   if (process.platform !== 'darwin') {
+    database.closeDB()
+    stopLocalServer()
     app.quit()
   }
 })

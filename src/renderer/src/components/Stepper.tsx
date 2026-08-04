@@ -20,7 +20,7 @@ export function Stepper({ value, min, max, suffix = '', onChange }: StepperProps
           disabled={value <= min}
           aria-label="Decrease"
           className={cn(
-            'w-9 h-9 rounded-lg bg-surface border border-border flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus',
+            'w-9 h-9 rounded-button bg-surface ring-1 ring-inset ring-divider-subtle flex items-center justify-center transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus',
             value <= min ? 'text-muted-foreground/30 cursor-default' : 'text-foreground hover:bg-elevated'
           )}
         >
@@ -37,7 +37,7 @@ export function Stepper({ value, min, max, suffix = '', onChange }: StepperProps
           disabled={value >= max}
           aria-label="Increase"
           className={cn(
-            'w-9 h-9 rounded-lg bg-surface border border-border flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus',
+            'w-9 h-9 rounded-button bg-surface ring-1 ring-inset ring-divider-subtle flex items-center justify-center transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus',
             value >= max ? 'text-muted-foreground/30 cursor-default' : 'text-foreground hover:bg-elevated'
           )}
         >

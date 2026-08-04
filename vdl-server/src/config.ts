@@ -38,6 +38,8 @@ export const config = {
 
   cookieMode: optional('COOKIE_MODE', 'browser') as 'browser' | 'file',
   cookiesFilePath: optional('COOKIES_FILE_PATH', './cookies.txt'),
+  /** Cookie upload is disabled unless an explicit bearer token is configured. */
+  cookieSyncToken: optional('COOKIE_SYNC_TOKEN', ''),
 
   /** After plain `fetch` fails on Douyin, hydrate with Playwright (default on; set `DOUYIN_PLAYWRIGHT=0` to skip). */
   douyinPlaywright: envDouyinPlaywrightEnabled(),

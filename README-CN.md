@@ -52,7 +52,7 @@
 - **Dock 进度动画** — macOS Dock 图标从上到下填充动画，实时显示下载速度（如 `12 MB/s`）
 - **实时进度** — 实时进度条、网速、剩余时间、下载阶段（视频/音频/合并）
 - **下载管理** — 暂停、恢复、重试、取消、删除单个或全部任务
-- **Cookie 同步** — 自动从 Chrome 同步 YouTube Cookie，用于需要登录的下载
+- **显式 Cookie 同步** — 只有用户主动请求时才从 Chrome 同步支持站点的 Cookie；默认只保存到本机桌面应用
 - **崩溃恢复** — 检测到中断的下载，重启后可继续
 - **暗色 UI** — 简洁的深色主题，黑白配色
 
@@ -93,7 +93,7 @@ brew install yt-dlp ffmpeg
 
 1. 从 [Releases](https://github.com/wangm12/v-download/releases) 下载最新的 `.dmg` 文件
 2. 打开 DMG，将 **V-Download** 拖入「应用程序」文件夹
-3. 首次启动：右键点击 → 打开（因为应用未签名）
+3. 正式 notarized 版本通常可以直接打开；源码或 ad-hoc 版本首次启动可能需要右键点击 → 打开
 
 ### 从源码构建
 
@@ -124,7 +124,7 @@ npm run build:mac
 4. **X/Twitter 页面** — 含视频的推文自动出现下载按钮（操作栏和视频播放器上），点击即发送至 yt-dlp
 5. **抖音页面** — 当前视频上方出现下载按钮，支持完整画质选择、封面图片、音乐下载
 6. **其他页面** — 检测到的视频元素上会出现下载叠加按钮；点击扩展图标可打开弹窗查看所有检测到的媒体流（HLS、MP4、WebM、FLV）
-7. Cookie 每 5 分钟自动同步一次，确保认证下载正常工作
+7. 只有在应用中点击 **Sync cookies** 后才会同步 Cookie；扩展不会自动把 Cookie 上传到可选服务器
 
 ### 快捷键
 
@@ -178,7 +178,7 @@ flowchart TB
   end
   tg[Telegram_Cloud]
   ext -->|"POST_/cookies_/download"| http
-  ext -->|"optional_POST_/api/cookies"| api
+  client -->|"authenticated_POST_/api/cookies"| api
   main -->|spawn| ytdlp
   queue -->|spawn| ytdlp
   queue --> douyin[Douyin_HTTP_fallback]
@@ -186,9 +186,9 @@ flowchart TB
 ```
 
 - **桌面路径：** 渲染进程负责 UI；主进程运行 [ytdlp.ts](src/main/ytdlp.ts)、[downloadManager.ts](src/main/downloadManager.ts)、[localServer.ts](src/main/localServer.ts)，在 **18765** 端口为扩展提供 HTTP。
-- **扩展：** 内容脚本做媒体检测与页面 UI；[background.js](extension/background.js) 转发 URL，并按域名列表定期同步 Cookie（通过 `importScripts('cookie-sync-domains.js')`）。
+- **扩展：** 内容脚本做媒体检测与页面 UI；[background.js](extension/background.js) 转发 URL，并处理显式触发的本地 Cookie 同步（通过 `importScripts('cookie-sync-domains.js')`）。
 - **vdl-server：** [index.ts](vdl-server/src/index.ts) 提供健康检查、Cookie 上传、静态文件与 Telegram Webhook；[queue.ts](vdl-server/src/queue.ts) 调用 yt-dlp 或 [douyin.ts](vdl-server/src/douyin.ts) 回退；[bot/index.ts](vdl-server/src/bot/index.ts) 发送视频或临时链接。当 `BASE_URL` 为 `https://...` 时使用 **Webhook**，否则为 **长轮询**。
-- **机器人 Cookie：** 若要让扩展同步的 Netscape Cookie 以 `--cookies` 传给 yt-dlp，请将服务器 **`COOKIE_MODE=file`**（详见 [vdl-server/README.md](vdl-server/README.md)）；默认 `browser` 读取的是 **服务器本机** Chrome 配置，而非上传的文件。
+- **机器人 Cookie：** 服务端 `/api/cookies` 默认关闭；只有配置 `COOKIE_SYNC_TOKEN` 后才接受认证上传。需要让服务端使用 Cookie 文件时，请设置 **`COOKIE_MODE=file`**（详见 [vdl-server/README.md](vdl-server/README.md)）。
 
 ### 技术栈
 
@@ -262,7 +262,7 @@ extension/                  # Chrome 扩展 (Manifest V3)
 | **使用扩展** | 在 Chrome 中加载 [`extension/`](extension/) 目录；桌面应用需运行以提供 `127.0.0.1:18765`。 |
 | **修改 Cookie 同步域名** | 编辑 [packages/shared/src/cookie-sync-domains.ts](packages/shared/src/cookie-sync-domains.ts)，在仓库根目录执行 `npm run sync:extension-constants`，然后重新加载扩展。 |
 | **从仓库根目录运行 vdl（Make）** | 执行 `make help` 查看列表。常用：`make vdl-install`、`make vdl-build`、`make vdl-dev`（轮询）、`make vdl-server`（Cloudflare 隧道 + 服务）、`make vdl-docker-build` / `make vdl-docker-up`（Docker；compose 工作目录仍在 `vdl-server/`）。 |
-| **运行 Telegram 机器人** | 将 `.env` 放在 [`vdl-server/`](vdl-server/)（见 [vdl-server/README.md](vdl-server/README.md)）。可在**仓库根目录**使用 **`make vdl-*`**，或 **`cd vdl-server`** 按该 README 操作（`make server`、Docker）。扩展向机器人同步 Cookie 且希望 yt-dlp 使用该文件时，请使用 **`COOKIE_MODE=file`**。 |
+| **运行 Telegram 机器人** | 将 `.env` 放在 [`vdl-server/`](vdl-server/)（见 [vdl-server/README.md](vdl-server/README.md)）。可在**仓库根目录**使用 **`make vdl-*`**，或 **`cd vdl-server`** 按该 README 操作（`make server`、Docker）。如需 Cookie 上传，请先设置 **`COOKIE_SYNC_TOKEN`**。 |
 | **部署机器人** | 见 [vdl-server/DEPLOYMENT.md](vdl-server/DEPLOYMENT.md)。 |
 | **发版前测试** | 见 [docs/MANUAL_TESTING.md](docs/MANUAL_TESTING.md)。 |
 | **后续改进 / 调研** | 见 [docs/FUTURE_ENHANCEMENTS.md](docs/FUTURE_ENHANCEMENTS.md)（抖音 hydration、URL/解析、可选 CloakBrowser）。 |
@@ -303,6 +303,8 @@ make vdl-dev
 2. 启用**开发者模式**
 3. 点击**加载已解压的扩展程序**，选择 `extension/` 文件夹
 4. 文件修改后扩展会自动重载
+
+发布到 Chrome Web Store 前，请先阅读[隐私说明](docs/PRIVACY.md)，完成商店的数据使用披露，并在 [release-config.example.json](release-config.example.json) 中配置正式 Extension ID。
 
 ## 许可证
 

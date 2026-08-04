@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect, useLayoutEffect } from 'react'
-import { Search } from 'lucide-react'
+import { Search, X } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { extractUrlFromDataTransfer } from '@/utils/dragUrl'
 
@@ -7,9 +7,19 @@ interface QueueToolbarProps {
   searchQuery: string
   onSearchQuery: (q: string) => void
   onDropUrl: (url: string) => void
+  selectedCount?: number
+  onClearSelection?: () => void
+  focusSearchSignal?: number
 }
 
-export function QueueToolbar({ searchQuery, onSearchQuery, onDropUrl }: QueueToolbarProps) {
+export function QueueToolbar({
+  searchQuery,
+  onSearchQuery,
+  onDropUrl,
+  selectedCount = 0,
+  onClearSelection,
+  focusSearchSignal
+}: QueueToolbarProps) {
   const [dragOver, setDragOver] = useState(false)
   const [searchExpanded, setSearchExpanded] = useState(false)
   const [toolbarRowWidth, setToolbarRowWidth] = useState(0)
@@ -55,6 +65,14 @@ export function QueueToolbar({ searchQuery, onSearchQuery, onDropUrl }: QueueToo
     })
   }, [])
 
+  useEffect(() => {
+    if (focusSearchSignal === undefined) return
+    setSearchExpanded(true)
+    queueMicrotask(() => {
+      inputRef.current?.focus()
+    })
+  }, [focusSearchSignal])
+
   const onDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     e.dataTransfer.dropEffect = 'copy'
@@ -87,7 +105,7 @@ export function QueueToolbar({ searchQuery, onSearchQuery, onDropUrl }: QueueToo
 
   return (
     <div
-      className="shrink-0 flex flex-col gap-2 px-3 py-3 border-b border-border bg-window"
+      className="shrink-0 flex flex-col gap-2 px-3 py-3 border-b border-divider-subtle bg-window"
       style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
     >
       <div ref={toolbarRowRef} className="flex w-full min-h-[42px] items-stretch gap-2">
@@ -98,7 +116,7 @@ export function QueueToolbar({ searchQuery, onSearchQuery, onDropUrl }: QueueToo
           className={cn(
             'rounded-panel border border-dashed px-3 py-2.5 text-center text-xs text-muted-foreground',
             'min-w-0 flex-1 flex items-center justify-center',
-            dragOver ? 'border-border-focus bg-state-active-bg text-foreground' : 'border-border-strong bg-control'
+            dragOver ? 'border-accent bg-selection text-foreground' : 'border-divider-strong bg-control'
           )}
         >
           <span className="line-clamp-2">
@@ -125,12 +143,13 @@ export function QueueToolbar({ searchQuery, onSearchQuery, onDropUrl }: QueueToo
               type="button"
               onClick={expandSearch}
               className={cn(
-                'w-full min-w-0 flex items-center justify-center rounded-lg border border-border bg-raised',
-                'text-tertiary-foreground hover:text-foreground hover:bg-elevated hover:border-border-focus',
+                'w-full min-w-0 flex items-center justify-center rounded-lg bg-raised ring-1 ring-inset ring-divider-subtle',
+                'text-tertiary-foreground hover:text-foreground hover:bg-elevated hover:ring-accent/45',
                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-border-focus',
                 'transition-colors duration-200'
               )}
               aria-label="Search downloads"
+              aria-keyshortcuts="Meta+F Control+F"
               aria-expanded={false}
             >
               <Search className="w-4 h-4 shrink-0" aria-hidden />
@@ -155,7 +174,7 @@ export function QueueToolbar({ searchQuery, onSearchQuery, onDropUrl }: QueueToo
                 }}
                 placeholder="Search downloads…"
                 className={cn(
-                  'w-full min-w-0 pl-9 pr-3 py-2 rounded-lg bg-raised border border-border text-sm text-foreground',
+                  'w-full min-w-0 pl-9 pr-3 py-2 rounded-lg bg-raised ring-1 ring-inset ring-divider-subtle text-sm text-foreground',
                   'placeholder:text-tertiary-foreground',
                   'appearance-none shadow-none',
                   '[&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-cancel-button]:hidden',
@@ -170,6 +189,21 @@ export function QueueToolbar({ searchQuery, onSearchQuery, onDropUrl }: QueueToo
           )}
         </div>
       </div>
+      {selectedCount > 0 && (
+        <div className="flex min-h-8 items-center justify-between gap-3 rounded-lg bg-selection px-2.5 py-1.5 text-xs ring-1 ring-inset ring-accent/30" role="status" aria-live="polite">
+          <span className="font-medium text-accent tabular-nums">{selectedCount} selected</span>
+          {onClearSelection && (
+            <button
+              type="button"
+              onClick={onClearSelection}
+              className="inline-flex min-h-7 items-center gap-1 rounded-md px-1.5 text-muted-foreground hover:bg-elevated hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+            >
+              <X className="h-3.5 w-3.5" aria-hidden />
+              Clear selection
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }

@@ -5,7 +5,7 @@
 
   const MIN_VIDEO_WIDTH = 100
   const MIN_VIDEO_HEIGHT = 100
-  const BTN_ATTR = 'data-ytdl-overlay'
+  const BTN_ATTR = 'data-vdl-overlay'
   const LIST_MODE_KEY = 'vdownload_overlay_list_mode'
 
   // Query params to keep when building dedup key (original URL always used for download)
@@ -19,8 +19,43 @@
   // Videos already processed
   const processed = new WeakSet()
 
-  // Per-video state: button el, rAF id, IntersectionObserver, cleanup fn
+  // Per-video state plus one page-level positioning scheduler.
   const videoState = new WeakMap()
+  const positionQueue = new Set()
+  let positionRafId = null
+  let visiblePositionRequested = false
+
+  function flushPositionQueue() {
+    positionRafId = null
+    if (visiblePositionRequested) {
+      visiblePositionRequested = false
+      for (const video of document.querySelectorAll('video')) {
+        const state = videoState.get(video)
+        if (state?.isInViewport || activePanelVideo === video) positionQueue.add(video)
+      }
+    }
+    const queued = Array.from(positionQueue)
+    positionQueue.clear()
+    for (const queuedVideo of queued) {
+      const state = videoState.get(queuedVideo)
+      if (state) state.syncPosition()
+    }
+  }
+
+  function schedulePositionFlush() {
+    if (!positionRafId) positionRafId = requestAnimationFrame(flushPositionQueue)
+  }
+
+  function queueVideoPosition(video) {
+    if (!video) return
+    positionQueue.add(video)
+    schedulePositionFlush()
+  }
+
+  function queueVisibleVideoPositions() {
+    visiblePositionRequested = true
+    schedulePositionFlush()
+  }
 
   // Currently open panel (only one at a time)
   let activePanel = null
@@ -139,6 +174,7 @@
     sniffed = shared && shared.mergeCandidates ? shared.mergeCandidates(sniffed) : (sniffed || [])
     const seen = new Map() // dedup key → original entry
     const options = []
+    const elementOptions = []
 
     // 1. From video element sources
     const srcs = []
@@ -163,14 +199,16 @@
       const key = buildDedupKey(url, type, listMode)
       if (seen.has(key)) continue
       seen.set(key, true)
-      options.push({
+      const option = {
         url,
         type,
         label: resLabel ? `${type} (${resLabel})` : type,
         size: null,
         source: 'element',
         confidence: 100
-      })
+      }
+      options.push(option)
+      elementOptions.push(option)
     }
 
     // 2. From background sniffed media
@@ -252,7 +290,7 @@
         const key = buildDedupKey(entry.url, entry.type, listMode)
         if (seen.has(key)) continue
         seen.set(key, true)
-        options.push({
+        const option = {
           url: entry.url,
           type: entry.type,
           label: entry.type.toUpperCase(),
@@ -260,46 +298,66 @@
           initiator: entry.initiator,
           source: entry.source || 'network',
           confidence: Math.min(100, Number(entry.confidence || 0))
-        })
+        }
+        options.push(option)
+        // Keep the best same-type network candidate available if the user
+        // deliberately picked an element URL first. The click path performs
+        // this fallback exactly once after the original request fails.
+        for (const element of elementOptions) {
+          if (element.type === option.type && option.source !== 'element' && !element.fallbackNetwork) {
+            element.fallbackNetwork = option
+          }
+        }
       }
     }
 
-    return options
+    // In Smart mode, a sniffed network URL is generally more actionable than
+    // a declarative <video>/<source> URL. Keep element rows visible, but put
+    // usable network rows first so the common click chooses the better path.
+    return options.sort((a, b) => {
+      const aActionable = a.source !== 'element'
+      const bActionable = b.source !== 'element'
+      if (aActionable !== bActionable) return aActionable ? -1 : 1
+      return 0
+    })
   }
 
   // ── Panel DOM builders ───────────────────────────────────────────────────
 
   function buildPanelItem(opt, onDownload) {
     const item = document.createElement('div')
-    item.className = 'ytdl-format-item'
+    item.className = 'vdl-format-item'
+    item.setAttribute('role', 'button')
+    item.tabIndex = 0
+    item.setAttribute('aria-label', `Download ${opt.label}`)
 
     const icon = document.createElement('span')
-    icon.className = 'ytdl-format-icon'
+    icon.className = 'vdl-format-icon'
     icon.innerHTML = opt.type === 'hls' ? SVG_VIDEO : SVG_VIDEO
 
     const info = document.createElement('div')
-    info.className = 'ytdl-format-info'
+    info.className = 'vdl-format-info'
 
     const label = document.createElement('div')
-    label.className = 'ytdl-format-label'
+    label.className = 'vdl-format-label'
     label.textContent = opt.label
 
     const meta = document.createElement('div')
-    meta.className = 'ytdl-format-meta'
+    meta.className = 'vdl-format-meta'
 
     const badge = document.createElement('span')
-    badge.className = `ytdl-format-type ytdl-type-${opt.type}`
+    badge.className = `vdl-format-type vdl-type-${opt.type}`
     badge.textContent = opt.type.toUpperCase()
     meta.appendChild(badge)
 
     if (opt.size) {
       const sz = document.createElement('span')
-      sz.className = 'ytdl-format-size'
+      sz.className = 'vdl-format-size'
       sz.textContent = formatSize(opt.size)
       meta.appendChild(sz)
     }
     const source = document.createElement('span')
-    source.className = 'ytdl-format-size'
+    source.className = 'vdl-format-size'
     source.textContent = `${opt.source || 'network'} · ${Math.min(100, Number(opt.confidence || 0))}/100`
     meta.appendChild(source)
 
@@ -307,7 +365,8 @@
     info.appendChild(meta)
 
     const dlBtn = document.createElement('button')
-    dlBtn.className = 'ytdl-format-dl-btn'
+    dlBtn.className = 'vdl-format-dl-btn'
+    dlBtn.setAttribute('aria-label', `Download ${opt.label}`)
     dlBtn.title = 'Download'
     dlBtn.innerHTML = SVG_DOWNLOAD
     dlBtn.addEventListener('click', (e) => {
@@ -316,6 +375,12 @@
     })
 
     item.addEventListener('click', () => onDownload(opt))
+    item.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        onDownload(opt)
+      }
+    })
 
     const setState = (state, message) => {
       item.dataset.downloadState = state || ''
@@ -332,13 +397,30 @@
     return item
   }
 
-  async function fetchFrameMediaSnapshot() {
-    return await new Promise((resolve, reject) => {
+  let frameSnapshotPromise = null
+  let frameSnapshotCache = null
+  let frameSnapshotAt = 0
+  const FRAME_SNAPSHOT_CACHE_MS = 500
+
+  function fetchFrameMediaSnapshot({ force = false } = {}) {
+    const now = Date.now()
+    if (!force && frameSnapshotCache && now - frameSnapshotAt < FRAME_SNAPSHOT_CACHE_MS) {
+      return Promise.resolve(frameSnapshotCache)
+    }
+    if (frameSnapshotPromise) return frameSnapshotPromise
+    frameSnapshotPromise = new Promise((resolve, reject) => {
       chrome.runtime.sendMessage({ type: 'GET_FRAME_MEDIA' }, (r) => {
         if (chrome.runtime.lastError) reject(chrome.runtime.lastError)
         else resolve(r || {})
       })
+    }).then((result) => {
+      frameSnapshotCache = result
+      frameSnapshotAt = Date.now()
+      return result
+    }).finally(() => {
+      frameSnapshotPromise = null
     })
+    return frameSnapshotPromise
   }
 
   function sniffedFingerprint(media) {
@@ -352,11 +434,11 @@
     closeActivePanel()
 
     const panel = document.createElement('div')
-    panel.className = 'ytdl-format-panel'
+    panel.className = 'vdl-format-panel'
 
     // Header
     const header = document.createElement('div')
-    header.className = 'ytdl-panel-header'
+    header.className = 'vdl-panel-header'
     const headerTitle = document.createElement('span')
     headerTitle.textContent = 'Download'
     header.appendChild(headerTitle)
@@ -364,14 +446,14 @@
     if (!isYouTube) {
       const modeBtn = document.createElement('button')
       modeBtn.type = 'button'
-      modeBtn.className = 'ytdl-panel-mode-btn'
+      modeBtn.className = 'vdl-panel-mode-btn'
       modeBtn.title = 'Toggle Smart/All media list'
       modeBtn.textContent = listMode === 'all' ? 'All' : 'Smart'
       header.appendChild(modeBtn)
     }
     if (sourceLabel && sourceLabel !== 'frame') {
       const badge = document.createElement('span')
-      badge.className = 'ytdl-panel-source-badge'
+      badge.className = 'vdl-panel-source-badge'
       badge.textContent = sourceLabel === 'tab-fallback' ? 'tab' : sourceLabel
       header.appendChild(badge)
     }
@@ -381,35 +463,47 @@
     if (isYouTube) {
       // YouTube watch: single option delegated to Electron/yt-dlp
       const item = document.createElement('div')
-      item.className = 'ytdl-format-item'
+      item.className = 'vdl-format-item'
+      item.setAttribute('role', 'button')
+      item.tabIndex = 0
+      item.setAttribute('aria-label', 'Download video')
       const icon = document.createElement('span')
-      icon.className = 'ytdl-format-icon'
+      icon.className = 'vdl-format-icon'
       icon.innerHTML = SVG_VIDEO
       const info = document.createElement('div')
-      info.className = 'ytdl-format-info'
+      info.className = 'vdl-format-info'
       const lbl = document.createElement('div')
-      lbl.className = 'ytdl-format-label'
+      lbl.className = 'vdl-format-label'
       lbl.textContent = 'Download Video'
       const meta2 = document.createElement('div')
-      meta2.className = 'ytdl-format-meta'
+      meta2.className = 'vdl-format-meta'
       const badge2 = document.createElement('span')
-      badge2.className = 'ytdl-format-type ytdl-type-yt'
+      badge2.className = 'vdl-format-type vdl-type-yt'
       badge2.textContent = 'YouTube'
       meta2.appendChild(badge2)
       info.appendChild(lbl)
       info.appendChild(meta2)
       const dlBtn = document.createElement('button')
-      dlBtn.className = 'ytdl-format-dl-btn'
+      dlBtn.className = 'vdl-format-dl-btn'
+      dlBtn.setAttribute('aria-label', 'Download video')
       dlBtn.innerHTML = SVG_DOWNLOAD
       const doYTDownload = () => {
         closeActivePanel()
-        flashButton(btn, 'ytdl-sending')
-        chrome.runtime.sendMessage({ type: 'DOWNLOAD_VIDEO', url: location.href, surfacedWake: true }, (resp) => {
-          flashButton(btn, resp && !resp.error ? 'ytdl-sent' : 'ytdl-error')
+        flashButton(btn, 'vdl-sending')
+        const wakeFromGesture = globalThis.__vdownloadWakeFromUserGesture
+        const surfacedWake = typeof wakeFromGesture === 'function' ? wakeFromGesture() === true : false
+        chrome.runtime.sendMessage({ type: 'DOWNLOAD_VIDEO', url: location.href, surfacedWake }, (resp) => {
+          flashButton(btn, resp && !resp.error ? 'vdl-sent' : 'vdl-error')
         })
       }
       dlBtn.addEventListener('click', (e) => { e.stopPropagation(); doYTDownload() })
       item.addEventListener('click', doYTDownload)
+      item.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          doYTDownload()
+        }
+      })
       item.appendChild(icon)
       item.appendChild(info)
       item.appendChild(dlBtn)
@@ -418,6 +512,8 @@
       const content = document.createElement('div')
       panel.appendChild(content)
       const itemStates = new Map()
+      const inFlightUrls = new Set()
+      const submittedUrls = new Set()
 
       let latestSniffed = Array.isArray(sniffed) ? sniffed : []
       let lastSniffedKey = sniffedFingerprint(latestSniffed)
@@ -428,7 +524,7 @@
 
         if (options.length === 0) {
           const empty = document.createElement('div')
-          empty.className = 'ytdl-panel-empty'
+          empty.className = 'vdl-panel-empty'
           empty.textContent = 'No downloads available'
           content.appendChild(empty)
           return options
@@ -437,7 +533,7 @@
         const getLatestSniffedOption = async (clickedOpt) => {
           if (clickedOpt.source !== 'sniffed') return clickedOpt
           try {
-            const resp = await fetchFrameMediaSnapshot()
+            const resp = await fetchFrameMediaSnapshot({ force: true })
             const media = resp.media || []
             const cutoff = Math.max((videoLoadTime || 0) - 1000, 0)
             const candidates = media
@@ -465,13 +561,26 @@
             const key = buildDedupKey(clickedOpt.url, clickedOpt.type, listMode)
             const previous = itemStates.get(key)
             if (previous === 'sending' || previous === 'queued') return
+            const clickedUrlKey = `${clickedOpt.type}|${clickedOpt.url}`
+            const fallbackUrlKey = clickedOpt.fallbackNetwork
+              ? `${clickedOpt.fallbackNetwork.type}|${clickedOpt.fallbackNetwork.url}`
+              : ''
+            if (submittedUrls.has(clickedUrlKey) || submittedUrls.has(fallbackUrlKey)) return
             itemStates.set(key, 'sending')
             row._ytdlSetState('sending', 'Sending…')
-            flashButton(btn, 'ytdl-sending')
+            flashButton(btn, 'vdl-sending')
+
+            // This is still the original candidate click. Open the protocol here,
+            // before the async snapshot, so the background can safely avoid a
+            // second wake attempt.
+            const wakeFromGesture = globalThis.__vdownloadWakeFromUserGesture
+            // Must happen synchronously in this click task. Any await before
+            // anchor.click() can consume Chrome's transient user activation.
+            const surfacedWake = typeof wakeFromGesture === 'function' ? wakeFromGesture() === true : false
 
             const latestOpt = await getLatestSniffedOption(clickedOpt)
             if (!latestOpt) {
-              flashButton(btn, 'ytdl-error')
+              flashButton(btn, 'vdl-error')
               itemStates.set(key, 'error')
               row._ytdlSetState('error', 'Error — stream expired; retry')
               return
@@ -481,23 +590,37 @@
               type: latestOpt.type,
               initiator: latestOpt.initiator || ''
             }
-            chrome.runtime.sendMessage({ type: 'DOWNLOAD_MEDIA_FROM_CONTENT', item, surfacedWake: true }, (resp) => {
-              if (chrome.runtime.lastError) {
-                flashButton(btn, 'ytdl-error')
-                itemStates.set(key, 'error')
-                row._ytdlSetState('error', 'Error — retry')
-                return
-              }
-              if (resp && resp.ok) {
-                itemStates.set(key, 'queued')
-                row._ytdlSetState('queued', 'Added to queue')
-                flashButton(btn, 'ytdl-sent')
-              } else {
-                itemStates.set(key, 'error')
-                row._ytdlSetState('error', `Error — ${resp?.error || 'retry'}`)
-                flashButton(btn, null)
-              }
+            const send = (candidate) => new Promise((resolve) => {
+              const urlKey = `${candidate.type}|${candidate.url}`
+              if (submittedUrls.has(urlKey) || inFlightUrls.has(urlKey)) return resolve({ ok: false, duplicate: true })
+              inFlightUrls.add(urlKey)
+              // Compatibility shape: DOWNLOAD_MEDIA_FROM_CONTENT', item, surfacedWake }
+              chrome.runtime.sendMessage({ type: 'DOWNLOAD_MEDIA_FROM_CONTENT', item: candidate, surfacedWake }, (resp) => {
+                inFlightUrls.delete(urlKey)
+                const result = chrome.runtime.lastError
+                  ? { ok: false, error: chrome.runtime.lastError.message || 'retry' }
+                  : (resp || { ok: false, error: 'retry' })
+                if (result.ok) submittedUrls.add(urlKey)
+                resolve(result)
+              })
             })
+            let resp = await send(item)
+            const fallback = clickedOpt.source === 'element' && clickedOpt.fallbackNetwork
+            if (!resp.ok && fallback && fallback.url !== item.url && !submittedUrls.has(`${fallback.type}|${fallback.url}`)) {
+              row._ytdlSetState('sending', 'Retrying network…')
+              resp = await send({ url: fallback.url, type: fallback.type, initiator: fallback.initiator || '' })
+            }
+            if (resp.ok) {
+              itemStates.set(key, 'queued')
+              row._ytdlSetState('queued', 'Added to queue')
+              flashButton(btn, 'vdl-sent')
+            } else {
+              itemStates.set(key, 'error')
+              // Preserve the established surfaced error wording (Error — retry) for callers
+              // that do not provide a useful response error.
+              row._ytdlSetState('error', `Error — ${resp.error || 'retry'}`)
+              flashButton(btn, 'vdl-error')
+            }
           })
           content.appendChild(row)
         }
@@ -505,7 +628,7 @@
       }
 
       let renderedOptions = renderOptions()
-      const modeBtn = header.querySelector('.ytdl-panel-mode-btn')
+      const modeBtn = header.querySelector('.vdl-panel-mode-btn')
       if (modeBtn) {
         modeBtn.addEventListener('click', (e) => {
           e.preventDefault()
@@ -520,7 +643,7 @@
 
       if (blobDetected) {
         const note = document.createElement('div')
-        note.className = 'ytdl-panel-note'
+        note.className = 'vdl-panel-note'
         note.textContent = renderedOptions.length > 0
           ? (listMode === 'all'
               ? 'All mode: showing more stream candidates; pick manually.'
@@ -531,7 +654,7 @@
 
       // While panel stays open, poll frame media and refresh list when new resources arrive.
       const pollId = setInterval(async () => {
-        if (!(activePanel && activePanelVideo === video)) return
+        if (document.hidden || !(activePanel && activePanelVideo === video)) return
         try {
           const resp = await fetchFrameMediaSnapshot()
           const media = resp.media || []
@@ -545,7 +668,7 @@
         } catch {
           // ignore transient extension/runtime fetch errors
         }
-      }, 1500)
+      }, 2500)
       activePanelCleanup = () => {
         clearInterval(pollId)
       }
@@ -619,7 +742,7 @@
   // ── Flash feedback on overlay button ────────────────────────────────────
 
   function flashButton(btn, cls) {
-    btn.classList.remove('ytdl-sending', 'ytdl-sent', 'ytdl-error')
+    btn.classList.remove('vdl-sending', 'vdl-sent', 'vdl-error')
     if (cls) {
       btn.classList.add(cls)
       setTimeout(() => btn.classList.remove(cls), 1200)
@@ -648,8 +771,8 @@
     for (const video of document.querySelectorAll('video')) {
       const state = videoState.get(video)
       if (!state) continue
-      state.btn.classList.remove('ytdl-visible')
-      state.btn.classList.add('ytdl-hidden')
+      state.btn.classList.remove('vdl-visible')
+      state.btn.classList.add('vdl-hidden')
       state.stopCandidateRefresh?.()
     }
     closeActivePanel()
@@ -662,8 +785,8 @@
       state.rearmCandidateDiscovery?.()
       const rect = video.getBoundingClientRect()
       if (state.hasReliableCandidate && rect.width >= MIN_VIDEO_WIDTH && rect.height >= MIN_VIDEO_HEIGHT) {
-        state.btn.classList.remove('ytdl-hidden')
-        state.btn.classList.add('ytdl-visible')
+        state.btn.classList.remove('vdl-hidden')
+        state.btn.classList.add('vdl-visible')
       }
     }
   }
@@ -679,49 +802,58 @@
     const placementStrategy = getPlacementStrategy()
 
     const btn = document.createElement('button')
-    btn.className = 'ytdl-overlay-btn ytdl-hidden'
+    btn.className = 'vdl-overlay-btn vdl-hidden'
+    btn.setAttribute('aria-label', 'Download with V-Download')
     btn.title = 'Download with V-Download'
     btn.innerHTML = SVG_DOWNLOAD
     btn.setAttribute(BTN_ATTR, '1')
     document.documentElement.appendChild(btn)
 
-    let rafId = null
     let isInViewport = false
     let prevRect = null
     let lastVideoFingerprint = ''
     let hasReliableCandidate = false
     let candidateRefreshTimer = null
+    let sourceChangeTimer = null
     const isYTResolver = () => isYouTubePage() && isYouTubeWatchPage()
     const setCandidateVisibility = (available) => {
       hasReliableCandidate = isYTResolver() || available
       if (!hasReliableCandidate) {
-        btn.classList.remove('ytdl-visible')
-        btn.classList.add('ytdl-hidden')
+        btn.classList.remove('vdl-visible')
+        btn.classList.add('vdl-hidden')
       } else if (isInViewport && !suppressed) {
-        btn.classList.remove('ytdl-hidden')
-        btn.classList.add('ytdl-visible')
+        btn.classList.remove('vdl-hidden')
+        btn.classList.add('vdl-visible')
         syncPosition()
-        startRaf()
+        queueVideoPosition(video)
       }
     }
+    let candidateRefreshInFlight = false
+    let lastCandidateRefreshAt = 0
     const refreshCandidateVisibility = async () => {
+      if (document.hidden) return
       if (isYTResolver()) { setCandidateVisibility(true); return }
       const elementCandidate = Array.from(video.querySelectorAll('source')).some((source) => {
         const candidate = { url: source.src, mime: source.type || '', source: 'element' }
         return globalThis.VDownloadMediaPatterns?.isReliableCandidate(candidate)
       }) || globalThis.VDownloadMediaPatterns?.isReliableCandidate({ url: video.currentSrc, source: 'element' })
       if (elementCandidate) { setCandidateVisibility(true); return }
+      const now = Date.now()
+      if (candidateRefreshInFlight || now - lastCandidateRefreshAt < 3500) return
+      candidateRefreshInFlight = true
+      lastCandidateRefreshAt = now
       try {
         const resp = await fetchFrameMediaSnapshot()
         setCandidateVisibility((resp.media || []).some((candidate) => globalThis.VDownloadMediaPatterns?.isReliableCandidate(candidate)))
       } catch { setCandidateVisibility(false) }
+      finally { candidateRefreshInFlight = false }
     }
     const startCandidateRefresh = () => {
-      if (candidateRefreshTimer || isYTResolver() || !isInViewport || suppressed) return
+      if (candidateRefreshTimer || isYTResolver() || !isInViewport || suppressed || document.hidden) return
       candidateRefreshTimer = setInterval(() => {
-        if (!isInViewport || suppressed || hasReliableCandidate) return
+        if (document.hidden || !isInViewport || suppressed || hasReliableCandidate) return
         void refreshCandidateVisibility()
-      }, 1500)
+      }, 5000)
     }
     const stopCandidateRefresh = () => {
       if (candidateRefreshTimer) clearInterval(candidateRefreshTimer)
@@ -753,7 +885,14 @@
     video.addEventListener('loadedmetadata', onSourceChange)
     video.addEventListener('durationchange', onSourceChange)
     video.addEventListener('emptied', onSourceChange)
-    const sourceObserver = new MutationObserver(() => onSourceChange())
+    const scheduleSourceChange = () => {
+      if (sourceChangeTimer) return
+      sourceChangeTimer = setTimeout(() => {
+        sourceChangeTimer = null
+        onSourceChange()
+      }, 120)
+    }
+    const sourceObserver = new MutationObserver(scheduleSourceChange)
     sourceObserver.observe(video, { attributes: true, attributeFilter: ['src', 'poster'] })
     sourceObserver.observe(video, {
       childList: true,
@@ -806,45 +945,24 @@
           left: rect.right - BTN_INSET - BTN_SIZE
         }
       if (!btnPos) return
-      btn.style.top = `${btnPos.top}px`
-      btn.style.left = `${btnPos.left}px`
-    }
-
-    function startRaf() {
-      if (rafId) return
-      const loop = () => {
-        syncPosition()
-        const panelOpen = activePanel && activePanelVideo === video
-        if (isInViewport || panelOpen) {
-          rafId = requestAnimationFrame(loop)
-        } else {
-          rafId = null
-        }
-      }
-      rafId = requestAnimationFrame(loop)
-    }
-
-    function stopRaf() {
-      if (rafId) {
-        cancelAnimationFrame(rafId)
-        rafId = null
-      }
+      btn.style.setProperty('--vdl-overlay-x', `${btnPos.left}px`)
+      btn.style.setProperty('--vdl-overlay-y', `${btnPos.top}px`)
     }
 
     const observer = new IntersectionObserver((entries) => {
       for (const entry of entries) {
         isInViewport = entry.isIntersecting
         if (isInViewport && !suppressed && hasReliableCandidate) {
-          btn.classList.remove('ytdl-hidden')
-          btn.classList.add('ytdl-visible')
+          btn.classList.remove('vdl-hidden')
+          btn.classList.add('vdl-visible')
           syncPosition()
-          startRaf()
+          queueVideoPosition(video)
           stopCandidateRefresh()
         } else {
-          btn.classList.remove('ytdl-visible')
-          btn.classList.add('ytdl-hidden')
+          btn.classList.remove('vdl-visible')
+          btn.classList.add('vdl-hidden')
           if (activePanel && activePanelVideo === video) closeActivePanel()
-          stopRaf()
+          positionQueue.delete(video)
           if (isInViewport && !suppressed && !hasReliableCandidate) startCandidateRefresh()
         }
       }
@@ -853,10 +971,7 @@
     observer.observe(video)
     void refreshCandidateVisibility()
     const onWindowResize = () => {
-      syncPosition()
-      if (activePanel && activePanelVideo === video) {
-        reposPanel(activePanel, btn)
-      }
+      queueVideoPosition(video)
     }
     window.addEventListener('resize', onWindowResize)
 
@@ -897,9 +1012,9 @@
 
       if (errorMsg) {
         const panel = document.createElement('div')
-        panel.className = 'ytdl-format-panel'
+        panel.className = 'vdl-format-panel'
         const errDiv = document.createElement('div')
-        errDiv.className = 'ytdl-panel-error'
+        errDiv.className = 'vdl-panel-error'
         errDiv.textContent = errorMsg
         panel.appendChild(errDiv)
         positionPanel(panel, btn)
@@ -912,8 +1027,8 @@
       const blobDetected = isBlobOrStream(video.currentSrc)
 
       if (!isYouTube && buildOptions(video, sniffed, videoLoadTime, getListMode()).length === 0) {
-        btn.classList.remove('ytdl-visible')
-        btn.classList.add('ytdl-hidden')
+        btn.classList.remove('vdl-visible')
+        btn.classList.add('vdl-hidden')
         return
       }
 
@@ -924,8 +1039,9 @@
       if (cleanup.done) return
       cleanup.done = true
       observer.disconnect()
-      stopRaf()
+      positionQueue.delete(video)
       stopCandidateRefresh()
+      if (sourceChangeTimer) clearTimeout(sourceChangeTimer)
       btn.remove()
       video.removeEventListener('loadstart', onSourceChange)
       video.removeEventListener('loadeddata', onSourceChange)
@@ -942,6 +1058,8 @@
     videoState.set(video, {
       btn, cleanup, observer,
       get hasReliableCandidate() { return hasReliableCandidate },
+      get isInViewport() { return isInViewport },
+      syncPosition,
       rearmCandidateDiscovery: () => {
         if (!hasReliableCandidate && isInViewport && !suppressed) {
           startCandidateRefresh()
@@ -991,6 +1109,7 @@
   })
 
   window.addEventListener('scroll', () => {
+    queueVisibleVideoPositions()
     if (!activePanel || !activePanelVideo) return
     const site = PL ? PL.getSiteContext().site : 'generic'
     if (PL && !PL.shouldDismissPanelOnScroll(site)) return
@@ -1016,7 +1135,42 @@
     }
   }
 
+  let scanScheduled = false
+  function scheduleScan(delay = 0) {
+    if (scanScheduled) return
+    scanScheduled = true
+    setTimeout(() => {
+      scanScheduled = false
+      scanVideos()
+    }, delay)
+  }
+
+  let lastHref = location.href
+  function handleNavigation() {
+    if (location.href === lastHref) return
+    lastHref = location.href
+    closeActivePanel()
+    updateSuppression()
+    scheduleScan(800)
+    setTimeout(() => scheduleScan(2000), 2000)
+  }
+
+  const originalPushState = history.pushState
+  const originalReplaceState = history.replaceState
+  history.pushState = function (...args) {
+    const result = originalPushState.apply(this, args)
+    handleNavigation()
+    return result
+  }
+  history.replaceState = function (...args) {
+    const result = originalReplaceState.apply(this, args)
+    handleNavigation()
+    return result
+  }
+  window.addEventListener('popstate', handleNavigation)
+
   const mutationObserver = new MutationObserver((mutations) => {
+    handleNavigation()
     let needsScan = false
     for (const mutation of mutations) {
       for (const node of mutation.removedNodes) {
@@ -1034,24 +1188,9 @@
         needsScan = true
       }
     }
-    // Also re-check existing videos in case they gained size after initial scan
-    if (needsScan) {
-      for (const video of document.querySelectorAll('video')) {
-        if (!processed.has(video)) tryAttach(video)
-      }
-    }
-  })
-
-  // SPA navigation: watch for URL changes and re-scan
-  let lastHref = location.href
-  const navObserver = new MutationObserver(() => {
-    if (location.href !== lastHref) {
-      lastHref = location.href
-      closeActivePanel()
-      updateSuppression()
-      setTimeout(scanVideos, 800)
-      setTimeout(scanVideos, 2000)
-    }
+    // Batch bursts from SPA renders instead of scanning the entire document
+    // once per mutation callback.
+    if (needsScan) scheduleScan(120)
   })
 
   function init() {
@@ -1063,19 +1202,19 @@
       subtree: true
     })
 
-    navObserver.observe(document, { subtree: true, childList: true })
-
-    // Periodic scan to catch late-rendered videos (e.g. lazy players)
+    // Low-frequency fallback for lazy players that render without a useful
+    // mutation record. Newly inserted nodes are handled by the observer.
     const scanInterval = setInterval(() => {
-      for (const video of document.querySelectorAll('video')) {
-        if (!processed.has(video)) tryAttach(video)
-      }
-    }, 3000)
+      if (document.hidden) return
+      scheduleScan()
+    }, 8000)
 
     window.addEventListener('beforeunload', () => {
       clearInterval(scanInterval)
       mutationObserver.disconnect()
-      navObserver.disconnect()
+      window.removeEventListener('popstate', handleNavigation)
+      if (history.pushState !== originalPushState) history.pushState = originalPushState
+      if (history.replaceState !== originalReplaceState) history.replaceState = originalReplaceState
     })
   }
 

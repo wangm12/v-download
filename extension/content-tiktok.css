@@ -8,7 +8,7 @@
   border: none;
   cursor: pointer;
   background: rgba(0, 0, 0, 0.5);
-  color: #fff;
+  color: var(--vdl-text);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -48,20 +48,20 @@
 
 #tt-dl-btn.tt-dl-sending {
   opacity: 1;
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--vdl-accent);
   pointer-events: none;
 }
 
 #tt-dl-btn.tt-dl-sent {
   opacity: 1;
-  background: rgba(50, 213, 131, 0.8);
+  background: var(--vdl-success);
   pointer-events: none;
 }
 
 #tt-dl-panel {
   position: fixed;
-  background: #1a1a1e;
-  border: 1px solid #3f3f46;
+  background: var(--vdl-bg);
+  border: 1px solid var(--vdl-divider-strong);
   border-radius: 10px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
   min-width: 230px;
@@ -71,7 +71,7 @@
   z-index: 2147483647;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 13px;
-  color: #e4e4e7;
+  color: var(--vdl-text);
   padding: 6px 0 8px;
   animation: tt-dl-panel-in 0.12s ease;
 }
@@ -85,10 +85,10 @@
   padding: 8px 14px 6px;
   font-size: 11px;
   font-weight: 600;
-  color: #71717a;
+  color: var(--vdl-subtle);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  border-bottom: 1px solid #27272a;
+  border-bottom: 1px solid var(--vdl-divider);
   margin-bottom: 2px;
 }
 
@@ -102,14 +102,14 @@
 }
 
 .tt-dl-format-item:hover {
-  background: #27272a;
+  background: var(--vdl-raised);
 }
 
 .tt-dl-format-icon {
   flex-shrink: 0;
   width: 18px;
   height: 18px;
-  color: #71717a;
+  color: var(--vdl-subtle);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -128,7 +128,7 @@
 .tt-dl-format-label {
   font-size: 13px;
   font-weight: 500;
-  color: #e4e4e7;
+  color: var(--vdl-text);
 }
 
 .tt-dl-format-meta {
@@ -137,7 +137,7 @@
 
 .tt-dl-format-size {
   font-size: 11px;
-  color: #52525b;
+  color: var(--vdl-subtle);
 }
 
 .tt-dl-format-dl-btn {
@@ -147,7 +147,7 @@
   border-radius: 50%;
   border: none;
   background: transparent;
-  color: #71717a;
+  color: var(--vdl-subtle);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -164,5 +164,5 @@
   padding: 18px 14px;
   text-align: center;
   font-size: 12px;
-  color: #52525b;
+  color: var(--vdl-subtle);
 }

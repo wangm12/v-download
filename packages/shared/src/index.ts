@@ -94,6 +94,8 @@ export interface DownloadTask {
 export interface DownloadRequest {
   url: string
   type?: string
+  quality?: string
+  autoStart?: boolean
   referer?: string
   headers?: Record<string, string>
   title?: string

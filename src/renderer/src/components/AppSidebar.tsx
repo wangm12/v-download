@@ -104,7 +104,7 @@ function IconNavButton({
 const panelIconClass = 'h-[18px] w-[18px] shrink-0 text-foreground/80 transition-[color,transform] duration-200 ease-out group-hover:text-foreground'
 
 const toggleIconBtn =
-  'group flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-transparent bg-raised/50 text-muted-foreground shadow-[0_1px_0_rgba(255,255,255,0.04)] transition-[border-color,background-color,box-shadow,transform] duration-panel ease-panel hover:border-border-strong hover:bg-control hover:text-foreground hover:shadow-[0_2px_8px_rgba(0,0,0,0.22)] active:scale-[0.96] motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus'
+  'group flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-raised/50 text-muted-foreground ring-1 ring-inset ring-divider-subtle transition-[background-color,box-shadow,transform] duration-panel ease-panel hover:bg-surface-hover hover:text-foreground hover:ring-accent/40 hover:shadow-[0_6px_18px_rgb(0_0_0/0.18)] active:scale-[0.96] motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus'
 
 export function AppSidebar({
   collapsed,
@@ -131,7 +131,7 @@ export function AppSidebar({
             alt=""
             width={28}
             height={28}
-            className="h-7 w-7 shrink-0 rounded-lg object-cover shadow-sm ring-1 ring-border"
+            className="h-7 w-7 shrink-0 rounded-lg object-cover shadow-sm ring-1 ring-divider-subtle"
             draggable={false}
             role="presentation"
           />
@@ -154,7 +154,7 @@ export function AppSidebar({
             alt=""
             width={32}
             height={32}
-            className="h-8 w-8 shrink-0 rounded-lg object-cover shadow-sm ring-1 ring-border"
+            className="h-8 w-8 shrink-0 rounded-lg object-cover shadow-sm ring-1 ring-divider-subtle"
             draggable={false}
           />
           <div className="min-w-0 flex-1">
@@ -191,7 +191,7 @@ export function AppSidebar({
 
             <div className="flex flex-col flex-1 min-h-0 gap-0.5">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-tertiary-foreground px-2 mb-1 shrink-0">
-                Settings
+                Preferences
               </p>
               <div className="flex flex-col gap-0.5 shrink-0">
                 {PREF_SECTION_PRIMARY.map((item) => {
@@ -222,16 +222,7 @@ export function AppSidebar({
             </div>
           </nav>
 
-          <div className="mt-auto flex flex-col gap-2 shrink-0">
-            {mainView === 'preferences' ? (
-              <div className="rounded-lg border border-border-strong bg-raised px-2.5 py-2.5 text-xs text-foreground leading-snug">
-                <span className="font-semibold text-foreground">Tip:</span> for rate-limiting sites, try{' '}
-                <span className="tabular-nums font-semibold text-foreground">2</span>–
-                <span className="tabular-nums font-semibold text-foreground">4</span> concurrent downloads in Settings →
-                Downloads → Queue.
-              </div>
-            ) : null}
-          </div>
+          <div className="mt-auto flex flex-col gap-2 shrink-0" aria-hidden="true" />
         </div>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col gap-2 animate-panel-fade-in motion-reduce:animate-none">

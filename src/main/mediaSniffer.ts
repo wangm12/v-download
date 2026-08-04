@@ -140,13 +140,13 @@ export async function sniffMedia(
     movable: false,
     minimizable: false,
     maximizable: false,
-    webPreferences: {
-      session: ses,
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: false,
-      autoplayPolicy: 'no-user-gesture-required'
-    }
+      webPreferences: {
+        session: ses,
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: true,
+        autoplayPolicy: 'no-user-gesture-required'
+      }
   })
   win.webContents.setAudioMuted(true)
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))

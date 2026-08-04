@@ -12,7 +12,6 @@
   const SVG_VIDEO = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>`
 
   let activePanel = null
-  let rafId = null
   let lastHref = location.href
 
   function getPlayerRect() {
@@ -86,26 +85,6 @@
     btn.classList.remove('tt-dl-hidden')
   }
 
-  function startRaf() {
-    if (rafId) return
-    const tick = () => {
-      const btn = document.getElementById(BTN_ID)
-      if (btn) {
-        positionButton(btn)
-        if (activePanel) repositionPanel()
-      }
-      rafId = requestAnimationFrame(tick)
-    }
-    rafId = requestAnimationFrame(tick)
-  }
-
-  function stopRaf() {
-    if (rafId) {
-      cancelAnimationFrame(rafId)
-      rafId = null
-    }
-  }
-
   function closePanel() {
     const panel = document.getElementById(PANEL_ID)
     if (panel) panel.remove()
@@ -139,7 +118,9 @@
 
   function triggerPageDownload(btn) {
     flashButton('tt-dl-sending')
-    chrome.runtime.sendMessage({ type: 'DOWNLOAD_VIDEO', url: location.href, surfacedWake: true }, (resp) => {
+    const wakeFromGesture = globalThis.__vdownloadWakeFromUserGesture
+    const surfacedWake = typeof wakeFromGesture === 'function' ? wakeFromGesture() === true : false
+    chrome.runtime.sendMessage({ type: 'DOWNLOAD_VIDEO', url: location.href, surfacedWake }, (resp) => {
       flashButton(resp && !resp.error ? 'tt-dl-sent' : null)
       if (resp && !resp.error) closePanel()
     })
@@ -147,7 +128,9 @@
 
   function triggerMediaDownload(item, btn) {
     flashButton('tt-dl-sending')
-    chrome.runtime.sendMessage({ type: 'DOWNLOAD_MEDIA_FROM_CONTENT', item, surfacedWake: true }, (resp) => {
+    const wakeFromGesture = globalThis.__vdownloadWakeFromUserGesture
+    const surfacedWake = typeof wakeFromGesture === 'function' ? wakeFromGesture() === true : false
+    chrome.runtime.sendMessage({ type: 'DOWNLOAD_MEDIA_FROM_CONTENT', item, surfacedWake }, (resp) => {
       flashButton(resp && resp.ok ? 'tt-dl-sent' : null)
       if (resp && resp.ok) closePanel()
     })
@@ -166,6 +149,8 @@
     const row = document.createElement('div')
     row.className = 'tt-dl-format-item'
     row.setAttribute('role', 'button')
+    row.setAttribute('tabindex', '0')
+    row.setAttribute('aria-label', `Download ${label}`)
 
     const icon = document.createElement('span')
     icon.className = 'tt-dl-format-icon'
@@ -191,6 +176,7 @@
 
     const dlBtn = document.createElement('button')
     dlBtn.className = 'tt-dl-format-dl-btn'
+    dlBtn.setAttribute('aria-label', `Download ${label}`)
     dlBtn.innerHTML = SVG_DOWNLOAD
     row.appendChild(dlBtn)
 
@@ -201,6 +187,12 @@
     }
     row.addEventListener('click', handle, true)
     dlBtn.addEventListener('click', handle, true)
+    row.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        onClick()
+      }
+    })
     return row
   }
 
@@ -276,15 +268,15 @@
   }
 
   function checkPlayer() {
+    if (document.hidden) return
     const btn = document.getElementById(BTN_ID)
     if (hasPlayer()) {
       const b = btn || ensureButton()
       positionButton(b)
-      startRaf()
+      if (activePanel) repositionPanel()
     } else if (btn) {
       btn.classList.remove('tt-dl-visible')
       btn.classList.add('tt-dl-hidden')
-      stopRaf()
     }
   }
 
@@ -302,8 +294,14 @@
   })
   navObserver.observe(document.documentElement, { subtree: false, childList: true })
 
-  setInterval(checkPlayer, 500)
+  const playerInterval = setInterval(checkPlayer, 1500)
   setTimeout(checkPlayer, 300)
   setTimeout(checkPlayer, 1000)
   setTimeout(checkPlayer, 2500)
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) checkPlayer()
+  })
+
+  window.addEventListener('beforeunload', () => clearInterval(playerInterval))
 })()

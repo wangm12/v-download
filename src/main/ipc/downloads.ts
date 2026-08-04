@@ -19,10 +19,30 @@ import { resolveMediaCandidates, protocolFor, mediaTypeForCandidate } from '../m
 
 const profileListAbortControllers = new Map<string, AbortController>()
 
+function isHttpUrl(value: unknown): value is string {
+  if (typeof value !== 'string' || value.trim().length === 0 || value.length > 8192) return false
+  try {
+    const parsed = new URL(value.trim())
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+function isDouyinUrl(value: unknown): value is string {
+  if (!isHttpUrl(value)) return false
+  try {
+    const host = new URL(value).hostname.toLowerCase()
+    return host === 'douyin.com' || host.endsWith('.douyin.com') || host === 'iesdouyin.com' || host.endsWith('.iesdouyin.com')
+  } catch {
+    return false
+  }
+}
+
 export function registerDownloadHandlers(): void {
   ipcMain.handle('get-video-info', async (_event, url: string) => {
     try {
-      if (!ytdlp.isValidDownloadUrl(url)) {
+      if (typeof url !== 'string' || !ytdlp.isValidDownloadUrl(url)) {
         return { error: 'Invalid URL' }
       }
       const cookiesPath = settings.getCookiesPath()
@@ -127,6 +147,9 @@ export function registerDownloadHandlers(): void {
 
   ipcMain.handle('get-entry-thumbnail', async (_event, pageUrl: string) => {
     try {
+      if (!isHttpUrl(pageUrl) || !ytdlp.isValidDownloadUrl(pageUrl)) {
+        return { error: 'Invalid URL' }
+      }
       const cookiesPath = settings.getCookiesPath()
       const ytdlpPath = settings.get('ytdlpPath')
       const data = await ytdlp.fetchThumbnailForPageUrl(pageUrl, cookiesPath || undefined, ytdlpPath)
@@ -139,7 +162,7 @@ export function registerDownloadHandlers(): void {
 
   ipcMain.handle('list-playlist-entries', async (_event, url: string) => {
     try {
-      if (!ytdlp.isValidDownloadUrl(url)) {
+      if (typeof url !== 'string' || !ytdlp.isValidDownloadUrl(url)) {
         return { error: 'Invalid URL' }
       }
       const cookiesPath = settings.getCookiesPath()
@@ -155,6 +178,8 @@ export function registerDownloadHandlers(): void {
     'fetch-thumbnail-data-url',
     async (_event, url: string, referer?: string) => {
       try {
+        if (!isHttpUrl(url)) return { error: 'Invalid thumbnail URL' }
+        if (referer !== undefined && !isHttpUrl(referer)) return { error: 'Invalid thumbnail referer' }
         const data = await fetchRemoteThumbnailDataUrl(url, referer)
         if (!data) return { error: 'Thumbnail fetch failed' }
         return { data }
@@ -183,6 +208,9 @@ export function registerDownloadHandlers(): void {
     candidates?: Array<Record<string, unknown>>
   }) => {
     try {
+      if (!options || typeof options.url !== 'string' || !ytdlp.isValidDownloadUrl(options.url)) {
+        return { error: 'Invalid URL' }
+      }
       const candidates = resolveMediaCandidates((options.candidates || []).filter((c) => typeof c?.url === 'string') as Array<{ url: string } & Record<string, unknown>>)
       const selected = candidates[0]
       const task = downloadManager.addTask({ ...options, mediaType: options.mediaType || (selected ? mediaTypeForCandidate(selected) : undefined), metadata: { ...(options.metadata || {}), ...(selected ? { candidate: { url: selected.url, formatId: selected.formatId, container: selected.container, protocol: selected.protocol, mimeType: selected.mimeType } } : {}) } })
@@ -273,7 +301,7 @@ export function registerDownloadHandlers(): void {
         const normalized = tasks
           .map((t) => {
             const url = String(t?.url ?? '').trim()
-            if (!url) return null
+            if (!url || !ytdlp.isValidDownloadUrl(url)) return null
             return {
               url,
               title: (t.title && t.title.trim()) || 'Download',
@@ -367,6 +395,7 @@ export function registerDownloadHandlers(): void {
 
   ipcMain.handle('sniff-media', async (_event, url: string) => {
     try {
+      if (!isHttpUrl(url)) return { error: 'Invalid URL' }
       const media = await sniffMedia(url)
       return { data: { ...media, candidates: media.media.map((item) => item.candidate).filter(Boolean) } }
     } catch (err) {
@@ -376,6 +405,7 @@ export function registerDownloadHandlers(): void {
 
   ipcMain.handle('start-douyin-bulk', async (_event, url: string) => {
     try {
+      if (!isDouyinUrl(url)) return { error: 'Invalid Douyin URL' }
       return { data: startDouyinBulkJob(url) }
     } catch (err) {
       return { error: err instanceof Error ? err.message : String(err) }
@@ -404,6 +434,7 @@ export function registerDownloadHandlers(): void {
 
   ipcMain.handle('run-douyin-bulk', async (_event, url: string) => {
     try {
+      if (!isDouyinUrl(url)) return { error: 'Invalid Douyin URL' }
       const { promise } = runDouyinBulkCli({ url: String(url || '').trim() })
       const result = await promise
       return { data: result }

@@ -1,0 +1,47 @@
+:root {
+  --vdl-bg: #0c0e11;
+  --vdl-surface: #121518;
+  --vdl-raised: #181c20;
+  --vdl-elevated: #1f2429;
+  --vdl-text: #eff3f5;
+  --vdl-muted: #a4aeb4;
+  --vdl-subtle: #707c84;
+  --vdl-control: rgba(255, 255, 255, 0.055);
+  --vdl-hover: rgba(255, 255, 255, 0.075);
+  --vdl-divider: rgba(255, 255, 255, 0.065);
+  --vdl-divider-strong: rgba(255, 255, 255, 0.13);
+  --vdl-selection: rgba(242, 184, 96, 0.14);
+  --vdl-accent: #f2b860;
+  --vdl-accent-hover: #ffc775;
+  --vdl-accent-fg: #1d1409;
+  --vdl-success: #5fd0a3;
+  --vdl-warning: #f2b860;
+  --vdl-error: #f47b6f;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --vdl-bg: #f6f8f9;
+    --vdl-surface: #ebeff1;
+    --vdl-raised: #e1e6e9;
+    --vdl-elevated: #d6dce0;
+    --vdl-text: #181d20;
+    --vdl-muted: #526068;
+    --vdl-subtle: #6f797f;
+    --vdl-control: rgba(12, 25, 30, 0.055);
+    --vdl-hover: rgba(12, 25, 30, 0.075);
+    --vdl-divider: rgba(12, 25, 30, 0.065);
+    --vdl-divider-strong: rgba(12, 25, 30, 0.15);
+    --vdl-selection: rgba(190, 122, 31, 0.12);
+    --vdl-accent: #be7a1f;
+    --vdl-accent-hover: #a96916;
+    --vdl-accent-fg: #fffaf0;
+    --vdl-success: #208b65;
+    --vdl-warning: #a96916;
+    --vdl-error: #b83f36;
+  }
+}
+
+.vdl-hidden {
+  display: none !important;
+}

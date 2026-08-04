@@ -2,6 +2,7 @@ import Fastify from 'fastify'
 import fastifyStatic from '@fastify/static'
 import { resolve } from 'path'
 import { mkdirSync, writeFileSync, renameSync } from 'fs'
+import { timingSafeEqual } from 'crypto'
 import { buildNetscapeCookieFile, type ChromeSyncedCookie } from '@v-download/shared'
 
 import { config } from './config.js'
@@ -10,6 +11,21 @@ import { bot, getTelegramWebhookCallback } from './bot/index.js'
 import { recoverOnStartup } from './queue.js'
 import { getServeDir, getFilePath, consumeOneTimeToken } from './storage/temp-link.js'
 import { startCleanupJob, stopCleanupJob } from './cleanup.js'
+
+function hasCookieSyncAuth(request: { headers: Record<string, string | string[] | undefined> }): boolean {
+  if (!config.cookieSyncToken) return false
+  const header = request.headers['x-vdownload-cookie-token']
+  const authorization = request.headers.authorization
+  const provided = typeof header === 'string'
+    ? header
+    : typeof authorization === 'string' && authorization.startsWith('Bearer ')
+      ? authorization.slice('Bearer '.length)
+      : ''
+  if (!provided) return false
+  const expected = Buffer.from(config.cookieSyncToken)
+  const actual = Buffer.from(provided)
+  return actual.length === expected.length && timingSafeEqual(actual, expected)
+}
 
 async function main() {
   console.log('Starting VDL Server...')
@@ -55,6 +71,9 @@ async function main() {
   })
 
   app.post('/api/cookies', async (request, reply) => {
+    if (!hasCookieSyncAuth(request)) {
+      return reply.code(config.cookieSyncToken ? 401 : 404).send({ error: 'Cookie sync is disabled or unauthorized' })
+    }
     const cookies = request.body as ChromeSyncedCookie[]
     if (!Array.isArray(cookies)) {
       return reply.code(400).send({ error: 'Expected array of cookies' })

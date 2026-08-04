@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ThumbnailImage } from './ThumbnailImage'
+import { requestCachedThumbnail } from '@/utils/thumbnailRequestQueue'
 
 interface EntryThumbnailProps {
   pageUrl: string
@@ -20,8 +21,11 @@ export function EntryThumbnail({ pageUrl, thumbnail, referer }: EntryThumbnailPr
     ;(async () => {
       try {
         if (!window.api?.getEntryThumbnail) return
-        const res = await window.api.getEntryThumbnail(pageUrl)
-        if (!cancelled && res?.data) setResolved(res.data)
+        const value = await requestCachedThumbnail(`entry:${pageUrl}`, async () => {
+          const res = await window.api.getEntryThumbnail(pageUrl)
+          return res?.data || null
+        })
+        if (!cancelled && value) setResolved(value)
       } catch {
         /* placeholder */
       }

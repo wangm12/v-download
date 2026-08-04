@@ -126,7 +126,7 @@ export function FormatDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3" role="presentation">
-      <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="format-dialog-title" className="w-full max-w-[520px] max-h-[calc(100vh-24px)] bg-background rounded-xl overflow-hidden shadow-2xl flex flex-col outline-none">
+      <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="format-dialog-title" className="w-full max-w-[520px] max-h-[calc(100vh-24px)] bg-background rounded-panel overflow-hidden shadow-2xl ring-1 ring-inset ring-divider-strong flex flex-col outline-none">
         {/* Header */}
         <div className="bg-elevated p-5 flex gap-3 items-center relative">
           <HoverHintWrap text="Close" side="bottom" className="absolute top-3 right-3">
@@ -203,7 +203,7 @@ export function FormatDialog({
         >
           {isImageGallery ? (
             <div className="py-5 space-y-4">
-              <div className="rounded-lg border border-border bg-elevated/40 px-4 py-3">
+              <div className="rounded-button bg-control px-4 py-3 ring-1 ring-inset ring-divider-subtle">
                 <p className="text-sm font-medium text-foreground">{galleryLabel} image gallery</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   This post contains {galleryCount} image{galleryCount === 1 ? '' : 's'} and will be saved as numbered files.
@@ -227,7 +227,7 @@ export function FormatDialog({
                 <span className="w-[100px] text-[11px] font-semibold text-muted-foreground">Details</span>
                 <span className="flex-1 text-[11px] font-semibold text-muted-foreground text-right">Action</span>
               </div>
-              <div className="h-px bg-border" />
+              <div className="h-px bg-divider-subtle" />
 
               {activeTab === 'video' && (videoFormats.length ? videoFormats : [{ format_id: 'best', quality: fallbackQuality('video', settings.defaultVideoQuality || '1080', siteRule), kind: 'video' as const, ext: 'auto', key: 'best', recommended: true }]).map((fmt, index) => (
                   <div key={fmt.key || `${fmt.format_id || fmt.format || 'candidate'}-${index}`}>
@@ -247,7 +247,7 @@ export function FormatDialog({
                         </button>
                       </div>
                     </div>
-                    <div className="h-px bg-border" />
+                    <div className="h-px bg-divider-subtle" />
                   </div>
                 ))}
 
@@ -269,7 +269,7 @@ export function FormatDialog({
                         </button>
                       </div>
                     </div>
-                    <div className="h-px bg-border" />
+                    <div className="h-px bg-divider-subtle" />
                   </div>
                 ))}
 
@@ -307,7 +307,7 @@ export function FormatDialog({
                     onClick={handleOpenBulkPreferences}
                     className="px-3 py-1.5 rounded-lg border border-border bg-raised text-xs font-medium text-foreground hover:bg-control"
                   >
-                    {bulkConfigured ? 'Open bulk settings' : 'Configure bulk in preferences'}
+                    {bulkConfigured ? 'Open download settings' : 'Configure in download settings'}
                   </button>
                 ) : null}
               </div>

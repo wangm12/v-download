@@ -1,11 +1,13 @@
 import { createServer, IncomingMessage, ServerResponse } from 'http'
 import { app, BrowserWindow } from 'electron'
-import { writeFileSync, mkdirSync, existsSync, chmodSync, readFileSync } from 'fs'
+import { writeFileSync, mkdirSync, existsSync, chmodSync, readFileSync, realpathSync } from 'fs'
 import { randomBytes } from 'crypto'
 import { join } from 'path'
 import { buildNetscapeCookieFile, type ChromeSyncedCookie } from '@v-download/shared'
 import * as settings from './settings'
-import { isAllowedOrigin, hasValidCapability, validateCookieRecord, validateDownloadPayload } from './securityValidation'
+import { resolveExtensionDir } from './extensionPath'
+import { getUnpackedChromeExtensionId } from './extensionIdentity'
+import { CHROME_EXTENSION_ID_PATTERN, isAllowedOrigin, isAuthorizedExtensionRequest, validateCookieRecord, validateDownloadPayload } from './securityValidation'
 
 export const LOCAL_SERVER_PORT = 18765
 let server: ReturnType<typeof createServer> | null = null
@@ -14,9 +16,38 @@ let server: ReturnType<typeof createServer> | null = null
 let cookieSyncRequested = false
 const MAX_BODY_BYTES = 2 * 1024 * 1024
 const MAX_COOKIES = 2000
-const MAX_COOKIE_VALUE_BYTES = 16 * 1024
-const ALLOWED_COOKIE_DOMAINS = new Set(['youtube.com', '.youtube.com', 'google.com', '.google.com', 'douyin.com', '.douyin.com', 'tiktok.com', '.tiktok.com', 'bilibili.com', '.bilibili.com', 'xiaohongshu.com', '.xiaohongshu.com', 'x.com', '.x.com'])
 let pairingSecret = ''
+
+function readConfiguredExtensionIds(): ReadonlySet<string> {
+  const ids = new Set<string>()
+  const add = (value: unknown) => {
+    if (typeof value === 'string' && CHROME_EXTENSION_ID_PATTERN.test(value.trim())) ids.add(value.trim())
+  }
+  const addExtensionPath = (extensionPath: string) => {
+    add(getUnpackedChromeExtensionId(extensionPath))
+    try { add(getUnpackedChromeExtensionId(realpathSync(extensionPath))) } catch { /* best effort */ }
+  }
+  add(process.env.CHROME_EXTENSION_ID)
+  add(process.env.V_DOWNLOAD_EXTENSION_ID)
+  try {
+    const extensionPath = resolveExtensionDir()
+    if (extensionPath) addExtensionPath(extensionPath)
+  } catch {
+    /* A development build may not have a resolvable extension folder yet. */
+  }
+  try {
+    const configPath = join(process.resourcesPath, 'extension-config.json')
+    const config = JSON.parse(readFileSync(configPath, 'utf8')) as { extensionId?: unknown; chrome?: { extensionId?: unknown } }
+    add(config.extensionId)
+    add(config.chrome?.extensionId)
+  } catch {
+    /* A development build can use the explicit unpinned fallback below. */
+  }
+  return ids
+}
+
+const configuredExtensionIds = readConfiguredExtensionIds()
+const allowUnpinnedDevelopmentExtension = !app.isPackaged && process.env.NODE_ENV !== 'production'
 
 function getPairingSecret(): string {
   if (pairingSecret) return pairingSecret
@@ -27,12 +58,19 @@ function getPairingSecret(): string {
 
 export function getExtensionPairingSecret(): string { return getPairingSecret() }
 
-const originAllowed = (origin: string | undefined) => isAllowedOrigin(origin)
+const originAllowed = (origin: string | undefined) => isAllowedOrigin(origin, {
+  allowedExtensionIds: configuredExtensionIds,
+  allowUnpinned: allowUnpinnedDevelopmentExtension,
+})
 
 function authorized(req: IncomingMessage): boolean {
   const token = req.headers['x-vdownload-capability']
-  if (typeof token !== 'string' || !originAllowed(req.headers.origin)) return false
-  return hasValidCapability(token, getPairingSecret())
+  return isAuthorizedExtensionRequest(
+    req.headers.origin,
+    token,
+    getPairingSecret(),
+    { allowedExtensionIds: configuredExtensionIds, allowUnpinned: allowUnpinnedDevelopmentExtension }
+  )
 }
 
 export function setCookieSyncRequested(value: boolean): void {
@@ -55,6 +93,8 @@ function broadcastCookiesSynced(cookieCount: number): void {
 export interface DownloadRequest {
   url: string
   type?: string
+  quality?: string
+  autoStart?: boolean
   referer?: string
   headers?: Record<string, string>
   title?: string
@@ -92,9 +132,30 @@ function readBody(req: IncomingMessage): Promise<string> {
   return new Promise((resolve, reject) => {
     let body = ''
     let size = 0
-    req.on('data', (chunk) => { size += chunk.length; if (size > MAX_BODY_BYTES) { reject(new Error('Request body too large')); req.destroy() } else body += chunk })
-    req.on('end', () => resolve(body))
-    req.on('error', reject)
+    let settled = false
+    req.on('data', (chunk) => {
+      if (settled) return
+      size += chunk.length
+      if (size > MAX_BODY_BYTES) {
+        settled = true
+        reject(new Error('Request body too large'))
+        req.destroy()
+        return
+      }
+      body += chunk
+    })
+    req.on('end', () => {
+      if (!settled) {
+        settled = true
+        resolve(body)
+      }
+    })
+    req.on('error', (error) => {
+      if (!settled) {
+        settled = true
+        reject(error)
+      }
+    })
   })
 }
 

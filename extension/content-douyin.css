@@ -8,7 +8,7 @@
   border: none;
   cursor: pointer;
   background: rgba(0, 0, 0, 0.5);
-  color: #fff;
+  color: var(--vdl-text);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -48,13 +48,13 @@
 
 #dy-dl-btn.dy-dl-sending {
   opacity: 1;
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--vdl-accent);
   pointer-events: none;
 }
 
 #dy-dl-btn.dy-dl-sent {
   opacity: 1;
-  background: rgba(50, 213, 131, 0.8);
+  background: var(--vdl-success);
   pointer-events: none;
 }
 
@@ -62,8 +62,8 @@
 
 #dy-dl-panel {
   position: fixed;
-  background: #1a1a1e;
-  border: 1px solid #3f3f46;
+  background: var(--vdl-bg);
+  border: 1px solid var(--vdl-divider-strong);
   border-radius: 10px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
   min-width: 230px;
@@ -73,7 +73,7 @@
   z-index: 2147483647;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 13px;
-  color: #e4e4e7;
+  color: var(--vdl-text);
   padding: 6px 0 8px;
   animation: dy-dl-panel-in 0.12s ease;
 }
@@ -92,7 +92,7 @@
 }
 
 #dy-dl-panel::-webkit-scrollbar-thumb {
-  background: #3f3f46;
+  background: var(--vdl-divider-strong);
   border-radius: 2px;
 }
 
@@ -101,10 +101,10 @@
   padding: 8px 14px 6px;
   font-size: 11px;
   font-weight: 600;
-  color: #71717a;
+  color: var(--vdl-subtle);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  border-bottom: 1px solid #27272a;
+  border-bottom: 1px solid var(--vdl-divider);
   margin-bottom: 2px;
   display: flex;
   align-items: center;
@@ -115,7 +115,7 @@
 .dy-dl-panel-author {
   font-size: 10px;
   font-weight: 400;
-  color: #52525b;
+  color: var(--vdl-subtle);
   text-transform: none;
   letter-spacing: 0;
   white-space: nowrap;
@@ -129,7 +129,7 @@
   padding: 6px 14px 2px;
   font-size: 10px;
   font-weight: 600;
-  color: #52525b;
+  color: var(--vdl-subtle);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -146,14 +146,14 @@
 }
 
 .dy-dl-format-item:hover {
-  background: #27272a;
+  background: var(--vdl-raised);
 }
 
 .dy-dl-format-icon {
   flex-shrink: 0;
   width: 18px;
   height: 18px;
-  color: #71717a;
+  color: var(--vdl-subtle);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -172,7 +172,7 @@
 .dy-dl-format-label {
   font-size: 13px;
   font-weight: 500;
-  color: #e4e4e7;
+  color: var(--vdl-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -197,11 +197,11 @@
 .dy-dl-type-mp4   { background: rgba(37, 99, 235, 0.2);   color: #60a5fa; }
 .dy-dl-type-h265  { background: rgba(5, 150, 105, 0.2);   color: #34d399; }
 .dy-dl-type-image { background: rgba(217, 119, 6, 0.2);   color: #fbbf24; }
-.dy-dl-type-audio { background: rgba(255, 255, 255, 0.12);  color: #A1A1AA; }
+.dy-dl-type-audio { background: var(--vdl-hover);  color: #A1A1AA; }
 
 .dy-dl-format-size {
   font-size: 11px;
-  color: #52525b;
+  color: var(--vdl-subtle);
 }
 
 .dy-dl-format-dl-btn {
@@ -211,7 +211,7 @@
   border-radius: 50%;
   border: none;
   background: transparent;
-  color: #71717a;
+  color: var(--vdl-subtle);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -221,7 +221,7 @@
 }
 
 .dy-dl-format-dl-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--vdl-hover);
   color: #A1A1AA;
 }
 
@@ -240,5 +240,5 @@
   padding: 18px 14px;
   text-align: center;
   font-size: 12px;
-  color: #52525b;
+  color: var(--vdl-subtle);
 }

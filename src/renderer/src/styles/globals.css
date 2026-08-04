@@ -2,61 +2,81 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Semantic tokens: rgb triplets use rgb(var(--x) / <alpha-value>) in Tailwind; translucent use var(--color-*) */
+/* Semantic tokens: rgb triplets use rgb(var(--x) / <alpha-value>) in Tailwind. */
 :root[data-theme='dark'] {
-  --color-app: 5 5 5;
-  --color-window: 11 11 11;
-  --color-sidebar: 13 13 13;
-  --color-background: 5 5 5;
-  --color-surface: 17 17 17;
-  --color-raised: 22 22 22;
-  --color-elevated: 28 28 28;
-  --color-foreground: 255 255 255;
-  --color-muted-foreground: 164 164 164;
-  --color-tertiary-foreground: 112 112 112;
-  --color-subtle-foreground: 142 142 147;
-  --color-inverse: 5 5 5;
-  --color-action: 255 255 255;
-  --color-action-hover: 232 232 232;
-  --color-action-fg: 5 5 5;
+  --color-app: 7 9 11;
+  --color-window: 12 14 17;
+  --color-sidebar: 15 18 21;
+  --color-background: 8 10 12;
+  --color-surface: 18 21 24;
+  --color-raised: 24 28 32;
+  --color-elevated: 31 36 41;
+  --color-foreground: 239 243 245;
+  --color-muted-foreground: 164 174 180;
+  --color-tertiary-foreground: 112 124 132;
+  --color-subtle-foreground: 133 143 151;
+  --color-inverse: 12 14 17;
+  --color-action: 242 184 96;
+  --color-action-hover: 255 199 117;
+  --color-action-fg: 29 20 9;
+  --color-accent: 242 184 96;
+  --color-accent-hover: 255 199 117;
+  --color-accent-fg: 29 20 9;
+  --color-success: 95 208 163;
+  --color-warning: 242 184 96;
+  --color-error: 244 123 111;
   --color-control: rgba(255, 255, 255, 0.055);
-  --color-border: rgba(255, 255, 255, 0.12);
-  --color-border-strong: rgba(255, 255, 255, 0.22);
-  --color-border-focus: rgba(255, 255, 255, 0.34);
-  --color-state-active-bg: rgba(255, 255, 255, 0.12);
-  --color-state-complete-bg: rgba(255, 255, 255, 0.1);
-  --color-state-queued-bg: rgba(255, 255, 255, 0.07);
-  --color-state-error-bg: rgba(255, 255, 255, 0.13);
-  --color-progress: rgba(255, 255, 255, 0.85);
+  --color-surface-hover: rgba(255, 255, 255, 0.07);
+  --color-selection: rgba(242, 184, 96, 0.14);
+  --color-border: rgba(255, 255, 255, 0.07);
+  --color-border-strong: rgba(255, 255, 255, 0.13);
+  --color-border-focus: rgba(242, 184, 96, 0.78);
+  --color-divider-subtle: rgba(255, 255, 255, 0.055);
+  --color-divider-strong: rgba(255, 255, 255, 0.1);
+  --color-state-active-bg: rgba(242, 184, 96, 0.14);
+  --color-state-complete-bg: rgba(95, 208, 163, 0.12);
+  --color-state-queued-bg: rgba(255, 255, 255, 0.06);
+  --color-state-error-bg: rgba(244, 123, 111, 0.13);
+  --color-progress: rgba(242, 184, 96, 0.92);
   --color-progress-muted: rgba(255, 255, 255, 0.35);
 }
 
 :root[data-theme='light'] {
-  --color-app: 250 250 250;
-  --color-window: 255 255 255;
-  --color-sidebar: 244 244 244;
-  --color-background: 250 250 250;
-  --color-surface: 238 238 238;
-  --color-raised: 232 232 232;
-  --color-elevated: 224 224 224;
-  --color-foreground: 10 10 10;
-  --color-muted-foreground: 92 92 92;
-  --color-tertiary-foreground: 110 110 110;
-  --color-subtle-foreground: 100 100 105;
-  --color-inverse: 255 255 255;
-  --color-action: 10 10 10;
-  --color-action-hover: 42 42 42;
-  --color-action-fg: 255 255 255;
-  --color-control: rgba(0, 0, 0, 0.055);
-  --color-border: rgba(0, 0, 0, 0.12);
-  --color-border-strong: rgba(0, 0, 0, 0.2);
-  --color-border-focus: rgba(0, 0, 0, 0.38);
-  --color-state-active-bg: rgba(0, 0, 0, 0.08);
-  --color-state-complete-bg: rgba(0, 0, 0, 0.06);
-  --color-state-queued-bg: rgba(0, 0, 0, 0.05);
-  --color-state-error-bg: rgba(0, 0, 0, 0.08);
-  --color-progress: rgba(0, 0, 0, 0.78);
-  --color-progress-muted: rgba(0, 0, 0, 0.35);
+  --color-app: 245 247 248;
+  --color-window: 251 252 252;
+  --color-sidebar: 238 242 244;
+  --color-background: 246 248 249;
+  --color-surface: 235 239 241;
+  --color-raised: 225 230 233;
+  --color-elevated: 214 220 224;
+  --color-foreground: 24 29 32;
+  --color-muted-foreground: 82 94 101;
+  --color-tertiary-foreground: 111 121 127;
+  --color-subtle-foreground: 91 103 110;
+  --color-inverse: 251 252 252;
+  --color-action: 190 122 31;
+  --color-action-hover: 169 105 22;
+  --color-action-fg: 255 250 238;
+  --color-accent: 190 122 31;
+  --color-accent-hover: 169 105 22;
+  --color-accent-fg: 255 250 238;
+  --color-success: 32 139 101;
+  --color-warning: 169 105 22;
+  --color-error: 184 63 54;
+  --color-control: rgba(12, 25, 30, 0.055);
+  --color-surface-hover: rgba(12, 25, 30, 0.075);
+  --color-selection: rgba(190, 122, 31, 0.12);
+  --color-border: rgba(12, 25, 30, 0.075);
+  --color-border-strong: rgba(12, 25, 30, 0.15);
+  --color-border-focus: rgba(169, 105, 22, 0.78);
+  --color-divider-subtle: rgba(12, 25, 30, 0.055);
+  --color-divider-strong: rgba(12, 25, 30, 0.11);
+  --color-state-active-bg: rgba(190, 122, 31, 0.12);
+  --color-state-complete-bg: rgba(32, 139, 101, 0.11);
+  --color-state-queued-bg: rgba(12, 25, 30, 0.05);
+  --color-state-error-bg: rgba(184, 63, 54, 0.1);
+  --color-progress: rgba(169, 105, 22, 0.9);
+  --color-progress-muted: rgba(12, 25, 30, 0.32);
 }
 
 @layer base {
@@ -92,5 +112,105 @@
   :focus-visible {
     outline: 2px solid var(--color-border-focus);
     outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .v-surface {
+    background: rgb(var(--color-surface) / 1);
+    border: 1px solid var(--color-divider-subtle);
+  }
+
+  .v-list-row {
+    position: relative;
+    background: transparent;
+    transition: background-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+  }
+
+  .v-list-row:hover {
+    background: var(--color-surface-hover);
+  }
+
+  .v-list-row[data-selected='true'] {
+    background: var(--color-selection);
+    box-shadow: inset 0 0 0 1px rgb(var(--color-accent) / 0.44);
+  }
+
+  .v-divider-y > * + * {
+    border-top: 1px solid var(--color-divider-subtle);
+  }
+
+  .v-focus-ring:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 2px var(--color-border-focus);
+  }
+
+  .v-settings-summary {
+    list-style: none;
+  }
+
+  .v-settings-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .v-settings-disclosure[open] .v-settings-chevron {
+    transform: rotate(180deg);
+  }
+
+  .v-settings-row + .v-settings-row {
+    border-top: 1px solid var(--color-divider-subtle);
+  }
+
+  .v-animated-list-item {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+
+  .v-animated-list[data-ready='true'] .v-animated-list-item {
+    animation: v-list-enter 420ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  .v-spotlight-card {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .v-spotlight-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(
+      260px circle at var(--v-spotlight-x, 50%) var(--v-spotlight-y, 50%),
+      rgb(var(--color-accent) / 0.12),
+      transparent 68%
+    );
+    transition: opacity 180ms ease;
+  }
+
+  .v-spotlight-card:hover::before {
+    opacity: 1;
+  }
+}
+
+@keyframes v-list-enter {
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v-list-row,
+  .v-spotlight-card::before {
+    transition: none;
+  }
+
+  .v-animated-list-item,
+  .v-animated-list[data-ready='true'] .v-animated-list-item {
+    animation: none;
+    opacity: 1;
+    transform: none;
   }
 }

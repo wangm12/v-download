@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { memo, useEffect, useState } from 'react'
 import { normalizeThumbnailUrl } from '@/utils/thumbnail'
+import { requestCachedThumbnail } from '@/utils/thumbnailRequestQueue'
 
 interface ThumbnailImageProps {
   src: string | null | undefined
@@ -9,7 +10,7 @@ interface ThumbnailImageProps {
   placeholderClassName?: string
 }
 
-export function ThumbnailImage({
+export const ThumbnailImage = memo(function ThumbnailImage({
   src,
   referer,
   alt = '',
@@ -30,8 +31,14 @@ export function ThumbnailImage({
     setProxyTried(true)
     try {
       if (!window.api?.fetchThumbnailDataUrl) return
-      const res = await window.api.fetchThumbnailDataUrl(normalized, referer)
-      if (res?.data) setResolved(res.data)
+      const value = await requestCachedThumbnail(
+        `proxy:${normalized}|${referer || ''}`,
+        async () => {
+          const res = await window.api.fetchThumbnailDataUrl(normalized, referer)
+          return res?.data || null
+        }
+      )
+      if (value) setResolved(value)
     } catch {
       /* keep broken state → placeholder */
     }
@@ -46,10 +53,12 @@ export function ThumbnailImage({
       src={resolved}
       alt={alt}
       className={className}
+      loading="lazy"
+      decoding="async"
       onError={() => {
         if (!proxyTried) void tryProxy()
         else setResolved('')
       }}
     />
   )
-}
+})

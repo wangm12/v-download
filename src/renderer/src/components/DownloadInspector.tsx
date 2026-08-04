@@ -16,6 +16,7 @@ import { formatDuration, formatFileSize } from '@/utils/format'
 import { cn } from '@/lib/cn'
 import { ThumbnailImage } from './ThumbnailImage'
 import { DOWNLOAD_DETAILS_LABEL, DOWNLOAD_DETAILS_RAIL_CLASS } from './downloadInspectorPresentation'
+import { SpotlightCard } from './reactbits/SpotlightCard'
 
 function statusLabel(status: Download['status']): string {
   switch (status) {
@@ -60,17 +61,17 @@ function StatusPill({ status }: { status: Download['status'] }) {
       className={cn(
         'inline-flex shrink-0 items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
         status === 'complete' &&
-          'border-emerald-500/40 bg-emerald-950/55 text-emerald-100',
-        status === 'downloading' && 'border-white/[0.18] bg-state-active-bg text-foreground',
-        (status === 'queued' || status === 'paused') && 'border-white/[0.14] bg-state-queued-bg text-foreground',
-        failed && 'border-red-500/45 bg-red-950/55 text-red-200'
+          'bg-success/15 text-success',
+        status === 'downloading' && 'bg-selection text-accent',
+        (status === 'queued' || status === 'paused') && 'bg-control text-muted-foreground',
+        failed && 'bg-error/15 text-error'
       )}
     >
       <span
         className={cn(
           'h-1.5 w-1.5 shrink-0 rounded-full',
-          status === 'complete' && 'bg-emerald-400',
-          failed && 'bg-red-400',
+          status === 'complete' && 'bg-foreground',
+          failed && 'bg-foreground',
           !failed && status !== 'complete' && 'bg-foreground'
         )}
         aria-hidden
@@ -155,15 +156,15 @@ function InspectorDetailBody({
     'w-full min-h-11 flex items-center justify-center gap-2 py-2 px-3 rounded-button text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar'
   const btnPrimary = `${btn} bg-action text-action-fg hover:bg-action-hover`
   const btnSecondary = `${btn} border border-border bg-control text-foreground hover:bg-state-active-bg`
-  const btnDanger = `${btn} border border-dashed border-border-strong text-foreground hover:bg-state-error-bg`
+  const btnDanger = `${btn} bg-error/10 text-error hover:bg-error/15`
 
   return (
     <div
       className={cn('flex min-h-0 min-w-0 flex-1 flex-col gap-4', 'animate-panel-fade-in motion-reduce:animate-none')}
     >
-      <div className="aspect-video w-full rounded-card overflow-hidden bg-raised border border-border shrink-0">
+      <SpotlightCard className="aspect-video w-full rounded-card overflow-hidden bg-raised ring-1 ring-inset ring-divider-subtle shrink-0">
         <ThumbnailImage src={thumbnail} referer={url || undefined} />
-      </div>
+      </SpotlightCard>
 
       <div className="min-w-0">
         <h2 className="text-sm font-semibold text-foreground leading-snug break-words">{title}</h2>
@@ -195,7 +196,7 @@ function InspectorDetailBody({
       )}
 
       {(status === 'error' || status === 'interrupted' || status === 'cancelled') && error && (
-        <p className="text-xs text-muted-foreground border border-dashed border-border-strong rounded-lg p-2 leading-relaxed">
+        <p className="rounded-button bg-error/10 p-3 text-xs leading-relaxed text-error">
           {error}
         </p>
       )}

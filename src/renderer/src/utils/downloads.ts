@@ -6,13 +6,17 @@ function isDouyinProfileGroup(d: Download): boolean {
 
 export function groupDownloadsByPlaylist(downloads: Download[]): (Download | Playlist)[] {
   const standalone: Download[] = []
-  const playlistMap = new Map<string, { playlist: Playlist; downloads: Download[] }>()
+  const playlistMap = new Map<
+    string,
+    { playlist: Playlist; downloads: Download[]; completedCount: number }
+  >()
 
   for (const d of downloads) {
     if (d.playlist_id) {
       const existing = playlistMap.get(d.playlist_id)
       if (existing) {
         existing.downloads.push(d)
+        if (d.status === 'complete') existing.completedCount += 1
       } else {
         const profileGroup = isDouyinProfileGroup(d)
         playlistMap.set(d.playlist_id, {
@@ -27,7 +31,8 @@ export function groupDownloadsByPlaylist(downloads: Download[]): (Download | Pla
             created_at: d.created_at,
             updated_at: d.updated_at
           },
-          downloads: [d]
+          downloads: [d],
+          completedCount: d.status === 'complete' ? 1 : 0
         })
       }
     } else {
@@ -36,14 +41,17 @@ export function groupDownloadsByPlaylist(downloads: Download[]): (Download | Pla
   }
 
   const result: (Download | Playlist)[] = [...standalone]
-  for (const { playlist, downloads } of playlistMap.values()) {
-    const sorted = [...downloads].sort(
-      (a, b) => (a.playlist_index ?? 0) - (b.playlist_index ?? 0)
-    )
+  for (const { playlist, downloads, completedCount } of playlistMap.values()) {
+    const sorted =
+      downloads.length > 1
+        ? [...downloads].sort(
+            (a, b) => (a.playlist_index ?? 0) - (b.playlist_index ?? 0)
+          )
+        : downloads
     result.push({
       ...playlist,
       total_count: sorted.length,
-      completed_count: sorted.filter((d) => d.status === 'complete').length,
+      completed_count: completedCount,
       downloads: sorted
     })
   }
