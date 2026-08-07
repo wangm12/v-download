@@ -340,74 +340,76 @@ function MainApp() {
     async (_url: string, format: string, quality: string) => {
       if (!window.api) return
 
-      if (pendingEntries && pendingEntries.length > 0) {
-        const playlistTitle = pendingPlaylistMeta?.title ?? 'Playlist'
-        const listUrl = pendingPlaylistMeta?.url ?? ''
-        const useNativePlaylist =
-          settings.youtubePlaylistMode === 'native' && listUrl && isPlaylistUrl(listUrl)
+      try {
+        if (pendingEntries && pendingEntries.length > 0) {
+          const playlistTitle = pendingPlaylistMeta?.title ?? 'Playlist'
+          const listUrl = pendingPlaylistMeta?.url ?? ''
+          const useNativePlaylist =
+            settings.youtubePlaylistMode === 'native' && listUrl && isPlaylistUrl(listUrl)
 
-        if (useNativePlaylist) {
-          await window.api.startDownload({
-            url: listUrl,
-            title: playlistTitle,
-            format,
-            quality,
-            thumbnail: pendingEntries[0]?.thumbnail,
-            duration: pendingEntries[0]?.duration ?? 0,
-            playlistId: playlistTitle,
-            metadata: {
-              nativeYoutubePlaylist: true,
-              channel: pendingEntries[0]?.channel ?? ''
-            }
-          })
-        } else {
-          for (let i = 0; i < pendingEntries.length; i++) {
-            const entry = pendingEntries[i]
-            const videoUrl = entry.webpage_url || `https://www.youtube.com/watch?v=${entry.id}`
+          if (useNativePlaylist) {
             await window.api.startDownload({
-              url: videoUrl,
-              title: entry.title,
+              url: listUrl,
+              title: playlistTitle,
               format,
               quality,
-              thumbnail: entry.thumbnail,
-              duration: entry.duration,
+              thumbnail: pendingEntries[0]?.thumbnail,
+              duration: pendingEntries[0]?.duration ?? 0,
               playlistId: playlistTitle,
-              playlistIndex: i,
-              playlistTitle,
-              metadata: entry.id ? { ytdlpId: entry.id } : undefined
+              metadata: {
+                nativeYoutubePlaylist: true,
+                channel: pendingEntries[0]?.channel ?? ''
+              }
             })
+          } else {
+            for (let i = 0; i < pendingEntries.length; i++) {
+              const entry = pendingEntries[i]
+              const videoUrl = entry.webpage_url || `https://www.youtube.com/watch?v=${entry.id}`
+              await window.api.startDownload({
+                url: videoUrl,
+                title: entry.title,
+                format,
+                quality,
+                thumbnail: entry.thumbnail,
+                duration: entry.duration,
+                playlistId: playlistTitle,
+                playlistIndex: i,
+                playlistTitle,
+                metadata: entry.id ? { ytdlpId: entry.id } : undefined
+              })
+            }
           }
+        } else {
+          const title = pendingVideoInfo?.title ?? 'Unknown'
+          const pageUrl = pendingVideoInfo?.webpage_url ?? _url
+          const imgs = pendingVideoInfo?.image_urls
+          const galleryType = pendingVideoInfo?._type
+          const isGallery =
+            (galleryType === 'douyin_gallery' || galleryType === 'xhs_gallery') && imgs && imgs.length > 0
+          const imageMetaKey = galleryType === 'xhs_gallery' ? 'xhsImageUrls' : 'douyinImageUrls'
+
+          await window.api.startDownload({
+            url: pageUrl,
+            title,
+            format,
+            quality,
+            thumbnail: pendingVideoInfo?.thumbnail,
+            duration: pendingVideoInfo?.duration,
+            metadata: isGallery
+              ? {
+                  [imageMetaKey]: imgs,
+                  channel: pendingVideoInfo?.channel ?? ''
+                }
+              : {
+                  ...(pendingVideoInfo?.channel ? { channel: pendingVideoInfo.channel } : {}),
+                  ...(pendingVideoInfo?.id ? { ytdlpId: pendingVideoInfo.id } : {})
+                }
+          })
         }
-      } else {
-        const title = pendingVideoInfo?.title ?? 'Unknown'
-        const pageUrl = pendingVideoInfo?.webpage_url ?? _url
-        const imgs = pendingVideoInfo?.image_urls
-        const galleryType = pendingVideoInfo?._type
-        const isGallery =
-          (galleryType === 'douyin_gallery' || galleryType === 'xhs_gallery') && imgs && imgs.length > 0
-        const imageMetaKey = galleryType === 'xhs_gallery' ? 'xhsImageUrls' : 'douyinImageUrls'
-
-        await window.api.startDownload({
-          url: pageUrl,
-          title,
-          format,
-          quality,
-          thumbnail: pendingVideoInfo?.thumbnail,
-          duration: pendingVideoInfo?.duration,
-          metadata: isGallery
-            ? {
-                [imageMetaKey]: imgs,
-                channel: pendingVideoInfo?.channel ?? ''
-              }
-            : {
-                ...(pendingVideoInfo?.channel ? { channel: pendingVideoInfo.channel } : {}),
-                ...(pendingVideoInfo?.id ? { ytdlpId: pendingVideoInfo.id } : {})
-              }
-        })
+      } finally {
+        clearPending()
+        loadSettings()
       }
-
-      clearPending()
-      loadSettings()
     },
     [pendingVideoInfo, pendingEntries, pendingPlaylistMeta, settings.youtubePlaylistMode, loadSettings, clearPending]
   )

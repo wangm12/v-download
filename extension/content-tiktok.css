@@ -58,6 +58,11 @@
   pointer-events: none;
 }
 
+#tt-dl-btn.tt-dl-error {
+  opacity: 1;
+  background: var(--vdl-error, #e5484d);
+}
+
 #tt-dl-panel {
   position: fixed;
   background: var(--vdl-bg);

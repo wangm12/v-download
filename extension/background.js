@@ -36,19 +36,40 @@ async function ensureCapability(force = false) {
   if (force) appCapability = ''
   if (appCapability && !force) return true
   try {
-    const poll = await fetchApp('/cookie-sync-poll?pair=1', {}, APP_PROBE_TIMEOUT_MS)
-    if (!poll.ok) return false
-    const data = await poll.json()
+    let response = await fetchApp('/pair', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}'
+    }, APP_PROBE_TIMEOUT_MS)
+    logBg('pairing-fetch', { method: 'POST', path: '/pair', status: response.status, ok: response.ok })
+    if (!response.ok) {
+      // Keep compatibility with older desktop builds while the extension is
+      // reloaded independently of the packaged app.
+      response = await fetchApp('/cookie-sync-poll?pair=1', {}, APP_PROBE_TIMEOUT_MS)
+      logBg('pairing-fetch-fallback', { method: 'GET', path: '/cookie-sync-poll', status: response.status, ok: response.ok })
+    }
+    if (!response.ok) return false
+    const data = await response.json()
     if (typeof data.capability !== 'string' || data.capability.length < 32) return false
     appCapability = data.capability
     try {
       await chrome.storage.local.set({ appCapability })
+      const stored = await new Promise((resolve) => {
+        chrome.storage.local.get(['appCapability'], (value) => resolve(value || {}))
+      })
+      if (stored?.appCapability !== appCapability) {
+        logBg('pairing-persist-mismatch', { persisted: false })
+      }
     } catch {
       // The in-memory token is enough for the current request. Persistence is
       // best-effort and must not turn a successful handshake into HTTP 403.
+      logBg('pairing-persist-failed', { persisted: false })
     }
     return true
-  } catch { return false }
+  } catch (error) {
+    logBg('pairing-fetch-catch', { err: safeError(error) })
+    return false
+  }
 }
 async function postAppJson(path, body, options = {}) {
   const requestedMaxAttempts = Number.isInteger(options.maxAttempts) ? Math.max(1, options.maxAttempts) : 3
@@ -85,7 +106,7 @@ function safeError(err) {
   return { name, message: 'Request failed' }
 }
 
-const CONTENT_MEDIA_TYPES = new Set(['hls', 'dash', 'mpd', 'mp4', 'webm', 'flv', 'mkv', 'mp3', 'm4a', 'aac', 'opus', 'ogg', 'jpeg'])
+const CONTENT_MEDIA_TYPES = new Set(['hls', 'dash', 'mpd', 'mp4', 'webm', 'flv', 'mkv', 'mp3', 'm4a', 'aac', 'opus', 'ogg', 'wav', 'flac', 'jpeg'])
 function isSafeHttpUrl(value) {
   if (typeof value !== 'string' || value.length < 1 || value.length > 8192) return false
   try {
@@ -480,7 +501,7 @@ chrome.action.onClicked.addListener(async (tab) => {
       } catch {}
     }
 
-    if (/[?&]v=/.test(downloadUrl)) {
+    if (isSafeHttpUrl(downloadUrl) && isYouTubeUrl(downloadUrl)) {
       await injectPageWakeGesture(tab.id)
       await sendDownloadRequest({ url: downloadUrl }, tab.id, { surfacedWake: true })
     }
@@ -504,6 +525,18 @@ chrome.action.onClicked.addListener(async (tab) => {
       await injectPageWakeGesture(tab.id)
       await sendDownloadRequest({ url: statusUrl }, tab.id, { surfacedWake: true })
     }
+  }
+
+  if (isTikTokUrl(tab.url)) {
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => {
+          const btn = document.getElementById('tt-dl-btn')
+          if (btn) btn.click()
+        }
+      })
+    } catch {}
   }
 })
 
@@ -539,15 +572,22 @@ function updateTabUI(tab) {
   const isYT = tab.url && isYouTubeUrl(tab.url)
   const isDouyin = tab.url && isDouyinUrl(tab.url)
   const isX = tab.url && isXUrl(tab.url)
+  const isTikTok = tab.url && isTikTokUrl(tab.url)
 
-  const noPopup = isYT || isDouyin || isX
+  const noPopup = isYT || isDouyin || isX || isTikTok
   chrome.action.setPopup({ tabId: tab.id, popup: noPopup ? '' : 'popup.html' })
   chrome.action.setIcon({ tabId: tab.id, path: ICON_ACTIVE })
 
   if (!isYT) {
-    const count = (isDouyin || isX) ? 0 : getAllTabMedia(tab.id).length
+    const count = (isDouyin || isX || isTikTok) ? 0 : getAllTabMedia(tab.id).length
     updateBadge(tab.id, count)
   }
+}
+
+function refreshAllTabsUI() {
+  void chrome.tabs.query({}).then((tabs) => {
+    tabs.forEach(updateTabUI)
+  }).catch(() => {})
 }
 
 function updateBadge(tabId, count) {
@@ -637,8 +677,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return false
     }
     sendDownloadRequest({ url: message.url }, sender.tab?.id, { surfacedWake })
-      .then((ok) => sendResponse(ok ? { ok: true } : { error: true }))
-      .catch(() => sendResponse({ error: true }))
+      .then((result) => sendResponse(result.ok ? { ok: true } : { ok: false, error: result.error }))
+      .catch(() => sendResponse({ ok: false, error: 'Unable to queue download' }))
     return true
   }
 
@@ -885,6 +925,10 @@ function isXUrl(url) {
   return /^https?:\/\/(www\.)?(x\.com|twitter\.com)/.test(url)
 }
 
+function isTikTokUrl(url) {
+  return /^https?:\/\/([a-z0-9-]+\.)?tiktok\.com/i.test(url)
+}
+
 function getXStatusUrl(url) {
   const m = url.match(/https:\/\/(x|twitter)\.com\/[^/]+\/status\/\d+/)
   return m ? m[0] : null
@@ -897,7 +941,7 @@ async function sendDownloadRequest(request, tabId, opts = {}) {
     const res = await postAppJson('/download', payload, { maxAttempts: 2, timeoutMs: APP_DOWNLOAD_TIMEOUT_MS })
     if (res.ok) {
       clearLastDownloadError()
-      return true
+      return { ok: true }
     }
   } catch {
     /* app not running */
@@ -905,13 +949,20 @@ async function sendDownloadRequest(request, tabId, opts = {}) {
   if (!surfacedWake) {
     launchWakeToFocusApp(tabId)
   }
-  let ok = await postDownloadsQueueWhenReady([payload], 48).then((result) => result.ok)
-  if (!ok) {
+  const queued = await postDownloadsQueueWhenReady([payload], 48)
+  if (!queued.ok) {
     setLastDownloadError('Could not open or reach V-Download from the extension.')
+    const failure = queued.results?.find((result) => !result.ok)
+    return {
+      ok: false,
+      error: failure?.category === 'authorization-required'
+        ? 'V-Download rejected this Chrome extension. Reload the extension or install the matching extension folder, then retry.'
+        : failure?.error || 'App is not running or did not accept the download.'
+    }
   } else {
     clearLastDownloadError()
   }
-  return ok
+  return { ok: true }
 }
 
 /** Wake desktop app without queuing a download (extension POSTs to localhost after boot). */
@@ -981,10 +1032,12 @@ async function pollPendingCookieSync() {
 
 chrome.runtime.onInstalled.addListener(() => {
   cleanupLastDownloadError()
+  refreshAllTabsUI()
 })
 
 chrome.runtime.onStartup.addListener(() => {
   cleanupLastDownloadError()
+  refreshAllTabsUI()
 })
 
 // Cookie sync is intentionally user-triggered. Keep only the lightweight

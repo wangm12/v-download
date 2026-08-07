@@ -35,7 +35,7 @@
   function flashButton(stateClass) {
     const btn = document.getElementById(BTN_ID)
     if (!btn) return
-    btn.classList.remove('tt-dl-sending', 'tt-dl-sent')
+    btn.classList.remove('tt-dl-sending', 'tt-dl-sent', 'tt-dl-error')
     if (stateClass) {
       btn.classList.add(stateClass)
       setTimeout(() => btn && btn.classList.remove(stateClass), 1800)
@@ -121,8 +121,9 @@
     const wakeFromGesture = globalThis.__vdownloadWakeFromUserGesture
     const surfacedWake = typeof wakeFromGesture === 'function' ? wakeFromGesture() === true : false
     chrome.runtime.sendMessage({ type: 'DOWNLOAD_VIDEO', url: location.href, surfacedWake }, (resp) => {
-      flashButton(resp && !resp.error ? 'tt-dl-sent' : null)
-      if (resp && !resp.error) closePanel()
+      const failed = Boolean(chrome.runtime.lastError || !resp || resp.error || resp.ok === false)
+      flashButton(failed ? 'tt-dl-error' : 'tt-dl-sent')
+      if (!failed) closePanel()
     })
   }
 
@@ -131,8 +132,9 @@
     const wakeFromGesture = globalThis.__vdownloadWakeFromUserGesture
     const surfacedWake = typeof wakeFromGesture === 'function' ? wakeFromGesture() === true : false
     chrome.runtime.sendMessage({ type: 'DOWNLOAD_MEDIA_FROM_CONTENT', item, surfacedWake }, (resp) => {
-      flashButton(resp && resp.ok ? 'tt-dl-sent' : null)
-      if (resp && resp.ok) closePanel()
+      const failed = Boolean(chrome.runtime.lastError || !resp || resp.ok !== true)
+      flashButton(failed ? 'tt-dl-error' : 'tt-dl-sent')
+      if (!failed) closePanel()
     })
   }
 

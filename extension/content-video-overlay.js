@@ -493,7 +493,8 @@
         const wakeFromGesture = globalThis.__vdownloadWakeFromUserGesture
         const surfacedWake = typeof wakeFromGesture === 'function' ? wakeFromGesture() === true : false
         chrome.runtime.sendMessage({ type: 'DOWNLOAD_VIDEO', url: location.href, surfacedWake }, (resp) => {
-          flashButton(btn, resp && !resp.error ? 'vdl-sent' : 'vdl-error')
+          const failed = Boolean(chrome.runtime.lastError || !resp || resp.error || resp.ok === false)
+          flashButton(btn, failed ? 'vdl-error' : 'vdl-sent')
         })
       }
       dlBtn.addEventListener('click', (e) => { e.stopPropagation(); doYTDownload() })
@@ -578,13 +579,11 @@
             // anchor.click() can consume Chrome's transient user activation.
             const surfacedWake = typeof wakeFromGesture === 'function' ? wakeFromGesture() === true : false
 
-            const latestOpt = await getLatestSniffedOption(clickedOpt)
-            if (!latestOpt) {
-              flashButton(btn, 'vdl-error')
-              itemStates.set(key, 'error')
-              row._ytdlSetState('error', 'Error — stream expired; retry')
-              return
-            }
+            // A refresh can race with a player transition and briefly return
+            // no candidates. The row already contains a validated URL, so
+            // keep sending that candidate instead of waking the app and then
+            // silently abandoning the click.
+            const latestOpt = await getLatestSniffedOption(clickedOpt) || clickedOpt
             const item = {
               url: latestOpt.url,
               type: latestOpt.type,

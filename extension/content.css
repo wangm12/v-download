@@ -38,6 +38,11 @@ html[dark] .vdl-btn:hover {
   background: rgba(50, 213, 131, 0.15) !important;
 }
 
+.vdl-btn-error {
+  color: #E5484D !important;
+  background: rgba(229, 72, 77, 0.15) !important;
+}
+
 /* ── Card download button (homepage / shorts / search) ─────────────────── */
 
 .vdl-card-btn {

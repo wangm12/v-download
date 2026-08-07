@@ -1,7 +1,7 @@
 import { COOKIE_SYNC_DOMAINS } from '@v-download/shared'
 import { timingSafeEqual } from 'node:crypto'
 
-const MEDIA_TYPES = new Set(['hls', 'dash', 'mpd', 'mp4', 'webm', 'flv', 'mkv', 'mp3', 'm4a', 'aac', 'opus', 'ogg', 'jpeg'])
+const MEDIA_TYPES = new Set(['hls', 'dash', 'mpd', 'mp4', 'webm', 'flv', 'mkv', 'mp3', 'm4a', 'aac', 'opus', 'ogg', 'wav', 'flac', 'jpeg'])
 const HEADER_NAME = /^[!#$%&'*+.^_`|~0-9A-Za-z-]{1,128}$/
 export const CHROME_EXTENSION_ID_PATTERN = /^[a-p]{32}$/
 

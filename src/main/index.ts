@@ -5,7 +5,7 @@ import * as database from './database'
 import * as downloadManager from './downloadManager'
 import * as dockProgress from './dockProgress'
 import { initializePoTokenServer, stopPoTokenServer } from './poTokenServer'
-import { startLocalServer, stopLocalServer, setDownloadHandler, setMediaDownloadHandler, DownloadRequest, LOCAL_SERVER_PORT } from './localServer'
+import { startLocalServer, stopLocalServer, setDownloadHandler, setMediaDownloadHandler, DownloadRequest, DownloadDispatchResult, LOCAL_SERVER_PORT } from './localServer'
 import * as settings from './settings'
 import { registerDownloadHandlers } from './ipc/downloads'
 import { registerSettingsHandlers } from './ipc/settings'
@@ -17,7 +17,7 @@ import { registerUpdaterHandlers } from './ipc/updater'
 app.setName('V-Download')
 
 let mainWindow: BrowserWindow | null = null
-let pendingYtdlUrl: string | null = null
+let pendingYtdlUrl: string[] = []
 let pendingMediaRequests = new Map<string, DownloadRequest>()
 let isQuitting = false
 
@@ -62,7 +62,7 @@ if (!gotLock) {
 
 const launchUrl = process.argv.find((arg) => isDeepLinkUrl(arg))
 if (launchUrl) {
-  pendingYtdlUrl = launchUrl
+  pendingYtdlUrl.push(launchUrl)
 }
 
 function createWindow(): void {
@@ -137,20 +137,20 @@ function createWindow(): void {
   })
 
   mainWindow.webContents.on('did-finish-load', () => {
-    if (pendingYtdlUrl && mainWindow && !mainWindow.isDestroyed()) {
-      const pending = pendingYtdlUrl
-      pendingYtdlUrl = null
-      if (isWakeDeepLink(pending)) {
+    if (!pendingYtdlUrl.length || !mainWindow || mainWindow.isDestroyed()) return
+    const pending = pendingYtdlUrl.splice(0)
+    for (const url of pending) {
+      if (isWakeDeepLink(url)) {
         mainWindow.show()
         mainWindow.focus()
-        return
+      } else {
+        mainWindow.webContents.send('ytdl-url', url)
       }
-      mainWindow.webContents.send('ytdl-url', pending)
     }
   })
 }
 
-function handleDownloadRequest(request: DownloadRequest): void {
+function handleDownloadRequest(request: DownloadRequest): DownloadDispatchResult {
   const params = new URLSearchParams({ url: request.url })
   if (request.type) params.set('type', request.type)
   if (request.quality) params.set('quality', request.quality)
@@ -160,6 +160,7 @@ function handleDownloadRequest(request: DownloadRequest): void {
   if (request.headers) params.set('headers', JSON.stringify(request.headers))
   const ytdlUrl = `ytdl://download?${params.toString()}`
   handleYtdlUrl(ytdlUrl)
+  return { ok: true, accepted: true }
 }
 
 function handleYtdlUrl(url: string): void {
@@ -170,6 +171,9 @@ function handleYtdlUrl(url: string): void {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.show()
       mainWindow.focus()
+    } else {
+      pendingYtdlUrl.push(url)
+      if (app.isReady()) createWindow()
     }
     return
   }
@@ -177,12 +181,13 @@ function handleYtdlUrl(url: string): void {
     mainWindow.show()
     mainWindow.focus()
     if (mainWindow.webContents.isLoading()) {
-      pendingYtdlUrl = url
+      pendingYtdlUrl.push(url)
       return
     }
     mainWindow.webContents.send('ytdl-url', url)
   } else {
-    pendingYtdlUrl = url
+    pendingYtdlUrl.push(url)
+    if (app.isReady()) createWindow()
   }
 }
 
@@ -292,6 +297,7 @@ app.whenReady().then(() => {
       mainWindow.show()
       mainWindow.focus()
     }
+    return { ok: true, accepted: true }
   })
   // Register handlers before opening the port. The extension uses /ping as a
   // readiness check during cold start, so a successful probe must mean that
@@ -332,7 +338,7 @@ app.on('open-url', (event, url) => {
     if (app.isReady()) {
       handleYtdlUrl(url)
     } else {
-      pendingYtdlUrl = url
+      pendingYtdlUrl.push(url)
     }
   }
 })

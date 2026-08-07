@@ -116,6 +116,7 @@ export function useUrlHandler(settings: SettingsData) {
   }, [])
 
   const advanceQueue = useCallback(() => {
+    if (busyRef.current || dialogOpenRef.current || sniffOpenRef.current) return
     updatePendingUrls((prev) => {
       if (prev.length === 0) return prev
       const [next, ...rest] = prev
@@ -379,13 +380,17 @@ export function useUrlHandler(settings: SettingsData) {
       setLoading(false)
       setLoadingPhase('')
       busyRef.current = false
+      if (!dialogOpenRef.current && !sniffOpenRef.current && !autoAdvanceTimer.current) {
+        advanceQueue()
+      }
     }
   }, [
     settings.showFormatDialog,
     settings.defaultVideoQuality,
     siteDefaults,
     settings.youtubePlaylistMode,
-    scheduleAutoAdvance
+    scheduleAutoAdvance,
+    advanceQueue
   ])
 
   fetchAndShowRef.current = fetchAndShow

@@ -10,15 +10,26 @@
 
   // ── Shared ──────────────────────────────────────────────────────────────
 
-  function showFeedback(btn) {
-    btn.classList.add('vdl-btn-active')
-    setTimeout(() => btn.classList.remove('vdl-btn-active'), 800)
+  function showFeedback(btn, failed = false) {
+    const className = failed ? 'vdl-btn-error' : 'vdl-btn-active'
+    btn.classList.add(className)
+    setTimeout(() => btn.classList.remove(className), 1800)
   }
 
-  function sendDownload(url) {
+  function sendDownload(url, btn) {
     const wakeFromGesture = globalThis.__vdownloadWakeFromUserGesture
     const surfacedWake = typeof wakeFromGesture === 'function' ? wakeFromGesture() === true : false
-    chrome.runtime.sendMessage({ type: 'DOWNLOAD_VIDEO', url, surfacedWake })
+    chrome.runtime.sendMessage({ type: 'DOWNLOAD_VIDEO', url, surfacedWake }, (response) => {
+      const failed = Boolean(chrome.runtime.lastError || !response || response.error || response.ok === false)
+      if (btn) {
+        showFeedback(btn, failed)
+        if (failed) {
+          const previousTitle = btn.title
+          btn.title = 'V-Download could not queue this download'
+          setTimeout(() => { btn.title = previousTitle }, 1800)
+        }
+      }
+    })
   }
 
   // ── Watch page download button ──────────────────────────────────────────
@@ -43,8 +54,7 @@
         const playerUrl = player?.getVideoUrl?.()
         if (playerUrl && /[?&]v=/.test(playerUrl)) url = playerUrl
       }
-      sendDownload(url)
-      showFeedback(btn)
+      sendDownload(url, btn)
     })
 
     const owner = document.querySelector('#owner')
@@ -92,9 +102,7 @@
       btn.addEventListener('click', (e) => {
         e.preventDefault()
         e.stopPropagation()
-        sendDownload(window.location.href)
-        btn.classList.add('vdl-btn-active')
-        setTimeout(() => btn.classList.remove('vdl-btn-active'), 800)
+        sendDownload(window.location.href, btn)
       })
 
       wrapper.appendChild(btn)
@@ -126,9 +134,7 @@
     btn.addEventListener('click', (e) => {
       e.preventDefault()
       e.stopPropagation()
-      sendDownload(getCardVideoUrl(card) || videoUrl)
-      btn.classList.add('vdl-btn-active')
-      setTimeout(() => btn.classList.remove('vdl-btn-active'), 800)
+      sendDownload(getCardVideoUrl(card) || videoUrl, btn)
     })
 
     menuBtnContainer.style.display = 'flex'

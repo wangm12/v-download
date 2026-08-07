@@ -8,6 +8,7 @@ import * as settings from './settings'
 import { resolveExtensionDir } from './extensionPath'
 import { getUnpackedChromeExtensionId } from './extensionIdentity'
 import { CHROME_EXTENSION_ID_PATTERN, isAllowedOrigin, isAuthorizedExtensionRequest, validateCookieRecord, validateDownloadPayload } from './securityValidation'
+import { worklog, worklogError } from './worklog'
 
 export const LOCAL_SERVER_PORT = 18765
 let server: ReturnType<typeof createServer> | null = null
@@ -47,7 +48,9 @@ function readConfiguredExtensionIds(): ReadonlySet<string> {
 }
 
 const configuredExtensionIds = readConfiguredExtensionIds()
-const allowUnpinnedDevelopmentExtension = !app.isPackaged && process.env.NODE_ENV !== 'production'
+const forceExtensionAuth = process.env.V_DOWNLOAD_FORCE_EXTENSION_AUTH === '1'
+const allowUnpinnedDevelopmentExtension =
+  !forceExtensionAuth && !app.isPackaged && process.env.NODE_ENV !== 'production'
 
 function getPairingSecret(): string {
   if (pairingSecret) return pairingSecret
@@ -100,8 +103,14 @@ export interface DownloadRequest {
   title?: string
 }
 
-type DownloadHandler = (request: DownloadRequest) => void
-type MediaDownloadHandler = (request: DownloadRequest) => void
+export interface DownloadDispatchResult {
+  ok: boolean
+  accepted?: boolean
+  error?: string
+}
+
+type DownloadHandler = (request: DownloadRequest) => DownloadDispatchResult | void
+type MediaDownloadHandler = (request: DownloadRequest) => DownloadDispatchResult | void
 let onDownloadRequest: DownloadHandler | null = null
 let onMediaDownloadRequest: MediaDownloadHandler | null = null
 
@@ -193,6 +202,12 @@ export function startLocalServer(): void {
       return
     }
 
+    if (req.method === 'POST' && pathname === '/pair') {
+      if (!originAllowed(req.headers.origin)) { json(res, 403, { error: 'Extension origin required' }); return }
+      json(res, 200, { ok: true, capability: getPairingSecret() })
+      return
+    }
+
     if (req.method === 'GET' && pathname === '/cookie-sync-landing') {
       const html = `<!DOCTYPE html>
 <html lang="en">
@@ -241,13 +256,23 @@ export function startLocalServer(): void {
         const checked = validateDownloadPayload(JSON.parse(body))
         if (!checked.ok) { json(res, 400, { error: checked.error }); return }
         const parsed = checked.value as unknown as DownloadRequest
-        if (parsed.type && onMediaDownloadRequest) {
-          onMediaDownloadRequest(parsed)
-        } else if (!parsed.type && onDownloadRequest) {
-          onDownloadRequest(parsed)
-        } else { json(res, 503, { error: 'Download service unavailable' }); return }
-        json(res, 200, { ok: true })
-      } catch (_err) {
+        const handler = parsed.type ? onMediaDownloadRequest : onDownloadRequest
+        if (!handler) { json(res, 503, { error: 'Download service unavailable' }); return }
+        const result = handler(parsed)
+        const accepted = result?.accepted !== false && result?.ok !== false
+        worklog('download_request', {
+          mode: parsed.type ? 'media' : 'page',
+          type: parsed.type || '',
+          host: new URL(parsed.url).hostname,
+          accepted
+        })
+        if (!accepted) {
+          json(res, 503, { error: result?.error || 'Download request was not accepted' })
+          return
+        }
+        json(res, 200, { ok: true, accepted: true })
+      } catch (err) {
+        worklogError('download_request_failed', err)
         json(res, 400, { error: 'Invalid download request' })
       }
       return
