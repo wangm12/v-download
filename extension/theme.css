@@ -17,6 +17,10 @@
   --vdl-success: #5fd0a3;
   --vdl-warning: #f2b860;
   --vdl-error: #f47b6f;
+  --vdl-overlay-bg: rgba(18, 21, 24, 0.94);
+  --vdl-overlay-hover: rgba(31, 36, 41, 0.98);
+  --vdl-overlay-border: rgba(255, 255, 255, 0.16);
+  --vdl-overlay-icon: #f8fafc;
 }
 
 @media (prefers-color-scheme: light) {
@@ -39,6 +43,10 @@
     --vdl-success: #208b65;
     --vdl-warning: #a96916;
     --vdl-error: #b83f36;
+    --vdl-overlay-bg: rgba(255, 255, 255, 0.96);
+    --vdl-overlay-hover: #ffffff;
+    --vdl-overlay-border: rgba(12, 25, 30, 0.18);
+    --vdl-overlay-icon: #182126;
   }
 }
 

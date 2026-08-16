@@ -3,6 +3,30 @@ import type { StartDownloadOptions } from '@v-download/shared'
 
 interface WindowApi {
   getVideoInfo: (url: string) => Promise<{ data?: unknown; error?: string }>
+  startInfoResolve: (options: {
+    url: string
+    title?: string
+    format?: string
+    quality?: string
+    metadata?: Record<string, unknown>
+    referer?: string
+    customHeaders?: Record<string, string>
+  }) => Promise<{ data?: unknown; error?: string }>
+  getInfoResolveResults: () => Promise<{ data?: Array<{ id: string; url: string; autoStart: boolean; format?: string; quality?: string; requestedTitle?: string; data?: unknown; error?: string }>; error?: string }>
+  promoteInfoResolve: (options: {
+    id: string
+    url?: string
+    title?: string
+    format: string
+    quality?: string
+    thumbnail?: string
+    duration?: number
+    metadata?: Record<string, unknown>
+    mediaType?: string
+    referer?: string
+    customHeaders?: Record<string, string>
+  }) => Promise<{ data?: unknown; error?: string }>
+  markInfoResolveReady: (options: { id: string; title?: string; thumbnail?: string | null; duration?: number | null }) => Promise<{ ok: boolean; error?: string }>
   listPlaylistEntries: (url: string) => Promise<{ data?: unknown; error?: string }>
   getEntryThumbnail: (pageUrl: string) => Promise<{ data?: string; error?: string }>
   openExternalUrl: (url: string) => Promise<{ ok?: boolean; error?: string }>
@@ -29,6 +53,7 @@ interface WindowApi {
   ) => Promise<{ ok: boolean; error?: string }>
   onDownloadProgress: (callback: (data: Record<string, unknown>) => void) => () => void
   onNewDownload: (callback: (data: Record<string, unknown>) => void) => () => void
+  onInfoResolveResult: (callback: (data: { id: string; url: string; autoStart: boolean; format?: string; quality?: string; requestedTitle?: string; data?: unknown; error?: string }) => void) => () => void
   onYtdlUrl: (callback: (url: string) => void) => () => void
   onSettingsChanged: (callback: () => void) => () => void
   onCookiesSynced: (callback: (data: { count: number }) => void) => () => void

@@ -110,6 +110,7 @@ export const PlaylistGroup = memo(function PlaylistGroup({
       : hasActiveItems
         ? 'In progress'
         : 'Queued'
+  const isComplete = statusLabel === 'Complete'
 
   return (
     <>
@@ -211,7 +212,19 @@ export const PlaylistGroup = memo(function PlaylistGroup({
               <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                 <span>{playlist.completed_count} completed</span>
                 <span>{remainingCount} remaining</span>
-                <span className="rounded-full bg-control px-2 py-0.5 text-foreground">
+                <span
+                  className={
+                    isComplete
+                      ? 'inline-flex shrink-0 items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-success'
+                      : 'rounded-full bg-control px-2 py-0.5 text-foreground'
+                  }
+                >
+                  {isComplete && (
+                    <span
+                      className="h-1.5 w-1.5 shrink-0 rounded-full bg-foreground"
+                      aria-hidden
+                    />
+                  )}
                   {statusLabel}
                 </span>
               </div>

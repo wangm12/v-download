@@ -1,4 +1,4 @@
-import { COOKIE_SYNC_DOMAINS } from '@v-download/shared'
+import { COOKIE_SYNC_DOMAINS, type ChromeSyncedCookie } from '@v-download/shared'
 import { timingSafeEqual } from 'node:crypto'
 
 const MEDIA_TYPES = new Set(['hls', 'dash', 'mpd', 'mp4', 'webm', 'flv', 'mkv', 'mp3', 'm4a', 'aac', 'opus', 'ogg', 'wav', 'flac', 'jpeg'])
@@ -51,7 +51,7 @@ export function isAllowedCookieDomain(domain: unknown): boolean {
   })
 }
 
-export function validateCookieRecord(cookie: unknown): boolean {
+export function validateCookieRecord(cookie: unknown): cookie is ChromeSyncedCookie {
   if (!cookie || typeof cookie !== 'object') return false
   const c = cookie as Record<string, unknown>
   const controlChars = /[\u0000-\u001f\u007f]/
@@ -62,6 +62,16 @@ export function validateCookieRecord(cookie: unknown): boolean {
   if (c.session !== undefined && typeof c.session !== 'boolean') return false
   if (c.expirationDate !== undefined && (typeof c.expirationDate !== 'number' || !Number.isFinite(c.expirationDate) || c.expirationDate < 0)) return false
   return true
+}
+
+/**
+ * Chrome can expose legacy/malformed cookie records (for example an empty
+ * cookie name). One bad record must not prevent the rest of the browser
+ * session from being synced.
+ */
+export function filterValidCookieRecords(cookies: unknown[]): { valid: ChromeSyncedCookie[]; skipped: number } {
+  const valid = cookies.filter(validateCookieRecord)
+  return { valid, skipped: cookies.length - valid.length }
 }
 
 export function validateDownloadPayload(payload: unknown): { ok: true; value: Record<string, unknown> } | { ok: false; error: string } {

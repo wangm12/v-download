@@ -156,7 +156,7 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose }: Dou
     cancelRequestedRef.current = false
     setBrowserBusy(true)
     setError('')
-    setListWarning('Opening browser with your session — this may take up to a minute. A second window may appear if the browser is already open.')
+    setListWarning('Sending import to your logged-in Chrome tab — this can take up to two minutes for large profiles. If the profile is not open, Chrome will open it in your normal session.')
     try {
       const d = await callList(null, undefined, {
         existingAwemeIds: items.map((x) => x.awemeId),
@@ -187,7 +187,7 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose }: Dou
 
   const handleOpenProfileInBrowser = async () => {
     if (!window.api?.openDouyinProfileUrl) return
-    setListWarning('Profile opened in your browser — scroll to load more posts, then use Load in browser to import automatically.')
+    setListWarning('Profile opened in your configured browser. Keep the tab logged in; Import from browser will collect posts from that tab.')
     try {
       const res = await window.api.openDouyinProfileUrl(profileUrl)
       if (!res?.ok) {
@@ -633,14 +633,14 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose }: Dou
                 type="button"
                 disabled={pageActionsDisabled}
                 onClick={() => void handleLoadInBrowser()}
-                title="Open browser with your session and import more posts"
+                title="Collect more posts from your logged-in browser tab"
                 className={cn(
                   'inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus',
                   pageActionsDisabled ? 'cursor-not-allowed text-muted-foreground/40' : 'text-foreground hover:bg-control'
                 )}
               >
                 <Download className="h-3.5 w-3.5" aria-hidden />
-                Import from browser
+                Import from logged-in browser
               </button>
               <button
                 type="button"

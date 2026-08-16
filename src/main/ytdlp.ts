@@ -311,7 +311,8 @@ function parseVideoInfoFromJson(json: Record<string, unknown>): VideoInfo {
 export async function getVideoInfo(
   url: string,
   cookiesPath?: string,
-  ytdlpPath?: string
+  ytdlpPath?: string,
+  signal?: AbortSignal
 ): Promise<VideoInfo | { entries: VideoInfo[]; playlist_title?: string; playlist_channel?: string; playlist_count?: number }> {
   const path = getYtdlpPath(ytdlpPath)
   const isPlaylist = isPlaylistUrl(url)
@@ -341,6 +342,29 @@ export async function getVideoInfo(
 
     let stdout = ''
     let stderr = ''
+    let settled = false
+    const cleanupAbort = () => signal?.removeEventListener('abort', onAbort)
+    const resolveOnce = (value: VideoInfo | { entries: VideoInfo[]; playlist_title?: string; playlist_channel?: string; playlist_count?: number }) => {
+      if (settled) return
+      settled = true
+      cleanupAbort()
+      resolve(value)
+    }
+    const rejectOnce = (error: Error) => {
+      if (settled) return
+      settled = true
+      cleanupAbort()
+      reject(error)
+    }
+    const onAbort = () => {
+      try { proc.kill('SIGTERM') } catch { /* process may already be closed */ }
+      rejectOnce(new DOMException('yt-dlp info resolution aborted', 'AbortError'))
+    }
+    if (signal?.aborted) {
+      onAbort()
+      return
+    }
+    signal?.addEventListener('abort', onAbort, { once: true })
 
     proc.stdout?.on('data', (chunk: Buffer) => {
       stdout += chunk.toString()
@@ -350,8 +374,9 @@ export async function getVideoInfo(
     })
 
     proc.on('close', (code) => {
+      if (settled) return
       if (code !== 0 && code !== null) {
-        reject(new Error(`yt-dlp exited with code ${code}: ${stderr || stdout}`))
+        rejectOnce(new Error(`yt-dlp exited with code ${code}: ${stderr || stdout}`))
         return
       }
 
@@ -374,26 +399,26 @@ export async function getVideoInfo(
         }
 
         if (entries.length > 1 || (isPlaylist && entries.length > 0)) {
-          resolve({
+          resolveOnce({
             entries,
             playlist_title: playlistMeta.playlistTitle,
             playlist_channel: playlistMeta.playlistChannel,
             playlist_count: playlistMeta.playlistCount || entries.length
           })
         } else if (entries.length === 1) {
-          resolve(entries[0]!)
+          resolveOnce(entries[0]!)
         } else if (lines.length > 0) {
-          resolve(parseVideoInfoFromJson(JSON.parse(lines[0]!) as Record<string, unknown>))
+          resolveOnce(parseVideoInfoFromJson(JSON.parse(lines[0]!) as Record<string, unknown>))
         } else {
-          reject(new Error('yt-dlp returned no video info'))
+          rejectOnce(new Error('yt-dlp returned no video info'))
         }
       } catch (err) {
-        reject(err instanceof Error ? err : new Error(String(err)))
+        rejectOnce(err instanceof Error ? err : new Error(String(err)))
       }
     })
 
     proc.on('error', (err) => {
-      reject(err)
+      rejectOnce(err)
     })
   })
 }

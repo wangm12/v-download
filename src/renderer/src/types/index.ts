@@ -1,6 +1,8 @@
 import type { DownloadErrorCode } from '@v-download/shared'
 
 export type DownloadStatus =
+  | 'resolving'
+  | 'ready'
   | 'queued'
   | 'downloading'
   | 'complete'

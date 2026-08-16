@@ -3,6 +3,7 @@ import { join } from 'path'
 import { optimizer, is } from '@electron-toolkit/utils'
 import * as database from './database'
 import * as downloadManager from './downloadManager'
+import { initializeInfoResolutionManager } from './infoResolutionManager'
 import * as dockProgress from './dockProgress'
 import { initializePoTokenServer, stopPoTokenServer } from './poTokenServer'
 import { startLocalServer, stopLocalServer, setDownloadHandler, setMediaDownloadHandler, DownloadRequest, DownloadDispatchResult, LOCAL_SERVER_PORT } from './localServer'
@@ -280,6 +281,7 @@ app.whenReady().then(() => {
 
   database.initDB()
   downloadManager.loadFromDbAndRecover()
+  initializeInfoResolutionManager()
   initializePoTokenServer()
   setDownloadHandler((request) => handleDownloadRequest(request))
   setMediaDownloadHandler((request) => {

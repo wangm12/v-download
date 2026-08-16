@@ -7,10 +7,13 @@
   width: 32px;
   height: 32px;
   border-radius: 6px;
-  border: none;
+  border: 1px solid var(--vdl-overlay-border) !important;
   cursor: pointer;
-  background: rgba(0, 0, 0, 0.5);
-  color: var(--vdl-text);
+  background: var(--vdl-overlay-bg) !important;
+  color: var(--vdl-overlay-icon) !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  box-sizing: border-box !important;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -24,17 +27,22 @@
 }
 
 .vdl-overlay-btn.vdl-visible {
-  opacity: 0.45;
+  opacity: 0.92;
   pointer-events: auto;
 }
 
 .vdl-overlay-btn.vdl-visible:hover {
   opacity: 1;
-  background: rgba(0, 0, 0, 0.82);
+  background: var(--vdl-overlay-hover) !important;
+  border-color: var(--vdl-divider-strong) !important;
   transform: translate3d(var(--vdl-overlay-x, 0px), var(--vdl-overlay-y, 0px), 0) scale(1.08);
 }
 
-.vdl-overlay-btn.vdl-error { background: color-mix(in srgb, var(--vdl-error) 90%, transparent); opacity: 1; }
+.vdl-overlay-btn.vdl-error {
+  background: color-mix(in srgb, var(--vdl-error) 90%, transparent) !important;
+  color: #ffffff !important;
+  opacity: 1;
+}
 
 .vdl-overlay-btn:active {
   transform: translate3d(var(--vdl-overlay-x, 0px), var(--vdl-overlay-y, 0px), 0) scale(0.93);
@@ -49,6 +57,9 @@
   width: 16px;
   height: 16px;
   flex-shrink: 0;
+  color: inherit !important;
+  fill: none !important;
+  stroke: currentColor !important;
 }
 
 /* ── Format panel ─────────────────────────────────────────────────────────── */
@@ -274,10 +285,12 @@
 
 .vdl-overlay-btn.vdl-sending {
   opacity: 1;
-  background: var(--vdl-accent);
+  background: var(--vdl-accent) !important;
+  color: var(--vdl-accent-fg) !important;
 }
 
 .vdl-overlay-btn.vdl-sent {
   opacity: 1;
-  background: var(--vdl-success);
+  background: var(--vdl-success) !important;
+  color: #10251d !important;
 }

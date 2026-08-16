@@ -25,6 +25,18 @@
   transform: scale(0.95);
 }
 
+.vdl-btn svg,
+.vdl-card-btn svg {
+  color: inherit !important;
+  fill: none !important;
+  stroke: currentColor !important;
+}
+
+.vdl-shorts-btn svg {
+  color: inherit !important;
+  fill: currentColor !important;
+}
+
 html[dark] .vdl-btn {
   color: var(--vdl-text);
 }

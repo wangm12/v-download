@@ -110,8 +110,6 @@ function MainApp() {
   const { downloads, removeDownload, removeDownloads, updateDownload, refreshDownloads } = useDownloads()
   const { settings, loadSettings } = useSettings()
   const {
-    loading,
-    loadingPhase,
     errorMsg,
     showFormatDialog,
     showDouyinProfilePicker,
@@ -119,9 +117,11 @@ function MainApp() {
     showCollectionPicker,
     collectionPickerUrl,
     pendingVideoInfo,
+    pendingResolverId,
     pendingEntries,
     pendingPlaylistMeta,
     sniffedMedia,
+    sniffedResolveId,
     sniffedPageUrl,
     sniffedPageTitle,
     queueCount,
@@ -130,6 +130,7 @@ function MainApp() {
     clearPending,
     clearSniffed,
     clearQueue,
+    selectReadyResolve,
     setShowFormatDialog,
     closeDouyinProfilePicker,
     closeCollectionPicker
@@ -340,8 +341,31 @@ function MainApp() {
     async (_url: string, format: string, quality: string) => {
       if (!window.api) return
 
+      let consumeResolver = true
       try {
-        if (pendingEntries && pendingEntries.length > 0) {
+        if (pendingResolverId && pendingVideoInfo) {
+          const imgs = pendingVideoInfo.image_urls
+          const galleryType = pendingVideoInfo._type
+          const isGallery =
+            (galleryType === 'douyin_gallery' || galleryType === 'xhs_gallery') && Boolean(imgs?.length)
+          const imageMetaKey = galleryType === 'xhs_gallery' ? 'xhsImageUrls' : 'douyinImageUrls'
+          const promoted = await window.api.promoteInfoResolve({
+            id: pendingResolverId,
+            url: pendingVideoInfo.webpage_url || _url,
+            title: pendingVideoInfo.title || 'Download',
+            format,
+            quality,
+            thumbnail: pendingVideoInfo.thumbnail,
+            duration: pendingVideoInfo.duration,
+            metadata: isGallery
+              ? { [imageMetaKey]: imgs, channel: pendingVideoInfo.channel ?? '' }
+              : {
+                  ...(pendingVideoInfo.channel ? { channel: pendingVideoInfo.channel } : {}),
+                  ...(pendingVideoInfo.id ? { ytdlpId: pendingVideoInfo.id } : {})
+                }
+          })
+          if (promoted?.error) consumeResolver = false
+        } else if (pendingEntries && pendingEntries.length > 0) {
           const playlistTitle = pendingPlaylistMeta?.title ?? 'Playlist'
           const listUrl = pendingPlaylistMeta?.url ?? ''
           const useNativePlaylist =
@@ -407,19 +431,37 @@ function MainApp() {
           })
         }
       } finally {
-        clearPending()
+        clearPending({ consumeResolver })
         loadSettings()
       }
     },
-    [pendingVideoInfo, pendingEntries, pendingPlaylistMeta, settings.youtubePlaylistMode, loadSettings, clearPending]
+    [pendingResolverId, pendingVideoInfo, pendingEntries, pendingPlaylistMeta, settings.youtubePlaylistMode, loadSettings, clearPending]
   )
 
   const handleMediaDownload = useCallback(
     async (items: DetectedMedia[]) => {
       if (!window.api) return
       const baseTitle = sniffedPageTitle || 'download'
+      let consumeResolver = !sniffedResolveId
       for (let i = 0; i < items.length; i++) {
         const title = items.length > 1 ? `${baseTitle} (${i + 1})` : baseTitle
+
+        if (i === 0 && sniffedResolveId) {
+          const promoted = await window.api.promoteInfoResolve({
+            id: sniffedResolveId,
+            url: items[i].url,
+            title,
+            format: 'video',
+            quality: settings.defaultVideoQuality,
+            referer: sniffedPageUrl || undefined,
+            mediaType: items[i].type
+          })
+          if (!promoted?.error) {
+            consumeResolver = true
+            continue
+          }
+          consumeResolver = false
+        }
 
         await window.api.startDownload({
           url: items[i].url,
@@ -430,9 +472,9 @@ function MainApp() {
           mediaType: items[i].type
         })
       }
-      clearSniffed()
+      clearSniffed({ consumeResolver })
     },
-    [settings.defaultVideoQuality, sniffedPageUrl, sniffedPageTitle, clearSniffed]
+    [settings.defaultVideoQuality, sniffedPageUrl, sniffedPageTitle, sniffedResolveId, clearSniffed]
   )
 
   const handleClearCompleted = useCallback(async () => {
@@ -736,22 +778,13 @@ function MainApp() {
                 />
 
                 <main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-                  {loading && (
-                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-background/85 backdrop-blur-sm">
-                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-label="Loading" />
-                      <p className="mt-4 text-sm text-muted-foreground">
-                        {loadingPhase === 'sniffing' ? 'Scanning page for media' : 'Fetching video info…'}
-                      </p>
-                    </div>
-                  )}
-
                   {errorMsg && (
                     <StatusBlock tone="error" className="shrink-0 rounded-none border-b border-divider-subtle px-4 py-2 text-xs">
                       {errorMsg}
                     </StatusBlock>
                   )}
 
-                  {grouped.length === 0 && !loading ? (
+                  {grouped.length === 0 ? (
                     <EmptyState
                       className="flex-1"
                       title="Your queue is ready"
@@ -762,6 +795,7 @@ function MainApp() {
                       items={grouped}
                       selectedIds={selectedIds}
                       onSelectDownload={selectDownload}
+                      onSelectReadyResolve={selectReadyResolve}
                       onSelectPlaylist={selectPlaylist}
                       playlistViewStates={playlistViewStates}
                       onPlaylistViewStateChange={handlePlaylistViewStateChange}

@@ -7,8 +7,17 @@ import { buildNetscapeCookieFile, type ChromeSyncedCookie } from '@v-download/sh
 import * as settings from './settings'
 import { resolveExtensionDir } from './extensionPath'
 import { getUnpackedChromeExtensionId } from './extensionIdentity'
-import { CHROME_EXTENSION_ID_PATTERN, isAllowedOrigin, isAuthorizedExtensionRequest, validateCookieRecord, validateDownloadPayload } from './securityValidation'
+import { CHROME_EXTENSION_ID_PATTERN, filterValidCookieRecords, isAllowedOrigin, isAuthorizedExtensionRequest, validateDownloadPayload } from './securityValidation'
 import { worklog, worklogError } from './worklog'
+import {
+  completeDouyinProfileExtensionRequest,
+  getDouyinProfileExtensionCommand,
+} from './douyinProfileExtension'
+import {
+  acknowledgeDouyinResolveExtensionRequest,
+  completeDouyinResolveExtensionRequest,
+  getDouyinResolveExtensionCommand,
+} from './douyinResolveExtension'
 
 export const LOCAL_SERVER_PORT = 18765
 let server: ReturnType<typeof createServer> | null = null
@@ -202,6 +211,86 @@ export function startLocalServer(): void {
       return
     }
 
+    if (req.method === 'GET' && pathname === '/douyin-profile-import-poll') {
+      if (!authorized(req)) { json(res, 403, { error: 'Pairing required' }); return }
+      const requestId = new URL(req.url ?? '/', `http://127.0.0.1:${LOCAL_SERVER_PORT}`).searchParams.get('requestId')?.trim() ?? ''
+      if (!/^[a-f0-9]{20,80}$/i.test(requestId)) {
+        json(res, 400, { error: 'Invalid profile import request' })
+        return
+      }
+      const command = getDouyinProfileExtensionCommand(requestId)
+      if (!command) {
+        json(res, 404, { pending: false, error: 'Profile import request expired' })
+        return
+      }
+      json(res, 200, { pending: true, ...command })
+      return
+    }
+
+    if (req.method === 'POST' && pathname === '/douyin-profile-import-result') {
+      try {
+        if (!authorized(req)) { json(res, 403, { error: 'Pairing required' }); return }
+        const body = await readBody(req)
+        const accepted = completeDouyinProfileExtensionRequest(JSON.parse(body) as unknown)
+        if (!accepted) {
+          json(res, 404, { error: 'Profile import request expired' })
+          return
+        }
+        json(res, 200, { ok: true })
+      } catch (_err) {
+        json(res, 400, { error: 'Invalid profile import result' })
+      }
+      return
+    }
+
+    if (req.method === 'GET' && pathname === '/douyin-resolve-poll') {
+      if (!authorized(req)) { json(res, 403, { error: 'Pairing required' }); return }
+      const requestId = new URL(req.url ?? '/', `http://127.0.0.1:${LOCAL_SERVER_PORT}`).searchParams.get('requestId')?.trim() ?? ''
+      if (!/^[a-f0-9]{20,80}$/i.test(requestId)) {
+        json(res, 400, { error: 'Invalid Douyin resolve request' })
+        return
+      }
+      const command = getDouyinResolveExtensionCommand(requestId)
+      if (!command) {
+        json(res, 404, { pending: false, error: 'Douyin resolve request expired' })
+        return
+      }
+      json(res, 200, { pending: true, ...command })
+      return
+    }
+
+    if (req.method === 'POST' && pathname === '/douyin-resolve-result') {
+      try {
+        if (!authorized(req)) { json(res, 403, { error: 'Pairing required' }); return }
+        const body = await readBody(req)
+        const accepted = completeDouyinResolveExtensionRequest(JSON.parse(body) as unknown)
+        if (!accepted) {
+          json(res, 404, { error: 'Douyin resolve request expired' })
+          return
+        }
+        json(res, 200, { ok: true })
+      } catch (_err) {
+        json(res, 400, { error: 'Invalid Douyin resolve result' })
+      }
+      return
+    }
+
+    if (req.method === 'POST' && pathname === '/douyin-resolve-ack') {
+      try {
+        if (!authorized(req)) { json(res, 403, { error: 'Pairing required' }); return }
+        const body = await readBody(req)
+        const accepted = acknowledgeDouyinResolveExtensionRequest(JSON.parse(body) as unknown)
+        if (!accepted) {
+          json(res, 404, { error: 'Douyin resolve request expired' })
+          return
+        }
+        json(res, 200, { ok: true })
+      } catch (_err) {
+        json(res, 400, { error: 'Invalid Douyin resolve acknowledgement' })
+      }
+      return
+    }
+
     if (req.method === 'POST' && pathname === '/pair') {
       if (!originAllowed(req.headers.origin)) { json(res, 403, { error: 'Extension origin required' }); return }
       json(res, 200, { ok: true, capability: getPairingSecret() })
@@ -227,22 +316,63 @@ export function startLocalServer(): void {
       return
     }
 
+    if (req.method === 'GET' && pathname === '/douyin-profile-import-landing') {
+      const requestId = new URL(req.url ?? '/', `http://127.0.0.1:${LOCAL_SERVER_PORT}`).searchParams.get('requestId')?.trim() ?? ''
+      const command = /^[a-f0-9]{20,80}$/i.test(requestId)
+        ? getDouyinProfileExtensionCommand(requestId)
+        : null
+      // Put the short-lived command in the app-owned bridge document. This
+      // avoids a second extension → localhost request before Chrome has
+      // restored its pairing token, while the result callback remains
+      // authenticated by the normal extension capability check.
+      const encodedCommand = command
+        ? Buffer.from(JSON.stringify({ pending: true, ...command }), 'utf8').toString('base64')
+        : ''
+      const status = command
+        ? 'Connecting to the V-Download extension…'
+        : 'This V-Download profile import request has expired. Return to the app and start it again.'
+      const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="vdownload-douyin-profile-import-command" content="${encodedCommand}" />
+  <title>V-Download — Douyin profile import</title>
+</head>
+<body style="font-family:system-ui,-apple-system,sans-serif;padding:2rem;max-width:32rem;margin:0 auto;line-height:1.5;color:#111">
+  <h1 style="font-size:1.125rem">V-Download — Douyin profile import</h1>
+  <p id="status">${status}</p>
+  <p style="color:#555;font-size:0.875rem">The extension will use your normal logged-in Douyin tab. No separate headless browser is started.</p>
+</body>
+</html>`
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
+      res.end(html)
+      return
+    }
+
     if (req.method === 'POST' && pathname === '/cookies') {
       try {
         if (!authorized(req)) { json(res, 403, { error: 'Pairing required' }); return }
         const body = await readBody(req)
-        const cookies = JSON.parse(body) as ChromeSyncedCookie[]
+        const cookies = JSON.parse(body) as unknown
         if (!Array.isArray(cookies)) {
           json(res, 400, { error: 'Expected array of cookies' })
           return
         }
-        if (cookies.length > MAX_COOKIES || cookies.some((c) => !validateCookieRecord(c))) { json(res, 400, { error: 'Invalid cookie payload' }); return }
-        const path = saveCookiesFile(cookies)
+        if (cookies.length > MAX_COOKIES) { json(res, 400, { error: 'Too many cookies' }); return }
+        const { valid: validCookies, skipped } = filterValidCookieRecords(cookies)
+        // An empty payload is a valid way to clear a previously synced jar,
+        // but an all-invalid payload should never erase usable credentials.
+        if (cookies.length > 0 && validCookies.length === 0) {
+          json(res, 400, { error: 'No valid cookies to sync', skipped })
+          return
+        }
+        const path = saveCookiesFile(validCookies)
         cookieSyncRequested = false
-        console.log(`Cookies synced: ${cookies.length} cookies saved`)
+        console.log(`Cookies synced: ${validCookies.length} cookies saved${skipped ? `, ${skipped} skipped` : ''}`)
         broadcastSettingsChanged()
-        broadcastCookiesSynced(cookies.length)
-        json(res, 200, { ok: true, count: cookies.length })
+        broadcastCookiesSynced(validCookies.length)
+        json(res, 200, { ok: true, count: validCookies.length, skipped })
       } catch (_err) {
         json(res, 400, { error: 'Invalid cookie request' })
       }

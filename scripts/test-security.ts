@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { isAllowedOrigin, hasValidCapability, isAuthorizedExtensionRequest, isAllowedCookieDomain, validateCookieRecord, validateDownloadPayload } from '../src/main/securityValidation'
+import { filterValidCookieRecords, isAllowedOrigin, hasValidCapability, isAuthorizedExtensionRequest, isAllowedCookieDomain, validateCookieRecord, validateDownloadPayload } from '../src/main/securityValidation'
 import { redact } from '../src/main/worklog'
 import { getUnpackedChromeExtensionId } from '../src/main/extensionIdentity'
 assert.equal(isAllowedOrigin(undefined), false)
@@ -31,6 +31,13 @@ assert.equal(validateCookieRecord({ domain: '.instagram.com', name: 'sid', value
 assert.equal(validateCookieRecord({ domain: '.instagram.com', name: 'sid\n', value: 'x', path: '/', secure: true, httpOnly: true }), false)
 assert.equal(validateCookieRecord({ domain: '.instagram.com', name: 'sid', value: 'x\tINJECT', path: '/', secure: true, httpOnly: true }), false)
 assert.equal(validateCookieRecord({ domain: '.instagram.com', name: 'sid', value: 'x', path: '/\nSet-Cookie: evil=1', secure: true, httpOnly: true }), false)
+const filteredCookies = filterValidCookieRecords([
+  { domain: '.douyin.com', name: 'sid', value: 'valid', path: '/', secure: true, httpOnly: true },
+  { domain: 'www.douyin.com', name: '', value: 'legacy-empty-name', path: '/', secure: false, httpOnly: false },
+  { domain: '.evil.example', name: 'sid', value: 'blocked', path: '/', secure: true, httpOnly: true },
+])
+assert.equal(filteredCookies.valid.length, 1)
+assert.equal(filteredCookies.skipped, 2)
 assert.equal(validateDownloadPayload({ url: 'https://example.com/v.mp4', type: 'mp4', title: 'ok', headers: { Referer: 'https://example.com' } }).ok, true)
 assert.equal(validateDownloadPayload({ url: 'https://www.douyin.com/video/123456789', quality: '720', autoStart: true }).ok, true)
 assert.equal(validateDownloadPayload({ url: 'https://www.douyin.com/video/123456789', quality: '720p' }).ok, false)

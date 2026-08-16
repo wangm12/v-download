@@ -1,13 +1,8 @@
 import { ipcMain } from 'electron'
 import * as downloadManager from '../downloadManager'
 import * as ytdlp from '../ytdlp'
-import { getDouyinInfo, getLastDouyinInfoError, isDouyinGallery } from '../douyin'
-import {
-  getXiaohongshuInfo,
-  getLastXhsInfoError,
-  isXiaohongshuGallery,
-  isXiaohongshuUrl,
-} from '../xiaohongshu'
+import * as infoResolutionManager from '../infoResolutionManager'
+import { resolveVideoInfo } from '../videoInfoResolver'
 import { listDouyinProfilePosts } from '../douyinProfile'
 import { runDouyinBulkCli } from '../douyinBulk'
 import { cancelDouyinBulkJob, getDouyinBulkJobStatus, startDouyinBulkJob } from '../douyinBulkJobs'
@@ -15,7 +10,10 @@ import * as settings from '../settings'
 import { sniffMedia } from '../mediaSniffer'
 import { fetchRemoteThumbnailDataUrl } from '../thumbnailFetch'
 import { listPlaylistEntries } from '../playlistList'
-import { resolveMediaCandidates, protocolFor, mediaTypeForCandidate } from '../mediaResolver'
+import { resolveMediaCandidates, mediaTypeForCandidate } from '../mediaResolver'
+import { LOCAL_SERVER_PORT } from '../localServer'
+import { beginDouyinProfileExtensionRequest } from '../douyinProfileExtension'
+import { openUrlInConfiguredBrowser } from '../openUrlInBrowser'
 
 const profileListAbortControllers = new Map<string, AbortController>()
 
@@ -40,109 +38,66 @@ function isDouyinUrl(value: unknown): value is string {
 }
 
 export function registerDownloadHandlers(): void {
-  ipcMain.handle('get-video-info', async (_event, url: string) => {
+  ipcMain.handle('get-video-info', async (_event, url: string) => resolveVideoInfo(url))
+
+  ipcMain.handle('start-info-resolve', async (_event, options: {
+    url: string
+    title?: string
+    format?: string
+    quality?: string
+    metadata?: Record<string, unknown>
+    referer?: string
+    customHeaders?: Record<string, string>
+  }) => {
     try {
-      if (typeof url !== 'string' || !ytdlp.isValidDownloadUrl(url)) {
+      if (!options || typeof options.url !== 'string' || !ytdlp.isValidDownloadUrl(options.url)) {
         return { error: 'Invalid URL' }
       }
-      const cookiesPath = settings.getCookiesPath()
-      const ytdlpPath = settings.get('ytdlpPath')
-      const isDouyinUrl = /douyin\.com/i.test(url)
-      const isXhsUrl = isXiaohongshuUrl(url)
-
-      if (ytdlp.isMediaUrl(url)) {
-        const candidate = resolveMediaCandidates([{ url, type: protocolFor(url), pageUrl: url, source: 'extension' }])[0]
-        return { data: { id: url, title: 'Direct media', thumbnail: '', duration: 0, channel: '', view_count: 0, formats: candidate ? [candidate] : [], candidates: candidate ? [candidate] : [], webpage_url: url, _type: 'video' } }
-      }
-
-      const toDouyinData = (douyin: NonNullable<Awaited<ReturnType<typeof getDouyinInfo>>>) => {
-        if (isDouyinGallery(douyin)) {
-          return {
-            id: douyin.id,
-            title: douyin.title,
-            thumbnail: ytdlp.normalizeThumbnailUrl(douyin.cover),
-            duration: 0,
-            channel: douyin.author,
-            view_count: 0,
-            formats: [],
-            webpage_url: url,
-            _type: 'douyin_gallery',
-            image_urls: douyin.imageUrls
-          }
-        }
-        return {
-          id: douyin.id,
-          title: douyin.title,
-          thumbnail: ytdlp.normalizeThumbnailUrl(douyin.cover),
-          duration: douyin.duration,
-          channel: douyin.author,
-          view_count: 0,
-          formats: [],
-          webpage_url: url,
-          _type: 'video'
-        }
-      }
-
-      const toXhsData = (xhs: NonNullable<Awaited<ReturnType<typeof getXiaohongshuInfo>>>) => ({
-        id: xhs.id,
-        title: xhs.title,
-        thumbnail: ytdlp.normalizeThumbnailUrl(xhs.cover),
-        duration: 0,
-        channel: xhs.author,
-        view_count: 0,
-        formats: [],
-        webpage_url: url,
-        _type: 'xhs_gallery',
-        image_urls: xhs.imageUrls,
-      })
-
-      let douyinHint: Awaited<ReturnType<typeof getDouyinInfo>> = null
-      if (isDouyinUrl) {
-        douyinHint = await getDouyinInfo(url, cookiesPath || undefined)
-        // Gallery must bypass yt-dlp format-info path; UI should treat it as image set.
-        if (isDouyinGallery(douyinHint)) {
-          return { data: toDouyinData(douyinHint) }
-        }
-      }
-
-      let xhsHint: Awaited<ReturnType<typeof getXiaohongshuInfo>> = null
-      if (isXhsUrl) {
-        xhsHint = await getXiaohongshuInfo(url, cookiesPath || undefined)
-        if (isXiaohongshuGallery(xhsHint)) {
-          return { data: toXhsData(xhsHint) }
-        }
-      }
-
-      try {
-        const info = await ytdlp.getVideoInfo(url, cookiesPath || undefined, ytdlpPath)
-        return { data: info }
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err)
-        if (isDouyinUrl) {
-          const douyin = douyinHint ?? await getDouyinInfo(url, cookiesPath || undefined)
-          if (douyin) {
-            return { data: toDouyinData(douyin) }
-          }
-          const hint = getLastDouyinInfoError()
-          if (hint) {
-            return { error: `${msg} | ${hint}` }
-          }
-        }
-        if (isXhsUrl) {
-          const xhs = xhsHint ?? (await getXiaohongshuInfo(url, cookiesPath || undefined))
-          if (xhs && isXiaohongshuGallery(xhs)) {
-            return { data: toXhsData(xhs) }
-          }
-          const hint = getLastXhsInfoError()
-          if (hint) {
-            return { error: `${msg} | ${hint}` }
-          }
-        }
-        return { error: msg }
-      }
+      const task = downloadManager.createInfoResolveTask(options)
+      infoResolutionManager.enqueueInfoResolve(task.id)
+      return { data: task }
     } catch (err) {
       return { error: err instanceof Error ? err.message : String(err) }
     }
+  })
+
+  ipcMain.handle('get-info-resolve-results', async () => ({ data: infoResolutionManager.getPendingInfoResolveResults() }))
+
+  ipcMain.handle('promote-info-resolve', async (_event, payload: {
+    id: string
+    url?: string
+    title?: string
+    format: string
+    quality?: string
+    thumbnail?: string
+    duration?: number
+    metadata?: Record<string, unknown>
+    mediaType?: string
+    referer?: string
+    customHeaders?: Record<string, string>
+  }) => {
+    try {
+      if (!payload || typeof payload.id !== 'string' || typeof payload.format !== 'string') {
+        return { error: 'Invalid resolver task' }
+      }
+      if (payload.url !== undefined && !ytdlp.isValidDownloadUrl(payload.url)) {
+        return { error: 'Invalid URL' }
+      }
+      const task = infoResolutionManager.promoteInfoResolve(payload.id, payload)
+      return task ? { data: task } : { error: 'Resolver task is no longer available' }
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : String(err) }
+    }
+  })
+
+  ipcMain.handle('mark-info-resolve-ready', async (_event, payload: {
+    id: string
+    title?: string
+    thumbnail?: string | null
+    duration?: number | null
+  }) => {
+    const ok = Boolean(payload && typeof payload.id === 'string' && infoResolutionManager.markInfoResolveReadyFromRenderer(payload.id, payload))
+    return ok ? { ok: true } : { ok: false, error: 'Resolver task is no longer available' }
   })
 
   ipcMain.handle('get-entry-thumbnail', async (_event, pageUrl: string) => {
@@ -243,6 +198,38 @@ export function registerDownloadHandlers(): void {
       }
       try {
         const cookiesPath = settings.getCookiesPath()
+
+        if (payload?.browserRecovery === true) {
+          const extensionRequest = beginDouyinProfileExtensionRequest({
+            profileUrl: String(payload?.profileUrl ?? '').trim(),
+            existingAwemeIds: payload?.existingAwemeIds,
+          })
+          const bridgeUrl = `http://127.0.0.1:${LOCAL_SERVER_PORT}/douyin-profile-import-landing?requestId=${encodeURIComponent(extensionRequest.requestId)}`
+
+          const opened = await openUrlInConfiguredBrowser(bridgeUrl)
+          if (!opened.ok) {
+            extensionRequest.cancel()
+            return {
+              data: {
+                ok: false,
+                code: 'BROWSER_REQUIRED',
+                message: `Could not open the configured browser: ${opened.error ?? 'unknown error'}`,
+              },
+            }
+          }
+
+          const onAbort = () => extensionRequest.cancel()
+          if (ac) {
+            if (ac.signal.aborted) extensionRequest.cancel()
+            else ac.signal.addEventListener('abort', onAbort, { once: true })
+          }
+          try {
+            return { data: await extensionRequest.promise }
+          } finally {
+            ac?.signal.removeEventListener('abort', onAbort)
+          }
+        }
+
         const result = await listDouyinProfilePosts({
           profileUrl: String(payload?.profileUrl ?? '').trim(),
           cursor: payload?.cursor ?? null,
@@ -250,7 +237,7 @@ export function registerDownloadHandlers(): void {
           cookiesFilePath: cookiesPath || undefined,
           firstPageMode: payload?.firstPageMode,
           existingAwemeIds: payload?.existingAwemeIds,
-          browserRecovery: payload?.browserRecovery === true,
+          browserRecovery: false,
           signal: ac?.signal,
         })
         return { data: result }

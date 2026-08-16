@@ -193,7 +193,16 @@ function ytdlpRetrySleepsForSpeedMode(mode: string | undefined): string[] | unde
   return undefined
 }
 
-export type TaskStatus = 'queued' | 'downloading' | 'complete' | 'error' | 'interrupted' | 'cancelled' | 'paused'
+export type TaskStatus =
+  | 'resolving'
+  | 'ready'
+  | 'queued'
+  | 'downloading'
+  | 'complete'
+  | 'error'
+  | 'interrupted'
+  | 'cancelled'
+  | 'paused'
 
 export interface DownloadTask {
   id: string
@@ -247,6 +256,13 @@ let lastDockUpdateAt = 0
 const DOCK_UPDATE_MIN_MS = 1000
 let mainWindow: BrowserWindow | null = null
 
+type InfoResolveHooks = {
+  onCancel?: (id: string) => void
+  onRetry?: (id: string) => void
+}
+
+let infoResolveHooks: InfoResolveHooks = {}
+
 type ProgressExtras = {
   speed?: string
   eta?: string
@@ -256,6 +272,10 @@ type ProgressExtras = {
 
 export function setMainWindow(win: BrowserWindow | null): void {
   mainWindow = win
+}
+
+export function setInfoResolveHooks(hooks: InfoResolveHooks): void {
+  infoResolveHooks = hooks
 }
 
 function ensureTaskAbortController(id: string): AbortSignal {
@@ -295,7 +315,7 @@ function classifyDownloadError(message: string, isYoutube: boolean): DownloadErr
   if (/captcha|browser challenge|challenge required|javascript required/i.test(message)) return 'BROWSER_REQUIRED'
   if (/drm|widevine|protected content/i.test(message)) return 'DRM_PROTECTED'
   if (/login required|private video|sign in|authentication|cookies/i.test(message)) return 'AUTH_REQUIRED'
-  if (/browser|javascript runtime|client.*required/i.test(message)) return 'BROWSER_REQUIRED'
+  if (/browser|javascript runtime|client.*required|chrome extension|chrome:\/\/extensions|extension.*reload/i.test(message)) return 'BROWSER_REQUIRED'
   if (/unsupported|no video formats|not available/i.test(message)) return 'UNSUPPORTED'
   if (/network|timed out|timeout|connection|503|429|temporarily unavailable/i.test(message)) return 'NETWORK_RETRYABLE'
   if (/enoent|not found|executable/i.test(message)) return 'ENGINE_MISSING'
@@ -316,9 +336,16 @@ function emitToRenderer(channel: string, data: unknown): void {
   }
 }
 
+export function emitInfoResolveResult(data: unknown): void {
+  emitToRenderer('info-resolve-result', data)
+}
+
 function serializeExtras(metadata?: Record<string, unknown>): string | null {
   if (!metadata) return null
   const out: Record<string, unknown> = {}
+  if (metadata.infoResolve === true) out.infoResolve = true
+  if (metadata.resolveAutoStart === true) out.resolveAutoStart = true
+  if (typeof metadata.resolveTitle === 'string' && metadata.resolveTitle.trim()) out.resolveTitle = metadata.resolveTitle.trim()
   if (metadata.nativeYoutubePlaylist === true) out.nativeYoutubePlaylist = true
   if (metadata.candidate && typeof metadata.candidate === 'object') {
     const c = metadata.candidate as Record<string, unknown>
@@ -429,24 +456,25 @@ function updateDockProgress(force = false): void {
   }
 
   const all = db.getDownloads()
-  const activeCount = all.filter((r) => r.status === 'downloading' || r.status === 'queued').length
+  const downloadRows = all.filter((r) => r.status !== 'resolving' && r.status !== 'ready')
+  const activeCount = downloadRows.filter((r) => r.status === 'downloading' || r.status === 'queued').length
 
   let overallProgress = 0
-  for (const r of all) {
+  for (const r of downloadRows) {
     if (r.status === 'complete') {
       overallProgress += 100
     } else {
       overallProgress += taskProgress.get(r.id) ?? r.progress ?? 0
     }
   }
-  const avgProgress = all.length > 0 ? overallProgress / all.length : 0
+  const avgProgress = downloadRows.length > 0 ? overallProgress / downloadRows.length : 0
 
   dockProgress.updateProgress(avgProgress, totalSpeed, activeCount)
 }
 
 /** Slim IPC payload — avoids shipping full task metadata/thumbnails on every progress tick. */
 function slimProgressPayload(task: DownloadTask, extras?: ProgressExtras): Record<string, unknown> {
-  const terminal = ['complete', 'error', 'cancelled', 'paused', 'interrupted'].includes(task.status)
+  const stateChange = ['resolving', 'ready', 'complete', 'error', 'cancelled', 'paused', 'interrupted'].includes(task.status)
   return {
     id: task.id,
     status: task.status,
@@ -457,20 +485,22 @@ function slimProgressPayload(task: DownloadTask, extras?: ProgressExtras): Recor
     phase: extras?.phase ?? null,
     ...(task.filePath != null ? { filePath: task.filePath } : {}),
     ...(task.title ? { title: task.title } : {}),
-    ...(terminal
+    ...(stateChange
       ? {
           error: task.error,
           errorCode: task.errorCode ?? null,
           thumbnail: task.thumbnail,
+          duration: task.duration,
+          channel: task.metadata.channel ?? null,
         }
       : {}),
   }
 }
 
 function emitProgress(task: DownloadTask, extras?: ProgressExtras, opts?: { force?: boolean }): void {
-  const terminal = ['complete', 'error', 'cancelled', 'paused', 'interrupted'].includes(task.status)
+  const stateChange = ['resolving', 'ready', 'complete', 'error', 'cancelled', 'paused', 'interrupted'].includes(task.status)
   const isStart = task.status === 'downloading' && task.progress <= 1
-  if (!opts?.force && !terminal && !isStart) {
+  if (!opts?.force && !stateChange && !isStart) {
     const now = Date.now()
     const last = progressEmitLastAt.get(task.id) ?? 0
     if (now - last < PROGRESS_EMIT_MIN_MS) return
@@ -765,6 +795,222 @@ export function addTask(options: AddTaskOptions): DownloadTask {
   scheduleDirectMediaThumbnailIfNeeded(task, options)
   processQueue()
   return task
+}
+
+export interface InfoResolveTaskOptions {
+  url: string
+  title?: string
+  format?: string
+  quality?: string
+  thumbnail?: string
+  duration?: number
+  metadata?: Record<string, unknown>
+  referer?: string
+  customHeaders?: Record<string, string>
+}
+
+export interface PromoteInfoResolveOptions {
+  url?: string
+  title?: string
+  format: string
+  quality?: string
+  thumbnail?: string
+  duration?: number
+  metadata?: Record<string, unknown>
+  mediaType?: string
+  referer?: string
+  customHeaders?: Record<string, string>
+}
+
+function metadataFromRecord(record: db.DownloadRecord): Record<string, unknown> {
+  const metadata: Record<string, unknown> = {}
+  if (record.channel) metadata.channel = record.channel
+  if (record.extras) {
+    try {
+      Object.assign(metadata, JSON.parse(record.extras) as Record<string, unknown>)
+    } catch {
+      /* ignore corrupt extras */
+    }
+  }
+  return metadata
+}
+
+export function isInfoResolveTaskRecord(record: db.DownloadRecord): boolean {
+  if (!record.extras) return false
+  try {
+    return (JSON.parse(record.extras) as Record<string, unknown>)?.infoResolve === true
+  } catch {
+    return false
+  }
+}
+
+export function isInfoResolveTask(id: string): boolean {
+  const record = db.getDownloads().find((candidate) => candidate.id === id)
+  return Boolean(record && isInfoResolveTaskRecord(record))
+}
+
+/** Create the durable placeholder shown while the main-process resolver works. */
+export function createInfoResolveTask(options: InfoResolveTaskOptions): DownloadTask {
+  const id = uuidv4()
+  const now = new Date().toISOString()
+  const quality = options.quality ?? settings.get('defaultVideoQuality')
+  const metadata: Record<string, unknown> = {
+    ...(options.metadata ?? {}),
+    infoResolve: true,
+    ...(options.title?.trim() ? { resolveTitle: options.title.trim() } : {}),
+    ...(options.referer ? { referer: options.referer } : {}),
+    ...(options.customHeaders ? { customHeaders: options.customHeaders } : {})
+  }
+  const task: DownloadTask = {
+    id,
+    url: options.url,
+    title: options.title?.trim() || 'Resolving…',
+    format: options.format || 'video',
+    quality,
+    status: 'resolving',
+    progress: 0,
+    filePath: null,
+    thumbnail: options.thumbnail ?? null,
+    duration: options.duration ?? null,
+    metadata,
+    playlistId: null,
+    playlistIndex: null,
+    error: null,
+    errorCode: null,
+    createdAt: now,
+    updatedAt: now
+  }
+
+  db.insertDownload({
+    id: task.id,
+    url: task.url,
+    title: task.title,
+    format: task.format,
+    quality: task.quality,
+    status: task.status,
+    progress: 0,
+    file_path: null,
+    file_size: null,
+    thumbnail: task.thumbnail,
+    duration: task.duration,
+    channel: typeof metadata.channel === 'string' ? metadata.channel : null,
+    playlist_id: null,
+    playlist_index: null,
+    extras: serializeExtras(metadata),
+    error: null
+  })
+  emitToRenderer('new-download', task)
+  return task
+}
+
+export function markInfoResolveResolving(id: string): DownloadTask | null {
+  const record = db.getDownloads().find((candidate) => candidate.id === id)
+  if (!record || !isInfoResolveTaskRecord(record) || record.status === 'cancelled') return null
+  db.updateDownload(id, { status: 'resolving', progress: 0, error: null, error_code: null })
+  const updated = db.getDownloads().find((candidate) => candidate.id === id)
+  if (!updated) return null
+  const task = taskFromRecord(updated)
+  emitProgress(task, {}, { force: true })
+  return task
+}
+
+export function markInfoResolveReady(
+  id: string,
+  patch: { title?: string; thumbnail?: string | null; duration?: number | null; channel?: string | null } = {}
+): DownloadTask | null {
+  const record = db.getDownloads().find((candidate) => candidate.id === id)
+  if (!record || !isInfoResolveTaskRecord(record) || record.status === 'cancelled') return null
+  db.updateDownload(id, {
+    status: 'ready',
+    progress: 0,
+    error: null,
+    error_code: null,
+    ...(patch.title?.trim() ? { title: patch.title.trim() } : {}),
+    ...(patch.thumbnail !== undefined ? { thumbnail: patch.thumbnail } : {}),
+    ...(patch.duration !== undefined ? { duration: patch.duration } : {}),
+    ...(patch.channel !== undefined ? { channel: patch.channel } : {})
+  })
+  const updated = db.getDownloads().find((candidate) => candidate.id === id)
+  if (!updated) return null
+  const task = taskFromRecord(updated)
+  emitProgress(task, {}, { force: true })
+  return task
+}
+
+export function failInfoResolveTask(id: string, message: string): DownloadTask | null {
+  const record = db.getDownloads().find((candidate) => candidate.id === id)
+  if (!record || !isInfoResolveTaskRecord(record) || record.status === 'cancelled') return null
+  const error = sanitizeResolverError(message)
+  const errorCode = classifyDownloadError(error, ytdlp.isValidYouTubeUrl(record.url))
+  db.updateDownload(id, { status: 'error', error, error_code: errorCode })
+  const updated = db.getDownloads().find((candidate) => candidate.id === id)
+  if (!updated) return null
+  const task = taskFromRecord(updated)
+  emitProgress(task, {}, { force: true })
+  return task
+}
+
+/** Transition a resolver placeholder into the normal download queue without creating a second row. */
+export function promoteInfoResolveTask(id: string, options: PromoteInfoResolveOptions): DownloadTask | null {
+  const record = db.getDownloads().find((candidate) => candidate.id === id)
+  if (!record || !isInfoResolveTaskRecord(record) || record.status === 'cancelled') return null
+
+  const previous = metadataFromRecord(record)
+  const metadata: Record<string, unknown> = {
+    ...previous,
+    ...(options.metadata ?? {}),
+    ...(options.mediaType ? { mediaType: options.mediaType } : {}),
+    ...(options.referer ? { referer: options.referer } : {}),
+    ...(options.customHeaders ? { customHeaders: options.customHeaders } : {})
+  }
+  delete metadata.infoResolve
+  delete metadata.resolveAutoStart
+  delete metadata.resolveTitle
+
+  const title = options.title?.trim() || record.title || 'Download'
+  const quality = options.quality ?? record.quality ?? settings.get('defaultVideoQuality')
+  db.updateDownload(id, {
+    ...(options.url ? { url: options.url } : {}),
+    title,
+    format: options.format,
+    quality,
+    status: 'queued',
+    progress: 0,
+    file_path: null,
+    file_size: null,
+    error: null,
+    error_code: null,
+    ...(options.thumbnail !== undefined ? { thumbnail: options.thumbnail } : {}),
+    ...(options.duration !== undefined ? { duration: options.duration } : {}),
+    channel: typeof metadata.channel === 'string' ? metadata.channel : record.channel,
+    extras: serializeExtras(metadata)
+  })
+  clearTaskAborted(id)
+  if (options.mediaType || options.referer || options.customHeaders) {
+    taskExtraMeta.set(id, {
+      mediaType: options.mediaType,
+      referer: options.referer,
+      customHeaders: options.customHeaders
+    })
+  } else {
+    taskExtraMeta.delete(id)
+  }
+  const updated = db.getDownloads().find((candidate) => candidate.id === id)
+  if (!updated) return null
+  const task = taskFromRecord(updated)
+  emitProgress(task, {}, { force: true })
+  processQueue()
+  return task
+}
+
+/** Used by the resolver manager after it has cancelled the in-flight worker. */
+export function cancelInfoResolveTask(id: string): boolean {
+  const record = db.getDownloads().find((candidate) => candidate.id === id)
+  if (!record || !isInfoResolveTaskRecord(record)) return false
+  db.updateDownload(id, { status: 'cancelled', error: 'Cancelled by user', error_code: null })
+  const updated = db.getDownloads().find((candidate) => candidate.id === id)
+  if (updated) emitProgress(taskFromRecord(updated), {}, { force: true })
+  return true
 }
 
 /** Max tasks per bulk enqueue (matches profile picker load-all cap). */
@@ -1598,6 +1844,10 @@ export function cancelTask(id: string): boolean {
 
   const tasks = db.getDownloads()
   const record = tasks.find((r) => r.id === id)
+  if (record && isInfoResolveTaskRecord(record) && (record.status === 'resolving' || record.status === 'ready' || record.status === 'error')) {
+    infoResolveHooks.onCancel?.(id)
+    return cancelInfoResolveTask(id)
+  }
   if (record && (record.status === 'queued' || record.status === 'downloading')) {
     db.updateDownload(id, { status: 'cancelled', error: 'Cancelled by user', error_code: null })
     const updated = db.getDownloads().find((r) => r.id === id)
@@ -1638,6 +1888,14 @@ export function retryTask(id: string): boolean {
   const tasks = db.getDownloads()
   const record = tasks.find((r) => r.id === id)
   console.log(`[retryTask] id=${id.slice(0,8)} status=${record?.status ?? 'NOT_FOUND'}`)
+  if (record && isInfoResolveTaskRecord(record) && (record.status === 'error' || record.status === 'cancelled')) {
+    clearTaskAborted(id)
+    db.updateDownload(id, { status: 'resolving', progress: 0, error: null, error_code: null })
+    const updated = db.getDownloads().find((r) => r.id === id)
+    if (updated) emitProgress(taskFromRecord(updated), {}, { force: true })
+    infoResolveHooks.onRetry?.(id)
+    return true
+  }
   if (record && (record.status === 'error' || record.status === 'interrupted' || record.status === 'cancelled' || record.status === 'paused')) {
     clearTaskAborted(id)
     // Preserve progress for crash / pause / failed retries so the UI matches yt-dlp --continue (partial .part).
@@ -1806,6 +2064,7 @@ export function clearCompleted(): void {
 export function clearAll(): void {
   for (const r of db.getDownloads()) {
     markTaskAborted(r.id)
+    if (isInfoResolveTaskRecord(r)) infoResolveHooks.onCancel?.(r.id)
   }
   for (const id of [...activeDownloads.keys()]) {
     cancelTask(id)

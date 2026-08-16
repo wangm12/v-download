@@ -40,7 +40,16 @@ for (const path of rendererFiles) {
 
 assert.match(read('extension/manifest.json'), /"theme\.css"/)
 assert.match(read('extension/popup.html'), /theme\.css/)
-assert.match(read('extension/theme.css'), /--vdl-accent/)
+const extensionTheme = read('extension/theme.css')
+assert.match(extensionTheme, /--vdl-accent/)
+assert.match(extensionTheme, /--vdl-overlay-bg/)
+assert.match(extensionTheme, /--vdl-overlay-icon/)
+
+for (const path of ['extension/content-video-overlay.css', 'extension/content-douyin.css', 'extension/content-tiktok.css', 'extension/content-x.css']) {
+  const source = read(path)
+  assert.match(source, /var\(--vdl-overlay-bg\)/, `missing protected overlay surface in ${path}`)
+  assert.match(source, /stroke: currentColor !important/, `overlay icon can be overridden by host CSS in ${path}`)
+}
 
 const extensionFiles = [
   ...filesUnder('extension', '.css'),

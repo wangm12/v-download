@@ -28,9 +28,13 @@ import { buildDouyinCookieHeader, resolveDouyinCookieContext } from './browserCo
 import { getCachedProfileAwemeItem } from './douyinProfileAwemeCache'
 import { buildSignedAwemeDetailUrl } from './douyinProfileSign'
 import { delayWithAbort, fetchWithTimeout } from './httpClient'
+import { resolveDouyinInfoViaExtension } from './douyinResolveExtension'
 
 const DETAIL_API_RETRY_DELAYS_MS = [1000, 2000, 5000]
 const DETAIL_API_MAX_ATTEMPTS = 3
+/** Keep a failed Chrome bridge from turning the fallback into a multi-minute task. */
+const DOUYIN_PAGE_FETCH_TIMEOUT_MS = 8_000
+const DOUYIN_CHROMIUM_FALLBACK_TIMEOUT_MS = 16_000
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms))
@@ -80,9 +84,15 @@ export function isDouyinGallery(info: DouyinMediaResult | null): info is DouyinG
 
 /** Set when getDouyinInfo returns null — for clearer UI / task errors */
 let lastGetDouyinInfoError = ''
+export const DOUYIN_POST_UNAVAILABLE_ERROR =
+  'Douyin reports this post is unavailable or has been removed for the current account.'
 
 export function getLastDouyinInfoError(): string {
   return lastGetDouyinInfoError
+}
+
+export function isDouyinPostUnavailableError(value: unknown): boolean {
+  return typeof value === 'string' && value.includes(DOUYIN_POST_UNAVAILABLE_ERROR)
 }
 
 export function isDouyinUrl(url: string): boolean {
@@ -118,9 +128,10 @@ type FetchUaMode = DouyinFetchUaMode
 async function fetchDouyinHtml(
   pageUrl: string,
   cookiesFilePath: string | undefined,
-  uaMode: FetchUaMode
+  uaMode: FetchUaMode,
+  options?: { signal?: AbortSignal; timeoutMs?: number }
 ): Promise<string> {
-  return fetchDouyinPageHtml(pageUrl, cookiesFilePath, uaMode)
+  return fetchDouyinPageHtml(pageUrl, cookiesFilePath, uaMode, options)
 }
 
 function videoPlayAddr(video: Record<string, unknown>): Record<string, unknown> | null {
@@ -216,6 +227,62 @@ function bestPlayAddrFromVideo(video: Record<string, unknown>): Record<string, u
   return pa
 }
 
+function httpUrlCandidates(value: unknown): string[] {
+  const out: string[] = []
+  const visit = (current: unknown, depth: number): void => {
+    if (depth > 4 || current == null) return
+    if (typeof current === 'string') {
+      if (/^https?:\/\//i.test(current)) out.push(current)
+      return
+    }
+    if (Array.isArray(current)) {
+      for (const item of current) visit(item, depth + 1)
+      return
+    }
+    if (typeof current !== 'object') return
+    const record = current as Record<string, unknown>
+    for (const key of ['src', 'url', 'url_list', 'urlList']) visit(record[key], depth + 1)
+  }
+  visit(value, 0)
+  return [...new Set(out)]
+}
+
+/** Motion-photo images carry a short MP4 under images[].video. */
+function motionVideoUrlCandidatesFromImage(image: Record<string, unknown>): string[] {
+  const video = (image.video ?? image.motion_video ?? image.motionVideo) as Record<string, unknown> | undefined
+  if (!video || typeof video !== 'object') return []
+
+  const out: string[] = []
+  const collectVideoValue = (value: unknown) => out.push(...httpUrlCandidates(value))
+  for (const key of [
+    'play_addr',
+    'playAddr',
+    'download_addr',
+    'downloadAddr',
+    'play_url',
+    'playUrl',
+    'play_api',
+    'playApi',
+    'play_api_h265',
+    'playApiH265',
+  ]) {
+    collectVideoValue(video[key])
+  }
+
+  const bitRateList = (video.bit_rate ?? video.bitRate ?? video.bit_rate_list ?? video.bitRateList) as unknown
+  if (Array.isArray(bitRateList)) {
+    for (const entry of bitRateList) {
+      if (!entry || typeof entry !== 'object') continue
+      const record = entry as Record<string, unknown>
+      for (const key of ['play_addr', 'playAddr', 'download_addr', 'downloadAddr', 'play_api', 'playApi']) {
+        collectVideoValue(record[key])
+      }
+    }
+  }
+
+  return [...new Set(out)]
+}
+
 function buildDouyinInfoFromItem(item: Record<string, unknown>, fallbackId: string): DouyinVideoInfo {
   const video = item.video as Record<string, unknown>
   const playAddr = (bestPlayAddrFromVideo(video) ?? {}) as Record<string, unknown>
@@ -238,7 +305,8 @@ function buildDouyinInfoFromItem(item: Record<string, unknown>, fallbackId: stri
 }
 
 function itemHasImages(o: Record<string, unknown>): boolean {
-  const imgs = (o.images ?? o.image_list ?? o.imageList) as unknown
+  const imagePost = (o.image_post ?? o.imagePost) as Record<string, unknown> | undefined
+  const imgs = (o.images ?? o.image_list ?? o.imageList ?? imagePost?.images ?? imagePost?.image_list ?? imagePost?.imageList) as unknown
   if (!Array.isArray(imgs) || imgs.length === 0) return false
   for (const img of imgs) {
     if (!img || typeof img !== 'object') continue
@@ -247,6 +315,7 @@ function itemHasImages(o: Record<string, unknown>): boolean {
     if (Array.isArray(urlList) && urlList.some((u) => typeof u === 'string' && /^https?:\/\//i.test(u))) {
       return true
     }
+    if (motionVideoUrlCandidatesFromImage(rec).length > 0) return true
   }
   return false
 }
@@ -273,29 +342,36 @@ function findGalleryItemDeep(obj: unknown, depth = 0, maxDepth = 100): Record<st
   return null
 }
 
-function buildDouyinGalleryFromItem(item: Record<string, unknown>, fallbackId: string): DouyinGalleryInfo {
-  const imgs = (item.images ?? item.image_list ?? item.imageList) as unknown[] | undefined
+export function buildDouyinGalleryFromItem(item: Record<string, unknown>, fallbackId: string): DouyinGalleryInfo {
+  const imagePost = (item.image_post ?? item.imagePost) as Record<string, unknown> | undefined
+  const imgs = (item.images ?? item.image_list ?? item.imageList ?? imagePost?.images ?? imagePost?.image_list ?? imagePost?.imageList) as unknown[] | undefined
   const imageUrls: string[] = []
+  let cover = ''
   if (Array.isArray(imgs)) {
     for (const img of imgs) {
       if (!img || typeof img !== 'object') continue
       const rec = img as Record<string, unknown>
       const urlList = (rec.url_list ?? rec.urlList) as string[] | undefined
+      let stillUrl = ''
       if (Array.isArray(urlList) && urlList.length > 0) {
         const best = urlList[urlList.length - 1]
-        if (typeof best === 'string' && /^https?:\/\//i.test(best)) imageUrls.push(best)
+        if (typeof best === 'string' && /^https?:\/\//i.test(best)) stillUrl = best
       }
+      if (!cover && stillUrl) cover = stillUrl
+      const motionUrl = motionVideoUrlCandidatesFromImage(rec)[0] ?? ''
+      const selected = motionUrl || stillUrl
+      if (selected) imageUrls.push(selected)
     }
   }
-  const author = (item.author as { nickname?: string } | undefined)?.nickname ?? ''
-  const cover = imageUrls[0] ?? ''
+  const authorRecord = (item.author ?? item.authorInfo) as { nickname?: string } | undefined
+  const author = authorRecord?.nickname ?? ''
 
   return {
     kind: 'gallery',
-    id: String(item.aweme_id ?? fallbackId),
-    title: String(item.desc ?? 'Douyin Images').substring(0, 200),
+    id: String(item.aweme_id ?? item.awemeId ?? fallbackId),
+    title: String(item.desc ?? '').trim().slice(0, 200) || 'Douyin Images',
     author: String(author),
-    cover,
+    cover: cover || imageUrls[0] || '',
     imageUrls,
   }
 }
@@ -364,6 +440,76 @@ function tryNextDataScript(html: string, contentId: string): DouyinMediaResult |
   } catch {
     return null
   }
+}
+
+function readJsonStringAt(html: string, start: number): { value: string; next: number } | null {
+  if (html[start] !== '"') return null
+  let escaped = false
+  for (let i = start + 1; i < html.length; i++) {
+    const c = html[i]
+    if (escaped) {
+      escaped = false
+      continue
+    }
+    if (c === '\\') {
+      escaped = true
+      continue
+    }
+    if (c !== '"') continue
+    try {
+      const value = JSON.parse(html.slice(start, i + 1))
+      return typeof value === 'string' ? { value, next: i + 1 } : null
+    } catch {
+      return null
+    }
+  }
+  return null
+}
+
+/** React Server Components payload used by the current desktop note page. */
+function tryPaceFlightScript(html: string, contentId: string): DouyinMediaResult | null {
+  let galleryFallback: DouyinGalleryInfo | null = null
+  let videoFallback: DouyinVideoInfo | null = null
+
+  for (const marker of ['self.__pace_f.push([1,', 'self.__next_f.push([1,']) {
+    let from = 0
+    while (true) {
+      const pos = html.indexOf(marker, from)
+      if (pos < 0) break
+      let start = pos + marker.length
+      while (start < html.length && /\s/.test(html[start])) start++
+      const encoded = readJsonStringAt(html, start)
+      from = encoded?.next ?? start + 1
+      if (!encoded) continue
+
+      const colon = encoded.value.indexOf(':')
+      if (colon < 0) continue
+      try {
+        const data = JSON.parse(encoded.value.slice(colon + 1)) as Record<string, unknown>
+        const resolved = resolveMediaFromParsedData(data, contentId)
+        if (!resolved) continue
+        if (isDouyinGallery(resolved)) {
+          if (galleryHasMotionMedia(resolved)) return resolved
+          galleryFallback ??= resolved
+        } else {
+          videoFallback ??= resolved
+        }
+      } catch {
+        /* try the next flight chunk */
+      }
+    }
+  }
+  return galleryFallback ?? videoFallback
+}
+
+function galleryHasMotionMedia(gallery: DouyinGalleryInfo): boolean {
+  return gallery.imageUrls.some((url) => /mime_type=video|video_mp4|\/(?:video|play)\//i.test(url))
+}
+
+function parsedMediaLogSuffix(info: DouyinMediaResult): string {
+  if (!isDouyinGallery(info)) return ''
+  const motionCount = info.imageUrls.filter((url) => /mime_type=video|video_mp4|\/(?:video|play)\//i.test(url)).length
+  return `, images=${info.imageUrls.length}, motion=${motionCount}`
 }
 
 function decodeBasicHtmlEntities(s: string): string {
@@ -489,15 +635,34 @@ function tryLooseNearAwemeId(html: string, videoId: string): DouyinVideoInfo | n
   return null
 }
 
-function parseDouyinPageHtml(html: string, contentId: string): DouyinMediaResult {
-  const fromMarkers = tryParseEmbeddedJsonMarkers(html, contentId)
-  if (fromMarkers) return fromMarkers
+export function parseDouyinPageHtml(html: string, contentId: string): DouyinMediaResult {
+  // A hydrated page can contain an older static router snapshot followed by
+  // the current RSC/Flight payload. Inspect every source before returning so
+  // motion-photo MP4s win over JPEG covers regardless of script order.
+  let galleryFallback: DouyinGalleryInfo | null = null
+  let videoFallback: DouyinVideoInfo | null = null
+  const consider = (candidate: DouyinMediaResult | null): DouyinMediaResult | null => {
+    if (!candidate) return null
+    if (isDouyinGallery(candidate)) {
+      if (galleryHasMotionMedia(candidate)) return candidate
+      galleryFallback ??= candidate
+    } else {
+      videoFallback ??= candidate
+    }
+    return null
+  }
 
-  const fromRender = tryRenderDataScript(html, contentId)
-  if (fromRender) return fromRender
-
-  const fromNext = tryNextDataScript(html, contentId)
-  if (fromNext) return fromNext
+  for (const candidate of [
+    tryParseEmbeddedJsonMarkers(html, contentId),
+    tryRenderDataScript(html, contentId),
+    tryNextDataScript(html, contentId),
+    tryPaceFlightScript(html, contentId),
+  ]) {
+    const preferred = consider(candidate)
+    if (preferred) return preferred
+  }
+  if (galleryFallback) return galleryFallback
+  if (videoFallback) return videoFallback
 
   const loose = tryLoosePlayAddrInHtml(html, contentId)
   if (loose) return loose
@@ -791,6 +956,7 @@ export async function enrichDouyinVideoPlayUrls(
       preferredUa: 'mobile',
       capturedCdnUrls,
       enrichmentMode: true,
+      signal: options?.signal,
     })
   } catch (e) {
     if (isDouyinAbortError(e)) throw e
@@ -855,9 +1021,38 @@ export async function getDouyinInfo(
       return '(bad-url)'
     }
   }
+  let extensionFailure = ''
 
   try {
     console.log(`[douyin] Resolving URL host=${safeHost(url)}`)
+    // Prefer the user's already-authenticated Douyin tab. This avoids opening
+    // a second Chromium session for pages that require the real browser's
+    // cookies, React state, or extension-observed media responses.
+    try {
+      const browserAttempt = await resolveDouyinInfoViaExtension(url, options?.signal)
+      throwIfDouyinAborted(options?.signal)
+      if (browserAttempt.result) {
+        console.log(
+          `[douyin] Resolved from user's browser kind=${isDouyinGallery(browserAttempt.result) ? 'gallery' : 'video'}${parsedMediaLogSuffix(browserAttempt.result)}`
+        )
+        lastGetDouyinInfoError = ''
+        return browserAttempt.result
+      }
+      extensionFailure = browserAttempt.error || 'V-Download Chrome extension did not return media information.'
+      if (isDouyinPostUnavailableError(extensionFailure)) {
+        lastGetDouyinInfoError = extensionFailure
+        console.warn(`[douyin] ${extensionFailure}`)
+        return null
+      }
+      console.warn(`[douyin] ${extensionFailure} Falling back to bounded page sources.`)
+    } catch (browserError) {
+      if (isDouyinAbortError(browserError)) throw browserError
+      extensionFailure = browserError instanceof Error ? browserError.message : String(browserError)
+      console.warn(
+        '[douyin] User browser extension unavailable; falling back to bounded page sources:',
+        extensionFailure
+      )
+    }
     const resolved = await resolveShortUrl(url, options?.signal)
     throwIfDouyinAborted(options?.signal)
     console.log(`[douyin] Resolved host=${safeHost(resolved)}`)
@@ -865,7 +1060,7 @@ export async function getDouyinInfo(
     const contentId = extractContentId(resolved)
     if (!contentId) {
       console.log(`[douyin] Could not extract content ID from resolved URL`)
-      lastGetDouyinInfoError = 'Could not extract video/note id from resolved URL'
+      lastGetDouyinInfoError = [extensionFailure, 'Could not extract video/note id from resolved URL'].filter(Boolean).join(' | ')
       return null
     }
     console.log(`[douyin] Content ID: ${contentId}`)
@@ -893,13 +1088,17 @@ export async function getDouyinInfo(
     }
 
     let lastErr = ''
+    let galleryFallback: DouyinGalleryInfo | null = null
     for (const pageUrl of pageUrls) {
       throwIfDouyinAborted(options?.signal)
       let chromiumReturnedForThisUrl = false
       for (const uaMode of ['mobile', 'desktop'] as FetchUaMode[]) {
         throwIfDouyinAborted(options?.signal)
         try {
-          let html = await fetchDouyinHtml(pageUrl, cookiesFilePath, uaMode)
+          let html = await fetchDouyinHtml(pageUrl, cookiesFilePath, uaMode, {
+            signal: options?.signal,
+            timeoutMs: DOUYIN_PAGE_FETCH_TIMEOUT_MS,
+          })
           if (isDouyinAntiBotShell(html)) {
             if (/^https:\/\/www\.douyin\.com\/video\//i.test(pageUrl)) {
               lastErr =
@@ -919,6 +1118,7 @@ export async function getDouyinInfo(
               cookiesFilePath,
               preferredUa: uaMode === 'mobile' ? 'mobile' : 'desktop',
               enrichmentMode: true,
+              signal: options?.signal,
             })
             chromiumReturnedForThisUrl = true
           }
@@ -928,6 +1128,17 @@ export async function getDouyinInfo(
             info = parseDouyinPageHtml(html, contentId)
           } catch (parseErr) {
             const alreadyCanonical = /^https:\/\/www\.douyin\.com\/video\//i.test(pageUrl)
+            // A mobile page can be a lightweight shell that is parseable only
+            // as a static gallery. Do not start the expensive canonical
+            // Chromium recovery before trying the desktop request: for note
+            // pages the desktop HTML commonly contains the motion-photo MP4s
+            // and returns in seconds.
+            if (!alreadyCanonical && uaMode === 'mobile') {
+              console.warn(
+                `[douyin] Mobile parse failed on ${pageUrl}; deferring Chromium recovery until desktop/source attempts`
+              )
+              throw parseErr
+            }
             if (alreadyCanonical) {
               throw parseErr
             }
@@ -939,9 +1150,10 @@ export async function getDouyinInfo(
                 )
                 const htmlCanon = await fetchDouyinHtmlWithChromium(canonical, {
                   cookiesFilePath,
-                  timeoutMs: 92_000,
+                  timeoutMs: DOUYIN_CHROMIUM_FALLBACK_TIMEOUT_MS,
                   preferredUa: ua,
                   enrichmentMode: true,
+                  signal: options?.signal,
                 })
                 recovered = parseDouyinPageHtml(htmlCanon, contentId)
                 break
@@ -956,8 +1168,20 @@ export async function getDouyinInfo(
             }
           }
           console.log(
-            `[douyin] Parsed: title="${info.title}", author="${info.author}", kind=${isDouyinGallery(info) ? 'gallery' : 'video'}`
+            `[douyin] Parsed: title="${info.title}", author="${info.author}", kind=${isDouyinGallery(info) ? 'gallery' : 'video'}${parsedMediaLogSuffix(info)}`
           )
+          if (isDouyinGallery(info)) {
+            if (galleryHasMotionMedia(info)) {
+              lastGetDouyinInfoError = ''
+              return info
+            }
+            galleryFallback ??= info
+            console.log(`[douyin] Static gallery candidate from host=${safeHost(pageUrl)}; trying another source for motion media`)
+            // This host only supplied still covers. Move to the next page
+            // source instead of retrying the same URL with another UA and
+            // potentially waiting for a redundant Chromium timeout.
+            break
+          }
           lastGetDouyinInfoError = ''
           return info
         } catch (e) {
@@ -974,26 +1198,29 @@ export async function getDouyinInfo(
         console.warn('[douyin] Plain fetches failed; Chromium on mobile share URL…')
         html = await fetchDouyinHtmlWithChromium(mShare, {
           cookiesFilePath,
-          timeoutMs: 88_000,
+          timeoutMs: DOUYIN_CHROMIUM_FALLBACK_TIMEOUT_MS,
           preferredUa: 'mobile',
           enrichmentMode: true,
+          signal: options?.signal,
         })
       } catch (shareChErr) {
         console.warn('[douyin] Mobile share Chromium failed; trying canonical (mobile UA)…', shareChErr)
         try {
           html = await fetchDouyinHtmlWithChromium(canonical, {
             cookiesFilePath,
-            timeoutMs: 88_000,
+            timeoutMs: DOUYIN_CHROMIUM_FALLBACK_TIMEOUT_MS,
             preferredUa: 'mobile',
             enrichmentMode: true,
+            signal: options?.signal,
           })
         } catch (firstCh) {
           console.warn('[douyin] Canonical Chromium (mobile UA) failed, retrying with desktop UA…', firstCh)
           html = await fetchDouyinHtmlWithChromium(canonical, {
             cookiesFilePath,
-            timeoutMs: 88_000,
+            timeoutMs: DOUYIN_CHROMIUM_FALLBACK_TIMEOUT_MS,
             preferredUa: 'desktop',
             enrichmentMode: true,
+            signal: options?.signal,
           })
         }
       }
@@ -1007,33 +1234,50 @@ export async function getDouyinInfo(
         )
         html = await fetchDouyinHtmlWithChromium(canonical, {
           cookiesFilePath,
-          timeoutMs: 92_000,
+          timeoutMs: DOUYIN_CHROMIUM_FALLBACK_TIMEOUT_MS,
           preferredUa: 'mobile',
           enrichmentMode: true,
+          signal: options?.signal,
         })
         try {
           info = parseDouyinPageHtml(html, contentId)
         } catch {
           html = await fetchDouyinHtmlWithChromium(canonical, {
             cookiesFilePath,
-            timeoutMs: 92_000,
+            timeoutMs: DOUYIN_CHROMIUM_FALLBACK_TIMEOUT_MS,
             preferredUa: 'desktop',
             enrichmentMode: true,
+            signal: options?.signal,
           })
           info = parseDouyinPageHtml(html, contentId)
         }
       }
       console.log(
-        `[douyin] Parsed (Chromium): title="${info.title}", author="${info.author}", kind=${isDouyinGallery(info) ? 'gallery' : 'video'}`
+        `[douyin] Parsed (Chromium): title="${info.title}", author="${info.author}", kind=${isDouyinGallery(info) ? 'gallery' : 'video'}${parsedMediaLogSuffix(info)}`
       )
-      lastGetDouyinInfoError = ''
-      return info
+      if (isDouyinGallery(info)) {
+        if (galleryHasMotionMedia(info)) {
+          lastGetDouyinInfoError = ''
+          return info
+        }
+        galleryFallback ??= info
+        console.log('[douyin] Chromium returned a static gallery; keeping it as fallback')
+      } else {
+        lastGetDouyinInfoError = ''
+        return info
+      }
     } catch (e) {
       lastErr = e instanceof Error ? e.message : String(e)
       console.warn('[douyin] Chromium fallback failed:', lastErr)
     }
 
-    lastGetDouyinInfoError = lastErr || 'All Douyin page sources failed'
+    if (galleryFallback) {
+      lastGetDouyinInfoError = ''
+      return galleryFallback
+    }
+    lastGetDouyinInfoError = [extensionFailure, lastErr || 'All Douyin page sources failed']
+      .filter(Boolean)
+      .join(' | ')
     return null
   } catch (err) {
     if (isDouyinAbortError(err)) throw err
@@ -1146,9 +1390,16 @@ export async function downloadDouyinVideo(
   throw new Error(lastErr)
 }
 
-function extFromImageUrl(u: string): string {
+export function extFromImageUrl(u: string, contentType = ''): string {
+  if (/video\/mp4|video_mp4/i.test(contentType)) return 'mp4'
   try {
-    const p = new URL(u).pathname.toLowerCase()
+    const parsed = new URL(u)
+    const p = parsed.pathname.toLowerCase()
+    const mime = parsed.searchParams.get('mime_type') ?? ''
+    if (/video\/mp4|video_mp4/i.test(mime) || parsed.searchParams.has('video_id') || parsed.searchParams.has('file_id')) {
+      return 'mp4'
+    }
+    if (/\/(?:video|play)\//i.test(p)) return 'mp4'
     if (p.endsWith('.png')) return 'png'
     if (p.endsWith('.webp')) return 'webp'
     if (p.endsWith('.jpeg')) return 'jpeg'
@@ -1176,7 +1427,7 @@ async function fetchWith429Backoff(url: string, init: RequestInit): Promise<Resp
   return res
 }
 
-/** Download all images from a Douyin note / gallery into `outputDir/<title>/`. */
+/** Download all still images or motion-photo MP4s from a Douyin note / gallery. */
 export async function downloadDouyinImageGallery(
   imageUrls: string[],
   outputDir: string,
@@ -1219,19 +1470,19 @@ export async function downloadDouyinImageGallery(
       if (idx >= n) break
       const url = imageUrls[idx]
       const i = idx + 1
-      const ext = extFromImageUrl(url)
-      const dest = join(subDir, `${String(i).padStart(3, '0')}.${ext}`)
       const res = await fetchWith429Backoff(url, {
         headers,
         redirect: 'follow',
         signal: options?.signal,
       })
       if (!res.ok) {
-        throw new Error(`Image ${i} failed: ${res.status} ${res.statusText}`)
+        throw new Error(`Media ${i} failed: ${res.status} ${res.statusText}`)
       }
+      const ext = extFromImageUrl(url, res.headers.get('content-type') ?? '')
+      const dest = join(subDir, `${String(i).padStart(3, '0')}.${ext}`)
       const buf = Buffer.from(await res.arrayBuffer())
       if (buf.length < 64) {
-        throw new Error(`Image ${i} response too small`)
+        throw new Error(`Media ${i} response too small`)
       }
       writeFileSync(dest, buf)
       bump()

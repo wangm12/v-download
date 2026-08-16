@@ -45,6 +45,17 @@ function resolveMacExecutable(browser: string): string | undefined {
   }
 }
 
+/**
+ * macOS app bundles need their real executable when Chromium command-line
+ * switches are required. `open -a … --args` does not forward those switches
+ * to an already-running Chrome session, so it silently drops background-tab
+ * requests.
+ */
+export function mapBrowserToMacExecutable(browser: string): string | undefined {
+  const executable = resolveMacExecutable(browser.trim().toLowerCase())
+  return executable && existsSync(executable) ? executable : undefined
+}
+
 function resolveLinuxExecutable(browser: string): string | undefined {
   const home = homedir()
   switch (browser) {
@@ -96,7 +107,7 @@ export function mapBrowserToPlaywrightLaunch(browser: string): PlaywrightLaunchO
 
   let executablePath: string | undefined
   if (platform() === 'darwin') {
-    executablePath = resolveMacExecutable(b)
+    executablePath = mapBrowserToMacExecutable(b)
   } else if (platform() === 'win32') {
     executablePath = resolveWinExecutable(b)
   } else {

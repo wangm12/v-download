@@ -3,6 +3,31 @@ import type { StartDownloadOptions } from '@v-download/shared'
 
 const api = {
   getVideoInfo: (url: string) => ipcRenderer.invoke('get-video-info', url),
+  startInfoResolve: (options: {
+    url: string
+    title?: string
+    format?: string
+    quality?: string
+    metadata?: Record<string, unknown>
+    referer?: string
+    customHeaders?: Record<string, string>
+  }) => ipcRenderer.invoke('start-info-resolve', options),
+  getInfoResolveResults: () => ipcRenderer.invoke('get-info-resolve-results'),
+  promoteInfoResolve: (options: {
+    id: string
+    url?: string
+    title?: string
+    format: string
+    quality?: string
+    thumbnail?: string
+    duration?: number
+    metadata?: Record<string, unknown>
+    mediaType?: string
+    referer?: string
+    customHeaders?: Record<string, string>
+  }) => ipcRenderer.invoke('promote-info-resolve', options),
+  markInfoResolveReady: (options: { id: string; title?: string; thumbnail?: string | null; duration?: number | null }) =>
+    ipcRenderer.invoke('mark-info-resolve-ready', options),
   listPlaylistEntries: (url: string) => ipcRenderer.invoke('list-playlist-entries', url),
   getEntryThumbnail: (pageUrl: string) => ipcRenderer.invoke('get-entry-thumbnail', pageUrl),
   openExternalUrl: (url: string) => ipcRenderer.invoke('open-external-url', url),
@@ -37,6 +62,11 @@ const api = {
     const sub = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data)
     ipcRenderer.on('new-download', sub)
     return () => ipcRenderer.removeListener('new-download', sub)
+  },
+  onInfoResolveResult: (callback: (data: unknown) => void) => {
+    const sub = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data)
+    ipcRenderer.on('info-resolve-result', sub)
+    return () => ipcRenderer.removeListener('info-resolve-result', sub)
   },
   selectDownloadFolder: () => ipcRenderer.invoke('select-download-folder'),
   openSettings: () => ipcRenderer.invoke('open-settings'),

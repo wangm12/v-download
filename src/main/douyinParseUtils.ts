@@ -14,6 +14,11 @@ export const DOUYIN_DESKTOP_UA =
 
 export type DouyinFetchUaMode = 'mobile' | 'desktop'
 
+export interface DouyinPageFetchOptions {
+  signal?: AbortSignal
+  timeoutMs?: number
+}
+
 export function parseCookieMapFromNetscapeFile(cookiePath: string): Record<string, string> {
   const map: Record<string, string> = {}
   if (!existsSync(cookiePath)) return map
@@ -88,7 +93,8 @@ export function extractBalancedJsonAfterMarker(html: string, marker: string): st
 export async function fetchDouyinPageHtml(
   pageUrl: string,
   cookiesFilePath: string | undefined,
-  uaMode: DouyinFetchUaMode
+  uaMode: DouyinFetchUaMode,
+  options?: DouyinPageFetchOptions
 ): Promise<string> {
   const ua = uaMode === 'desktop' ? DOUYIN_DESKTOP_UA : DOUYIN_MOBILE_UA
   const headers: Record<string, string> = {
@@ -103,7 +109,11 @@ export async function fetchDouyinPageHtml(
     if (cookieHeader) headers.Cookie = cookieHeader
   }
 
-  const res = await fetchWithTimeout(pageUrl, { headers, redirect: 'follow' })
+  const res = await fetchWithTimeout(
+    pageUrl,
+    { headers, redirect: 'follow', signal: options?.signal },
+    { timeoutMs: options?.timeoutMs }
+  )
   if (!res.ok) throw new Error(`Page fetch failed: ${res.status}`)
   return res.text()
 }

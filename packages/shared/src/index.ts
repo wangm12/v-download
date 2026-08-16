@@ -69,7 +69,16 @@ export interface StartDownloadOptions {
   candidates?: MediaCandidate[]
 }
 
-export type DownloadStatus = 'queued' | 'downloading' | 'complete' | 'error' | 'interrupted' | 'cancelled' | 'paused'
+export type DownloadStatus =
+  | 'resolving'
+  | 'ready'
+  | 'queued'
+  | 'downloading'
+  | 'complete'
+  | 'error'
+  | 'interrupted'
+  | 'cancelled'
+  | 'paused'
 
 export interface DownloadTask {
   id: string

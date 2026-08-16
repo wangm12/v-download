@@ -1,6 +1,17 @@
 import type { AppResult, StartDownloadOptions } from '@v-download/shared'
 export type { AppResult, StartDownloadOptions } from '@v-download/shared'
 
+export interface InfoResolveEvent {
+  id: string
+  url: string
+  autoStart: boolean
+  format?: string
+  quality?: string
+  requestedTitle?: string
+  data?: unknown
+  error?: string
+}
+
 export interface DouyinBulkJobStatus {
   id: string
   state: 'running' | 'completed' | 'failed' | 'cancelled'
@@ -11,6 +22,30 @@ export interface DouyinBulkJobStatus {
 
 export interface WindowApi {
   getVideoInfo: (url: string) => Promise<{ data?: unknown; error?: string }>
+  startInfoResolve: (options: {
+    url: string
+    title?: string
+    format?: string
+    quality?: string
+    metadata?: Record<string, unknown>
+    referer?: string
+    customHeaders?: Record<string, string>
+  }) => Promise<{ data?: unknown; error?: string }>
+  getInfoResolveResults: () => Promise<{ data?: InfoResolveEvent[]; error?: string }>
+  promoteInfoResolve: (options: {
+    id: string
+    url?: string
+    title?: string
+    format: string
+    quality?: string
+    thumbnail?: string
+    duration?: number
+    metadata?: Record<string, unknown>
+    mediaType?: string
+    referer?: string
+    customHeaders?: Record<string, string>
+  }) => Promise<{ data?: unknown; error?: string }>
+  markInfoResolveReady: (options: { id: string; title?: string; thumbnail?: string | null; duration?: number | null }) => Promise<{ ok: boolean; error?: string }>
   listPlaylistEntries: (url: string) => Promise<{ data?: unknown; error?: string }>
   getEntryThumbnail: (pageUrl: string) => Promise<{ data?: string; error?: string }>
   openExternalUrl: (url: string) => Promise<{ ok?: boolean; error?: string }>
@@ -37,6 +72,7 @@ export interface WindowApi {
   ) => Promise<{ ok: boolean; error?: string }>
   onDownloadProgress: (callback: (data: Record<string, unknown>) => void) => () => void
   onNewDownload: (callback: (data: Record<string, unknown>) => void) => () => void
+  onInfoResolveResult: (callback: (data: InfoResolveEvent) => void) => () => void
   onYtdlUrl: (callback: (url: string) => void) => () => void
   onSettingsChanged: (callback: () => void) => () => void
   selectDownloadFolder: () => Promise<string | undefined>

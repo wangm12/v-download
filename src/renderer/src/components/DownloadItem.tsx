@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { X, FolderOpen, Trash2, Play, RotateCcw, Pause } from 'lucide-react'
+import { X, FolderOpen, Trash2, Play, RotateCcw, Pause, Loader2 } from 'lucide-react'
 import type { Download } from '@/types'
 import { useDownloadActions } from '@/contexts/DownloadActionsContext'
 import { ActionButton } from './ActionButton'
@@ -12,14 +12,29 @@ interface DownloadItemProps {
   download: Download
   selected?: boolean
   onSelect?: (id: string, modifiers?: SelectionModifiers) => void
+  onSelectReadyResolve?: (id: string) => void
 }
 
-export const DownloadItem = memo(function DownloadItem({ download, selected = false, onSelect }: DownloadItemProps) {
+export const DownloadItem = memo(function DownloadItem({ download, selected = false, onSelect, onSelectReadyResolve }: DownloadItemProps) {
   const actions = useDownloadActions()
   const { id, title, format, quality, status, progress, speed, eta, phase, thumbnail, duration, channel, error, url } = download
 
   const metadataParts = [channel, format, quality, duration ? formatDuration(duration) : ''].filter(Boolean)
   const metadata = metadataParts.join(' · ')
+  const isResolverPlaceholder = /^resolving(?:…|\.\.\.)?$/i.test(title.trim())
+  let sourceLabel = 'link'
+  try {
+    sourceLabel = new URL(url).hostname.replace(/^www\./i, '') || sourceLabel
+  } catch {
+    /* Keep a concise fallback title for malformed legacy rows. */
+  }
+  const displayTitle = isResolverPlaceholder
+    ? status === 'error'
+      ? `Could not resolve ${sourceLabel}`
+      : status === 'ready'
+        ? `${sourceLabel} is ready`
+        : `Resolving ${sourceLabel}…`
+    : title
 
   const statusContent = () => {
     switch (status) {
@@ -59,6 +74,20 @@ export const DownloadItem = memo(function DownloadItem({ download, selected = fa
           <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-success">
             <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-foreground" aria-hidden />
             Complete
+          </span>
+        )
+      case 'resolving':
+        return (
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-control px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+            Resolving…
+          </span>
+        )
+      case 'ready':
+        return (
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-success">
+            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-foreground" aria-hidden />
+            Ready to download
           </span>
         )
       case 'queued':
@@ -135,7 +164,7 @@ export const DownloadItem = memo(function DownloadItem({ download, selected = fa
       </div>
 
       <div className="flex-1 min-w-0 flex flex-col gap-1 items-start">
-        <p className="text-sm font-semibold text-foreground truncate w-full">{title}</p>
+        <p className="text-sm font-semibold text-foreground truncate w-full">{displayTitle}</p>
         {metadata && <p className="text-xs text-muted-foreground truncate w-full">{metadata}</p>}
         {statusContent()}
       </div>
@@ -163,6 +192,21 @@ export const DownloadItem = memo(function DownloadItem({ download, selected = fa
         )}
         {status === 'queued' && (
           <ActionButton icon={X} title="Cancel" onClick={() => actions.cancel(id)} />
+        )}
+        {status === 'resolving' && (
+          <ActionButton icon={X} title="Cancel resolving" onClick={() => actions.cancel(id)} />
+        )}
+        {status === 'ready' && (
+          <>
+            <button
+              type="button"
+              className="rounded-md bg-action px-2.5 py-1.5 text-[11px] font-semibold text-action-fg hover:bg-action-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+              onClick={() => onSelectReadyResolve?.(id)}
+            >
+              Select format
+            </button>
+            <ActionButton icon={Trash2} title="Remove" onClick={() => actions.remove(id)} />
+          </>
         )}
         {(status === 'interrupted' || status === 'error' || status === 'cancelled') && (
           <>

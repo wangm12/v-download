@@ -49,6 +49,8 @@ function progressPatchFromIpc(data: Record<string, unknown>): Partial<Download> 
   if (typeof filePath === 'string') patch.file_path = filePath
   if (typeof data.title === 'string' && data.title.trim()) patch.title = data.title
   if (typeof data.thumbnail === 'string') patch.thumbnail = data.thumbnail
+  if (typeof data.duration === 'number') patch.duration = data.duration
+  if (typeof data.channel === 'string') patch.channel = data.channel
   if (typeof data.error === 'string') patch.error = data.error
   if ('errorCode' in data || 'error_code' in data) patch.error_code = (data.errorCode ?? data.error_code ?? null) as Download['error_code']
   return patch
@@ -185,6 +187,8 @@ export function useDownloads() {
         const status = data.status as DownloadStatus | undefined
         const terminal =
           status === 'complete' ||
+          status === 'resolving' ||
+          status === 'ready' ||
           status === 'error' ||
           status === 'cancelled' ||
           status === 'paused' ||
@@ -215,6 +219,19 @@ export function useDownloads() {
       pendingRef.current.clear()
     }
   }, [queueProgressUpdate, rebuildDownloadIndex, refreshDownloads])
+
+  // IPC events are best-effort while the renderer is being hot-reloaded or
+  // resumed from sleep. Resolver rows are durable in SQLite, so keep a small
+  // reconciliation loop only while one is in a non-download state. This also
+  // guarantees a timed-out background resolver cannot remain visually stuck as
+  // “Resolving…” after its terminal DB update.
+  useEffect(() => {
+    if (!downloads.some((download) => download.status === 'resolving' || download.status === 'ready')) return
+    const timer = setInterval(() => {
+      void refreshDownloads()
+    }, 2_000)
+    return () => clearInterval(timer)
+  }, [downloads, refreshDownloads])
 
   return { downloads, removeDownload, removeDownloads, updateDownload, refreshDownloads }
 }

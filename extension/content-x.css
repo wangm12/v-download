@@ -25,6 +25,9 @@
 .vdl-x-btn svg {
   width: 18.75px;
   height: 18.75px;
+  color: inherit !important;
+  fill: none !important;
+  stroke: currentColor !important;
 }
 
 .vdl-x-btn:hover {
@@ -57,10 +60,13 @@
   width: 32px;
   height: 32px;
   border-radius: 6px;
-  border: none;
+  border: 1px solid var(--vdl-overlay-border) !important;
   cursor: pointer;
-  background: rgba(0, 0, 0, 0.6);
-  color: var(--vdl-text);
+  background: var(--vdl-overlay-bg) !important;
+  color: var(--vdl-overlay-icon) !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  box-sizing: border-box !important;
   padding: 0;
   opacity: 0;
   transition: opacity 0.2s, background-color 0.2s, transform 0.15s;
@@ -71,16 +77,20 @@
 .vdl-x-video-btn svg {
   width: 16px;
   height: 16px;
+  color: inherit !important;
+  fill: none !important;
+  stroke: currentColor !important;
 }
 
 .vdl-x-video-btn.vdl-x-video-visible {
-  opacity: 0.55;
+  opacity: 0.92;
   pointer-events: auto;
 }
 
 .vdl-x-video-btn.vdl-x-video-visible:hover {
   opacity: 1;
-  background: rgba(29, 155, 240, 0.85);
+  background: rgba(29, 155, 240, 0.9) !important;
+  border-color: rgba(255, 255, 255, 0.28) !important;
   transform: scale(1.08);
 }
 
@@ -95,11 +105,13 @@
 
 .vdl-x-video-btn.vdl-x-sending {
   opacity: 1;
-  background: rgba(29, 155, 240, 0.6);
+  background: rgba(29, 155, 240, 0.82) !important;
+  color: #ffffff !important;
   pointer-events: none;
 }
 
 .vdl-x-video-btn.vdl-x-sent {
   opacity: 1;
-  background: rgba(0, 186, 124, 0.85);
+  background: rgba(0, 186, 124, 0.9) !important;
+  color: #ffffff !important;
 }

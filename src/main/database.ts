@@ -134,7 +134,7 @@ export function insertDownloadsBulk(records: Array<Omit<DownloadRecord, 'created
 export function updateDownload(
   id: string,
   updates: Partial<
-    Pick<DownloadRecord, 'status' | 'progress' | 'file_path' | 'file_size' | 'error' | 'error_code' | 'title' | 'thumbnail' | 'duration' | 'extras'>
+    Pick<DownloadRecord, 'url' | 'title' | 'format' | 'quality' | 'status' | 'progress' | 'file_path' | 'file_size' | 'error' | 'error_code' | 'thumbnail' | 'duration' | 'channel' | 'extras'>
   >
 ): void {
   if (!db) throw new Error('Database not initialized')
@@ -145,6 +145,18 @@ export function updateDownload(
   if (updates.status !== undefined) {
     fields.push('status = ?')
     values.push(updates.status)
+  }
+  if (updates.url !== undefined) {
+    fields.push('url = ?')
+    values.push(updates.url)
+  }
+  if (updates.format !== undefined) {
+    fields.push('format = ?')
+    values.push(updates.format)
+  }
+  if (updates.quality !== undefined) {
+    fields.push('quality = ?')
+    values.push(updates.quality)
   }
   if (updates.progress !== undefined) {
     fields.push('progress = ?')
@@ -177,6 +189,10 @@ export function updateDownload(
   if (updates.duration !== undefined) {
     fields.push('duration = ?')
     values.push(updates.duration)
+  }
+  if (updates.channel !== undefined) {
+    fields.push('channel = ?')
+    values.push(updates.channel)
   }
   if (updates.extras !== undefined) {
     fields.push('extras = ?')

@@ -25,6 +25,7 @@ interface VirtualizedQueueProps {
   items: QueueItem[]
   selectedIds: ReadonlySet<string>
   onSelectDownload: (id: string, modifiers?: SelectionModifiers) => void
+  onSelectReadyResolve?: (id: string) => void
   onSelectPlaylist: (id: string, modifiers?: SelectionModifiers) => void
   playlistViewStates: PlaylistViewStateMap
   onPlaylistViewStateChange: (playlistId: string, state: PlaylistViewState) => void
@@ -34,6 +35,7 @@ export const VirtualizedQueue = memo(function VirtualizedQueue({
   items,
   selectedIds,
   onSelectDownload,
+  onSelectReadyResolve,
   onSelectPlaylist,
   playlistViewStates,
   onPlaylistViewStateChange
@@ -163,6 +165,7 @@ export const VirtualizedQueue = memo(function VirtualizedQueue({
                 download={item}
                 selected={selectedIds.has(item.id)}
                 onSelect={onSelectDownload}
+                onSelectReadyResolve={onSelectReadyResolve}
               />
             )}
           </div>

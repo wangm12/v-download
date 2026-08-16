@@ -8,8 +8,14 @@ const APP_REQUEST_TIMEOUT_MS = 8_000
 const APP_DOWNLOAD_TIMEOUT_MS = 2_500
 const APP_PROBE_TIMEOUT_MS = 5_000
 const LAST_DOWNLOAD_ERROR_TTL_MS = 10 * 60 * 1000
+const DOUYIN_POST_UNAVAILABLE_ERROR = 'Douyin reports this post is unavailable or has been removed for the current account.'
 let appCapability = ''
 let appCapabilityLoadPromise = Promise.resolve()
+const pendingDouyinProfileImports = new Map()
+const PENDING_DOUYIN_PROFILE_IMPORTS_KEY = 'pendingDouyinProfileImports'
+let pendingDouyinProfileImportsLoaded = false
+let pendingDouyinProfileImportsLoadPromise = null
+const pendingDouyinResolves = new Map()
 try {
   appCapabilityLoadPromise = new Promise((resolve) => {
     chrome.storage.local.get(['appCapability'], (v) => {
@@ -105,6 +111,532 @@ function safeError(err) {
   const name = String(err?.name || 'Error').replace(/[^A-Za-z]/g, '').slice(0, 24) || 'Error'
   return { name, message: 'Request failed' }
 }
+
+function douyinProfileSecUid(value) {
+  if (typeof value !== 'string' || value.length > 8192) return ''
+  try {
+    const url = new URL(value)
+    const host = url.hostname.toLowerCase()
+    if (host !== 'douyin.com' && !host.endsWith('.douyin.com')) return ''
+    const match = url.pathname.match(/\/user\/([^/?#]+)/i)
+    return match?.[1] ? decodeURIComponent(match[1]) : ''
+  } catch {
+    return ''
+  }
+}
+
+function isDouyinProfileTab(tab, secUid) {
+  return Boolean(tab?.id && secUid && douyinProfileSecUid(tab.url || '') === secUid)
+}
+
+function normalizeDouyinProfileImportCommand(raw) {
+  if (!raw || typeof raw !== 'object' || raw.pending !== true) return null
+  const requestId = String(raw.requestId || '').trim()
+  const profileUrl = String(raw.profileUrl || '').trim()
+  const secUid = douyinProfileSecUid(profileUrl)
+  if (!/^[a-f0-9]{20,80}$/i.test(requestId) || !secUid) return null
+  const existingAwemeIds = Array.isArray(raw.existingAwemeIds)
+    ? Array.from(new Set(raw.existingAwemeIds.map((id) => String(id).trim()).filter((id) => /^\d{10,32}$/.test(id)))).slice(0, 2000)
+    : []
+  return {
+    requestId,
+    profileUrl,
+    secUid,
+    existingAwemeIds,
+    maxScrolls: Number.isInteger(raw.maxScrolls) ? Math.max(8, Math.min(120, raw.maxScrolls)) : 96,
+    idleRounds: Number.isInteger(raw.idleRounds) ? Math.max(2, Math.min(10, raw.idleRounds)) : 5,
+    sentTabId: null
+  }
+}
+
+function douyinProfileImportStorageArea() {
+  try {
+    if (chrome.storage.session?.get && chrome.storage.session?.set) return chrome.storage.session
+  } catch {
+    /* Older Chrome builds may not expose storage.session. */
+  }
+  return chrome.storage.local
+}
+
+function readDouyinProfileImportStorage() {
+  return new Promise((resolve) => {
+    try {
+      const area = douyinProfileImportStorageArea()
+      area.get([PENDING_DOUYIN_PROFILE_IMPORTS_KEY], (value) => resolve(value?.[PENDING_DOUYIN_PROFILE_IMPORTS_KEY]))
+    } catch {
+      resolve(null)
+    }
+  })
+}
+
+function writeDouyinProfileImportStorage(records) {
+  return new Promise((resolve) => {
+    try {
+      const area = douyinProfileImportStorageArea()
+      area.set({ [PENDING_DOUYIN_PROFILE_IMPORTS_KEY]: records }, () => resolve())
+    } catch {
+      resolve()
+    }
+  })
+}
+
+async function hydratePendingDouyinProfileImports() {
+  if (pendingDouyinProfileImportsLoaded) return
+  if (!pendingDouyinProfileImportsLoadPromise) {
+    pendingDouyinProfileImportsLoadPromise = (async () => {
+      const saved = await readDouyinProfileImportStorage()
+      const now = Date.now()
+      if (Array.isArray(saved)) {
+        for (const raw of saved) {
+          const expiresAt = Number(raw?.expiresAt || 0)
+          if (!Number.isFinite(expiresAt) || expiresAt <= now) continue
+          const command = normalizeDouyinProfileImportCommand({ ...raw, pending: true })
+          if (command) pendingDouyinProfileImports.set(command.requestId, command)
+        }
+      }
+      pendingDouyinProfileImportsLoaded = true
+    })().finally(() => {
+      pendingDouyinProfileImportsLoadPromise = null
+    })
+  }
+  await pendingDouyinProfileImportsLoadPromise
+}
+
+function persistPendingDouyinProfileImports() {
+  const expiresAt = Date.now() + 120_000
+  const records = Array.from(pendingDouyinProfileImports.values()).map((command) => ({
+    requestId: command.requestId,
+    profileUrl: command.profileUrl,
+    existingAwemeIds: command.existingAwemeIds,
+    maxScrolls: command.maxScrolls,
+    idleRounds: command.idleRounds,
+    expiresAt,
+  }))
+  void writeDouyinProfileImportStorage(records)
+}
+
+async function fetchDouyinProfileImportCommand(requestId, inlineCommand) {
+  await hydratePendingDouyinProfileImports()
+  const supplied = normalizeDouyinProfileImportCommand(
+    inlineCommand && typeof inlineCommand === 'object'
+      ? { ...inlineCommand, pending: true }
+      : null
+  )
+  if (supplied?.requestId === requestId) {
+    pendingDouyinProfileImports.set(supplied.requestId, supplied)
+    persistPendingDouyinProfileImports()
+    return supplied
+  }
+  const cached = pendingDouyinProfileImports.get(requestId)
+  if (cached) return cached
+  try {
+    await ensureCapability(false)
+    let response = await fetchApp(`/douyin-profile-import-poll?requestId=${encodeURIComponent(requestId)}`, {
+      headers: appJsonHeaders()
+    }, APP_REQUEST_TIMEOUT_MS)
+    if (response.status === 401 || response.status === 403) {
+      if (!(await ensureCapability(true))) return null
+      response = await fetchApp(`/douyin-profile-import-poll?requestId=${encodeURIComponent(requestId)}`, {
+        headers: appJsonHeaders()
+      }, APP_REQUEST_TIMEOUT_MS)
+    }
+    if (!response.ok) return null
+    const raw = await response.json()
+    const command = normalizeDouyinProfileImportCommand(raw)
+    if (!command) return null
+    pendingDouyinProfileImports.set(command.requestId, command)
+    persistPendingDouyinProfileImports()
+    return command
+  } catch (error) {
+    logBg('douyin-profile-import-poll-failed', { err: safeError(error) })
+    return null
+  }
+}
+
+function sendDouyinProfileImportToTab(tabId, command) {
+  if (!Number.isInteger(tabId)) return false
+  if (command.sentTabId !== null) return command.sentTabId === tabId
+  command.sentTabId = tabId
+  try {
+    chrome.tabs.update(tabId, { active: true }, () => void chrome.runtime.lastError)
+    chrome.tabs.sendMessage(tabId, {
+      type: 'START_DOUYIN_PROFILE_IMPORT',
+      command: {
+        requestId: command.requestId,
+        profileUrl: command.profileUrl,
+        existingAwemeIds: command.existingAwemeIds,
+        maxScrolls: command.maxScrolls,
+        idleRounds: command.idleRounds
+      }
+    }, { frameId: 0 }, () => {
+      if (chrome.runtime.lastError) {
+        if (command.sentTabId === tabId) command.sentTabId = null
+        logBg('douyin-profile-import-send-failed', { tabId })
+      }
+    })
+    return true
+  } catch (error) {
+    command.sentTabId = null
+    logBg('douyin-profile-import-send-throw', { tabId, err: safeError(error) })
+    return false
+  }
+}
+
+async function dispatchDouyinProfileImport(command) {
+  if (command.sentTabId !== null) return true
+  const tabs = await new Promise((resolve) => {
+    chrome.tabs.query({}, (result) => resolve(Array.isArray(result) ? result : []))
+  })
+  const existing = tabs.find((tab) => isDouyinProfileTab(tab, command.secUid))
+  if (existing?.id !== undefined) return sendDouyinProfileImportToTab(existing.id, command)
+
+  return await new Promise((resolve) => {
+    chrome.tabs.create({ url: command.profileUrl, active: true }, (tab) => {
+      if (chrome.runtime.lastError || tab?.id === undefined) {
+        logBg('douyin-profile-import-tab-create-failed', {})
+        resolve(false)
+        return
+      }
+      // The content script sends a ready message after the profile document is loaded.
+      resolve(true)
+    })
+  })
+}
+
+function routeDouyinProfileReady(tabId, url) {
+  void hydratePendingDouyinProfileImports().then(() => {
+    const secUid = douyinProfileSecUid(url)
+    if (!secUid) return
+    for (const command of pendingDouyinProfileImports.values()) {
+      if (command.secUid === secUid) {
+        sendDouyinProfileImportToTab(tabId, command)
+        break
+      }
+    }
+  })
+}
+
+async function postDouyinProfileImportResult(message) {
+  const requestId = String(message?.requestId || '').trim()
+  if (!/^[a-f0-9]{20,80}$/i.test(requestId)) return { ok: false, error: 'Invalid profile import request' }
+  const payload = {
+    requestId,
+    ok: message?.ok === true,
+    items: Array.isArray(message?.items) ? message.items.slice(0, 2000) : [],
+    warnings: Array.isArray(message?.warnings) ? message.warnings.slice(0, 4) : [],
+    error: typeof message?.error === 'string' ? message.error.slice(0, 512) : ''
+  }
+  try {
+    await hydratePendingDouyinProfileImports()
+    const response = await postAppJson('/douyin-profile-import-result', payload, { maxAttempts: 2 })
+    if (response.ok || response.status === 404) {
+      pendingDouyinProfileImports.delete(requestId)
+      persistPendingDouyinProfileImports()
+    }
+    return { ok: response.ok, error: response.ok ? undefined : `HTTP ${response.status}` }
+  } catch (error) {
+    return { ok: false, error: safeError(error).message }
+  }
+}
+
+// --- One-shot Douyin page resolver -----------------------------------------
+
+function douyinResolveAwemeId(value) {
+  if (typeof value !== 'string' || value.length > 8192) return ''
+  try {
+    const url = new URL(value)
+    const host = url.hostname.toLowerCase()
+    if (host !== 'douyin.com' && !host.endsWith('.douyin.com') && host !== 'iesdouyin.com' && !host.endsWith('.iesdouyin.com')) return ''
+    const match = url.pathname.match(/\/(?:note|video|gallery|share\/(?:note|video))\/(\d{10,32})/i)
+    return match?.[1] || ''
+  } catch {
+    return ''
+  }
+}
+
+function isDouyinResolveTab(tab, awemeId) {
+  return Boolean(tab?.id && awemeId && douyinResolveAwemeId(tab.url || '') === awemeId)
+}
+
+function normalizeDouyinResolveCommand(raw) {
+  if (!raw || typeof raw !== 'object' || raw.pending !== true) return null
+  const requestId = String(raw.requestId || '').trim()
+  const url = String(raw.url || '').trim()
+  const awemeId = String(raw.awemeId || '').trim() || douyinResolveAwemeId(url)
+  if (!/^[a-f0-9]{20,80}$/i.test(requestId) || !isSafeHttpUrl(url) || !isDouyinUrl(url) || !/^\d{10,32}$/.test(awemeId)) return null
+  return {
+    requestId,
+    url,
+    awemeId,
+    sentTabId: null,
+    targetTabId: null,
+    openedByResolver: false,
+    previousMuted: false,
+    muteStateCaptured: false,
+    probingPageState: false,
+  }
+}
+
+function clearDouyinResolveCommand(requestId) {
+  const entry = pendingDouyinResolves.get(requestId)
+  if (!entry) return null
+  if (entry.timer) clearTimeout(entry.timer)
+  pendingDouyinResolves.delete(requestId)
+  return entry.command
+}
+
+function rememberDouyinResolveCommand(command) {
+  clearDouyinResolveCommand(command.requestId)
+  const entry = { command, timer: null }
+  entry.timer = setTimeout(() => {
+    if (!pendingDouyinResolves.has(command.requestId)) return
+    void postDouyinResolveResult({
+      requestId: command.requestId,
+      ok: false,
+      error: 'Douyin page did not return media information in time.'
+    })
+  }, 20_000)
+  pendingDouyinResolves.set(command.requestId, entry)
+  return command
+}
+
+async function fetchDouyinResolveCommand(requestId, inlineCommand) {
+  const supplied = normalizeDouyinResolveCommand(
+    inlineCommand && typeof inlineCommand === 'object'
+      ? { ...inlineCommand, pending: true }
+      : null
+  )
+  if (supplied?.requestId === requestId) return rememberDouyinResolveCommand(supplied)
+
+  try {
+    await ensureCapability(false)
+    let response = await fetchApp(`/douyin-resolve-poll?requestId=${encodeURIComponent(requestId)}`, {
+      headers: appJsonHeaders()
+    }, APP_REQUEST_TIMEOUT_MS)
+    if (response.status === 401 || response.status === 403) {
+      if (!(await ensureCapability(true))) return null
+      response = await fetchApp(`/douyin-resolve-poll?requestId=${encodeURIComponent(requestId)}`, {
+        headers: appJsonHeaders()
+      }, APP_REQUEST_TIMEOUT_MS)
+    }
+    if (!response.ok) return null
+    const command = normalizeDouyinResolveCommand(await response.json())
+    return command ? rememberDouyinResolveCommand(command) : null
+  } catch (error) {
+    logBg('douyin-resolve-poll-failed', { err: safeError(error) })
+    return null
+  }
+}
+
+function updateDouyinResolveTabMute(tabId, muted) {
+  return new Promise((resolve) => {
+    if (!Number.isInteger(tabId)) { resolve(false); return }
+    try {
+      chrome.tabs.update(tabId, { muted: muted === true }, () => {
+        resolve(!chrome.runtime.lastError)
+      })
+    } catch {
+      resolve(false)
+    }
+  })
+}
+
+async function muteDouyinResolveTab(command, tabId, openedByResolver) {
+  if (!Number.isInteger(tabId)) return false
+  command.targetTabId = tabId
+  command.openedByResolver = openedByResolver === true
+  if (!command.muteStateCaptured) {
+    const tab = await new Promise((resolve) => {
+      try {
+        chrome.tabs.get(tabId, (value) => resolve(chrome.runtime.lastError ? null : value))
+      } catch {
+        resolve(null)
+      }
+    })
+    command.previousMuted = tab?.mutedInfo?.muted === true
+    command.muteStateCaptured = true
+  }
+  // Mute before sending the resolver command. Newly opened tabs remain muted;
+  // an existing tab is restored to its prior state after the one-shot result.
+  await updateDouyinResolveTabMute(tabId, true)
+  return true
+}
+
+async function restoreDouyinResolveTab(command) {
+  if (!command || command.openedByResolver || !command.muteStateCaptured || !Number.isInteger(command.targetTabId)) return
+  for (const entry of pendingDouyinResolves.values()) {
+    if (entry.command.targetTabId === command.targetTabId) return
+  }
+  await updateDouyinResolveTabMute(command.targetTabId, command.previousMuted)
+}
+
+function sendDouyinResolveToTab(tabId, command) {
+  if (!Number.isInteger(tabId)) return false
+  if (command.sentTabId === tabId) return true
+  command.sentTabId = tabId
+  try {
+    chrome.tabs.sendMessage(tabId, {
+      type: 'START_DOUYIN_RESOLVE',
+      command: { requestId: command.requestId, url: command.url, awemeId: command.awemeId }
+    }, { frameId: 0 }, () => {
+      if (chrome.runtime.lastError) {
+        if (command.sentTabId === tabId) command.sentTabId = null
+        logBg('douyin-resolve-send-failed', { tabId })
+      }
+    })
+    return true
+  } catch (error) {
+    command.sentTabId = null
+    logBg('douyin-resolve-send-throw', { tabId, err: safeError(error) })
+    return false
+  }
+}
+
+async function dispatchDouyinResolve(command) {
+  const tabs = await new Promise((resolve) => {
+    chrome.tabs.query({}, (result) => resolve(Array.isArray(result) ? result : []))
+  })
+  const existing = tabs.find((tab) => isDouyinResolveTab(tab, command.awemeId))
+  if (existing?.id !== undefined) {
+    await muteDouyinResolveTab(command, existing.id, false)
+    return sendDouyinResolveToTab(existing.id, command)
+  }
+
+  return await new Promise((resolve) => {
+    try {
+      chrome.tabs.create({ url: command.url, active: false }, async (tab) => {
+        if (chrome.runtime.lastError || tab?.id === undefined) {
+          logBg('douyin-resolve-tab-create-failed', {})
+          resolve(false)
+          return
+        }
+        await muteDouyinResolveTab(command, tab.id, true)
+        // The Douyin content script reports readiness after document_idle;
+        // sending earlier would race a newly created tab.
+        resolve(true)
+      })
+    } catch (error) {
+      logBg('douyin-resolve-tab-create-throw', { err: safeError(error) })
+      resolve(false)
+    }
+  })
+}
+
+async function isUnavailableDouyinResolvePage(tabId) {
+  if (!Number.isInteger(tabId)) return false
+  // Douyin can render its unavailable-state copy a moment after document_idle.
+  // Probe briefly before handing control to the normal page extractor.
+  for (let attempt = 0; attempt < 8; attempt++) {
+    try {
+      const results = await chrome.scripting.executeScript({
+        target: { tabId },
+        func: () => /你要观看的(?:图文|视频)不存在|图文不存在|视频不存在|作品不存在|内容不存在|作品已删除|作品已下架/.test(String(document.body?.innerText || ''))
+      })
+      if (Array.isArray(results) && results.some((entry) => entry?.result === true)) return true
+    } catch (error) {
+      // Navigation may replace or close the short-lived background tab while
+      // this probe is in flight. The content-script resolver remains the normal
+      // path in that case.
+      logBg('douyin-resolve-page-state-probe-failed', { tabId, err: safeError(error) })
+      return false
+    }
+    if (attempt < 7) await new Promise((resolve) => setTimeout(resolve, 350))
+  }
+  return false
+}
+
+async function routeDouyinResolveToReadyTab(command, tabId) {
+  if (command.probingPageState) return
+  command.probingPageState = true
+  try {
+    if (await isUnavailableDouyinResolvePage(tabId)) {
+      await postDouyinResolveResult({
+        requestId: command.requestId,
+        ok: false,
+        awemeId: command.awemeId,
+        error: DOUYIN_POST_UNAVAILABLE_ERROR
+      })
+      return
+    }
+    if (pendingDouyinResolves.get(command.requestId)?.command !== command) return
+    if (!command.muteStateCaptured) {
+      await muteDouyinResolveTab(command, tabId, command.openedByResolver)
+      if (pendingDouyinResolves.get(command.requestId)?.command === command) {
+        sendDouyinResolveToTab(tabId, command)
+      }
+      return
+    }
+    sendDouyinResolveToTab(tabId, command)
+  } finally {
+    command.probingPageState = false
+  }
+}
+
+function routeDouyinResolveReady(tabId, url) {
+  const awemeId = douyinResolveAwemeId(url)
+  if (!Number.isInteger(tabId) || !awemeId) return
+  for (const entry of pendingDouyinResolves.values()) {
+    const command = entry.command
+    if (command.awemeId !== awemeId || (command.targetTabId !== null && command.targetTabId !== tabId)) continue
+    void routeDouyinResolveToReadyTab(command, tabId)
+  }
+}
+
+async function postDouyinResolveAcknowledgement(message) {
+  const requestId = String(message?.requestId || '').trim()
+  if (!/^[a-f0-9]{20,80}$/i.test(requestId)) return { ok: false, error: 'Invalid Douyin resolve request' }
+  const payload = {
+    requestId,
+    ok: message?.ok === true,
+    error: typeof message?.error === 'string' ? message.error.slice(0, 360) : ''
+  }
+  try {
+    const response = await postAppJson('/douyin-resolve-ack', payload, { maxAttempts: 2 })
+    return { ok: response.ok, error: response.ok ? undefined : `HTTP ${response.status}` }
+  } catch (error) {
+    return { ok: false, error: safeError(error).message }
+  }
+}
+
+async function postDouyinResolveResult(message) {
+  const requestId = String(message?.requestId || '').trim()
+  if (!/^[a-f0-9]{20,80}$/i.test(requestId)) return { ok: false, error: 'Invalid Douyin resolve request' }
+  const imageUrls = Array.isArray(message?.imageUrls)
+    ? message.imageUrls.filter((url) => isSafeHttpUrl(url)).slice(0, 200)
+    : []
+  const videoUrlFallbacks = Array.isArray(message?.videoUrlFallbacks)
+    ? message.videoUrlFallbacks.filter((url) => isSafeHttpUrl(url)).slice(0, 8)
+    : []
+  const payload = {
+    requestId,
+    ok: message?.ok === true,
+    awemeId: String(message?.awemeId || '').trim().slice(0, 32),
+    mediaType: message?.mediaType === 'gallery' ? 'gallery' : 'video',
+    title: typeof message?.title === 'string' ? message.title.slice(0, 200) : '',
+    author: typeof message?.author === 'string' ? message.author.slice(0, 120) : '',
+    cover: isSafeHttpUrl(message?.cover) ? message.cover : '',
+    imageUrls,
+    videoUrl: isSafeHttpUrl(message?.videoUrl) ? message.videoUrl : '',
+    videoUrlFallbacks,
+    duration: Number.isFinite(Number(message?.duration)) ? Math.max(0, Math.floor(Number(message.duration))) : 0,
+    error: typeof message?.error === 'string' ? message.error.slice(0, 512) : ''
+  }
+  const entry = pendingDouyinResolves.get(requestId)
+  try {
+    const response = await postAppJson('/douyin-resolve-result', payload, { maxAttempts: 2 })
+    return { ok: response.ok, error: response.ok ? undefined : `HTTP ${response.status}` }
+  } catch (error) {
+    return { ok: false, error: safeError(error).message }
+  } finally {
+    const current = clearDouyinResolveCommand(requestId)
+    if (current) await restoreDouyinResolveTab(current)
+    else if (entry?.command) await restoreDouyinResolveTab(entry.command)
+  }
+}
+
+// Do not dispatch from tabs.onUpdated: Chrome can report `complete` before
+// content-douyin.js has installed its message listener. The content script's
+// explicit DOUYIN_RESOLVE_READY signal is the authoritative ready boundary.
 
 const CONTENT_MEDIA_TYPES = new Set(['hls', 'dash', 'mpd', 'mp4', 'webm', 'flv', 'mkv', 'mp3', 'm4a', 'aac', 'opus', 'ogg', 'wav', 'flac', 'jpeg'])
 function isSafeHttpUrl(value) {
@@ -563,6 +1095,16 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   scheduleMediaCachePersist()
 })
 
+function ignoreTransientTabActionError(action) {
+  try {
+    const result = action()
+    if (result && typeof result.catch === 'function') void result.catch(() => {})
+  } catch {
+    // A tab may close between an onUpdated/onActivated callback and a badge
+    // update. That is expected browser churn, not an extension error.
+  }
+}
+
 function updateTabUI(tab) {
   if (!mediaCacheReady) {
     void mediaCacheReadyPromise.then(() => updateTabUI(tab))
@@ -575,8 +1117,8 @@ function updateTabUI(tab) {
   const isTikTok = tab.url && isTikTokUrl(tab.url)
 
   const noPopup = isYT || isDouyin || isX || isTikTok
-  chrome.action.setPopup({ tabId: tab.id, popup: noPopup ? '' : 'popup.html' })
-  chrome.action.setIcon({ tabId: tab.id, path: ICON_ACTIVE })
+  ignoreTransientTabActionError(() => chrome.action.setPopup({ tabId: tab.id, popup: noPopup ? '' : 'popup.html' }))
+  ignoreTransientTabActionError(() => chrome.action.setIcon({ tabId: tab.id, path: ICON_ACTIVE }))
 
   if (!isYT) {
     const count = (isDouyin || isX || isTikTok) ? 0 : getAllTabMedia(tab.id).length
@@ -592,11 +1134,11 @@ function refreshAllTabsUI() {
 
 function updateBadge(tabId, count) {
   if (count > 0) {
-    chrome.action.setBadgeText({ tabId, text: String(count) })
-    chrome.action.setBadgeBackgroundColor({ tabId, color: '#27272A' })
-    chrome.action.setIcon({ tabId, path: ICON_ACTIVE })
+    ignoreTransientTabActionError(() => chrome.action.setBadgeText({ tabId, text: String(count) }))
+    ignoreTransientTabActionError(() => chrome.action.setBadgeBackgroundColor({ tabId, color: '#27272A' }))
+    ignoreTransientTabActionError(() => chrome.action.setIcon({ tabId, path: ICON_ACTIVE }))
   } else {
-    chrome.action.setBadgeText({ tabId, text: '' })
+    ignoreTransientTabActionError(() => chrome.action.setBadgeText({ tabId, text: '' }))
   }
 }
 
@@ -647,17 +1189,84 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return false
   }
 
+  if (message.type === 'REQUEST_DOUYIN_PROFILE_IMPORT') {
+    ;(async () => {
+      const requestId = String(message.requestId || '').trim()
+      const command = await fetchDouyinProfileImportCommand(requestId, message.command)
+      if (!command) {
+        sendResponse({ ok: false, error: 'V-Download profile import request expired or is unavailable.' })
+        return
+      }
+      const dispatched = await dispatchDouyinProfileImport(command)
+      sendResponse(
+        dispatched
+          ? { ok: true }
+          : { ok: false, error: 'Could not find or open the Douyin profile tab.' }
+      )
+    })().catch(() => sendResponse({ ok: false, error: 'Could not start Douyin profile import.' }))
+    return true
+  }
+
+  if (message.type === 'REQUEST_DOUYIN_RESOLVE') {
+    ;(async () => {
+      const requestId = String(message.requestId || '').trim()
+      const command = await fetchDouyinResolveCommand(requestId, message.command)
+      if (!command) {
+        const error = 'V-Download Douyin request expired or is unavailable.'
+        await postDouyinResolveAcknowledgement({ requestId, ok: false, error })
+        sendResponse({ ok: false, error })
+        return
+      }
+      const dispatched = await dispatchDouyinResolve(command)
+      const error = dispatched ? '' : 'Could not find or open the Douyin page.'
+      const acknowledged = await postDouyinResolveAcknowledgement({ requestId, ok: dispatched, error })
+      sendResponse(
+        dispatched && acknowledged.ok
+          ? { ok: true }
+          : { ok: false, error: acknowledged.error || error || 'Could not acknowledge the Douyin resolver.' }
+      )
+    })().catch(async () => {
+      const requestId = String(message.requestId || '').trim()
+      const error = 'Could not start Douyin resolve.'
+      await postDouyinResolveAcknowledgement({ requestId, ok: false, error })
+      sendResponse({ ok: false, error })
+    })
+    return true
+  }
+
+  if (message.type === 'DOUYIN_RESOLVE_READY') {
+    routeDouyinResolveReady(sender.tab?.id, message.url || sender.tab?.url || '')
+    sendResponse({ ok: true })
+    return false
+  }
+
+  if (message.type === 'DOUYIN_RESOLVE_RESULT') {
+    void postDouyinResolveResult(message).then((result) => sendResponse(result))
+    return true
+  }
+
+  if (message.type === 'DOUYIN_PROFILE_READY') {
+    routeDouyinProfileReady(sender.tab?.id, message.url || sender.tab?.url || '')
+    sendResponse({ ok: true })
+    return false
+  }
+
+  if (message.type === 'DOUYIN_PROFILE_IMPORT_RESULT') {
+    void postDouyinProfileImportResult(message).then((result) => sendResponse(result))
+    return true
+  }
+
   if (message.type === 'FORCE_COOKIE_SYNC') {
     ;(async () => {
-      const ok = await syncCookies()
+      const result = await syncCookies()
       sendResponse({
-        ok,
-        error: ok ? undefined : 'App did not accept cookies (is V-Download running on this machine?)',
+        ok: result.ok,
+        error: result.ok ? undefined : result.error,
       })
       const tabId = sender.tab?.id
       const url = sender.tab?.url ?? ''
       if (
-        ok &&
+        result.ok &&
         tabId !== undefined &&
         url.startsWith(`${APP_URL}/cookie-sync-landing`)
       ) {
@@ -1009,11 +1618,18 @@ async function syncCookies() {
     }
 
     const response = await postAppJson('/cookies', allCookies)
+    let result = {}
+    try { result = await response.json() } catch { /* empty error response */ }
+    if (!response.ok) {
+      const error = typeof result.error === 'string' ? result.error : `App rejected cookie sync (HTTP ${response.status})`
+      logBg('cookie-sync-failed', { status: response.status, error, received: allCookies.length })
+      return { ok: false, error }
+    }
 
-    console.log(`Synced ${allCookies.length} cookies across ${COOKIE_SYNC_DOMAINS.length} domains`)
-    return response.ok
+    console.log(`Synced ${result.count ?? allCookies.length} cookies across ${COOKIE_SYNC_DOMAINS.length} domains${result.skipped ? ` (${result.skipped} skipped)` : ''}`)
+    return { ok: true, skipped: Number(result.skipped) || 0 }
   } catch {
-    return false
+    return { ok: false, error: 'Could not reach V-Download on localhost' }
   }
 }
 

@@ -74,10 +74,22 @@ export function isDouyinAntiBotShell(html: string): boolean {
 export function htmlLooksHydrated(html: string): boolean {
   if (!html || html.length < 8000) return false
   if (isDouyinAntiBotShell(html)) return false
+  const hasFlightPayload = /self\.__pace_f\.push|self\.__next_f\.push/i.test(html)
   if (
+    !hasFlightPayload &&
     /_ROUTER_DATA|__MODERN_ROUTER_DATA__|SIGI_STATE|id=["']RENDER_DATA["']|"item_list"|"play_addr"|"playAddr"/i.test(
       html
     )
+  ) {
+    return true
+  }
+  // RSC/Flight pages append several small bootstrap chunks before the aweme
+  // payload arrives. Seeing the push function alone is too early: returning
+  // then makes the caller parse an incomplete page and fall back to JPEG
+  // covers for motion-photo notes.
+  if (
+    hasFlightPayload &&
+    /"?(?:awemeId|aweme_id|images|imageList|playAddr|play_addr)"?\s*:/i.test(html)
   ) {
     return true
   }
@@ -105,6 +117,54 @@ type PwCookie = {
   httpOnly: boolean
   secure: boolean
   sameSite: 'Strict' | 'Lax' | 'None'
+}
+
+function createAbortError(): DOMException {
+  return new DOMException('Douyin Chromium fetch aborted', 'AbortError')
+}
+
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) throw createAbortError()
+}
+
+function sleepWithAbort(ms: number, signal?: AbortSignal): Promise<void> {
+  throwIfAborted(signal)
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort)
+      resolve()
+    }, Math.max(0, ms))
+    const onAbort = () => {
+      clearTimeout(timer)
+      signal?.removeEventListener('abort', onAbort)
+      reject(createAbortError())
+    }
+    signal?.addEventListener('abort', onAbort, { once: true })
+  })
+}
+
+function raceWithAbort<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (!signal) return promise
+  if (signal.aborted) return Promise.reject(createAbortError())
+
+  let onAbort: (() => void) | undefined
+  const abortPromise = new Promise<T>((_, reject) => {
+    onAbort = () => reject(createAbortError())
+    signal.addEventListener('abort', onAbort, { once: true })
+  })
+  return Promise.race([promise, abortPromise]).finally(() => {
+    if (onAbort) signal.removeEventListener('abort', onAbort)
+  })
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<T>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), Math.max(1, timeoutMs))
+  })
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timer) clearTimeout(timer)
+  })
 }
 
 /** Netscape file → Playwright `addCookies` (Douyin / ByteDance related domains only). */
@@ -220,7 +280,12 @@ function useCloakBrowserEngine(): boolean {
 
 async function fetchDouyinHtmlWithCloakBrowser(
   pageUrl: string,
-  options?: { cookiesFilePath?: string; timeoutMs?: number; preferredUa?: 'mobile' | 'desktop' | 'auto' }
+  options?: {
+    cookiesFilePath?: string
+    timeoutMs?: number
+    preferredUa?: 'mobile' | 'desktop' | 'auto'
+    signal?: AbortSignal
+  }
 ): Promise<string> {
   const initialTimeout = options?.timeoutMs ?? 52_000
   const started = Date.now()
@@ -236,6 +301,7 @@ async function fetchDouyinHtmlWithCloakBrowser(
 
   let ctx: BrowserContext | null = null
   try {
+    throwIfAborted(options?.signal)
     const { launchPersistentContext, ensureBinary } = await import('cloakbrowser')
     try {
       await ensureBinary()
@@ -270,16 +336,19 @@ async function fetchDouyinHtmlWithCloakBrowser(
       Referer: 'https://www.douyin.com/',
     })
 
-    await page.goto(pageUrl, {
-      timeout: initialTimeout,
-      waitUntil: 'domcontentloaded',
-    })
+    await raceWithAbort(
+      page.goto(pageUrl, {
+        timeout: initialTimeout,
+        waitUntil: 'domcontentloaded',
+      }),
+      options?.signal
+    )
     bumpDeadline()
 
     while (Date.now() < deadline) {
-      await sleep(450)
+      await sleepWithAbort(450, options?.signal)
       bumpDeadline()
-      const html = await page.content()
+      const html = await raceWithAbort(page.content(), options?.signal)
       if (htmlLooksHydrated(html)) {
         console.log(`[douyin] CloakBrowser got hydrated HTML (${html.length} bytes) for ${pageUrl}`)
         return html
@@ -287,6 +356,7 @@ async function fetchDouyinHtmlWithCloakBrowser(
     }
 
     const last = await page.content().catch(() => '')
+    throwIfAborted(options?.signal)
     if (last && htmlLooksHydrated(last)) {
       console.log(`[douyin] CloakBrowser got hydrated HTML (${last.length} bytes, final poll) for ${pageUrl}`)
       return last
@@ -308,6 +378,7 @@ export type DouyinChromiumFetchOptions = {
   cookiesFilePath?: string
   timeoutMs?: number
   preferredUa?: 'mobile' | 'desktop' | 'auto'
+  signal?: AbortSignal
   /** Filled with video CDN URLs observed during page load (for play URL enrichment). */
   capturedCdnUrls?: string[]
   /** Shorter waits / early exit when only sniffing CDN urls (bulk download enrichment). */
@@ -369,8 +440,8 @@ async function fetchDouyinHtmlWithElectronChromium(
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      /** Reduces offscreen Skia / shared-image glitches on macOS for hidden windows. */
-      offscreen: true,
+      /** Keep the hidden page composited so Douyin's anti-bot hydration scripts run reliably on macOS. */
+      offscreen: false,
     },
   })
 
@@ -422,14 +493,19 @@ async function fetchDouyinHtmlWithElectronChromium(
   }
 
   try {
+    throwIfAborted(options?.signal)
     try {
-      await win.loadURL(pageUrl, {
+      const load = win.loadURL(pageUrl, {
         userAgent: ua,
         extraHeaders: [
           'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8',
           'Referer: https://www.douyin.com/',
         ].join('\n'),
       })
+      await raceWithAbort(
+        withTimeout(load, initialTimeout, `Timed out loading Douyin page after ${initialTimeout}ms`),
+        options?.signal
+      )
     } catch (loadErr) {
       const msg = loadErr instanceof Error ? loadErr.message : String(loadErr)
       if (!/ERR_ABORTED/i.test(msg)) throw loadErr
@@ -437,30 +513,40 @@ async function fetchDouyinHtmlWithElectronChromium(
     }
 
     while (Date.now() < deadline) {
-      await sleep(450)
+      throwIfAborted(options?.signal)
+      await sleepWithAbort(450, options?.signal)
       if (captured && captured.length > 0) {
-        const html: string = await win.webContents
-          .executeJavaScript(`document.documentElement ? document.documentElement.outerHTML : ''`)
-          .catch(() => '')
+        const html: string = await raceWithAbort(
+          win.webContents
+            .executeJavaScript(`document.documentElement ? document.documentElement.outerHTML : ''`)
+            .catch(() => ''),
+          options?.signal
+        )
         console.log(
           `[douyin] Chromium exiting early with ${captured.length} CDN url(s) for ${pageUrl}`
         )
         return html || '<html></html>'
       }
       if (options?.enrichmentMode && captured) {
-        const videoSrc: string = await win.webContents
-          .executeJavaScript(
-            `(() => { const v = document.querySelector('video'); if (!v) return ''; const s = v.currentSrc || v.src || ''; return typeof s === 'string' ? s : ''; })()`
-          )
-          .catch(() => '')
+        const videoSrc: string = await raceWithAbort(
+          win.webContents
+            .executeJavaScript(
+              `(() => { const v = document.querySelector('video'); if (!v) return ''; const s = v.currentSrc || v.src || ''; return typeof s === 'string' ? s : ''; })()`
+            )
+            .catch(() => ''),
+          options?.signal
+        )
         if (videoSrc && isLikelyDouyinVideoCdnUrl(videoSrc) && !captured.includes(videoSrc)) {
           captured.push(videoSrc)
           console.log(`[douyin] Chromium captured video element src for ${pageUrl}`)
           return '<html></html>'
         }
       }
-      const html: string = await win.webContents.executeJavaScript(
-        `document.documentElement ? document.documentElement.outerHTML : ''`
+      const html: string = await raceWithAbort(
+        win.webContents.executeJavaScript(
+          `document.documentElement ? document.documentElement.outerHTML : ''`
+        ),
+        options?.signal
       )
       if (htmlLooksHydrated(html)) {
         if (options?.enrichmentMode && captured) {
@@ -492,9 +578,12 @@ async function fetchDouyinHtmlWithElectronChromium(
       }
     }
 
-    const last: string = await win.webContents
-      .executeJavaScript(`document.documentElement ? document.documentElement.outerHTML : ''`)
-      .catch(() => '')
+    const last: string = await raceWithAbort(
+      win.webContents
+        .executeJavaScript(`document.documentElement ? document.documentElement.outerHTML : ''`)
+        .catch(() => ''),
+      options?.signal
+    )
     if (last && htmlLooksHydrated(last)) return last
 
     if (captured && captured.length > 0) {

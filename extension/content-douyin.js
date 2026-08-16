@@ -10,6 +10,8 @@
 
   const BTN_ID = 'dy-dl-btn'
   const PANEL_ID = 'dy-dl-panel'
+  const DOUYIN_RESOLVE_START_TYPE = 'V_DOWNLOAD_START_DOUYIN_RESOLVE'
+  const DOUYIN_RESOLVE_RESULT_TYPE = 'DOUYIN_RESOLVE_RESULT'
   const BTN_SIZE = PL ? PL.DEFAULT_BTN_SIZE : 32
   const BTN_INSET = PL ? PL.DEFAULT_INSET : 10
 
@@ -544,6 +546,35 @@
 
   window.addEventListener('message', (e) => {
     if (e.source !== window || e.origin !== location.origin) return
+    if (e.data?.type === DOUYIN_RESOLVE_RESULT_TYPE && e.data.source === 'douyin-resolve-bridge') {
+      chrome.runtime.sendMessage({
+        type: 'DOUYIN_RESOLVE_RESULT',
+        requestId: e.data.requestId,
+        ok: e.data.ok === true,
+        awemeId: e.data.awemeId,
+        mediaType: e.data.mediaType,
+        title: e.data.title,
+        author: e.data.author,
+        cover: e.data.cover,
+        imageUrls: Array.isArray(e.data.imageUrls) ? e.data.imageUrls.slice(0, 200) : [],
+        videoUrl: e.data.videoUrl,
+        videoUrlFallbacks: Array.isArray(e.data.videoUrlFallbacks) ? e.data.videoUrlFallbacks.slice(0, 8) : [],
+        duration: e.data.duration,
+        error: typeof e.data.error === 'string' ? e.data.error.slice(0, 512) : ''
+      }, () => void chrome.runtime.lastError)
+      return
+    }
+    if (e.data?.type === 'DOUYIN_PROFILE_IMPORT_RESULT' && e.data.source === 'douyin-profile-bridge') {
+      chrome.runtime.sendMessage({
+        type: 'DOUYIN_PROFILE_IMPORT_RESULT',
+        requestId: e.data.requestId,
+        ok: e.data.ok === true,
+        items: Array.isArray(e.data.items) ? e.data.items.slice(0, 2000) : [],
+        warnings: Array.isArray(e.data.warnings) ? e.data.warnings.slice(0, 4) : [],
+        error: typeof e.data.error === 'string' ? e.data.error.slice(0, 512) : ''
+      }, () => void chrome.runtime.lastError)
+      return
+    }
     if (!e.data || e.data.type !== 'DOUYIN_VIDEO_DATA' || e.data.source !== 'douyin-bridge') return
     const data = normalizeBridgeData(e.data.data)
     if (!data) return
@@ -579,6 +610,30 @@
       }
     }
   })
+
+  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    if (message?.type !== 'START_DOUYIN_RESOLVE') return false
+    const command = message.command && typeof message.command === 'object' ? message.command : null
+    if (!command) {
+      sendResponse({ ok: false, error: 'Missing Douyin resolve command' })
+      return false
+    }
+    window.postMessage({
+      type: DOUYIN_RESOLVE_START_TYPE,
+      source: 'douyin-content',
+      command: {
+        requestId: String(command.requestId || ''),
+        url: String(command.url || ''),
+        awemeId: String(command.awemeId || '')
+      }
+    }, location.origin)
+    sendResponse({ ok: true })
+    return false
+  })
+
+  // The service worker waits for this signal before sending a resolver
+  // command. This avoids racing a newly-created, still-loading Douyin tab.
+  chrome.runtime.sendMessage({ type: 'DOUYIN_RESOLVE_READY', url: location.href }, () => void chrome.runtime.lastError)
 
   // ── Periodic anchor check ──────────────────────────────────────────────────
   // Detect when feed-active-video appears (e.g. modal opened on profile page)
@@ -635,4 +690,32 @@
   })
 
   window.addEventListener('beforeunload', () => clearInterval(anchorInterval))
+
+  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    if (message?.type !== 'START_DOUYIN_PROFILE_IMPORT') return false
+    const command = message.command
+    if (!command || typeof command.requestId !== 'string') {
+      sendResponse({ ok: false, error: 'Invalid profile import command' })
+      return false
+    }
+    window.postMessage(
+      {
+        type: 'V_DOWNLOAD_START_DOUYIN_PROFILE_IMPORT',
+        source: 'douyin-content',
+        command,
+      },
+      location.origin
+    )
+    sendResponse({ ok: true })
+    return false
+  })
+
+  const notifyProfileReady = () => {
+    chrome.runtime.sendMessage(
+      { type: 'DOUYIN_PROFILE_READY', url: location.href },
+      () => void chrome.runtime.lastError
+    )
+  }
+  setTimeout(notifyProfileReady, 250)
+  setTimeout(notifyProfileReady, 1200)
 })()

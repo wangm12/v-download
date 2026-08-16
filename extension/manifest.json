@@ -37,6 +37,11 @@
       "run_at": "document_idle"
     },
     {
+      "matches": ["http://127.0.0.1:18765/douyin-profile-import-landing*"],
+      "js": ["content-douyin-profile-import-landing.js"],
+      "run_at": "document_idle"
+    },
+    {
       "matches": [
         "*://*.douyin.com/*",
         "*://douyin.com/*",
