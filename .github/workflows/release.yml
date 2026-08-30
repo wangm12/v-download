@@ -1,0 +1,177 @@
+# Build macOS installers with the repo's per-arch wrapper and attach them to a
+# GitHub Release. Source code zip/tar.gz is added by GitHub automatically.
+#
+# Required secret:
+#   CHROME_EXTENSION_ID          32-char Chrome extension id (a-p)
+#
+# Optional secrets (unsigned builds open as "damaged" on other Macs):
+#   CSC_LINK                     base64-encoded Developer ID .p12
+#   CSC_KEY_PASSWORD             password for that .p12
+#   APPLE_ID                     Apple ID used for notarization
+#   APPLE_APP_SPECIFIC_PASSWORD  app-specific password for that Apple ID
+#   APPLE_TEAM_ID                Developer Team ID
+#
+# Cut a release: git tag vX.Y.Z && git push origin vX.Y.Z
+# The tag must match package.json. The Release is created as a draft.
+
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build-mac:
+    name: macOS ${{ matrix.arch }}
+    runs-on: macos-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: true
+      matrix:
+        arch: [arm64, x64]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Require tag to match package.json
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pkg="$(node -p "require('./package.json').version")"
+          if [ "$tag" != "$pkg" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match package.json version $pkg"
+            exit 1
+          fi
+
+      - name: Write release-config.json
+        env:
+          CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
+        run: |
+          if [ -z "$CHROME_EXTENSION_ID" ]; then
+            echo "Missing repository secret CHROME_EXTENSION_ID"
+            exit 1
+          fi
+          node --input-type=module -e '
+            const id = process.env.CHROME_EXTENSION_ID ?? ""
+            if (!/^[a-p]{32}$/.test(id)) {
+              console.error("CHROME_EXTENSION_ID must be a 32-character Chrome extension id")
+              process.exit(1)
+            }
+            const { writeFileSync } = await import("node:fs")
+            writeFileSync("release-config.json", `${JSON.stringify({
+              updater: { provider: "generic", metadata: "" },
+              chrome: { extensionId: id }
+            }, null, 2)}\n`)
+          '
+
+      - name: Cache Electron downloads
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/electron
+            ~/Library/Caches/electron-builder
+          key: electron-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Cache fetched engines
+        id: engines-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            resources/engines/darwin-${{ matrix.arch }}
+            resources/engines/po-token/darwin-${{ matrix.arch }}
+          key: engines-${{ matrix.arch }}-${{ hashFiles('resources/engines/manifest.json', 'resources/engines/metadata.json', 'resources/engines/SHA256SUMS') }}
+
+      - name: Fetch engines
+        if: steps.engines-cache.outputs.cache-hit != 'true'
+        run: npm run fetch:engines
+        env:
+          RELEASE_ARCH: ${{ matrix.arch }}
+          BUILD_ID: ${{ github.sha }}
+
+      - name: Verify cached engines
+        if: steps.engines-cache.outputs.cache-hit == 'true'
+        run: npm run verify:engines
+        env:
+          RELEASE_ARCH: ${{ matrix.arch }}
+
+      - name: Package macOS ${{ matrix.arch }}
+        run: npm run build:mac:${{ matrix.arch }}
+        env:
+          RELEASE_ARCH: ${{ matrix.arch }}
+          CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.CSC_LINK != '' }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: Upload installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-${{ matrix.arch }}
+          if-no-files-found: error
+          path: |
+            dist/*.dmg
+            dist/*.zip
+            dist/*.blockmap
+            dist/latest-mac.yml
+
+  release:
+    name: GitHub Release
+    needs: build-mac
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: macos-*
+
+      - name: Merge latest-mac.yml
+        run: |
+          node scripts/merge-latest-mac.mjs --out combined/latest-mac.yml \
+            artifacts/macos-arm64/latest-mac.yml \
+            artifacts/macos-x64/latest-mac.yml
+
+      - name: Require installer artifacts
+        run: |
+          shopt -s nullglob
+          dmgs=(artifacts/macos-*/*.dmg)
+          zips=(artifacts/macos-*/*.zip)
+          if [ ${#dmgs[@]} -lt 2 ] || [ ${#zips[@]} -lt 2 ]; then
+            echo "Expected arm64 and x64 .dmg plus .zip artifacts"
+            ls -R artifacts
+            exit 1
+          fi
+
+      - name: Create draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          generate_release_notes: true
+          fail_on_unmatched_files: false
+          files: |
+            artifacts/macos-*/*.dmg
+            artifacts/macos-*/*.zip
+            artifacts/macos-*/*.blockmap
+            combined/latest-mac.yml

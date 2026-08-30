@@ -37,3 +37,24 @@ The packaged app has an optional updater backed by `electron-updater`. It is dis
 For a real artifact, configure Developer ID signing through electron-builder (`CSC_NAME` or `CSC_LINK`), and notarization through CI variables (`APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`) or an existing macOS keychain profile (`APPLE_KEYCHAIN_PROFILE`). Supply `RELEASE_NOTARY_SUBMISSION_ID`. The gate runs `codesign --verify --deep --strict`, `spctl`, `xcrun notarytool info`, and `xcrun stapler validate`. Secret values are never printed.
 
 Use `RELEASE_DRY_RUN=1 npm run verify:release` only for local fixture validation. Dry-run output explicitly says it is not a release claim and never substitutes for Apple or Chrome publication.
+
+## GitHub Actions
+
+Pushing a tag that matches `package.json` (`v1.1.7` for version `1.1.7`) runs `.github/workflows/release.yml`. It builds `arm64` and `x64` separately through `npm run build:mac:*`, then attaches the `.dmg`, `.zip`, `.blockmap`, and a merged `latest-mac.yml` to a **draft** GitHub Release. GitHub adds Source code zip/tar.gz on its own.
+
+`workflow_dispatch` builds the same installers without creating a Release, so you can inspect the workflow artifacts first.
+
+### Secrets
+
+| Secret | Required | Purpose |
+| --- | --- | --- |
+| `CHROME_EXTENSION_ID` | Yes | 32-character Chrome extension id written into `release-config.json` for packaging |
+| `CSC_LINK` | For a Gatekeeper-safe build | Base64-encoded Developer ID `.p12` |
+| `CSC_KEY_PASSWORD` | With `CSC_LINK` | Password for that `.p12` |
+| `APPLE_ID` | For notarization | Apple ID used by electron-builder / notarytool |
+| `APPLE_APP_SPECIFIC_PASSWORD` | For notarization | App-specific password for that Apple ID |
+| `APPLE_TEAM_ID` | For notarization | Developer Team ID |
+
+Without the signing secrets the Action still produces installers, but other Macs will typically refuse to open them.
+
+After the draft looks right, publish it on [Releases](https://github.com/wangm12/v-download/releases). In-app updates still need `latest-mac.yml` plus the zips at an HTTPS generic-provider URL such as `https://github.com/wangm12/v-download/releases/latest/download`; that URL is injected at runtime via `VDOWNLOAD_UPDATE_PROVIDER_URL` and is not stored in source.
