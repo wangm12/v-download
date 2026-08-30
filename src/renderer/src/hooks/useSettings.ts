@@ -26,7 +26,13 @@ const DEFAULT_SETTINGS: SettingsData = {
   downloadSpeedMode: 'balanced',
   turboRiskAcknowledged: false,
   ytdlpExternalDownloader: '',
-  siteRules: []
+  siteRules: [],
+  proxyUrl: '',
+  onboardingCompleted: false,
+  remoteApiEnabled: false,
+  remoteApiToken: '',
+  remoteApiBind: '127.0.0.1',
+  remoteApiPort: 18766
 }
 
 export function useSettings() {

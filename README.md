@@ -22,15 +22,14 @@
 
 ## Repository overview
 
-This repository ships **two related products** and a small **shared library**:
+This repository ships the **desktop app**, a **Chrome extension**, and a small **shared library**:
 
 | Part | Role |
 |------|------|
-| **V-Download** | macOS **Electron** app + **React** UI + [Chrome extension](extension/) for local downloads (`Cmd+V`, format picker, media sniffer). |
-| **vdl-server** | Optional **Telegram bot** ([vdl-server/](vdl-server/)): Fastify HTTP API, download queue, temp links, Douyin fallback — uses the same **yt-dlp** / **ffmpeg** toolchain. |
+| **V-Download** | macOS **Electron** app + **React** UI + [Chrome extension](extension/) for local downloads (`Cmd+V`, format picker, media sniffer). Optional **Remote Job API** (`:18766`) lets other apps enqueue the same download queue. |
 | **@v-download/shared** | [packages/shared](packages/shared): Netscape cookie helpers + domain list for cookie sync; root `npm install` builds it and runs [`sync:extension-constants`](package.json) so [extension/cookie-sync-domains.js](extension/cookie-sync-domains.js) stays in sync. |
 
-**Read next:** [docs/DESIGN_PLAN.md](docs/DESIGN_PLAN.md) (monochrome redesign master plan & phases), [vdl-server/README.md](vdl-server/README.md) (bot quick start & env), [vdl-server/DEPLOYMENT.md](vdl-server/DEPLOYMENT.md) (tunnel / production), [docs/MANUAL_TESTING.md](docs/MANUAL_TESTING.md) (manual & E2E checklist), [docs/CLI_AND_SHARED_CORE.md](docs/CLI_AND_SHARED_CORE.md) (roadmap for a shared downloader / CLI), [docs/FUTURE_ENHANCEMENTS.md](docs/FUTURE_ENHANCEMENTS.md) (Douyin / headless research backlog).
+**Read next:** [docs/REMOTE_JOB_API.md](docs/REMOTE_JOB_API.md) (Remote Job API), [docs/DESIGN_PLAN.md](docs/DESIGN_PLAN.md) (monochrome redesign master plan & phases), [docs/MANUAL_TESTING.md](docs/MANUAL_TESTING.md) (manual & E2E checklist), [docs/FUTURE_ENHANCEMENTS.md](docs/FUTURE_ENHANCEMENTS.md) (Douyin / headless research backlog).
 
 ## Design
 
@@ -152,10 +151,11 @@ Preferences open **inside the main window** (sidebar **Preferences…**, bottom 
 | Default audio quality | 320kbps | Used when format dialog is off |
 | Delay between downloads | 3s | Pause between starting queued downloads (rate limit mitigation) |
 | Use CloakBrowser for Douyin (beta) | Off | Optional patched Chromium for Douyin hydration; see [Douyin hydration & CloakBrowser](#douyin-hydration--cloakbrowser-optional) |
+| Remote Job API | Off | Preferences → Advanced. Bearer `/v1/jobs` on `127.0.0.1:18766`. Full reference: [docs/REMOTE_JOB_API.md](docs/REMOTE_JOB_API.md). Extension pairing stays on localhost `:18765`. |
 
 ## Architecture
 
-High-level data flow (extension can talk to **both** the desktop app and vdl-server when the latter is running):
+High-level data flow (the extension talks only to the desktop app):
 
 ```mermaid
 flowchart TB
@@ -165,33 +165,23 @@ flowchart TB
   subgraph desktop [V_Download_Electron]
     main[Main_process]
     renderer[Renderer_React]
-    http[HTTP_localhost_18765]
+    pair[HTTP_localhost_18765]
+    remote[Remote_API_18766]
     main <-->|IPC| renderer
-    main --- http
-  end
-  subgraph optional [vdl_server_optional]
-    api[Fastify]
-    queue[Download_queue]
-    gram[grammY_bot]
-    api --> queue
-    queue --> gram
+    main --- pair
+    main --- remote
   end
   subgraph external [Host_machine]
     ytdlp[yt_dlp_and_ffmpeg]
   end
-  tg[Telegram_Cloud]
-  ext -->|"POST_/cookies_/download"| http
-  client -->|"authenticated_POST_/api/cookies"| api
+  ext -->|"POST_/cookies_/download"| pair
+  others[Other_apps] -->|"Bearer_/v1/jobs"| remote
   main -->|spawn| ytdlp
-  queue -->|spawn| ytdlp
-  queue --> douyin[Douyin_HTTP_fallback]
-  gram <-->|Bot_API| tg
 ```
 
 - **Desktop path:** Renderer controls UI; main process runs [ytdlp.ts](src/main/ytdlp.ts), [downloadManager.ts](src/main/downloadManager.ts), [localServer.ts](src/main/localServer.ts) on port **18765** for the extension.
 - **Extension:** Content scripts detect media / inject UI; [background.js](extension/background.js) forwards URLs and handles explicit local cookie sync (see `COOKIE_SYNC_DOMAINS` via `importScripts('cookie-sync-domains.js')`).
-- **vdl-server path:** [index.ts](vdl-server/src/index.ts) serves health, cookie upload, static files, and Telegram webhook; [queue.ts](vdl-server/src/queue.ts) runs yt-dlp or [douyin.ts](vdl-server/src/douyin.ts) fallback; [bot/index.ts](vdl-server/src/bot/index.ts) sends videos or temp links. When `BASE_URL` is `https://...`, the bot uses **webhooks**; otherwise **polling**.
-- **Cookies on the bot:** The server’s `/api/cookies` endpoint is disabled unless `COOKIE_SYNC_TOKEN` is configured. For authenticated uploads, set **`COOKIE_MODE=file`** (see [vdl-server/README.md](vdl-server/README.md)); default `browser` reads Chrome on the **server host**, not an uploaded file.
+- **Remote Job API:** Optional, off by default. Enable in Preferences → Advanced. Other apps POST `{ url }` to `http://<host>:18766/v1/jobs` with a Bearer token. Downloads reuse the same queue, cookies, and engines. Pairing on **18765** stays localhost-only.
 
 ### Tech stack
 
@@ -201,31 +191,21 @@ flowchart TB
 | Desktop build | electron-vite, Vite |
 | Frontend | React 19, TypeScript |
 | Styling | Tailwind CSS, Radix UI, Lucide React |
-| 3D | Three.js, React Three Fiber |
 | Desktop DB | better-sqlite3 (SQLite) |
 | Packaging | electron-builder |
-| Download engine | yt-dlp + ffmpeg (external, both apps) |
-| vdl-server | Node 20+, Fastify, grammY, better-sqlite3 |
+| Download engine | yt-dlp + ffmpeg |
 | Shared package | TypeScript [packages/shared](packages/shared), npm workspaces |
 
 ### Project structure
 
 ```
-vdl-server/                 # Telegram bot + Fastify (see vdl-server/README.md)
-├── src/
-├── scripts/
-├── Dockerfile
-├── docker-compose.yml
-└── Makefile
-
-packages/shared/            # @v-download/shared — cookies + domain list for app + server + extension gen
+packages/shared/            # @v-download/shared — cookies + domain list for app + extension gen
 ├── src/
 └── README.md
 
 docs/
 ├── DESIGN_PLAN.md             # Monochrome redesign master plan & mockup phases
 ├── MANUAL_TESTING.md          # Regression & E2E checklist (+ mockup vs build matrix)
-├── CLI_AND_SHARED_CORE.md     # Downloader / CLI roadmap
 └── FUTURE_ENHANCEMENTS.md     # Douyin / Chromium / CloakBrowser backlog
 
 scripts/
@@ -240,7 +220,8 @@ src/                        # Electron app (main + renderer)
 │   ├── mediaSniffer.ts     # Hidden browser media stream detection
 │   ├── database.ts         # SQLite persistence
 │   ├── settings.ts         # JSON settings store
-│   └── localServer.ts      # HTTP server for Chrome extension (:18765)
+│   ├── localServer.ts      # HTTP server for Chrome extension (:18765)
+│   └── remoteApiServer.ts  # Optional Remote Job API (:18766)
 ├── preload/
 │   ├── index.ts
 │   └── index.d.ts
@@ -266,9 +247,7 @@ extension/                  # Chrome Extension (Manifest V3)
 | **Run the macOS app** | Install [Prerequisites](#prerequisites), then [Installation](#installation) / `npm run dev` for development. |
 | **Use the extension** | Load the [`extension/`](extension/) folder in Chrome; keep the desktop app running for `127.0.0.1:18765`. |
 | **Change cookie sync domains** | Edit [packages/shared/src/cookie-sync-domains.ts](packages/shared/src/cookie-sync-domains.ts), then run `npm run sync:extension-constants` at the repo root and reload the extension. |
-| **vdl-server from repo root (Make)** | Run `make help` for a list. Common: `make vdl-install`, `make vdl-build`, `make vdl-dev` (polling), `make vdl-server` (Cloudflare tunnel + server), `make vdl-docker-build` / `make vdl-docker-up` (Docker; compose cwd is still `vdl-server/`). |
-| **Run the Telegram bot** | Put `.env` in [`vdl-server/`](vdl-server/) (see [vdl-server/README.md](vdl-server/README.md)). Use **`make vdl-*`** from the repo root **or** `cd vdl-server` and follow that README (`make server`, Docker). Set **`COOKIE_SYNC_TOKEN`** before accepting authenticated cookie uploads. |
-| **Deploy the bot** | See [vdl-server/DEPLOYMENT.md](vdl-server/DEPLOYMENT.md) (tunnel, webhook, database). |
+| **Invoke downloads from another app** | Enable **Remote Job API** in Preferences → Advanced, then follow [docs/REMOTE_JOB_API.md](docs/REMOTE_JOB_API.md) (`POST /v1/jobs`, default `127.0.0.1:18766`). |
 | **Test releases** | See [docs/MANUAL_TESTING.md](docs/MANUAL_TESTING.md). |
 | **Future / research backlog** | See [docs/FUTURE_ENHANCEMENTS.md](docs/FUTURE_ENHANCEMENTS.md) (Douyin hydration, URL/parser work, optional CloakBrowser). |
 
@@ -292,15 +271,9 @@ npm run build:mac
 # Regenerate extension domain list only (after editing packages/shared)
 npm run sync:extension-constants
 
-# All Makefile targets (desktop + vdl-server)
+# Makefile targets
 make help
-
-# vdl-server from repo root (same as cd vdl-server && …)
-make vdl-install
-make vdl-dev
 ```
-
-**Telegram bot:** either use **`make vdl-*`** from the repo root (see `make help`) or `cd vdl-server && npm install && npm run dev` — full steps in [vdl-server/README.md](vdl-server/README.md).
 
 ## Chrome Extension Development
 

@@ -9,6 +9,10 @@ export function getDevPlan() {
   return { command: electronViteCommand, args: ['dev'] }
 }
 
+export function isIgnorableKillError(error) {
+  return error?.code === 'ESRCH' || error?.code === 'EPERM' || error?.code === 'EACCES'
+}
+
 function signalExitCode(signal) {
   return signal === 'SIGINT' ? 130 : signal === 'SIGTERM' ? 143 : 1
 }
@@ -19,7 +23,7 @@ function signalChildTree(child, signal) {
     if (process.platform === 'win32') child.kill(signal)
     else process.kill(-child.pid, signal)
   } catch (error) {
-    if (error.code !== 'ESRCH') throw error
+    if (!isIgnorableKillError(error)) throw error
   }
 }
 

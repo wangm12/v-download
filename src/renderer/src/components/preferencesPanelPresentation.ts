@@ -11,7 +11,8 @@ export const PREFERENCES_SECTION_TITLES = [
   'Browser connection',
   'Per-site rules',
   'Power-user download controls',
-  'System'
+  'System',
+  'Remote Job API'
 ] as const
 
 export function hasSingleColumnPolicy(className: string): boolean {

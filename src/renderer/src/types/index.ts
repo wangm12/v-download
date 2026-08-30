@@ -93,7 +93,7 @@ export interface SettingsData {
   douyinBulkVerboseWarnings?: boolean
   ytdlpPath?: string
   ffmpegPath?: string
-  /** Engine for sniffed/extension direct URLs (HLS, mp4, …). */
+  /** Engine for extension-sent direct URLs (HLS, mp4, …). */
   directMediaEngine?: 'auto' | 'ffmpeg' | 'ytdlp'
   /** yt-dlp `--concurrent-fragments` for fragmented streams (HLS/DASH/ISM) on all yt-dlp jobs when > 1. */
   concurrentFragments?: number
@@ -104,6 +104,12 @@ export interface SettingsData {
   /** Optional yt-dlp `--downloader` name (e.g. aria2c). Empty = built-in. */
   ytdlpExternalDownloader?: string
   siteRules?: SiteRule[]
+  proxyUrl?: string
+  onboardingCompleted?: boolean
+  remoteApiEnabled?: boolean
+  remoteApiToken?: string
+  remoteApiBind?: '127.0.0.1' | '0.0.0.0'
+  remoteApiPort?: number
 }
 
 export interface SiteRule {
@@ -113,6 +119,33 @@ export interface SiteRule {
   quality: string
   enabled: boolean
 }
+
+export interface EngineStatus {
+  name: 'yt-dlp' | 'ffmpeg'
+  path: string
+  source: 'bundled' | 'custom' | 'system' | 'missing'
+  version: string | null
+  bundledVersion: string | null
+  latestVersion: string | null
+  updateState: 'current' | 'available' | 'unknown'
+  updateMessage?: string
+  canUpdate: boolean
+}
+
+export type NativeAuthSite = 'youtube' | 'douyin' | 'tiktok' | 'bilibili' | 'xiaohongshu' | 'x'
+
+export interface NativeAuthAccountStatus {
+  site: NativeAuthSite
+  host: string
+  connected: boolean
+  cookieCount: number
+  lastSyncedAt: string | null
+}
+
+export type NativeAuthEvent =
+  | { type: 'opened'; site: NativeAuthSite }
+  | { type: 'saved'; site: NativeAuthSite; account: NativeAuthAccountStatus }
+  | { type: 'error'; site: NativeAuthSite; message: string }
 
 export interface PlaylistEntryRow {
   id: string

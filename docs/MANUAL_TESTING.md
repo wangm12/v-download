@@ -1,6 +1,6 @@
 # Manual testing checklist
 
-Short regression matrix for **V-Download** (desktop + extension) and **vdl-server** (Telegram bot). Use legal URLs you control or stable public samples; rotate when sites change.
+Short regression matrix for **V-Download** (desktop + extension). Use legal URLs you control or stable public samples; rotate when sites change.
 
 Debug logging: see [DEBUG.md](./DEBUG.md) (`make dev` session log + release `worklog.txt`).
 
@@ -8,7 +8,7 @@ Debug logging: see [DEBUG.md](./DEBUG.md) (`make dev` session log + release `wor
 
 - **YouTube** — single `watch?v=` via Cmd+V; format dialog; merged file plays.
 - **YouTube** — small playlist (2–5); subfolders / grouping if enabled.
-- **Douyin** — extension panel, download completes. On **vdl-server**, Playwright runs after fetch fails **by default** (`DOUYIN_PLAYWRIGHT=0` to disable); run `npx playwright install chromium` on the host.
+- **Douyin** — extension panel, download completes.
 
 ## Reliability regressions (manual)
 
@@ -38,7 +38,7 @@ Debug logging: see [DEBUG.md](./DEBUG.md) (`make dev` session log + release `wor
 3. Click dismiss; reopen popup and verify the banner stays hidden.
 4. Simulate an old timestamped error in storage and confirm popup hides/cleans it instead of showing it.
 
-**Regression short links** (paste / bot / `npm run test:douyin` in `vdl-server/`):
+**Regression short links** (paste into the desktop app):
 
 | Label | URL |
 |-------|-----|
@@ -84,25 +84,24 @@ See [download-engines.md](./download-engines.md) for the routing matrix.
 
 ## Cookies and login (critical for Instagram / members YouTube)
 
-- Extension posts cookies to `http://127.0.0.1:18765/cookies` and optionally `VDL_SERVER_URL/api/cookies`.
-- **vdl-server:** for extension-written `cookies.txt` to drive yt-dlp, set **`COOKIE_MODE=file`**. Default `browser` uses the **server machine’s** Chrome profile, not the uploaded file.
-- Log in in Chrome → wait for sync (extension alarm ~5 min) or reload extension → retry gated URL.
+- Extension posts cookies to `http://127.0.0.1:18765/cookies` only.
+- Log in in Chrome → wait for sync or use **Sync cookies** from the app → retry gated URL.
 
-## vdl-server–only
+## Remote Job API
 
-- Public URL: bot completes; under-50MB in chat vs temp link / compress for large.
-- Temp link: one-time token and expiry.
-- Webhook (HTTPS `BASE_URL`) vs polling.
+Full contract: [REMOTE_JOB_API.md](./REMOTE_JOB_API.md).
+
+- Preferences → Advanced → enable Remote API (default off, `127.0.0.1:18766`).
+- `POST /v1/jobs` with Bearer token and `{ "url": "…" }` returns 202; poll `GET /v1/jobs/:id`.
+- Extension pairing on **18765** still refuses non-localhost clients.
 
 ## End-to-end narratives
 
 - **A — Desktop only:** app + yt-dlp/ffmpeg; YouTube paste + optional extension; queue controls.
 - **B — Cookies → app:** logged-in YouTube in Chrome; gated content works after sync.
-- **C — Bot only:** Telegram + public YouTube; no auth.
-- **D — Full stack:** Chrome login → extension sync → vdl `COOKIE_MODE=file` → Telegram with login URL (e.g. Instagram).
-- **E — Docker / prod:** same as C/D with real image and tunnel if used.
+- **C — Remote API:** enable Remote Job API; `POST /v1/jobs` for a public URL; poll until complete; `GET /file` or `/archive`.
 
-Record: URL, surface (paste / extension / bot), pass/fail, yt-dlp version, Chrome login state, cookie sync timing, notes.
+Record: URL, surface (paste / extension / remote API), pass/fail, yt-dlp version, Chrome login state, cookie sync timing, notes.
 
 See also [FUTURE_ENHANCEMENTS.md](./FUTURE_ENHANCEMENTS.md) for Douyin / headless Chromium backlog and optional CloakBrowser research.
 

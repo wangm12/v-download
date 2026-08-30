@@ -1,7 +1,8 @@
-importScripts('cookie-sync-domains.js', 'media-patterns.js', 'download-transport.js')
+importScripts('cookie-sync-domains.js', 'media-patterns.js', 'download-transport.js', 'douyin-policy.js')
 const COOKIE_SYNC_DOMAINS = globalThis.COOKIE_SYNC_DOMAINS
 const MP = globalThis.VDownloadMediaPatterns
 const DT = globalThis.VDownloadDownloadTransport
+const DP = globalThis.VDownloadDouyinPolicy
 
 const APP_URL = 'http://127.0.0.1:18765'
 const APP_REQUEST_TIMEOUT_MS = 8_000
@@ -371,8 +372,6 @@ function normalizeDouyinResolveCommand(raw) {
     sentTabId: null,
     targetTabId: null,
     openedByResolver: false,
-    previousMuted: false,
-    muteStateCaptured: false,
     probingPageState: false,
   }
 }
@@ -441,33 +440,28 @@ function updateDouyinResolveTabMute(tabId, muted) {
   })
 }
 
-async function muteDouyinResolveTab(command, tabId, openedByResolver) {
+function bindDouyinResolveTab(command, tabId, openedByResolver) {
   if (!Number.isInteger(tabId)) return false
   command.targetTabId = tabId
   command.openedByResolver = openedByResolver === true
-  if (!command.muteStateCaptured) {
-    const tab = await new Promise((resolve) => {
-      try {
-        chrome.tabs.get(tabId, (value) => resolve(chrome.runtime.lastError ? null : value))
-      } catch {
-        resolve(null)
-      }
-    })
-    command.previousMuted = tab?.mutedInfo?.muted === true
-    command.muteStateCaptured = true
-  }
-  // Mute before sending the resolver command. Newly opened tabs remain muted;
-  // an existing tab is restored to its prior state after the one-shot result.
-  await updateDouyinResolveTabMute(tabId, true)
   return true
 }
 
 async function restoreDouyinResolveTab(command) {
-  if (!command || command.openedByResolver || !command.muteStateCaptured || !Number.isInteger(command.targetTabId)) return
+  if (!command?.openedByResolver || !Number.isInteger(command.targetTabId)) return
+  const others = []
   for (const entry of pendingDouyinResolves.values()) {
-    if (entry.command.targetTabId === command.targetTabId) return
+    if (entry.command === command) continue
+    others.push(entry.command)
   }
-  await updateDouyinResolveTabMute(command.targetTabId, command.previousMuted)
+  DP.transferEphemeralFlag(command, others)
+  if (!DP.shouldCloseCreatedTab(command, others)) return
+  const tabId = command.targetTabId
+  try {
+    chrome.tabs.remove(tabId, () => void chrome.runtime.lastError)
+  } catch {
+    /* The resolver tab may already be gone. */
+  }
 }
 
 function sendDouyinResolveToTab(tabId, command) {
@@ -498,7 +492,11 @@ async function dispatchDouyinResolve(command) {
   })
   const existing = tabs.find((tab) => isDouyinResolveTab(tab, command.awemeId))
   if (existing?.id !== undefined) {
-    await muteDouyinResolveTab(command, existing.id, false)
+    const pending = []
+    for (const entry of pendingDouyinResolves.values()) {
+      if (entry.command !== command) pending.push(entry.command)
+    }
+    bindDouyinResolveTab(command, existing.id, DP.existingTabIsEphemeral(existing.id, pending))
     return sendDouyinResolveToTab(existing.id, command)
   }
 
@@ -510,7 +508,14 @@ async function dispatchDouyinResolve(command) {
           resolve(false)
           return
         }
-        await muteDouyinResolveTab(command, tab.id, true)
+        const decision = DP.createdTabBindDecision(command, tab.id)
+        if (decision.action === 'discard') {
+          try { chrome.tabs.remove(tab.id, () => void chrome.runtime.lastError) } catch {}
+          resolve(true)
+          return
+        }
+        bindDouyinResolveTab(command, tab.id, true)
+        await updateDouyinResolveTabMute(tab.id, true)
         // The Douyin content script reports readiness after document_idle;
         // sending earlier would race a newly created tab.
         resolve(true)
@@ -559,12 +564,13 @@ async function routeDouyinResolveToReadyTab(command, tabId) {
       return
     }
     if (pendingDouyinResolves.get(command.requestId)?.command !== command) return
-    if (!command.muteStateCaptured) {
-      await muteDouyinResolveTab(command, tabId, command.openedByResolver)
-      if (pendingDouyinResolves.get(command.requestId)?.command === command) {
-        sendDouyinResolveToTab(tabId, command)
-      }
-      return
+    const decision = DP.readyTabBindDecision(command, tabId)
+    if (decision.action === 'ignore') return
+    if (!Number.isInteger(command.targetTabId) || command.targetTabId === tabId) {
+      bindDouyinResolveTab(command, tabId, decision.openedByResolver)
+    }
+    if (command.openedByResolver && command.targetTabId === tabId) {
+      await updateDouyinResolveTabMute(tabId, true)
     }
     sendDouyinResolveToTab(tabId, command)
   } finally {

@@ -2,6 +2,7 @@ import { ipcMain, clipboard, shell, BrowserWindow } from 'electron'
 import { setCookieSyncRequested } from '../localServer'
 import * as settings from '../settings'
 import type { SettingsSchema } from '../settings'
+import { syncRemoteApiServer } from '../remoteApiServer'
 
 const COOKIE_SYNC_LANDING = 'http://127.0.0.1:18765/cookie-sync-landing'
 
@@ -22,6 +23,7 @@ export function registerSettingsHandlers(): void {
     const allowed = new Set<keyof SettingsSchema>(Object.keys(all).filter((k) => k !== 'cookiesPath') as Array<keyof SettingsSchema>)
     if (allowed.has(key as keyof SettingsSchema) && settings.validateSettingUpdate(key, value)) {
       settings.set(key as keyof SettingsSchema, value as never)
+      if (String(key).startsWith('remoteApi')) syncRemoteApiServer()
       broadcastSettingsChanged()
       return { ok: true }
     }

@@ -1,5 +1,5 @@
-import type { AppResult, StartDownloadOptions } from '@v-download/shared'
-export type { AppResult, StartDownloadOptions } from '@v-download/shared'
+import type { AppResult, MediaCandidate, StartDownloadOptions } from '@v-download/shared'
+export type { AppResult, MediaCandidate, StartDownloadOptions } from '@v-download/shared'
 
 export interface InfoResolveEvent {
   id: string
@@ -12,6 +12,45 @@ export interface InfoResolveEvent {
   error?: string
 }
 
+export interface EngineStatus {
+  name: 'yt-dlp' | 'ffmpeg'
+  path: string
+  source: 'bundled' | 'custom' | 'system' | 'missing'
+  version: string | null
+  bundledVersion: string | null
+  latestVersion: string | null
+  updateState: 'current' | 'available' | 'unknown'
+  updateMessage?: string
+  canUpdate: boolean
+}
+
+export type NativeAuthSite = 'youtube' | 'douyin' | 'tiktok' | 'bilibili' | 'xiaohongshu' | 'x'
+
+export type TranscodePresetId = 'mp3' | 'aac' | 'opus' | 'flac' | 'wav' | 'mp4' | 'h265' | 'vp9'
+
+export interface TranscodeProgressEvent {
+  id: string
+  preset: TranscodePresetId
+  status: 'started' | 'progress' | 'complete' | 'error'
+  percent: number
+  phase?: 'transcoding' | 'complete'
+  filePath?: string
+  error?: string
+}
+
+export interface NativeAuthAccountStatus {
+  site: NativeAuthSite
+  host: string
+  connected: boolean
+  cookieCount: number
+  lastSyncedAt: string | null
+}
+
+export type NativeAuthEvent =
+  | { type: 'opened'; site: NativeAuthSite }
+  | { type: 'saved'; site: NativeAuthSite; account: NativeAuthAccountStatus }
+  | { type: 'error'; site: NativeAuthSite; message: string }
+
 export interface DouyinBulkJobStatus {
   id: string
   state: 'running' | 'completed' | 'failed' | 'cancelled'
@@ -21,7 +60,6 @@ export interface DouyinBulkJobStatus {
 }
 
 export interface WindowApi {
-  getVideoInfo: (url: string) => Promise<{ data?: unknown; error?: string }>
   startInfoResolve: (options: {
     url: string
     title?: string
@@ -58,6 +96,7 @@ export interface WindowApi {
   deleteTasksWithFiles: (ids: string[]) => Promise<{ ok: boolean; removed: number }>
   deleteTasks: (ids: string[]) => Promise<{ ok: boolean; removed: number }>
   retryDownload: (id: string) => Promise<{ retried: boolean }>
+  transcodeDownload: (id: string, preset: TranscodePresetId) => Promise<{ data?: unknown; error?: string }>
   getDownloads: () => Promise<{ data: unknown[] }>
   resumeAll: () => Promise<{ ok: boolean }>
   pauseAll: () => Promise<{ ok: boolean }>
@@ -65,12 +104,13 @@ export interface WindowApi {
   openFileLocation: (path: string) => Promise<{ ok?: boolean; error?: string }>
   openFile: (path: string) => Promise<{ ok?: boolean; error?: string }>
   getSettings: () => Promise<{ data: unknown }>
-  updateSettings: (key: string, value: unknown) => Promise<{ ok: boolean }>
+  updateSettings: (key: string, value: unknown) => Promise<{ ok: boolean; error?: string }>
   applyDownloadSpeedMode: (
     mode: 'balanced' | 'turbo' | 'gentle',
     options?: { acknowledgeTurboRisk?: boolean }
   ) => Promise<{ ok: boolean; error?: string }>
   onDownloadProgress: (callback: (data: Record<string, unknown>) => void) => () => void
+  onTranscodeProgress: (callback: (data: TranscodeProgressEvent) => void) => () => void
   onNewDownload: (callback: (data: Record<string, unknown>) => void) => () => void
   onInfoResolveResult: (callback: (data: InfoResolveEvent) => void) => () => void
   onYtdlUrl: (callback: (url: string) => void) => () => void
@@ -87,7 +127,6 @@ export interface WindowApi {
   }>
   openSettings: () => Promise<void>
   onOpenPreferences: (callback: () => void) => () => void
-  closeWindow: () => Promise<void>
   onCookiesSynced?: (callback: (data: { count: number }) => void) => () => void
   requestBrowserCookieSync?: () => Promise<{
     ok: boolean
@@ -104,9 +143,15 @@ export interface WindowApi {
   }>
   setNativeThemeSource: (source: 'dark' | 'light' | 'system') => Promise<{ ok: boolean; error?: string }>
   getAppVersion: () => Promise<string>
+  getEngineStatus?: () => Promise<{ data?: EngineStatus[]; error?: string }>
+  checkEngineUpdates?: () => Promise<{ data?: EngineStatus[]; error?: string }>
+  updateEngine?: (name: 'yt-dlp' | 'ffmpeg') => Promise<{ data?: EngineStatus[]; error?: string }>
+  getNativeAuthAccounts?: () => Promise<{ data?: NativeAuthAccountStatus[]; error?: string }>
+  startNativeAuth?: (site: string) => Promise<{ ok: boolean; error?: string }>
+  clearNativeAuth?: (site: string) => Promise<{ ok: boolean; error?: string }>
+  onNativeAuthEvent?: (callback: (data: NativeAuthEvent) => void) => () => void
   getUpdateStatus: () => Promise<{ state: 'disabled' | 'idle' | 'checking' | 'available' | 'downloaded' | 'error'; version?: string; error?: string }>
   onUpdateStatus: (callback: (data: unknown) => void) => () => void
-  sniffMedia?: (url: string) => Promise<{ data?: unknown; error?: string }>
   douyinProfileListPosts?: (
     profileUrl: string,
     cursor?: string | null,
@@ -132,7 +177,6 @@ export interface WindowApi {
   startDouyinBulk?: (url: string) => Promise<{ data?: { id: string }; error?: string }>
   getDouyinBulkStatus?: (id: string) => Promise<{ data?: DouyinBulkJobStatus; error?: string }>
   cancelDouyinBulk?: (id: string) => Promise<{ ok: boolean; error?: string }>
-  runDouyinBulk?: (url: string) => Promise<{ data?: { code: number | null; stderr: string }; error?: string }>
   platform: NodeJS.Platform
 }
 

@@ -1,8 +1,20 @@
 /// <reference types="vite/client" />
 import type { StartDownloadOptions } from '@v-download/shared'
+import type { EngineStatus, NativeAuthAccountStatus, NativeAuthEvent } from '@/types'
+
+type TranscodePresetId = 'mp3' | 'aac' | 'opus' | 'flac' | 'wav' | 'mp4' | 'h265' | 'vp9'
+
+interface TranscodeProgressEvent {
+  id: string
+  preset: TranscodePresetId
+  status: 'started' | 'progress' | 'complete' | 'error'
+  percent: number
+  phase?: 'transcoding' | 'complete'
+  filePath?: string
+  error?: string
+}
 
 interface WindowApi {
-  getVideoInfo: (url: string) => Promise<{ data?: unknown; error?: string }>
   startInfoResolve: (options: {
     url: string
     title?: string
@@ -39,6 +51,7 @@ interface WindowApi {
   deleteTasksWithFiles: (ids: string[]) => Promise<{ ok: boolean; removed: number }>
   deleteTasks: (ids: string[]) => Promise<{ ok: boolean; removed: number }>
   retryDownload: (id: string) => Promise<{ retried: boolean }>
+  transcodeDownload: (id: string, preset: TranscodePresetId) => Promise<{ data?: unknown; error?: string }>
   getDownloads: () => Promise<{ data: unknown[] }>
   resumeAll: () => Promise<{ ok: boolean }>
   pauseAll: () => Promise<{ ok: boolean }>
@@ -46,12 +59,13 @@ interface WindowApi {
   openFileLocation: (path: string) => Promise<{ ok?: boolean; error?: string }>
   openFile: (path: string) => Promise<{ ok?: boolean; error?: string }>
   getSettings: () => Promise<{ data: unknown }>
-  updateSettings: (key: string, value: unknown) => Promise<{ ok: boolean }>
+  updateSettings: (key: string, value: unknown) => Promise<{ ok: boolean; error?: string }>
   applyDownloadSpeedMode: (
     mode: 'balanced' | 'turbo' | 'gentle',
     options?: { acknowledgeTurboRisk?: boolean }
   ) => Promise<{ ok: boolean; error?: string }>
   onDownloadProgress: (callback: (data: Record<string, unknown>) => void) => () => void
+  onTranscodeProgress: (callback: (data: TranscodeProgressEvent) => void) => () => void
   onNewDownload: (callback: (data: Record<string, unknown>) => void) => () => void
   onInfoResolveResult: (callback: (data: { id: string; url: string; autoStart: boolean; format?: string; quality?: string; requestedTitle?: string; data?: unknown; error?: string }) => void) => () => void
   onYtdlUrl: (callback: (url: string) => void) => () => void
@@ -60,14 +74,12 @@ interface WindowApi {
   startDouyinBulk: (url: string) => Promise<{ data?: { id: string }; error?: string }>
   getDouyinBulkStatus: (id: string) => Promise<{ data?: DouyinBulkJobStatus; error?: string }>
   cancelDouyinBulk: (id: string) => Promise<{ ok: boolean; error?: string }>
-  runDouyinBulk: (url: string) => Promise<{ data?: { code: number | null; stderr: string }; error?: string }>
   selectDownloadFolder: () => Promise<string | undefined>
   readClipboard: () => Promise<string>
   openSettings: () => Promise<void>
   onOpenPreferences: (callback: () => void) => () => void
   onFocusDownloadSearch: (callback: () => void) => () => void
   onRefreshDownloads: (callback: () => void) => () => void
-  closeWindow: () => Promise<void>
   getChromeExtensionPath?: () => Promise<{ ok: boolean; path?: string }>
   installChromeExtension?: () => Promise<{
     ok: boolean
@@ -89,7 +101,6 @@ interface WindowApi {
     url?: string
     error?: string
   }>
-  sniffMedia?: (url: string) => Promise<{ data?: unknown; error?: string }>
   douyinProfileListPosts?: (
     profileUrl: string,
     cursor?: string | null,
@@ -114,6 +125,13 @@ interface WindowApi {
   ) => Promise<{ data?: { count: number; ids: string[] }; error?: string }>
   setNativeThemeSource?: (source: 'dark' | 'light' | 'system') => Promise<{ ok: boolean; error?: string }>
   getAppVersion?: () => Promise<string>
+  getEngineStatus?: () => Promise<{ data?: EngineStatus[]; error?: string }>
+  checkEngineUpdates?: () => Promise<{ data?: EngineStatus[]; error?: string }>
+  updateEngine?: (name: 'yt-dlp' | 'ffmpeg') => Promise<{ data?: EngineStatus[]; error?: string }>
+  getNativeAuthAccounts?: () => Promise<{ data?: NativeAuthAccountStatus[]; error?: string }>
+  startNativeAuth?: (site: string) => Promise<{ ok: boolean; error?: string }>
+  clearNativeAuth?: (site: string) => Promise<{ ok: boolean; error?: string }>
+  onNativeAuthEvent?: (callback: (data: NativeAuthEvent) => void) => () => void
   platform: string
 }
 

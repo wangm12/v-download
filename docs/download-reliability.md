@@ -20,10 +20,6 @@ This document summarizes how **V-Download** stays reliable compared to ad‑hoc 
 - **`storage` + `lastDownloadError`**: when localhost wake/POST fails, a short message is stored for the **popup** banner.
 - **Dedup**: overlay still normalizes URLs for dedup keys; background uses the same pattern list for `webRequest` classification.
 
-## vdl-server
-
-The optional **vdl-server** bot now includes a Douyin `video | gallery` parser path and gallery fallback downloader. Keep in mind this remains site-layout sensitive, so validate with `vdl-server/scripts/test-douyin-urls.ts` whenever extractor logic changes.
-
 ## Troubleshooting matrix
 
 | Symptom | Likely cause | Action |
@@ -33,7 +29,6 @@ The optional **vdl-server** bot now includes a Douyin `video | gallery` parser p
 | Douyin gallery opens but only one file is saved | Fallback parser did not resolve gallery images | Re-run and verify metadata includes `_type: douyin_gallery` and `image_urls`; if missing, treat as parser regression. |
 | Bulk run stays `running` with no progress | Python bulk subprocess is blocked or waiting on external state | Check status/stderr tail, `cancel` the job, then restart with corrected paths/config. |
 | Extension banner keeps showing old failure | `lastDownloadError` is stale and not yet cleared | Dismiss in popup or wait for TTL cleanup; confirm new attempts write a fresh timestamped error only on failure. |
-| vdl-server succeeds on video posts but fails on Douyin notes/gallery | Server parser path drifted or site layout changed | Validate with `cd vdl-server && npm run test:douyin`; route note/gallery issues to server parity fixes. |
 
 ## Interrupt / resume (yt-dlp)
 

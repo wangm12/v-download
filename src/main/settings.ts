@@ -1,8 +1,10 @@
 import { app } from 'electron'
 import { join } from 'path'
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs'
+import { randomBytes } from 'crypto'
+import { readFileSync, writeFileSync, mkdirSync, existsSync, chmodSync } from 'fs'
 import { execFileSync } from 'child_process'
 import { getQueueConcurrencyPolicy, type QueueConcurrencyPolicy } from '@v-download/shared'
+import { normalizeProxyUrl } from './settingsModel'
 
 export interface SettingsSchema {
   downloadDir: string
@@ -57,6 +59,15 @@ export interface SettingsSchema {
    */
   ytdlpExternalDownloader: string
   siteRules: SiteRule[]
+  /** Optional proxy applied to yt-dlp requests. */
+  proxyUrl: string
+  /** Set only after the first-run setup wizard has been completed. */
+  onboardingCompleted: boolean
+  /** Off by default. When on, main serves /v1 jobs on remoteApiBind:remoteApiPort. */
+  remoteApiEnabled: boolean
+  remoteApiToken: string
+  remoteApiBind: '127.0.0.1' | '0.0.0.0'
+  remoteApiPort: number
 }
 
 export interface SiteRule {
@@ -124,7 +135,13 @@ const defaults: SettingsSchema = {
   downloadSpeedMode: 'balanced',
   turboRiskAcknowledged: false,
   ytdlpExternalDownloader: '',
-  siteRules: []
+  siteRules: [],
+  proxyUrl: '',
+  onboardingCompleted: false,
+  remoteApiEnabled: false,
+  remoteApiToken: '',
+  remoteApiBind: '127.0.0.1',
+  remoteApiPort: 18766
 }
 
 let settingsPath = ''
@@ -142,7 +159,16 @@ function load(): SettingsSchema {
   if (cache) return cache
   try {
     const raw = readFileSync(getSettingsPath(), 'utf-8')
-    cache = { ...defaults, ...JSON.parse(raw) }
+    const parsed = JSON.parse(raw) as Partial<SettingsSchema>
+    cache = {
+      ...defaults,
+      ...parsed,
+      // Existing installs already have working defaults; only new settings files
+      // should enter the first-run wizard.
+      onboardingCompleted: Object.prototype.hasOwnProperty.call(parsed, 'onboardingCompleted')
+        ? Boolean(parsed.onboardingCompleted)
+        : true
+    }
   } catch {
     cache = { ...defaults }
     if (!cache.downloadDir) cache.downloadDir = app.getPath('downloads')
@@ -173,6 +199,16 @@ function normalizeLoadedSettings(s: SettingsSchema): void {
   if (!Number.isFinite(bt)) bt = 5
   s.douyinBulkThreads = Math.min(32, Math.max(1, Math.floor(bt)))
   s.douyinBulkVerboseWarnings = Boolean(s.douyinBulkVerboseWarnings)
+  s.proxyUrl = normalizeProxyUrl(s.proxyUrl)
+  s.onboardingCompleted = Boolean(s.onboardingCompleted)
+  s.remoteApiEnabled = Boolean(s.remoteApiEnabled)
+  s.remoteApiToken = typeof s.remoteApiToken === 'string' && /^[A-Za-z0-9_-]{16,128}$/.test(s.remoteApiToken)
+    ? s.remoteApiToken
+    : ''
+  s.remoteApiBind = s.remoteApiBind === '0.0.0.0' ? '0.0.0.0' : '127.0.0.1'
+  let remotePort = Number(s.remoteApiPort)
+  if (!Number.isFinite(remotePort) || remotePort === 18765) remotePort = 18766
+  s.remoteApiPort = Math.min(65535, Math.max(1024, Math.floor(remotePort)))
   s.siteRules = Array.isArray(s.siteRules) ? s.siteRules.filter((rule): rule is SiteRule => {
     return Boolean(rule && typeof rule.id === 'string' && typeof rule.domain === 'string' && rule.domain.trim() &&
       ['best', 'video', 'audio'].includes(rule.format) && typeof rule.quality === 'string' &&
@@ -185,9 +221,14 @@ function save(): void {
     const dir = app.getPath('userData')
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
     writeFileSync(getSettingsPath(), JSON.stringify(cache, null, 2), 'utf-8')
+    try { chmodSync(getSettingsPath(), 0o600) } catch { /* best effort */ }
   } catch (err) {
     console.error('Failed to save settings:', err)
   }
+}
+
+export function generateRemoteApiToken(): string {
+  return randomBytes(24).toString('hex')
 }
 
 /** Apply queue + yt-dlp tuning presets for the download speed mode (see Preferences). */
@@ -234,6 +275,12 @@ export function get<K extends keyof SettingsSchema>(key: K): SettingsSchema[K] {
 export function set<K extends keyof SettingsSchema>(key: K, value: SettingsSchema[K]): void {
   load()
   cache![key] = value
+  if (key === 'remoteApiEnabled' && cache!.remoteApiEnabled && !cache!.remoteApiToken) {
+    cache!.remoteApiToken = generateRemoteApiToken()
+  }
+  if (key === 'remoteApiToken' && !String(cache!.remoteApiToken || '').trim()) {
+    cache!.remoteApiToken = generateRemoteApiToken()
+  }
   normalizeLoadedSettings(cache!)
   save()
 }
@@ -242,14 +289,18 @@ export function validateSettingUpdate(key: string, value: unknown): value is Set
   if (key === 'cookiesPath') return false
   if (typeof value === 'string' && value.length > 4096) return false
   if (['downloadDir', 'douyinBulkRunPyPath', 'douyinBulkConfigPath', 'douyinBulkOutputPath', 'ytdlpPath', 'ffmpegPath'].includes(key) && typeof value === 'string' && (value.length === 0 || /[\0\r\n]/.test(value))) return false
-  if (['showFormatDialog', 'playlistSubfolder', 'douyinUseCloakBrowser', 'turboRiskAcknowledged', 'douyinBulkVerboseWarnings'].includes(key)) return typeof value === 'boolean'
+  if (['showFormatDialog', 'playlistSubfolder', 'douyinUseCloakBrowser', 'turboRiskAcknowledged', 'douyinBulkVerboseWarnings', 'onboardingCompleted', 'remoteApiEnabled'].includes(key)) return typeof value === 'boolean'
   // Accept legacy persisted/update values (including 0 and values above 3); set() normalizes concurrency to 1..3.
   if (['concurrency', 'sleepInterval', 'youtubePlaylistSleepRequests', 'youtubePlaylistMaxDownloads', 'douyinBulkThreads', 'concurrentFragments'].includes(key)) return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 100
+  if (key === 'remoteApiPort') return typeof value === 'number' && Number.isFinite(value) && value >= 1024 && value <= 65535 && value !== 18765
+  if (key === 'remoteApiBind') return value === '127.0.0.1' || value === '0.0.0.0'
+  if (key === 'remoteApiToken') return typeof value === 'string' && (value === '' || /^[A-Za-z0-9_-]{16,128}$/.test(value))
   if (['defaultVideoQuality', 'defaultAudioQuality'].includes(key)) return typeof value === 'string' && /^(?:\d{1,4}|best)$/.test(value)
   if (['cookiesFromBrowser', 'douyinBulkRunPyPath', 'douyinBulkConfigPath', 'douyinBulkOutputPath', 'ytdlpPath', 'ffmpegPath', 'ytdlpExternalDownloader'].includes(key)) return typeof value === 'string' && !/[\0\r\n]/.test(value)
   if (key === 'downloadDir') return typeof value === 'string' && value.length > 0
   if (key === 'directMediaEngine') return value === 'auto' || value === 'ffmpeg' || value === 'ytdlp'
   if (key === 'youtubePlaylistMode') return value === 'native' || value === 'fanout'
+  if (key === 'proxyUrl') return typeof value === 'string' && (value.trim() === '' || normalizeProxyUrl(value) !== '')
   if (key === 'siteRules') return Array.isArray(value) && value.length <= 100 && value.every((rule) => {
     if (!rule || typeof rule !== 'object' || Array.isArray(rule)) return false
     const r = rule as Record<string, unknown>; const allowed = new Set(['id', 'domain', 'format', 'quality', 'enabled'])

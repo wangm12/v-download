@@ -169,8 +169,8 @@
   }
 
   function getYouTubePlayerRect(video) {
-    const player = document.querySelector('.html5-video-player') ||
-      video?.closest('.html5-video-player')
+    const player = video?.closest('.html5-video-player') ||
+      document.querySelector('.html5-video-player')
     return rectFromElement(player) || (video ? rectFromElement(video) : null)
   }
 
@@ -340,6 +340,70 @@
     return site !== 'douyin' && site !== 'tiktok'
   }
 
+  function isMediaElement(el) {
+    return Boolean(el) && (el.nodeName === 'VIDEO' || el.nodeName === 'AUDIO')
+  }
+
+  function overlayScopeRoot(doc) {
+    const root = doc || document
+    return root.fullscreenElement || root
+  }
+
+  function overlayButtonHost(doc) {
+    const root = doc || document
+    return root.fullscreenElement || root.documentElement
+  }
+
+  function shouldReparentOverlayVideo(video, fullscreenEl) {
+    if (!video || !fullscreenEl) return false
+    if (video === fullscreenEl) return true
+    if (typeof fullscreenEl.contains === 'function') return fullscreenEl.contains(video)
+    let node = video.parentElement
+    while (node) {
+      if (node === fullscreenEl) return true
+      node = node.parentElement
+    }
+    return false
+  }
+
+  function isVisiblyRendered(el) {
+    if (!el) return false
+    if (typeof el.checkVisibility === 'function') {
+      try {
+        if (!el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) return false
+      } catch {
+        if (!el.checkVisibility()) return false
+      }
+    }
+    return layoutArea(el) > 0
+  }
+
+  function layoutArea(el) {
+    if (!el || typeof el.getBoundingClientRect !== 'function') return 0
+    const rect = el.getBoundingClientRect()
+    return Math.max(0, rect.width) * Math.max(0, rect.height)
+  }
+
+  function pickLargestVisible(elements, minArea) {
+    let best = null
+    let bestArea = 0
+    for (const el of elements || []) {
+      if (!isVisiblyRendered(el)) continue
+      const area = layoutArea(el)
+      if (area < minArea) continue
+      if (area > bestArea) {
+        bestArea = area
+        best = el
+      }
+    }
+    return best
+  }
+
+  function shouldBootGenericOverlay(ctx) {
+    const site = ctx?.site || getSiteContext().site
+    return site !== 'douyin' && site !== 'tiktok' && site !== 'x'
+  }
+
   function getDouyinPanelAnchorRect(playerRect, btnSize, insetOverride) {
     const strategy = getPlacementStrategy({ site: 'douyin', pageType: getDouyinPageType() })
     const btnPos = computeButtonPosition(playerRect, strategy, btnSize || DEFAULT_BTN_SIZE, insetOverride)
@@ -384,6 +448,13 @@
     anchorOffscreen,
     shouldDismissPanelOnScroll,
     getDouyinPanelAnchorRect,
-    rectFromElement
+    rectFromElement,
+    isMediaElement,
+    overlayScopeRoot,
+    overlayButtonHost,
+    layoutArea,
+    pickLargestVisible,
+    shouldReparentOverlayVideo,
+    shouldBootGenericOverlay
   }
 })()

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { getPreflightPlan, getRestorePlan } from './dev-native-preflight.mjs'
-import { getDevPlan } from './dev.mjs'
+import { getDevPlan, isIgnorableKillError } from './dev.mjs'
 
 const plan = getPreflightPlan()
 assert.match(plan.electronVersion, /^\d+\.\d+\.\d+$/)
@@ -19,4 +19,8 @@ assert.equal(restorePlan.env.npm_config_runtime, undefined)
 const devPlan = getDevPlan()
 assert.ok(devPlan.command.endsWith('/node_modules/.bin/electron-vite'))
 assert.deepEqual(devPlan.args, ['dev'])
+assert.equal(isIgnorableKillError({ code: 'ESRCH' }), true)
+assert.equal(isIgnorableKillError({ code: 'EPERM' }), true)
+assert.equal(isIgnorableKillError({ code: 'EACCES' }), true)
+assert.equal(isIgnorableKillError({ code: 'EIO' }), false)
 console.log('dev native preflight and restore contract passed')

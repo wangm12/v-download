@@ -57,7 +57,15 @@ function showLastDownloadError() {
 }
 
 function renderMedia(media, tabUrl, tabTitle) {
-  media = globalThis.VDownloadMediaPatterns.mergeCandidates(media)
+  const patterns = globalThis.VDownloadMediaPatterns
+  media = patterns.mergeCandidates(media)
+  if (typeof patterns.classifyMediaRole === 'function') {
+    try {
+      media = patterns.classifyMediaRole(media, { pageTitle: tabTitle, pageUrl: tabUrl })
+    } catch {
+      /* keep unlabeled candidates if identity classification fails */
+    }
+  }
   const list = document.getElementById('list')
   const empty = document.getElementById('empty')
   const footer = document.getElementById('footer')
@@ -101,7 +109,7 @@ function renderMedia(media, tabUrl, tabTitle) {
 
     const checkbox = document.createElement('input')
     checkbox.type = 'checkbox'
-    checkbox.checked = true
+    checkbox.checked = item.role === 'main'
     checkbox.id = `media-${index}`
     checkbox.dataset.index = index
 
@@ -111,11 +119,15 @@ function renderMedia(media, tabUrl, tabTitle) {
 
     const name = document.createElement('div')
     name.className = 'media-name'
-    name.textContent = getDisplayName(item.url)
-    name.title = name.textContent
+    name.textContent = item.displayTitle || getDisplayName(item.url)
+    name.title = item.url
 
     const meta = document.createElement('div')
     meta.className = 'media-meta'
+
+    const roleBadge = document.createElement('span')
+    roleBadge.className = `media-role role-${item.role || 'unknown'}`
+    roleBadge.textContent = typeof patterns.roleLabel === 'function' ? patterns.roleLabel(item.role) : (item.role || 'Detected')
 
     const domain = document.createElement('span')
     domain.className = 'media-domain'
@@ -136,6 +148,7 @@ function renderMedia(media, tabUrl, tabTitle) {
     const confidence = document.createElement('span')
     confidence.textContent = item.confidence ? `${item.confidence}% confidence` : 'Detected'
 
+    meta.appendChild(roleBadge)
     meta.appendChild(domain)
     meta.appendChild(typeBadge)
     meta.appendChild(size)

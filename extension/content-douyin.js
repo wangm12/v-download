@@ -7,6 +7,7 @@
   // ── Constants ─────────────────────────────────────────────────────────────
 
   const PL = globalThis.VDownloadOverlayPlacement || null
+  const DP = globalThis.VDownloadDouyinPolicy || null
 
   const BTN_ID = 'dy-dl-btn'
   const PANEL_ID = 'dy-dl-panel'
@@ -26,6 +27,13 @@
   let activePanel = null   // DOM node of the open panel, or null
   let lastHref = location.href
   let lastLoggedAwemeId = null
+  let overlayExtractRequestedFor = ''
+  let loadingTimer = null
+  let panelMode = null
+  const OVERLAY_EXTRACT_TYPE = 'REQUEST_DOUYIN_OVERLAY_EXTRACT'
+  const BRIDGE_HELLO_TYPE = (DP && DP.BRIDGE_HELLO_TYPE) || 'V_DOWNLOAD_BRIDGE_HELLO'
+  const LOADING_TIMEOUT_MS = 6000
+  const overlayNonce = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('')
 
   // Page DevTools (douyin tab): filter "[V-Download douyin CS]"
   // Extension worker: chrome://extensions → V-Download → service worker → Inspect — "[V-Download ext]"
@@ -38,6 +46,14 @@
     const m = max || 56
     if (!u || typeof u !== 'string') return ''
     return u.length <= m ? u : `${u.slice(0, m)}…`
+  }
+
+  function describeExtensionContactError(err) {
+    const text = String(err?.message || err || '').trim()
+    if (/context invalidated|receiving end does not exist/i.test(text)) {
+      return 'Extension reloaded — refresh this page and retry'
+    }
+    return text || 'Unable to contact extension'
   }
 
   /** Safe filename-ish segments; avoids every download sharing the tab title. */
@@ -117,16 +133,53 @@
     btn.addEventListener('click', (e) => {
       e.stopPropagation()
       e.preventDefault()
-      logCs('float-btn-click', { willClose: !!activePanel })
+      logCs('float-btn-click', { willClose: !!activePanel, panelMode })
       if (activePanel) {
+        if (panelMode === 'loading' || panelMode === 'error') {
+          if (currentData) {
+            closePanel()
+            showPanel(btn)
+            return
+          }
+          panelMode = 'loading'
+          const empty = activePanel.querySelector('.dy-dl-panel-empty')
+          if (empty) empty.textContent = 'Reading video data…'
+          armLoadingTimer(activePanel)
+          requestOverlayExtract()
+          return
+        }
         closePanel()
       } else {
         showPanel(btn)
       }
     })
 
-    document.documentElement.appendChild(btn)
+    overlayHost().appendChild(btn)
     return btn
+  }
+
+  function overlayHost() {
+    return PL && typeof PL.overlayButtonHost === 'function'
+      ? PL.overlayButtonHost(document)
+      : (document.fullscreenElement || document.documentElement)
+  }
+
+  function mountOverlayNode(node) {
+    if (!node) return
+    const host = overlayHost()
+    if (node.parentElement !== host) host.appendChild(node)
+  }
+
+  function reparentDouyinOverlay() {
+    const btn = document.getElementById(BTN_ID)
+    if (btn) {
+      mountOverlayNode(btn)
+      positionButton(btn)
+    }
+    if (activePanel) {
+      mountOverlayNode(activePanel)
+      repositionPanel()
+    }
   }
 
   function positionButton(btn) {
@@ -307,13 +360,17 @@
       }
     }
     try {
+      if (!chrome.runtime?.id) {
+        done(false, 'Extension reloaded — refresh this page and retry')
+        return
+      }
       // The background listener intentionally uses sendResponse + return true.
       // Use the callback form here because Chrome's Promise wrapper can resolve
       // before a delayed MV3 response on some versions, making a real failure
       // look like a silent no-op.
       chrome.runtime.sendMessage({ type: 'DOWNLOAD_MEDIA_FROM_CONTENT', item, surfacedWake }, (resp) => {
         if (chrome.runtime.lastError) {
-          const error = chrome.runtime.lastError.message || 'retry'
+          const error = describeExtensionContactError(chrome.runtime.lastError)
           logCs('trigger-download-last-error', { message: error })
           done(false, error)
           return
@@ -324,7 +381,7 @@
       })
     } catch (err) {
       logCs('trigger-download-send-throw', { err: String(err) })
-      done(false, 'Unable to contact extension')
+      done(false, describeExtensionContactError(err))
     }
   }
 
@@ -340,10 +397,57 @@
     }
   }
 
+  function requestOverlayExtract() {
+    window.postMessage({
+      type: OVERLAY_EXTRACT_TYPE,
+      source: 'douyin-content',
+      nonce: overlayNonce
+    }, location.origin)
+  }
+
+  function sendBridgeHello() {
+    window.postMessage({
+      type: BRIDGE_HELLO_TYPE,
+      source: 'douyin-content',
+      nonce: overlayNonce
+    }, location.origin)
+  }
+
+  function currentOverlayExtractKey() {
+    const el = document.querySelector('[data-e2e="feed-active-video"]')
+    const vid = (el && el.getAttribute('data-e2e-vid')) || ''
+    return DP ? DP.overlayExtractKey(lastHref || location.href, vid) : `${lastHref || location.href}|${vid}`
+  }
+
+  function maybePreloadOverlayExtract() {
+    const key = currentOverlayExtractKey()
+    if (overlayExtractRequestedFor === key) return
+    overlayExtractRequestedFor = key
+    requestOverlayExtract()
+  }
+
+  function clearLoadingTimer() {
+    if (!loadingTimer) return
+    clearTimeout(loadingTimer)
+    loadingTimer = null
+  }
+
+  function armLoadingTimer(panel) {
+    clearLoadingTimer()
+    loadingTimer = setTimeout(() => {
+      loadingTimer = null
+      if (!activePanel || activePanel !== panel) return
+      const empty = activePanel.querySelector('.dy-dl-panel-empty')
+      if (!empty || empty.textContent !== 'Reading video data…') return
+      empty.textContent = 'Could not read video data'
+      panelMode = 'error'
+    }, LOADING_TIMEOUT_MS)
+  }
+
   function showPanel(btn) {
     logCs('show-panel', { hasData: !!currentData, awemeId: currentData?.awemeId || null })
     if (!currentData) {
-      // Bridge hasn't sent data yet — show a "loading" panel
+      // Bridge hasn't sent data yet — show a "loading" panel and ask MAIN world now.
       const panel = document.createElement('div')
       panel.id = PANEL_ID
       panel.className = 'dy-dl-panel'
@@ -351,9 +455,12 @@
       msg.className = 'dy-dl-panel-empty'
       msg.textContent = 'Reading video data…'
       panel.appendChild(msg)
-      document.documentElement.appendChild(panel)
+      overlayHost().appendChild(panel)
       activePanel = panel
+      panelMode = 'loading'
       requestAnimationFrame(() => positionPanelRelativeTo(panel, btn))
+      armLoadingTimer(panel)
+      requestOverlayExtract()
       return
     }
 
@@ -450,8 +557,9 @@
       panel.appendChild(empty)
     }
 
-    document.documentElement.appendChild(panel)
+    overlayHost().appendChild(panel)
     activePanel = panel
+    panelMode = 'ready'
 
     // Position after measuring
     requestAnimationFrame(() => positionPanelRelativeTo(panel, btn))
@@ -493,9 +601,11 @@
   }
 
   function closePanel() {
+    clearLoadingTimer()
     const panel = document.getElementById(PANEL_ID)
     if (panel) panel.remove()
     activePanel = null
+    panelMode = null
   }
 
   // ── Message listener (receive from bridge) ─────────────────────────────────
@@ -544,8 +654,14 @@
     }
   }
 
+  function isAuthorizedInbound(e) {
+    if (DP) return DP.isAuthorizedBridgeMessage(overlayNonce, e.data?.nonce)
+    return e.data?.nonce === overlayNonce
+  }
+
   window.addEventListener('message', (e) => {
     if (e.source !== window || e.origin !== location.origin) return
+    if (!isAuthorizedInbound(e)) return
     if (e.data?.type === DOUYIN_RESOLVE_RESULT_TYPE && e.data.source === 'douyin-resolve-bridge') {
       chrome.runtime.sendMessage({
         type: 'DOUYIN_RESOLVE_RESULT',
@@ -579,6 +695,7 @@
     const data = normalizeBridgeData(e.data.data)
     if (!data) return
 
+    const prevData = currentData
     // New video — close stale panel
     if (currentData && currentData.awemeId !== data.awemeId && activePanel) {
       closePanel()
@@ -600,14 +717,11 @@
     positionButton(btn)
     if (activePanel) repositionPanel()
 
-    // User may have opened the panel while waiting for bridge data — replace loading UI.
-    if (activePanel) {
-      const empty = activePanel.querySelector('.dy-dl-panel-empty')
-      if (empty && empty.textContent === 'Reading video data…') {
-        closePanel()
-        const b = document.getElementById(BTN_ID)
-        if (b) showPanel(b)
-      }
+    const formatsGrew = (data.formats || []).length > (prevData?.formats || []).length
+    if (activePanel && (panelMode === 'loading' || panelMode === 'error' || formatsGrew)) {
+      closePanel()
+      const b = document.getElementById(BTN_ID)
+      if (b) showPanel(b)
     }
   })
 
@@ -621,6 +735,7 @@
     window.postMessage({
       type: DOUYIN_RESOLVE_START_TYPE,
       source: 'douyin-content',
+      nonce: overlayNonce,
       command: {
         requestId: String(command.requestId || ''),
         url: String(command.url || ''),
@@ -645,6 +760,7 @@
     if (hasDouyinPlayer()) {
       const b = btn || ensureButton()
       positionButton(b)
+      if (!currentData) maybePreloadOverlayExtract()
       if (activePanel) repositionPanel()
     } else if (btn) {
       btn.classList.remove('dy-dl-visible')
@@ -667,12 +783,12 @@
 
   // ── SPA navigation ─────────────────────────────────────────────────────────
 
-  const navObserver = new MutationObserver(() => {
+  function handleNavigation() {
     if (location.href === lastHref) return
     lastHref = location.href
     closePanel()
     currentData = null
-
+    overlayExtractRequestedFor = ''
     setTimeout(() => {
       if (hasDouyinPlayer()) return
       const btn = document.getElementById(BTN_ID)
@@ -681,6 +797,25 @@
         btn.classList.add('dy-dl-hidden')
       }
     }, 300)
+  }
+
+  const originalPushState = history.pushState
+  const originalReplaceState = history.replaceState
+  history.pushState = function (...args) {
+    const result = originalPushState.apply(this, args)
+    handleNavigation()
+    return result
+  }
+  history.replaceState = function (...args) {
+    const result = originalReplaceState.apply(this, args)
+    handleNavigation()
+    return result
+  }
+  window.addEventListener('popstate', handleNavigation)
+  document.addEventListener('fullscreenchange', reparentDouyinOverlay)
+
+  const navObserver = new MutationObserver(() => {
+    handleNavigation()
   })
 
   navObserver.observe(document.documentElement, { subtree: false, childList: true })
@@ -689,7 +824,11 @@
     if (!document.hidden) checkAnchor()
   })
 
-  window.addEventListener('beforeunload', () => clearInterval(anchorInterval))
+  window.addEventListener('beforeunload', () => {
+    clearInterval(anchorInterval)
+    if (history.pushState !== originalPushState) history.pushState = originalPushState
+    if (history.replaceState !== originalReplaceState) history.replaceState = originalReplaceState
+  })
 
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message?.type !== 'START_DOUYIN_PROFILE_IMPORT') return false
@@ -702,6 +841,7 @@
       {
         type: 'V_DOWNLOAD_START_DOUYIN_PROFILE_IMPORT',
         source: 'douyin-content',
+        nonce: overlayNonce,
         command,
       },
       location.origin
@@ -716,6 +856,7 @@
       () => void chrome.runtime.lastError
     )
   }
+  sendBridgeHello()
   setTimeout(notifyProfileReady, 250)
   setTimeout(notifyProfileReady, 1200)
 })()

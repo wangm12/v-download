@@ -2,18 +2,16 @@ import { ipcMain } from 'electron'
 import * as downloadManager from '../downloadManager'
 import * as ytdlp from '../ytdlp'
 import * as infoResolutionManager from '../infoResolutionManager'
-import { resolveVideoInfo } from '../videoInfoResolver'
 import { listDouyinProfilePosts } from '../douyinProfile'
-import { runDouyinBulkCli } from '../douyinBulk'
 import { cancelDouyinBulkJob, getDouyinBulkJobStatus, startDouyinBulkJob } from '../douyinBulkJobs'
 import * as settings from '../settings'
-import { sniffMedia } from '../mediaSniffer'
 import { fetchRemoteThumbnailDataUrl } from '../thumbnailFetch'
 import { listPlaylistEntries } from '../playlistList'
 import { resolveMediaCandidates, mediaTypeForCandidate } from '../mediaResolver'
 import { LOCAL_SERVER_PORT } from '../localServer'
 import { beginDouyinProfileExtensionRequest } from '../douyinProfileExtension'
 import { openUrlInConfiguredBrowser } from '../openUrlInBrowser'
+import { getTranscodePreset, type TranscodePresetId } from '../transcodeModel'
 
 const profileListAbortControllers = new Map<string, AbortController>()
 
@@ -38,8 +36,6 @@ function isDouyinUrl(value: unknown): value is string {
 }
 
 export function registerDownloadHandlers(): void {
-  ipcMain.handle('get-video-info', async (_event, url: string) => resolveVideoInfo(url))
-
   ipcMain.handle('start-info-resolve', async (_event, options: {
     url: string
     title?: string
@@ -336,6 +332,19 @@ export function registerDownloadHandlers(): void {
     return { retried }
   })
 
+  ipcMain.handle('transcode-download', async (_event, payload: { id: string; preset: string }) => {
+    try {
+      const id = String(payload?.id ?? '').trim()
+      if (!id || id.length > 128) return { error: 'Invalid download id' }
+      const preset = String(payload?.preset ?? '').trim() as TranscodePresetId
+      getTranscodePreset(preset)
+      const task = await downloadManager.transcodeTask(id, preset)
+      return { data: task }
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : String(err) }
+    }
+  })
+
   ipcMain.handle('delete-task', async (_event, id: string) => {
     downloadManager.deleteTask(id)
     return { ok: true }
@@ -380,16 +389,6 @@ export function registerDownloadHandlers(): void {
     return { ok: true }
   })
 
-  ipcMain.handle('sniff-media', async (_event, url: string) => {
-    try {
-      if (!isHttpUrl(url)) return { error: 'Invalid URL' }
-      const media = await sniffMedia(url)
-      return { data: { ...media, candidates: media.media.map((item) => item.candidate).filter(Boolean) } }
-    } catch (err) {
-      return { error: err instanceof Error ? err.message : String(err) }
-    }
-  })
-
   ipcMain.handle('start-douyin-bulk', async (_event, url: string) => {
     try {
       if (!isDouyinUrl(url)) return { error: 'Invalid Douyin URL' }
@@ -419,14 +418,4 @@ export function registerDownloadHandlers(): void {
     }
   })
 
-  ipcMain.handle('run-douyin-bulk', async (_event, url: string) => {
-    try {
-      if (!isDouyinUrl(url)) return { error: 'Invalid Douyin URL' }
-      const { promise } = runDouyinBulkCli({ url: String(url || '').trim() })
-      const result = await promise
-      return { data: result }
-    } catch (err) {
-      return { error: err instanceof Error ? err.message : String(err) }
-    }
-  })
 }

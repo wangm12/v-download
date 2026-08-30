@@ -5,11 +5,10 @@ import { BottomBar } from '@/components/BottomBar'
 import { FormatDialog } from '@/components/FormatDialog'
 import { DouyinProfilePickerDialog } from '@/components/DouyinProfilePickerDialog'
 import { CollectionPickerDialog } from '@/components/CollectionPickerDialog'
-import { MediaPickerDialog } from '@/components/MediaPickerDialog'
-import type { DetectedMedia } from '@/components/MediaPickerDialog'
 import { ClearDialog } from '@/components/ClearDialog'
 import { DeleteSelectionDialog } from '@/components/DeleteSelectionDialog'
 import { PreferencesPanel } from '@/components/PreferencesPanel'
+import { OnboardingWizard } from '@/components/OnboardingWizard'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { DownloadActionsProvider } from '@/contexts/DownloadActionsContext'
 import { AppSidebar } from '@/components/AppSidebar'
@@ -120,15 +119,10 @@ function MainApp() {
     pendingResolverId,
     pendingEntries,
     pendingPlaylistMeta,
-    sniffedMedia,
-    sniffedResolveId,
-    sniffedPageUrl,
-    sniffedPageTitle,
     queueCount,
     handlePaste,
     handleExternalUrl,
     clearPending,
-    clearSniffed,
     clearQueue,
     selectReadyResolve,
     setShowFormatDialog,
@@ -193,6 +187,13 @@ function MainApp() {
     clearQueueSelection()
     setPrefSection('general')
   }, [clearQueueSelection])
+
+  const completeOnboarding = useCallback(async () => {
+    if (!window.api) return
+    const result = await window.api.updateSettings('onboardingCompleted', true)
+    if (!result.ok) throw new Error(result.error || 'Could not save setup state')
+    await loadSettings()
+  }, [loadSettings])
 
   const closeDownloadDetails = useCallback(() => {
     setRightInspectorCollapsed(true)
@@ -436,45 +437,6 @@ function MainApp() {
       }
     },
     [pendingResolverId, pendingVideoInfo, pendingEntries, pendingPlaylistMeta, settings.youtubePlaylistMode, loadSettings, clearPending]
-  )
-
-  const handleMediaDownload = useCallback(
-    async (items: DetectedMedia[]) => {
-      if (!window.api) return
-      const baseTitle = sniffedPageTitle || 'download'
-      let consumeResolver = !sniffedResolveId
-      for (let i = 0; i < items.length; i++) {
-        const title = items.length > 1 ? `${baseTitle} (${i + 1})` : baseTitle
-
-        if (i === 0 && sniffedResolveId) {
-          const promoted = await window.api.promoteInfoResolve({
-            id: sniffedResolveId,
-            url: items[i].url,
-            title,
-            format: 'video',
-            quality: settings.defaultVideoQuality,
-            referer: sniffedPageUrl || undefined,
-            mediaType: items[i].type
-          })
-          if (!promoted?.error) {
-            consumeResolver = true
-            continue
-          }
-          consumeResolver = false
-        }
-
-        await window.api.startDownload({
-          url: items[i].url,
-          title,
-          format: 'video',
-          quality: settings.defaultVideoQuality,
-          referer: sniffedPageUrl || undefined,
-          mediaType: items[i].type
-        })
-      }
-      clearSniffed({ consumeResolver })
-    },
-    [settings.defaultVideoQuality, sniffedPageUrl, sniffedPageTitle, sniffedResolveId, clearSniffed]
   )
 
   const handleClearCompleted = useCallback(async () => {
@@ -745,7 +707,7 @@ function MainApp() {
           </div>
         )}
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-row overflow-hidden bg-background">
+        <div className="flex h-0 min-h-0 min-w-0 flex-1 flex-row items-stretch overflow-hidden bg-background">
           <AppSidebar
             collapsed={leftSidebarCollapsed}
             onToggleCollapsed={() => setLeftSidebarCollapsed((c) => !c)}
@@ -802,6 +764,19 @@ function MainApp() {
                     />
                   )}
                 </main>
+                <BottomBar
+                  statusText={statusText}
+                  totalSpeed={totalSpeed}
+                  hasResumable={hasResumable}
+                  hasActive={hasActive}
+                  hasDownloads={downloads.length > 0}
+                  onResumeAll={handleResumeAll}
+                  onPauseAll={handlePauseAll}
+                  onSyncCookies={handleBrowserCookieSync}
+                  syncCookiesBusy={cookieSyncBusy}
+                  syncCookiesPhase={syncCookiesPhase}
+                  onClear={() => setShowClearDialog(true)}
+                />
               </div>
 
               {selectedIds.size === 1 && shouldRenderDownloadDetails(selectedDownload?.id ?? null, rightInspectorCollapsed) && selectedDownload && (
@@ -815,22 +790,6 @@ function MainApp() {
             </div>
           )}
         </div>
-
-        {!preferencesMode && (
-          <BottomBar
-            statusText={statusText}
-            totalSpeed={totalSpeed}
-            hasResumable={hasResumable}
-            hasActive={hasActive}
-            hasDownloads={downloads.length > 0}
-            onResumeAll={handleResumeAll}
-            onPauseAll={handlePauseAll}
-            onSyncCookies={handleBrowserCookieSync}
-            syncCookiesBusy={cookieSyncBusy}
-            syncCookiesPhase={syncCookiesPhase}
-            onClear={() => setShowClearDialog(true)}
-          />
-        )}
 
         {showDouyinProfilePicker && douyinProfileUrl ? (
           <DouyinProfilePickerDialog
@@ -868,21 +827,6 @@ function MainApp() {
           />
         )}
 
-        {sniffedMedia && sniffedMedia.length > 0 && (
-          <MediaPickerDialog
-            media={sniffedMedia}
-            pageUrl={sniffedPageUrl}
-            pageTitle={sniffedPageTitle}
-            onClose={clearSniffed}
-            onDownload={handleMediaDownload}
-            queueCount={queueCount}
-            onSkipAll={() => {
-              clearQueue()
-              clearSniffed()
-            }}
-          />
-        )}
-
         {showClearDialog && (
           <ClearDialog
             onClose={() => setShowClearDialog(false)}
@@ -897,6 +841,10 @@ function MainApp() {
             onClose={() => setPendingDeleteIds(null)}
             onConfirm={confirmDeleteSelectedDownloads}
           />
+        )}
+
+        {settings.onboardingCompleted === false && (
+          <OnboardingWizard settings={settings} onComplete={completeOnboarding} />
         )}
       </div>
     </DownloadActionsProvider>

@@ -6,7 +6,7 @@ V-Download is designed as a local macOS download utility. The desktop app does n
 
 The extension can inspect media requests and page video elements so it can show download controls. It uses the `cookies` permission only when the user explicitly starts **Sync cookies** from the desktop app. That action reads cookies from the supported site list, sends them to the V-Download desktop app over loopback, and stores them as a local cookie file in the app's private user-data directory for authenticated downloads. Do not start sync unless you consent to sharing those browser authentication cookies with the local app.
 
-Cookie synchronization is not a background upload and is not sent to the optional `vdl-server` by the extension. The optional server accepts cookie uploads only when the operator configures `COOKIE_SYNC_TOKEN` and an authenticated client supplies that token.
+Cookie synchronization is not a background upload. The extension sends cookies only to the local desktop app on loopback (`127.0.0.1:18765`) after the user starts **Sync cookies**.
 
 ## Download requests
 

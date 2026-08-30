@@ -4,7 +4,6 @@ import { extractUrlFromClipboard, isMediaUrl, isYouTubeUrl, filenameFromUrl } fr
 import { isDouyinProfileHomeUrl } from '@/utils/douyinBulk'
 import { shouldOpenCollectionPicker } from '@/utils/collectionPicker'
 import { normalizeThumbnailUrl } from '@/utils/thumbnail'
-import type { DetectedMedia } from '@/components/MediaPickerDialog'
 
 interface PendingPlaylistMeta {
   title?: string
@@ -20,7 +19,7 @@ type UrlMeta = {
   headers?: Record<string, string>
 }
 
-export type LoadingPhase = '' | 'info' | 'sniffing'
+export type LoadingPhase = '' | 'info'
 
 interface InfoResolveResult {
   id: string
@@ -31,58 +30,6 @@ interface InfoResolveResult {
   requestedTitle?: string
   data?: unknown
   error?: string
-}
-
-interface SniffedResolveResult {
-  id: string
-  pageUrl: string
-  pageTitle: string
-  media: DetectedMedia[]
-}
-
-/** Page sniff looks for raw .m3u8/.mp4 — useful as fallback on unknown sites when yt-dlp parsing fails. */
-function shouldSniffAfterYtdlpFailure(url: string, err: string): boolean {
-  if (!err || !err.trim()) return false
-  const likelyExtractorFailure =
-    /unsupported url|unable to extract|no video formats found|unsupported webpage|extractor error|not available|no longer supported|primarily used for piracy/i.test(err)
-  if (!likelyExtractorFailure) return false
-  const bundle = `${url}\n${err}`.toLowerCase()
-  if (
-    /douyin|iesdouyin|tiktok|youtu\.be|youtube|music\.youtube|bilibili|b23\.tv|instagram|twitter\.com|:\/\/x\.com\/|facebook\.com|fb\.watch|reddit\.com|vimeo\.com|twitch\.tv|xiaohongshu\.com|xhslink\.com|snapchat|dailymotion|rumble\.com/i.test(
-      bundle
-    )
-  ) {
-    return false
-  }
-  try {
-    const host = new URL(url).hostname.toLowerCase()
-    const blockedHosts = [
-      'douyin.com',
-      'iesdouyin.com',
-      'tiktok.com',
-      'youtube.com',
-      'youtu.be',
-      'music.youtube.com',
-      'bilibili.com',
-      'b23.tv',
-      'instagram.com',
-      'twitter.com',
-      'x.com',
-      'facebook.com',
-      'fb.watch',
-      'reddit.com',
-      'vimeo.com',
-      'twitch.tv',
-      'xiaohongshu.com',
-      'xhslink.com',
-    ]
-    for (const suffix of blockedHosts) {
-      if (host === suffix || host.endsWith(`.${suffix}`)) return false
-    }
-  } catch {
-    return false
-  }
-  return true
 }
 
 function toVideoInfo(data: unknown, fallbackUrl: string): VideoInfo {
@@ -130,21 +77,13 @@ export function useUrlHandler(settings: SettingsData) {
   const [pendingResolverId, setPendingResolverId] = useState<string | null>(null)
   const [pendingEntries, setPendingEntries] = useState<VideoInfo[] | null>(null)
   const [pendingPlaylistMeta, setPendingPlaylistMeta] = useState<PendingPlaylistMeta | null>(null)
-  const [sniffedMedia, setSniffedMedia] = useState<DetectedMedia[] | null>(null)
-  const [sniffedResolveId, setSniffedResolveId] = useState<string | null>(null)
-  const [sniffedPageUrl, setSniffedPageUrl] = useState('')
-  const [sniffedPageTitle, setSniffedPageTitle] = useState('')
   const [dialogQueueCount, setDialogQueueCount] = useState(0)
 
   const dialogOpenRef = useRef(false)
-  const sniffOpenRef = useRef(false)
   const pendingResolverIdRef = useRef<string | null>(null)
-  const sniffedResolveIdRef = useRef<string | null>(null)
   const readyResultsRef = useRef(new Map<string, InfoResolveResult>())
   const promotionInFlightRef = useRef(new Set<string>())
   const readyOrderRef = useRef<string[]>([])
-  const sniffedResultsRef = useRef(new Map<string, SniffedResolveResult>())
-  const sniffOrderRef = useRef<string[]>([])
 
   const refreshDialogQueueCount = useCallback(() => {
     setDialogQueueCount(readyOrderRef.current.length)
@@ -155,26 +94,8 @@ export function useUrlHandler(settings: SettingsData) {
     refreshDialogQueueCount()
   }, [refreshDialogQueueCount])
 
-  const removeSniffId = useCallback((id: string) => {
-    sniffOrderRef.current = sniffOrderRef.current.filter((candidate) => candidate !== id)
-  }, [])
-
-  const openSniffResult = useCallback((id: string): boolean => {
-    if (dialogOpenRef.current || sniffOpenRef.current) return false
-    const result = sniffedResultsRef.current.get(id)
-    if (!result) return false
-    removeSniffId(id)
-    setSniffedResolveId(id)
-    sniffedResolveIdRef.current = id
-    setSniffedMedia(result.media)
-    setSniffedPageUrl(result.pageUrl)
-    setSniffedPageTitle(result.pageTitle)
-    sniffOpenRef.current = true
-    return true
-  }, [removeSniffId])
-
   const openReadyResult = useCallback((id: string): boolean => {
-    if (dialogOpenRef.current || sniffOpenRef.current) return false
+    if (dialogOpenRef.current) return false
     const result = readyResultsRef.current.get(id)
     if (!result || result.data === undefined || result.error) return false
     removeReadyId(id)
@@ -199,17 +120,13 @@ export function useUrlHandler(settings: SettingsData) {
   }, [removeReadyId])
 
   const advanceDialogQueue = useCallback(() => {
-    if (dialogOpenRef.current || sniffOpenRef.current) return
-    while (sniffOrderRef.current.length > 0) {
-      const id = sniffOrderRef.current.shift()!
-      if (openSniffResult(id)) return
-    }
+    if (dialogOpenRef.current) return
     while (readyOrderRef.current.length > 0) {
       const id = readyOrderRef.current.shift()!
       refreshDialogQueueCount()
       if (openReadyResult(id)) return
     }
-  }, [openReadyResult, openSniffResult, refreshDialogQueueCount])
+  }, [openReadyResult, refreshDialogQueueCount])
 
   const clearPending = useCallback((options: { consumeResolver?: boolean } = {}) => {
     const currentId = pendingResolverIdRef.current
@@ -241,24 +158,8 @@ export function useUrlHandler(settings: SettingsData) {
     advanceDialogQueue()
   }, [advanceDialogQueue])
 
-  const clearSniffed = useCallback((options: { consumeResolver?: boolean } = {}) => {
-    const currentId = sniffedResolveIdRef.current
-    if (currentId) {
-      removeSniffId(currentId)
-      if (options.consumeResolver) sniffedResultsRef.current.delete(currentId)
-    }
-    sniffedResolveIdRef.current = null
-    setSniffedResolveId(null)
-    setSniffedMedia(null)
-    setSniffedPageUrl('')
-    setSniffedPageTitle('')
-    sniffOpenRef.current = false
-    advanceDialogQueue()
-  }, [advanceDialogQueue, removeSniffId])
-
   const clearQueue = useCallback(() => {
     readyOrderRef.current = []
-    sniffOrderRef.current = []
     refreshDialogQueueCount()
   }, [refreshDialogQueueCount])
 
@@ -296,43 +197,12 @@ export function useUrlHandler(settings: SettingsData) {
     return true
   }, [removeReadyId, settings.defaultVideoQuality, siteDefaults])
 
-  const runFallbackSniff = useCallback(async (result: InfoResolveResult) => {
-    if (!window.api?.sniffMedia) return false
-    try {
-      const sniffRes = await window.api.sniffMedia(result.url) as { data?: { media: DetectedMedia[]; pageTitle?: string }; error?: string }
-      const sniffData = sniffRes?.data
-      if (!sniffData?.media?.length) return false
-      sniffedResultsRef.current.set(result.id, {
-        id: result.id,
-        pageUrl: result.url,
-        pageTitle: sniffData.pageTitle || '',
-        media: sniffData.media
-      })
-      const marked = await window.api.markInfoResolveReady({ id: result.id, title: sniffData.pageTitle || 'Detected media' })
-      if (!marked?.ok) {
-        sniffedResultsRef.current.delete(result.id)
-        return false
-      }
-      if (!sniffOrderRef.current.includes(result.id)) sniffOrderRef.current.push(result.id)
-      advanceDialogQueue()
-      return true
-    } catch {
-      return false
-    }
-  }, [advanceDialogQueue])
-
   const handleResolveResult = useCallback((raw: unknown) => {
     if (!raw || typeof raw !== 'object') return
     const result = raw as InfoResolveResult
     if (!result.id || typeof result.url !== 'string') return
     if (result.error) {
-      if (shouldSniffAfterYtdlpFailure(result.url, result.error)) {
-        void runFallbackSniff(result).then((handled) => {
-          if (!handled) setErrorMsg(result.error || 'Failed to resolve video info')
-        })
-      } else {
-        setErrorMsg(result.error)
-      }
+      setErrorMsg(result.error)
       return
     }
     if (result.data === undefined) return
@@ -363,7 +233,7 @@ export function useUrlHandler(settings: SettingsData) {
     if (!readyOrderRef.current.includes(result.id)) readyOrderRef.current.push(result.id)
     refreshDialogQueueCount()
     advanceDialogQueue()
-  }, [advanceDialogQueue, promoteResolvedInfo, refreshDialogQueueCount, runFallbackSniff, settings.showFormatDialog])
+  }, [advanceDialogQueue, promoteResolvedInfo, refreshDialogQueueCount, settings.showFormatDialog])
 
   useEffect(() => {
     if (!window.api?.onInfoResolveResult) return
@@ -376,12 +246,8 @@ export function useUrlHandler(settings: SettingsData) {
   }, [handleResolveResult])
 
   const selectReadyResolve = useCallback((id: string) => {
-    if (sniffedResultsRef.current.has(id)) {
-      if (!openSniffResult(id)) setErrorMsg('Finish the current media selection first')
-      return
-    }
     if (!openReadyResult(id)) setErrorMsg('This result is not available yet; retry the task to resolve it again')
-  }, [openReadyResult, openSniffResult])
+  }, [openReadyResult])
 
   const handleUrl = useCallback(async (rawUrl: string, meta?: UrlMeta) => {
     if (!window.api) {
@@ -494,16 +360,11 @@ export function useUrlHandler(settings: SettingsData) {
     pendingResolverId,
     pendingEntries,
     pendingPlaylistMeta,
-    sniffedMedia,
-    sniffedResolveId,
-    sniffedPageUrl,
-    sniffedPageTitle,
     queueCount: dialogQueueCount,
     handleUrl,
     handlePaste,
     handleExternalUrl,
     clearPending,
-    clearSniffed,
     clearQueue,
     selectReadyResolve,
     setShowFormatDialog,

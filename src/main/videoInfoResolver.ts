@@ -176,7 +176,13 @@ export async function resolveVideoInfo(url: string, signal?: AbortSignal): Promi
     }
 
     try {
-      const info = await ytdlp.getVideoInfo(url, cookiesPath || undefined, ytdlpPath, resolveSignal)
+      const info = await ytdlp.getVideoInfo(
+        url,
+        cookiesPath || undefined,
+        ytdlpPath,
+        resolveSignal,
+        settings.get('proxyUrl') || undefined
+      )
       throwIfAborted(resolveSignal)
       return { data: info }
     } catch (err) {

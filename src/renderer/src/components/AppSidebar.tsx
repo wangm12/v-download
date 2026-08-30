@@ -11,6 +11,7 @@ import {
   PanelLeftOpen
 } from 'lucide-react'
 import { cn } from '@/lib/cn'
+import { useTranslation } from 'react-i18next'
 import type { PrefSection } from '@/preferencesNav'
 import { PREF_SECTION_ADVANCED, PREF_SECTION_PRIMARY } from '@/preferencesNav'
 import { HoverHintWrap } from './HoverHintWrap'
@@ -58,7 +59,7 @@ function NavRow({
       type="button"
       onClick={onClick}
       className={cn(
-        'w-full text-left text-sm py-2 px-2 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar inline-flex items-center gap-2',
+        'inline-flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-border-focus',
         active
           ? 'bg-action text-action-fg font-medium'
           : 'text-muted-foreground hover:bg-control hover:text-foreground'
@@ -114,12 +115,16 @@ export function AppSidebar({
   onSelectQueue,
   onSelectPrefSection
 }: AppSidebarProps) {
+  const { t } = useTranslation()
   const queueActive = mainView === 'downloads'
+  const viewSubtitle = queueActive
+    ? t('nav.downloads')
+    : t('nav.applicationSettings')
 
   return (
     <aside
       className={cn(
-        'shrink-0 flex flex-col border-r border-border bg-sidebar py-4 min-h-0 overflow-x-hidden transition-[width,padding,gap] duration-panel ease-panel motion-reduce:transition-none',
+        'flex min-h-0 shrink-0 flex-col self-stretch border-r border-border bg-sidebar py-4 overflow-x-hidden transition-[width,padding,gap] duration-panel ease-panel motion-reduce:transition-none',
         collapsed ? 'w-14 px-1.5 gap-2' : 'w-[244px] px-3 gap-4'
       )}
       style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
@@ -160,7 +165,7 @@ export function AppSidebar({
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold leading-tight text-foreground tracking-tight">V-Download</p>
             <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
-              {queueActive ? 'Downloads' : 'Application settings'}
+              {viewSubtitle}
             </p>
           </div>
           <HoverHintWrap text="Collapse navigation" side="bottom">
@@ -182,18 +187,20 @@ export function AppSidebar({
           <nav className="flex flex-col flex-1 min-h-0 gap-3" aria-label="Home">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-wider text-tertiary-foreground px-2 mb-1">
-                Download
+                {t('nav.workspace')}
               </p>
-              <NavRow active={queueActive} onClick={onSelectQueue} icon={ListOrdered}>
-                Downloads
-              </NavRow>
+              <div className="flex flex-col gap-0.5">
+                <NavRow active={queueActive} onClick={onSelectQueue} icon={ListOrdered}>
+                  {t('nav.downloads')}
+                </NavRow>
+              </div>
             </div>
 
-            <div className="flex flex-col flex-1 min-h-0 gap-0.5">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-tertiary-foreground px-2 mb-1 shrink-0">
-                Preferences
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-tertiary-foreground px-2 mb-1">
+                {t('nav.preferences')}
               </p>
-              <div className="flex flex-col gap-0.5 shrink-0">
+              <div className="flex flex-col gap-0.5">
                 {PREF_SECTION_PRIMARY.map((item) => {
                   const Icon = prefPrimaryIcon(item.id)
                   const active = mainView === 'preferences' && prefSection === item.id
@@ -209,20 +216,17 @@ export function AppSidebar({
                   )
                 })}
               </div>
-              <div className="flex-1 min-h-2 shrink-0" aria-hidden />
-              <div className="shrink-0">
-                <NavRow
-                  active={mainView === 'preferences' && prefSection === PREF_SECTION_ADVANCED.id}
-                  onClick={() => onSelectPrefSection(PREF_SECTION_ADVANCED.id)}
-                  icon={SlidersHorizontal}
-                >
-                  {PREF_SECTION_ADVANCED.label}
-                </NavRow>
-              </div>
+            </div>
+            <div className="mt-auto shrink-0">
+              <NavRow
+                active={mainView === 'preferences' && prefSection === PREF_SECTION_ADVANCED.id}
+                onClick={() => onSelectPrefSection(PREF_SECTION_ADVANCED.id)}
+                icon={SlidersHorizontal}
+              >
+                {PREF_SECTION_ADVANCED.label}
+              </NavRow>
             </div>
           </nav>
-
-          <div className="mt-auto flex flex-col gap-2 shrink-0" aria-hidden="true" />
         </div>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col gap-2 animate-panel-fade-in motion-reduce:animate-none">
@@ -234,7 +238,7 @@ export function AppSidebar({
               active={queueActive}
               onClick={onSelectQueue}
               icon={ListOrdered}
-              label="Downloads"
+              label={t('nav.downloads')}
             />
             <div className="my-1 h-px w-7 shrink-0 bg-border" aria-hidden />
             {PREF_SECTION_PRIMARY.map((item) => {
@@ -250,13 +254,14 @@ export function AppSidebar({
                 />
               )
             })}
-            <div className="min-h-2 flex-1 shrink-0" aria-hidden />
-            <IconNavButton
-              active={mainView === 'preferences' && prefSection === PREF_SECTION_ADVANCED.id}
-              onClick={() => onSelectPrefSection(PREF_SECTION_ADVANCED.id)}
-              icon={SlidersHorizontal}
-              label={PREF_SECTION_ADVANCED.label}
-            />
+            <div className="mt-auto shrink-0">
+              <IconNavButton
+                active={mainView === 'preferences' && prefSection === PREF_SECTION_ADVANCED.id}
+                onClick={() => onSelectPrefSection(PREF_SECTION_ADVANCED.id)}
+                icon={SlidersHorizontal}
+                label={PREF_SECTION_ADVANCED.label}
+              />
+            </div>
           </nav>
         </div>
       )}

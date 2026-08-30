@@ -6,12 +6,21 @@
   const PROFILE_RESULT_TYPE = 'DOUYIN_PROFILE_IMPORT_RESULT'
   const RESOLVE_START_TYPE = 'V_DOWNLOAD_START_DOUYIN_RESOLVE'
   const RESOLVE_RESULT_TYPE = 'DOUYIN_RESOLVE_RESULT'
+  const OVERLAY_EXTRACT_TYPE = 'REQUEST_DOUYIN_OVERLAY_EXTRACT'
+  const DP = globalThis.VDownloadDouyinPolicy || null
   let lastAwemeId = null
   let profileCollector = null
-  let profileResponseHooksInstalled = false
   let resolveCollector = null
-  let resolveResponseHooksInstalled = false
+  let networkResponseHooksInstalled = false
+  let bridgeNonce = ''
   const resolveItemsById = new Map()
+
+  function postToIsolated(payload) {
+    window.postMessage({
+      ...payload,
+      nonce: bridgeNonce
+    }, location.origin)
+  }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -26,6 +35,22 @@
   function normalizeUrl(url) {
     if (!url) return ''
     return url.startsWith('//') ? 'https:' + url : url
+  }
+
+  function pageAwemeId() {
+    try {
+      const match = String(location.pathname || '').match(/\/(?:note|video|gallery|share\/(?:note|video))\/(\d{10,32})/i)
+      return match ? match[1] : ''
+    } catch {
+      return ''
+    }
+  }
+
+  function overlayAnchor() {
+    return document.querySelector('[data-e2e="feed-active-video"]')
+      || document.querySelector('.video-detail-container')
+      || document.querySelector('#slideMode .dySwiperSlide-active')
+      || document.querySelector('#slideMode')
   }
 
   function profileSecUid(url) {
@@ -261,16 +286,16 @@
   }
 
   function ingestResolvePayload(payload) {
-    const targetId = resolveCollector?.awemeId
+    const targetId = resolveCollector?.awemeId || pageAwemeId()
     if (!targetId) return null
     const item = resolveItemFromValue(payload, targetId)
     if (item) resolveItemsById.set(targetId, item)
     return item
   }
 
-  function installResolveResponseHooks() {
-    if (resolveResponseHooksInstalled) return
-    resolveResponseHooksInstalled = true
+  function installNetworkResponseHooks() {
+    if (networkResponseHooksInstalled) return
+    networkResponseHooksInstalled = true
 
     const originalFetch = window.fetch
     if (typeof originalFetch === 'function') {
@@ -279,8 +304,12 @@
         Promise.resolve(result).then((response) => {
           const input = args[0]
           const requestUrl = response?.url || (typeof input === 'string' ? input : input?.url) || ''
-          if (!resolveApiUrl(requestUrl) || !response?.clone) return
-          response.clone().json().then(ingestResolvePayload).catch(() => {})
+          if (!response?.clone) return
+          if (!resolveApiUrl(requestUrl) && !profileApiUrl(requestUrl)) return
+          response.clone().json().then((payload) => {
+            if (resolveApiUrl(requestUrl)) ingestResolvePayload(payload)
+            if (profileApiUrl(requestUrl)) ingestProfilePayload(payload)
+          }).catch(() => {})
         }).catch(() => {})
         return result
       }
@@ -289,22 +318,27 @@
     const xhrOpen = XMLHttpRequest.prototype.open
     const xhrSend = XMLHttpRequest.prototype.send
     XMLHttpRequest.prototype.open = function (method, url, ...rest) {
-      this.__vdownloadResolveUrl = String(url || '')
+      this.__vdownloadNetworkUrl = String(url || '')
       return xhrOpen.call(this, method, url, ...rest)
     }
     XMLHttpRequest.prototype.send = function (...args) {
       this.addEventListener('load', () => {
-        const requestUrl = this.responseURL || this.__vdownloadResolveUrl || ''
-        if (!resolveApiUrl(requestUrl)) return
+        const requestUrl = this.responseURL || this.__vdownloadNetworkUrl || ''
+        if (!resolveApiUrl(requestUrl) && !profileApiUrl(requestUrl)) return
         try {
           const payload = this.responseType === 'json' ? this.response : JSON.parse(this.responseText || '{}')
-          ingestResolvePayload(payload)
+          if (resolveApiUrl(requestUrl)) ingestResolvePayload(payload)
+          if (profileApiUrl(requestUrl)) ingestProfilePayload(payload)
         } catch {
           /* ignore non-JSON responses */
         }
       })
       return xhrSend.apply(this, args)
     }
+  }
+
+  function installResolveResponseHooks() {
+    installNetworkResponseHooks()
   }
 
   async function requestResolveDetail(awemeId) {
@@ -472,19 +506,19 @@
       duration: 0,
       error: error || 'Chrome could not read media information from this Douyin page.'
     }
-    window.postMessage({
+    postToIsolated({
       type: RESOLVE_RESULT_TYPE,
       source: 'douyin-resolve-bridge',
       requestId: collector.requestId,
       ...payload
-    }, location.origin)
+    })
   }
 
   async function startResolve(command) {
     const requestId = String(command?.requestId || '').trim()
     const awemeId = String(command?.awemeId || '').trim()
     if (!requestId || !/^\d{10,32}$/.test(awemeId) || !new RegExp(`/(?:note|video|gallery|share/(?:note|video))/${awemeId}(?:[/?#]|$)`, 'i').test(location.href)) {
-      window.postMessage({
+      postToIsolated({
         type: RESOLVE_RESULT_TYPE,
         source: 'douyin-resolve-bridge',
         requestId,
@@ -499,7 +533,7 @@
         videoUrlFallbacks: [],
         duration: 0,
         error: 'The active Chrome tab is not the requested Douyin page.'
-      }, location.origin)
+      })
       return
     }
 
@@ -622,42 +656,7 @@
   }
 
   function installProfileResponseHooks() {
-    if (profileResponseHooksInstalled) return
-    profileResponseHooksInstalled = true
-
-    const originalFetch = window.fetch
-    if (typeof originalFetch === 'function') {
-      window.fetch = function (...args) {
-        const result = originalFetch.apply(this, args)
-        Promise.resolve(result).then((response) => {
-          const input = args[0]
-          const requestUrl = response?.url || (typeof input === 'string' ? input : input?.url) || ''
-          if (!profileApiUrl(requestUrl) || !response?.clone) return
-          response.clone().json().then(ingestProfilePayload).catch(() => {})
-        }).catch(() => {})
-        return result
-      }
-    }
-
-    const xhrOpen = XMLHttpRequest.prototype.open
-    const xhrSend = XMLHttpRequest.prototype.send
-    XMLHttpRequest.prototype.open = function (method, url, ...rest) {
-      this.__vdownloadProfileUrl = String(url || '')
-      return xhrOpen.call(this, method, url, ...rest)
-    }
-    XMLHttpRequest.prototype.send = function (...args) {
-      this.addEventListener('load', () => {
-        const requestUrl = this.responseURL || this.__vdownloadProfileUrl || ''
-        if (!profileApiUrl(requestUrl)) return
-        try {
-          const payload = this.responseType === 'json' ? this.response : JSON.parse(this.responseText || '{}')
-          ingestProfilePayload(payload)
-        } catch {
-          /* ignore non-JSON responses */
-        }
-      })
-      return xhrSend.apply(this, args)
-    }
+    installNetworkResponseHooks()
   }
 
   function finishProfileCollection(collector, error) {
@@ -674,7 +673,7 @@
           : 'Chrome could not find posts in the logged-in Douyin tab. Complete any verification and retry.'
       )
     }
-    window.postMessage({
+    postToIsolated({
       type: PROFILE_RESULT_TYPE,
       source: 'douyin-profile-bridge',
       requestId: collector.requestId,
@@ -682,21 +681,21 @@
       items,
       warnings,
       error: error || ''
-    }, location.origin)
+    })
   }
 
   async function startProfileCollection(command) {
     const requestId = String(command?.requestId || '').trim()
     const targetSecUid = profileSecUid(String(command?.profileUrl || ''))
     if (!requestId || !targetSecUid || profileSecUid(location.href) !== targetSecUid) {
-      window.postMessage({
+      postToIsolated({
         type: PROFILE_RESULT_TYPE,
         source: 'douyin-profile-bridge',
         requestId,
         ok: false,
         items: [],
         error: 'The active Chrome tab is not the requested Douyin profile.'
-      }, location.origin)
+      })
       return
     }
 
@@ -734,9 +733,20 @@
     if (profileCollector === collector) finishProfileCollection(collector, '')
   }
 
-  installProfileResponseHooks()
+  installNetworkResponseHooks()
   window.addEventListener('message', (event) => {
     if (event.source !== window || event.origin !== location.origin) return
+    if (event.data?.type === (DP?.BRIDGE_HELLO_TYPE || 'V_DOWNLOAD_BRIDGE_HELLO') && event.data.source === 'douyin-content') {
+      bridgeNonce = DP
+        ? DP.acceptBridgeHello(bridgeNonce, String(event.data.nonce || ''))
+        : (bridgeNonce || String(event.data.nonce || ''))
+      return
+    }
+    if (DP && !DP.isAuthorizedBridgeMessage(bridgeNonce, event.data?.nonce)) return
+    if (event.data?.type === OVERLAY_EXTRACT_TYPE && event.data.source === 'douyin-content') {
+      void refreshOverlayExtract(true)
+      return
+    }
     if (event.data?.type === RESOLVE_START_TYPE && event.data.source === 'douyin-content') {
       void startResolve(event.data.command)
       return
@@ -770,17 +780,23 @@
     return null
   }
 
-  // Walk fiber tree upward (max 25 levels) looking for a prop named "item" that
-  // has an awemeId. Douyin places it at depth ~6 from [data-e2e="feed-active-video"].
+  // Walk fiber tree upward looking for the current aweme. Feed cards expose
+  // props.item; detail pages more often use aweme / awemeDetail.
   function extractItem(el) {
+    if (!el) return null
     const fiberKey = getFiberKey(el)
     if (!fiberKey) return null
     let fiber = el[fiberKey]
-    for (let i = 0; i < 25 && fiber; i++) {
+    const targetId = pageAwemeId()
+    for (let i = 0; i < 35 && fiber; i++) {
       const props = fiber.memoizedProps || fiber.pendingProps
-      if (props && props.item) {
+      if (targetId) {
+        const found = resolveCandidateFromProps(props, targetId)
+        if (found) return found
+        if (props && props.item && DP && DP.itemMatchesAwemeId(props.item, targetId)) return props.item
+      } else if (props && props.item) {
         const it = props.item
-        if (it.awemeId || it.id) return it
+        if (it.awemeId || it.aweme_id || it.id) return it
       }
       fiber = fiber.return
     }
@@ -846,7 +862,11 @@
   }
 
   function buildCover(video) {
-    const raw = video.cover || (Array.isArray(video.coverUrlList) && video.coverUrlList[0]) || ''
+    const raw = typeof video.cover === 'string'
+      ? video.cover
+      : resolveStillUrl(video.cover)
+        || (Array.isArray(video.coverUrlList) && video.coverUrlList[0])
+        || ''
     const url = normalizeUrl(raw)
     if (!url) return null
     return { url, type: 'jpeg' }
@@ -870,51 +890,139 @@
 
   // ── Send ─────────────────────────────────────────────────────────────────
 
+  function itemToOverlayData(item) {
+    if (!item || typeof item !== 'object') return null
+    const awemeId = String(item.awemeId || item.aweme_id || item.id || '').trim()
+    if (!awemeId) return null
+    const video = item.video && typeof item.video === 'object' ? item.video : {}
+    const author = item.author || item.authorInfo || {}
+    return {
+      awemeId,
+      desc: String(item.desc || '').substring(0, 200),
+      author: String(author.nickname || '').substring(0, 80),
+      formats: buildFormats(video),
+      cover: buildCover(video),
+      music: buildMusic(item.music || null)
+    }
+  }
+
+  function overlayDataIsUsable(data) {
+    if (DP) return DP.overlayDataHasPlayUrls(data) || Boolean(data && (data.cover?.url || data.music?.url))
+    return Boolean(data && ((data.formats && data.formats.length) || data.cover?.url || data.music?.url))
+  }
+
+  function broadcastOverlayData(data) {
+    if (!overlayDataIsUsable(data)) return false
+    postToIsolated({
+      type: MSG_TYPE,
+      source: 'douyin-bridge',
+      data
+    })
+    if (DP ? DP.shouldLockOverlayExtract(data, pageAwemeId() || currentVidHint()) : (data.formats && data.formats.length)) {
+      lastAwemeId = data.awemeId
+    }
+    return DP ? DP.overlayDataHasPlayUrls(data) : Boolean(data.formats && data.formats.length)
+  }
+
+  function currentVidHint() {
+    const el = overlayAnchor()
+    return String((el && el.getAttribute && el.getAttribute('data-e2e-vid')) || pageAwemeId() || '').trim()
+  }
+
   function extractAndBroadcast(el) {
     let item
     try {
       item = extractItem(el)
     } catch (_) {
-      return
+      return false
     }
-    if (!item) return
+    return broadcastOverlayData(itemToOverlayData(item))
+  }
 
-    const awemeId = String(item.awemeId || item.id || '')
-    if (!awemeId) return
+  function findOverlayItem(targetId) {
+    if (!targetId) return null
+    const cached = resolveItemsById.get(targetId)
+    if (cached && (!DP || DP.itemMatchesAwemeId(cached, targetId))) return cached
+    if (cached) resolveItemsById.delete(targetId)
 
-    const video = item.video || {}
-    const music = item.music || null
-    const author = item.author || item.authorInfo || {}
-
-    const formats = buildFormats(video)
-    const cover = buildCover(video)
-    const musicData = buildMusic(music)
-
-    window.postMessage({
-      type: MSG_TYPE,
-      source: 'douyin-bridge',
-      data: {
-        awemeId,
-        desc: String(item.desc || '').substring(0, 200),
-        author: String(author.nickname || '').substring(0, 80),
-        formats,
-        cover,
-        music: musicData
+    const inspect = (element) => {
+      if (!element) return null
+      try {
+        const found = resolveItemFromElement(element, targetId) || extractItem(element)
+        if (DP && !DP.shouldCacheOverlayItem(found, targetId)) return null
+        return found
+      } catch {
+        return null
       }
-    }, location.origin)
+    }
 
-    lastAwemeId = awemeId
+    const item = inspect(overlayAnchor())
+    if (item) {
+      resolveItemsById.set(targetId, item)
+      return item
+    }
+
+    const preferred = document.querySelectorAll(
+      '.video-detail-container,[data-e2e="feed-active-video"],[data-e2e*="note"],[data-e2e*="video"],[data-e2e*="detail"]'
+    )
+    for (const element of preferred) {
+      const found = inspect(element)
+      if (found) {
+        resolveItemsById.set(targetId, found)
+        return found
+      }
+    }
+    return null
+  }
+
+  async function refreshOverlayExtract(force) {
+    const id = pageAwemeId()
+    const el = overlayAnchor()
+    const currentVid = String((el && el.getAttribute && el.getAttribute('data-e2e-vid')) || id || '').trim()
+    if (!force && currentVid && currentVid === lastAwemeId) return
+
+    if (el) extractAndBroadcast(el)
+    if (lastAwemeId && lastAwemeId === currentVid) return
+
+    if (id) {
+      let item = resolveItemsById.get(id) || null
+      if (item && DP && !DP.itemMatchesAwemeId(item, id)) {
+        resolveItemsById.delete(id)
+        item = null
+      }
+      if (force) item = findOverlayItem(id) || item
+      if (force && (!item || (DP && !DP.overlayDataHasPlayUrls(itemToOverlayData(item))))) {
+        item = await requestResolveDetail(id) || item
+      }
+      if (broadcastOverlayData(itemToOverlayData(item))) return
+      if (force) {
+        const dom = buildResolveDomResult(id)
+        if (dom?.videoUrl) {
+          broadcastOverlayData({
+            awemeId: id,
+            desc: String(dom.title || '').slice(0, 200),
+            author: String(dom.author || '').slice(0, 80),
+            formats: [{
+              label: 'Video',
+              width: 0,
+              height: 0,
+              url: dom.videoUrl,
+              size: 0,
+              isH265: false
+            }],
+            cover: dom.cover ? { url: normalizeUrl(dom.cover), type: 'jpeg' } : null,
+            music: null
+          })
+        }
+      }
+    }
   }
 
   // ── Polling ──────────────────────────────────────────────────────────────
 
   function poll() {
     if (document.hidden) return
-    const el = document.querySelector('[data-e2e="feed-active-video"]')
-    if (!el) return
-    const vid = el.getAttribute('data-e2e-vid') || ''
-    if (vid && vid === lastAwemeId) return
-    extractAndBroadcast(el)
+    void refreshOverlayExtract(false)
   }
 
   const pollTimer = setInterval(poll, 600)

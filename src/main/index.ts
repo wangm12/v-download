@@ -7,6 +7,8 @@ import { initializeInfoResolutionManager } from './infoResolutionManager'
 import * as dockProgress from './dockProgress'
 import { initializePoTokenServer, stopPoTokenServer } from './poTokenServer'
 import { startLocalServer, stopLocalServer, setDownloadHandler, setMediaDownloadHandler, DownloadRequest, DownloadDispatchResult, LOCAL_SERVER_PORT } from './localServer'
+import { stopRemoteApiServer, syncRemoteApiServer } from './remoteApiServer'
+import { attachRemoteJobListener, configureRemoteJobStore } from './remoteJobService'
 import * as settings from './settings'
 import { registerDownloadHandlers } from './ipc/downloads'
 import { registerSettingsHandlers } from './ipc/settings'
@@ -14,6 +16,9 @@ import { registerWindowHandlers } from './ipc/window'
 import { initWorklog, worklog } from './worklog'
 import { initializeUpdater } from './updater'
 import { registerUpdaterHandlers } from './ipc/updater'
+import { registerEngineHandlers } from './ipc/engines'
+import { registerNativeAuthHandlers } from './ipc/nativeAuth'
+import { initializeNativeAuth, stopNativeAuthWindows } from './nativeAuth'
 
 app.setName('V-Download')
 
@@ -58,6 +63,11 @@ protocol.registerSchemesAsPrivileged([
 
 const gotLock = app.requestSingleInstanceLock()
 if (!gotLock) {
+  console.error(
+    app.isPackaged
+      ? 'Another V-Download window is already open.'
+      : 'Another V-Download is already running (usually /Applications/V-Download.app). Quit it, then retry make dev.'
+  )
   app.quit()
 }
 
@@ -199,6 +209,8 @@ function setupIpcHandlers(): void {
     getMainWindow: () => mainWindow
   })
   registerUpdaterHandlers()
+  registerEngineHandlers()
+  registerNativeAuthHandlers()
 }
 
 app.whenReady().then(() => {
@@ -280,6 +292,7 @@ app.whenReady().then(() => {
   dockProgress.init()
 
   database.initDB()
+  initializeNativeAuth()
   downloadManager.loadFromDbAndRecover()
   initializeInfoResolutionManager()
   initializePoTokenServer()
@@ -306,6 +319,9 @@ app.whenReady().then(() => {
   // /download can already enqueue work instead of briefly returning 503.
   startLocalServer()
   worklog('local_server_started', { port: LOCAL_SERVER_PORT })
+  configureRemoteJobStore(join(app.getPath('userData'), 'remote-jobs.json'))
+  attachRemoteJobListener()
+  syncRemoteApiServer()
   // Only the packaged app should claim URL schemes. Dev Electron from
   // node_modules would otherwise become the OS handler and open the generic
   // Electron splash when the extension triggers ytdl:// or vdownload:// wake.
@@ -325,6 +341,7 @@ app.whenReady().then(() => {
 
   app.on('activate', () => {
     startLocalServer()
+    syncRemoteApiServer()
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.show()
       mainWindow.focus()
@@ -358,7 +375,12 @@ app.on('second-instance', (_event, commandLine) => {
 })
 
 app.on('before-quit', (event) => {
-  if (!isQuitting) { event.preventDefault(); void stopPoTokenServer().finally(() => app.quit()) }
+  if (!isQuitting) {
+    event.preventDefault()
+    stopNativeAuthWindows()
+    stopRemoteApiServer()
+    void stopPoTokenServer().finally(() => app.quit())
+  }
   isQuitting = true
 })
 
@@ -366,6 +388,7 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     database.closeDB()
     stopLocalServer()
+    stopRemoteApiServer()
     app.quit()
   }
 })

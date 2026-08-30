@@ -40,6 +40,7 @@ const verifySource = readFileSync(join(root, 'scripts/verify-release.mjs'), 'utf
 assert.match(builderConfig, /npmRebuild: false/)
 assert.match(builderConfig, /!resources\/engines\/\*\*\/*/)
 assert.match(builderConfig, /\.release-staging\/current\/engines/)
+assert.match(builderConfig, /afterPack:\s*\.\/scripts\/after-pack\.mjs/)
 assert.match(builderSource, /RELEASE_ARCH: arch/)
 assert.match(builderSource, /cp\(join\(engineSource, key\)/)
 assert.match(builderSource, /staging contains unexpected engine architectures/)

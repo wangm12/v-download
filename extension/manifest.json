@@ -48,7 +48,7 @@
         "*://*.iesdouyin.com/*",
         "*://iesdouyin.com/*"
       ],
-      "js": ["content-douyin-bridge.js"],
+      "js": ["douyin-policy.js", "content-douyin-bridge.js"],
       "run_at": "document_idle",
       "world": "MAIN"
     },
@@ -59,7 +59,7 @@
         "*://*.iesdouyin.com/*",
         "*://iesdouyin.com/*"
       ],
-      "js": ["wake-sync.js", "overlay-placement.js", "content-douyin.js"],
+      "js": ["wake-sync.js", "overlay-placement.js", "douyin-policy.js", "content-douyin.js"],
       "css": ["theme.css", "content-douyin.css"],
       "run_at": "document_idle"
     },

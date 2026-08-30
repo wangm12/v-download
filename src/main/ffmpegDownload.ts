@@ -6,7 +6,7 @@ import { join } from 'path'
 import { tmpdir } from 'os'
 import * as settings from './settings'
 import type { DownloadProcess, DownloadProgress } from './downloadTypes'
-import { DEFAULT_DIRECT_MEDIA_UA } from './ytdlp'
+import { DEFAULT_DIRECT_MEDIA_UA, parseMediaDurationSeconds } from './ytdlp'
 
 const EXTRA_PATH_DIRS = [
   '/opt/homebrew/bin',
@@ -228,22 +228,21 @@ export function downloadDirectMediaWithFfmpeg(options: FfmpegDirectDownloadOptio
   const destinations: string[] = [outputPath]
   let stderrBuf = ''
   let lastEmit = 0
+  let knownDuration = durationSec != null && durationSec > 0 ? durationSec : 0
 
   const emitFromLine = (line: string) => {
     const parsed = parseFfmpegProgressLine(line)
     if (!parsed) return
 
-    const dur = durationSec != null && durationSec > 0 ? durationSec : null
+    const dur = knownDuration > 1 ? knownDuration : 0
     let percent: number
     let eta = ''
-    if (dur != null) {
+    if (dur > 0) {
       percent = Math.min(99, Math.max(0, (100 * parsed.sec) / dur))
       const remain = dur - parsed.sec
       if (remain > 0) eta = formatEta(remain)
     } else {
-      // Unknown total duration: map decoded timeline position to 1–99% (asymptotic, no false 95% ceiling).
-      const t = Math.max(0, parsed.sec)
-      percent = Math.min(99, Math.max(1, (100 * (t + 2)) / (t + 90)))
+      percent = 1
     }
 
     const now = Date.now()
@@ -263,7 +262,9 @@ export function downloadDirectMediaWithFfmpeg(options: FfmpegDirectDownloadOptio
   const drain = (chunk: Buffer) => {
     const text = chunk.toString()
     stderrBuf += text
-    for (const line of text.split('\n')) {
+    for (const line of text.split(/\r\n|\n|\r/)) {
+      const headerDuration = parseMediaDurationSeconds(line)
+      if (headerDuration && headerDuration > knownDuration) knownDuration = headerDuration
       if (line.includes('time=')) {
         emitFromLine(line)
       }

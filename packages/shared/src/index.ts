@@ -48,6 +48,9 @@ export type MediaCandidate = {
   hasVideo?: boolean
   confidence?: number
   headers?: Record<string, string>
+  role?: 'main' | 'variant' | 'preview' | 'heatmap' | 'related' | 'ad' | 'unknown'
+  displayTitle?: string
+  playlistKind?: 'master' | 'media' | 'unknown'
 }
 
 export interface StartDownloadOptions {

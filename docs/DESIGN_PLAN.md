@@ -149,7 +149,7 @@ From redesign-spec §Accessibility notes:
 | **3** | Recovery, prefs sections, extension guide, compact window | Match 09–13; settings IA split |
 | **4** | White mode, motion, shortcuts, a11y polish | Match 15 + shortcut table; reduced-motion |
 
-**Out of scope for this design plan (product backlog):** See [FUTURE_ENHANCEMENTS.md](./FUTURE_ENHANCEMENTS.md) (Douyin hydration, vdl-server parity, experimental CloakBrowser, etc.) — **orthogonal** to monochrome IA unless a screen explicitly references them (e.g. cookie sync).
+**Out of scope for this design plan (product backlog):** See [FUTURE_ENHANCEMENTS.md](./FUTURE_ENHANCEMENTS.md) (Douyin hydration, experimental CloakBrowser, etc.) — **orthogonal** to monochrome IA unless a screen explicitly references them (e.g. cookie sync).
 
 ---
 

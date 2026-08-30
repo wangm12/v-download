@@ -25,7 +25,8 @@ expect(componentSource.includes('className={GENERAL_SECTION_CLASS}'), 'General m
 expect(PREFERENCES_SECTION_TITLES.includes('Download behavior'), 'Download behavior section is missing')
 expect(PREFERENCES_SECTION_TITLES.includes('Per-site rules'), 'Sites section is missing')
 expect(PREFERENCES_SECTION_TITLES.includes('Power-user download controls'), 'Advanced disclosure is missing')
-expect(PREFERENCES_SECTION_TITLES.length === 8, 'unexpected Preferences section count')
+expect(PREFERENCES_SECTION_TITLES.includes('Remote Job API'), 'Remote Job API section is missing')
+expect(PREFERENCES_SECTION_TITLES.length === 9, 'unexpected Preferences section count')
 const forbiddenMarkers = [['Coming', ' soon'], ['road', 'map'], ['not persisted', ' yet']].map((parts) => parts.join(''))
 for (const marker of forbiddenMarkers) {
   expect(!componentSource.toLowerCase().includes(marker.toLowerCase()), `placeholder found: ${marker}`)

@@ -2,7 +2,6 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type { StartDownloadOptions } from '@v-download/shared'
 
 const api = {
-  getVideoInfo: (url: string) => ipcRenderer.invoke('get-video-info', url),
   startInfoResolve: (options: {
     url: string
     title?: string
@@ -41,6 +40,7 @@ const api = {
   deleteTasksWithFiles: (ids: string[]) => ipcRenderer.invoke('delete-tasks-with-files', ids),
   deleteTasks: (ids: string[]) => ipcRenderer.invoke('delete-tasks', ids),
   retryDownload: (id: string) => ipcRenderer.invoke('retry-download', id),
+  transcodeDownload: (id: string, preset: string) => ipcRenderer.invoke('transcode-download', { id, preset }),
   getDownloads: () => ipcRenderer.invoke('get-downloads'),
   resumeAll: () => ipcRenderer.invoke('resume-all'),
   pauseAll: () => ipcRenderer.invoke('pause-all'),
@@ -57,6 +57,11 @@ const api = {
     const sub = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data)
     ipcRenderer.on('download-progress', sub)
     return () => ipcRenderer.removeListener('download-progress', sub)
+  },
+  onTranscodeProgress: (callback: (data: unknown) => void) => {
+    const sub = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data)
+    ipcRenderer.on('transcode-progress', sub)
+    return () => ipcRenderer.removeListener('transcode-progress', sub)
   },
   onNewDownload: (callback: (data: unknown) => void) => {
     const sub = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data)
@@ -85,7 +90,6 @@ const api = {
     ipcRenderer.on('refresh-downloads', sub)
     return () => ipcRenderer.removeListener('refresh-downloads', sub)
   },
-  closeWindow: () => ipcRenderer.invoke('close-window'),
   onSettingsChanged: (callback: () => void) => {
     const sub = () => callback()
     ipcRenderer.on('settings-changed', sub)
@@ -101,7 +105,6 @@ const api = {
     ipcRenderer.on('ytdl-url', sub)
     return () => ipcRenderer.removeListener('ytdl-url', sub)
   },
-  sniffMedia: (url: string) => ipcRenderer.invoke('sniff-media', url),
   douyinProfileListPosts: (
     profileUrl: string,
     cursor?: string | null,
@@ -137,7 +140,6 @@ const api = {
   startDouyinBulk: (url: string) => ipcRenderer.invoke('start-douyin-bulk', url),
   getDouyinBulkStatus: (id: string) => ipcRenderer.invoke('get-douyin-bulk-status', id),
   cancelDouyinBulk: (id: string) => ipcRenderer.invoke('cancel-douyin-bulk', id),
-  runDouyinBulk: (url: string) => ipcRenderer.invoke('run-douyin-bulk', url),
   readClipboard: () => ipcRenderer.invoke('read-clipboard'),
   getChromeExtensionPath: () => ipcRenderer.invoke('get-chrome-extension-path'),
   installChromeExtension: () => ipcRenderer.invoke('install-chrome-extension'),
@@ -148,6 +150,17 @@ const api = {
     ipcRenderer.invoke('set-native-theme-source', source),
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   getUpdateStatus: () => ipcRenderer.invoke('get-update-status'),
+  getEngineStatus: () => ipcRenderer.invoke('get-engine-status'),
+  checkEngineUpdates: () => ipcRenderer.invoke('check-engine-updates'),
+  updateEngine: (name: 'yt-dlp' | 'ffmpeg') => ipcRenderer.invoke('update-engine', name),
+  getNativeAuthAccounts: () => ipcRenderer.invoke('get-native-auth-accounts'),
+  startNativeAuth: (site: string) => ipcRenderer.invoke('start-native-auth', site),
+  clearNativeAuth: (site: string) => ipcRenderer.invoke('clear-native-auth', site),
+  onNativeAuthEvent: (callback: (data: unknown) => void) => {
+    const sub = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data)
+    ipcRenderer.on('native-auth-event', sub)
+    return () => ipcRenderer.removeListener('native-auth-event', sub)
+  },
   onUpdateStatus: (callback: (data: unknown) => void) => {
     const sub = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data)
     ipcRenderer.on('update-status', sub)

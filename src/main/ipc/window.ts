@@ -125,13 +125,6 @@ export function registerWindowHandlers(ctx: WindowContext): void {
     }
   })
 
-  ipcMain.handle('close-window', async (event) => {
-    const win = BrowserWindow.fromWebContents(event.sender)
-    if (win && win !== ctx.getMainWindow()) {
-      win.close()
-    }
-  })
-
   ipcMain.handle('get-chrome-extension-path', async () => {
     const path = resolveExtensionDir()
     return { ok: !!path, path: path ?? undefined }

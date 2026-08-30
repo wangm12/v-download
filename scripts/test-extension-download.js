@@ -53,6 +53,94 @@ assert.strictEqual(mergedClassifiedFallback.category, 'app-unavailable')
 assert.strictEqual(mergedClassifiedFallback.retryable, true)
 
 const overlay = fs.readFileSync('extension/content-video-overlay.js', 'utf8')
+const overlayPlacement = fs.readFileSync('extension/overlay-placement.js', 'utf8')
+const placementContext = { globalThis: {} }
+vm.runInNewContext(overlayPlacement, placementContext)
+const placement = placementContext.globalThis.VDownloadOverlayPlacement
+const htmlHost = { nodeName: 'HTML', parentElement: null }
+const playerHost = { nodeName: 'DIV', parentElement: htmlHost }
+const fullscreenVideo = { nodeName: 'VIDEO', parentElement: playerHost }
+assert.strictEqual(placement.overlayButtonHost({ fullscreenElement: fullscreenVideo, documentElement: htmlHost }), fullscreenVideo)
+assert.strictEqual(placement.overlayButtonHost({ fullscreenElement: playerHost, documentElement: htmlHost }), playerHost)
+assert.strictEqual(placement.overlayButtonHost({ fullscreenElement: null, documentElement: htmlHost }), htmlHost)
+assert.strictEqual(placement.overlayScopeRoot({ fullscreenElement: fullscreenVideo }), fullscreenVideo)
+assert.strictEqual(placement.overlayScopeRoot({ fullscreenElement: playerHost }), playerHost)
+assert.strictEqual(
+  placement.shouldReparentOverlayVideo(fullscreenVideo, fullscreenVideo),
+  true
+)
+assert.strictEqual(
+  placement.shouldReparentOverlayVideo({ nodeName: 'VIDEO' }, playerHost),
+  false
+)
+const leftoverMain = { getBoundingClientRect: () => ({ width: 0, height: 0 }), checkVisibility: () => false }
+const hiddenLarge = {
+  getBoundingClientRect: () => ({ width: 1920, height: 1080 }),
+  checkVisibility: () => false
+}
+const visibleMain = {
+  getBoundingClientRect: () => ({ width: 1280, height: 720 }),
+  checkVisibility: () => true
+}
+assert.strictEqual(placement.pickLargestVisible([leftoverMain, visibleMain], 100 * 100), visibleMain)
+assert.strictEqual(placement.pickLargestVisible([hiddenLarge, visibleMain], 100 * 100), visibleMain)
+assert.strictEqual(placement.pickLargestVisible([leftoverMain], 100 * 100), null)
+assert.strictEqual(placement.shouldBootGenericOverlay({ site: 'douyin' }), false)
+assert.strictEqual(placement.shouldBootGenericOverlay({ site: 'tiktok' }), false)
+assert.strictEqual(placement.shouldBootGenericOverlay({ site: 'x' }), false)
+assert.strictEqual(placement.shouldBootGenericOverlay({ site: 'youtube' }), true)
+assert.strictEqual(placement.shouldBootGenericOverlay({ site: 'generic' }), true)
+const policyContext = { globalThis: {}, Number }
+vm.runInNewContext(fs.readFileSync('extension/douyin-policy.js', 'utf8'), policyContext)
+const policy = policyContext.globalThis.VDownloadDouyinPolicy
+assert.strictEqual(policy.overlayDataHasPlayUrls({ formats: [{ url: 'https://cdn.example.test/v.mp4' }] }), true)
+assert.strictEqual(policy.overlayDataHasPlayUrls({ formats: [], cover: { url: 'https://cdn.example.test/c.jpg' } }), false)
+assert.strictEqual(policy.shouldLockOverlayExtract({ awemeId: '111', formats: [], cover: { url: 'https://x.test/c.jpg' } }, '111'), false)
+assert.strictEqual(policy.shouldLockOverlayExtract({ awemeId: '111', formats: [{ url: 'https://x.test/v.mp4' }] }, '111'), true)
+assert.strictEqual(policy.itemMatchesAwemeId({ awemeId: '222' }, '111'), false)
+assert.strictEqual(policy.itemMatchesAwemeId({ aweme_id: '111' }, '111'), true)
+assert.strictEqual(policy.shouldCacheOverlayItem({ awemeId: '222' }, '111'), false)
+assert.strictEqual(policy.shouldCacheOverlayItem({ awemeId: '111', video: {} }, '111'), true)
+assert.strictEqual(policy.overlayExtractKey('https://www.douyin.com/', '99'), 'https://www.douyin.com/|99')
+const readyUnbound = policy.readyTabBindDecision({ targetTabId: null, openedByResolver: true }, 7)
+assert.strictEqual(readyUnbound.action, 'bind')
+assert.strictEqual(readyUnbound.openedByResolver, false)
+const readyMismatch = policy.readyTabBindDecision({ targetTabId: 9, openedByResolver: true }, 7)
+assert.strictEqual(readyMismatch.action, 'ignore')
+const readyMatch = policy.readyTabBindDecision({ targetTabId: 9, openedByResolver: true }, 9)
+assert.strictEqual(readyMatch.action, 'bind')
+assert.strictEqual(readyMatch.openedByResolver, true)
+const createdConflict = policy.createdTabBindDecision({ targetTabId: 7, openedByResolver: false }, 12)
+assert.strictEqual(createdConflict.action, 'discard')
+const createdFresh = policy.createdTabBindDecision({ targetTabId: null, openedByResolver: false }, 12)
+assert.strictEqual(createdFresh.action, 'bind')
+assert.strictEqual(createdFresh.openedByResolver, true)
+assert.strictEqual(policy.existingTabIsEphemeral(5, [{ targetTabId: 5, openedByResolver: true }]), true)
+assert.strictEqual(policy.existingTabIsEphemeral(5, [{ targetTabId: 5, openedByResolver: false }]), false)
+assert.strictEqual(
+  policy.shouldCloseCreatedTab(
+    { openedByResolver: true, targetTabId: 5 },
+    [{ openedByResolver: true, targetTabId: 5 }]
+  ),
+  false
+)
+assert.strictEqual(
+  policy.shouldCloseCreatedTab(
+    { openedByResolver: true, targetTabId: 5 },
+    []
+  ),
+  true
+)
+const transferred = policy.transferEphemeralFlag(
+  { openedByResolver: true, targetTabId: 5 },
+  [{ targetTabId: 5, openedByResolver: false }]
+)
+assert.strictEqual(transferred[0].openedByResolver, true)
+assert.strictEqual(policy.acceptBridgeHello('', 'abc'), 'abc')
+assert.strictEqual(policy.acceptBridgeHello('abc', 'evil'), 'abc')
+assert.strictEqual(policy.isAuthorizedBridgeMessage('abc', 'abc'), true)
+assert.strictEqual(policy.isAuthorizedBridgeMessage('abc', 'nope'), false)
+assert.strictEqual(policy.isAuthorizedBridgeMessage('', 'abc'), false)
 const background = fs.readFileSync('extension/background.js', 'utf8')
 const content = fs.readFileSync('extension/content.js', 'utf8')
 const mediaPatterns = fs.readFileSync('extension/media-patterns.js', 'utf8')
@@ -87,7 +175,37 @@ assert.match(overlay, /const inFlightUrls = new Set\(\)/)
 assert.match(overlay, /inFlightUrls\.delete\(urlKey\)/)
 assert.match(overlay, /if \(result\.ok\) submittedUrls\.add\(urlKey\)/)
 assert.match(overlay, /submittedUrls\.has\(fallbackUrlKey\)/)
-assert.match(background, /Invalid media item/)
+assert.match(overlay, /function getYouTubePrimaryVideo/)
+assert.match(overlay, /#movie_player video\.html5-main-video/)
+assert.match(overlay, /html5-video-player\.ytp-fullscreen/)
+assert.match(overlay, /fullscreenchange/)
+assert.match(overlay, /document\.fullscreenElement/)
+assert.match(overlay, /Use the toolbar popup to pick media/)
+assert.match(overlay, /filterSniffedForOverlay/)
+assert.match(overlay, /function overlayButtonHost/)
+assert.match(overlayPlacement, /function overlayButtonHost/)
+assert.match(overlay, /PL\.overlayButtonHost/)
+assert.match(overlay, /PL\.pickLargestVisible/)
+assert.match(overlayPlacement, /nodeName === 'VIDEO'/)
+assert.match(overlay, /shouldReparentOverlayVideo/)
+assert.match(overlay, /shouldBootGenericOverlay/)
+assert.match(overlay, /if \(!primary\) return/)
+assert.match(overlay, /overlayButtonHostForVideo\(video\)\.appendChild\(panel\)/)
+assert.match(overlay, /activePanel\.parentElement !== host\) host\.appendChild\(activePanel\)/)
+assert.match(overlay, /function overlayScopeRoot/)
+assert.match(overlay, /collectYouTubeMainVideos/)
+assert.doesNotMatch(overlay, /document\.documentElement\.appendChild\(panel\)/)
+assert.doesNotMatch(overlay, /Math\.max\(rect\.width, candidate\.videoWidth/)
+assert.match(overlay, /if \(activePanel\)/)
+assert.doesNotMatch(
+  overlay,
+  /if \(!isYouTube && buildOptions\(video, sniffed, videoLoadTime, getListMode\(\)\)\.length === 0\) \{\s*btn\.classList\.remove\('vdl-visible'\)\s*btn\.classList\.add\('vdl-hidden'\)\s*return/
+)
+assert.match(
+  overlayPlacement,
+  /video\?\.closest\(['"]\.html5-video-player['"]\) \|\|[\s\S]{0,120}document\.querySelector\(['"]\.html5-video-player['"]\)/
+)
+assert.match(background, /douyin-policy\.js/)
 assert.match(background, /maxAttempts = 3/)
 assert.match(background, /DT\.isTransientStatus/)
 assert.doesNotMatch(background, /launchWakeToFocusApp\(tabId, \{ force: true \}\)/)
@@ -106,6 +224,15 @@ assert.doesNotMatch(wakeSync, /await .*fetch/)
 assert.doesNotMatch(wakeSync, /127\.0\.0\.1:18765\/ping/)
 const popup = fs.readFileSync('extension/popup.js', 'utf8')
 assert.match(popup, /__vdownloadWakeFromUserGesture/)
+assert.match(popup, /classifyMediaRole/)
+assert.match(popup, /checkbox.checked = item.role === 'main'/)
+assert.match(overlay, /function applyIdentity/)
+assert.match(overlay, /Main · /)
+assert.match(overlay, /Ad · /)
+assert.match(overlay, /selectSmartOverlayMedia/)
+assert.match(overlay, /pickRefreshedSniffedCandidate/)
+assert.match(overlay, /Keep every manifest/)
+assert.doesNotMatch(overlay, /filtered = entries\.slice\(0, 2\)/)
 assert.match(background, /if \(!surfacedWake\) \{\s*launchWakeToFocusApp\(tabId\)/)
 assert.match(background, /make-dev does not register vdownload/)
 assert.match(background, /clearLastDownloadError\(\)/)
@@ -173,6 +300,30 @@ const videoInfoResolver = fs.readFileSync('src/main/videoInfoResolver.ts', 'utf8
 assert.match(bridge, /location\.origin\)/)
 assert.match(bridge, /if \(document\.hidden\) return/)
 assert.match(bridge, /clearInterval\(pollTimer\)/)
+assert.match(bridge, /function pageAwemeId/)
+assert.match(bridge, /function overlayAnchor/)
+assert.match(bridge, /video-detail-container/)
+assert.match(bridge, /REQUEST_DOUYIN_OVERLAY_EXTRACT/)
+assert.match(bridge, /async function refreshOverlayExtract/)
+assert.match(bridge, /function findOverlayItem/)
+assert.match(bridge, /installNetworkResponseHooks\(\)/)
+assert.match(bridge, /shouldLockOverlayExtract|overlayDataHasPlayUrls/)
+assert.match(bridge, /shouldCacheOverlayItem/)
+assert.match(bridge, /V_DOWNLOAD_BRIDGE_HELLO/)
+assert.doesNotMatch(bridge, /installProfileResponseHooks\(\)\s*\n\s*installResolveResponseHooks\(\)/)
+assert.match(bridge, /resolveCollector\?\.awemeId \|\| pageAwemeId\(\)/)
+assert.doesNotMatch(
+  bridge,
+  /document\.querySelector\('\[data-e2e="feed-active-video"\]'\)\s*if \(!el\) return/
+)
+assert.match(douyin, /REQUEST_DOUYIN_OVERLAY_EXTRACT/)
+assert.match(douyin, /Could not read video data/)
+assert.match(douyin, /requestOverlayExtract/)
+assert.match(douyin, /panelMode/)
+assert.match(douyin, /history\.pushState/)
+assert.match(douyin, /fullscreenchange/)
+assert.match(douyin, /V_DOWNLOAD_BRIDGE_HELLO/)
+assert.match(manifest, /douyin-policy\.js/)
 assert.match(douyin, /e\.source !== window/)
 assert.match(douyin, /e\.origin !== location\.origin/)
 assert.match(douyin, /normalizeBridgeData/)
@@ -183,6 +334,8 @@ assert.match(douyin, /window\.addEventListener\('pointerup', handlePanelEvent, t
 assert.match(douyin, /window\.addEventListener\('click', handlePanelEvent, true\)/)
 assert.match(douyin, /row\._dyActivate = handle/)
 assert.match(douyin, /trigger-download-callback-reply/)
+assert.match(douyin, /function describeExtensionContactError/)
+assert.match(douyin, /Extension reloaded — refresh this page and retry/)
 assert.match(douyin, /function buildDouyinPageUrl\(\)/)
 assert.match(douyin, /pageUrl, .*autoStart: true/)
 assert.match(manifest, /content-douyin-profile-import-landing\.js/)
@@ -208,6 +361,18 @@ assert.match(localServer, /vdownload-douyin-profile-import-command/)
 assert.match(localServer, /douyin-resolve-ack/)
 assert.doesNotMatch(manifest, /content-douyin-resolve-landing\.js/)
 assert.match(background, /chrome\.tabs\.update\(tabId, \{ muted: muted === true \}/)
+assert.match(background, /chrome\.tabs\.create\(\{ url: command\.url, active: false \}/)
+assert.match(background, /existingTabIsEphemeral/)
+assert.match(background, /createdTabBindDecision/)
+assert.match(background, /readyTabBindDecision/)
+assert.doesNotMatch(background, /openedByResolver = true\s*\n\s*return await new Promise/)
+assert.match(
+  background,
+  /async function restoreDouyinResolveTab\(command\) \{[\s\S]*openedByResolver[\s\S]*chrome\.tabs\.remove\(/
+)
+assert.doesNotMatch(background, /previousMuted/)
+assert.doesNotMatch(background, /muteStateCaptured/)
+assert.doesNotMatch(background, /updateDouyinResolveTabMute\(tabId, command\.previousMuted\)/)
 assert.match(background, /postDouyinResolveAcknowledgement/)
 assert.match(background, /douyin-resolve-ack/)
 assert.match(background, /START_DOUYIN_RESOLVE/)

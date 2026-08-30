@@ -7,7 +7,8 @@ import {
   Pause,
   Play,
   RefreshCw,
-  ExternalLink
+  ExternalLink,
+  LoaderCircle
 } from 'lucide-react'
 import type { Download, DownloadActions } from '@/types'
 import type { DownloadErrorCode } from '@v-download/shared'
@@ -17,6 +18,19 @@ import { cn } from '@/lib/cn'
 import { ThumbnailImage } from './ThumbnailImage'
 import { DOWNLOAD_DETAILS_LABEL, DOWNLOAD_DETAILS_RAIL_CLASS } from './downloadInspectorPresentation'
 import { SpotlightCard } from './reactbits/SpotlightCard'
+
+type TranscodePresetId = 'mp3' | 'aac' | 'opus' | 'flac' | 'wav' | 'mp4' | 'h265' | 'vp9'
+
+const TRANSCODE_OPTIONS: Array<{ id: TranscodePresetId; label: string }> = [
+  { id: 'mp3', label: 'Extract MP3' },
+  { id: 'aac', label: 'Extract AAC' },
+  { id: 'opus', label: 'Extract Opus' },
+  { id: 'flac', label: 'Extract FLAC' },
+  { id: 'wav', label: 'Extract WAV' },
+  { id: 'mp4', label: 'H.264 MP4' },
+  { id: 'h265', label: 'H.265 MP4' },
+  { id: 'vp9', label: 'VP9 WebM' },
+]
 
 function statusLabel(status: Download['status']): string {
   switch (status) {
@@ -147,6 +161,12 @@ function InspectorDetailBody({
   onSyncBrowserCookies?: () => void
 }) {
   const [showSafeDetails, setShowSafeDetails] = useState(false)
+  const [transcodePreset, setTranscodePreset] = useState<TranscodePresetId>('mp4')
+  const [transcodeState, setTranscodeState] = useState<{
+    status: 'started' | 'progress' | 'complete' | 'error'
+    percent: number
+    error?: string
+  } | null>(null)
   const { id, title, format, quality, status, progress, speed, eta, phase, thumbnail, duration, channel, error, error_code, file_path, file_size, url } =
     download
   const meta = [channel, format, quality, duration != null ? formatDuration(duration) : ''].filter(Boolean).join(' · ')
@@ -157,6 +177,29 @@ function InspectorDetailBody({
   const btnPrimary = `${btn} bg-action text-action-fg hover:bg-action-hover`
   const btnSecondary = `${btn} border border-border bg-control text-foreground hover:bg-state-active-bg`
   const btnDanger = `${btn} bg-error/10 text-error hover:bg-error/15`
+  const isTranscoding = transcodeState?.status === 'started' || transcodeState?.status === 'progress'
+
+  useEffect(() => {
+    setTranscodeState(null)
+    const unsubscribe = window.api.onTranscodeProgress((event) => {
+      if (event.id !== id) return
+      setTranscodeState({
+        status: event.status,
+        percent: event.percent,
+        error: event.error,
+      })
+    })
+    return unsubscribe
+  }, [id])
+
+  const startTranscode = async () => {
+    if (isTranscoding || !file_path) return
+    setTranscodeState({ status: 'started', percent: 0 })
+    const result = await window.api.transcodeDownload(id, transcodePreset)
+    if (result.error) {
+      setTranscodeState({ status: 'error', percent: 0, error: result.error })
+    }
+  }
 
   return (
     <div
@@ -239,6 +282,34 @@ function InspectorDetailBody({
               <FolderOpen className="w-4 h-4 shrink-0" aria-hidden />
               Reveal in Finder
             </button>
+            <div className="rounded-button border border-border bg-control p-3">
+              <label htmlFor={`transcode-preset-${id}`} className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-tertiary-foreground">
+                Create converted copy
+              </label>
+              <div className="flex flex-col gap-2">
+                <select
+                  id={`transcode-preset-${id}`}
+                  value={transcodePreset}
+                  onChange={(event) => setTranscodePreset(event.target.value as TranscodePresetId)}
+                  disabled={isTranscoding}
+                  className="min-h-10 w-full rounded-button border border-border bg-sidebar px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+                >
+                  {TRANSCODE_OPTIONS.map((option) => (
+                    <option key={option.id} value={option.id}>{option.label}</option>
+                  ))}
+                </select>
+                <button type="button" className={btnSecondary} onClick={() => void startTranscode()} disabled={isTranscoding}>
+                  {isTranscoding ? <LoaderCircle className="h-4 w-4 shrink-0 animate-spin" aria-hidden /> : null}
+                  {isTranscoding ? `Converting ${Math.round(transcodeState?.percent ?? 0)}%` : 'Convert copy'}
+                </button>
+              </div>
+              {transcodeState?.status === 'complete' && (
+                <p className="mt-2 text-xs text-success" role="status">Converted copy created.</p>
+              )}
+              {transcodeState?.status === 'error' && transcodeState.error && (
+                <p className="mt-2 text-xs leading-relaxed text-error" role="alert">{transcodeState.error}</p>
+              )}
+            </div>
             <button type="button" className={btnDanger} onClick={() => actions.remove(id)}>
               <Trash2 className="w-4 h-4 shrink-0" aria-hidden />
               Remove from list

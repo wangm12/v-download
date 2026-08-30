@@ -172,19 +172,28 @@
   function buildOptions(video, sniffed, videoLoadTime, listMode) {
     const shared = globalThis.VDownloadMediaPatterns
     sniffed = shared && shared.mergeCandidates ? shared.mergeCandidates(sniffed) : (sniffed || [])
+    const relevant = shared && typeof shared.filterSniffedForOverlay === 'function'
+      ? shared.filterSniffedForOverlay(sniffed, videoLoadTime)
+      : sniffed
     const seen = new Map() // dedup key → original entry
     const options = []
     const elementOptions = []
+    const isBlobSrc = isBlobOrStream(video.currentSrc)
+    const hasManifest = relevant.some((e) => e.type === 'hls' || e.type === 'dash')
+    const skipElementSources = isBlobSrc && hasManifest
 
-    // 1. From video element sources
+    // 1. From video element sources. MSE/HLS players use blob: src; prefer
+    // sniffed manifests in that case instead of empty/unusable element URLs.
     const srcs = []
-    if (video.currentSrc && !isBlobOrStream(video.currentSrc)) {
+    if (!skipElementSources && video.currentSrc && !isBlobOrStream(video.currentSrc)) {
       srcs.push({ url: video.currentSrc, mimeType: '' })
     }
-    for (const source of video.querySelectorAll('source')) {
-      const src = source.src
-      if (src && !isBlobOrStream(src)) {
-        srcs.push({ url: src, mimeType: source.type || '' })
+    if (!skipElementSources) {
+      for (const source of video.querySelectorAll('source')) {
+        const src = source.src
+        if (src && !isBlobOrStream(src)) {
+          srcs.push({ url: src, mimeType: source.type || '' })
+        }
       }
     }
 
@@ -211,12 +220,8 @@
       elementOptions.push(option)
     }
 
-    // 2. From background sniffed media
-    // Filter by recency: only show entries loaded after this video started playing.
-    const cutoff = videoLoadTime ? videoLoadTime - 1000 : 0
-    const relevant = videoLoadTime
-      ? sniffed.filter((e) => e.timestamp >= cutoff)
-      : sniffed
+    // 2. From background sniffed media. Manifests are kept even if they
+    // arrived before this overlay attached; cutoff still drops stale segments.
 
     // "All" mode: keep near-complete list for manual selection (Downie-like).
     if (listMode === 'all') {
@@ -235,17 +240,17 @@
           label: entry.type.toUpperCase(),
           size: entry.size,
           initiator: entry.initiator,
+          pageUrl: entry.pageUrl,
           source: 'sniffed',
           confidence: Math.min(100, Number(entry.confidence || 0))
         })
       }
-      return options
+      return applyIdentity(options, listMode)
     }
 
     // Smart filtering: hide noisy MSE/HLS segments by heuristics.
 
     const hasHls = relevant.some((e) => e.type === 'hls')
-    const isBlobSrc = isBlobOrStream(video.currentSrc)
     const SEGMENT_THRESHOLD = 5 * 1024 * 1024 // 5MB: below this + blob src = likely segment
 
     const byType = new Map()
@@ -264,9 +269,9 @@
 
       let filtered = entries
 
-      if (type === 'hls') {
-        // Always show HLS manifests (usually just 1)
-        filtered = entries.slice(0, 2)
+      if (type === 'hls' || type === 'dash') {
+        // Keep every manifest. Identity ranking — not recency — decides Main.
+        filtered = entries
       } else if (hasHls) {
         // HLS present: non-HLS entries below threshold are segments → drop them
         filtered = entries.filter((e) => !e.size || e.size >= SEGMENT_THRESHOLD)
@@ -296,6 +301,7 @@
           label: entry.type.toUpperCase(),
           size: entry.size,
           initiator: entry.initiator,
+          pageUrl: entry.pageUrl,
           source: entry.source || 'network',
           confidence: Math.min(100, Number(entry.confidence || 0))
         }
@@ -314,12 +320,33 @@
     // In Smart mode, a sniffed network URL is generally more actionable than
     // a declarative <video>/<source> URL. Keep element rows visible, but put
     // usable network rows first so the common click chooses the better path.
-    return options.sort((a, b) => {
+    return applyIdentity(options.sort((a, b) => {
       const aActionable = a.source !== 'element'
       const bActionable = b.source !== 'element'
       if (aActionable !== bActionable) return aActionable ? -1 : 1
       return 0
-    })
+    }), listMode)
+  }
+
+  function identityOptionLabel(item) {
+    const type = String(item.type || '').toUpperCase()
+    if (item.role === 'main') return `Main · ${type}`
+    if (item.role === 'variant') return `Other playlist · ${type}`
+    if (item.role === 'preview') return `Preview · ${type}`
+    if (item.role === 'heatmap') return `Heatmap · ${type}`
+    if (item.role === 'related') return `Related · ${type}`
+    if (item.role === 'ad') return `Ad · ${type}`
+    return item.label || type
+  }
+
+  function applyIdentity(options, listMode) {
+    const shared = globalThis.VDownloadMediaPatterns
+    if (!shared || typeof shared.classifyMediaRole !== 'function') return options
+    const labeled = shared.classifyMediaRole(options, { pageTitle: document.title, pageUrl: location.href })
+    const visible = listMode === 'smart' && typeof shared.selectSmartOverlayMedia === 'function'
+      ? shared.selectSmartOverlayMedia(labeled)
+      : labeled
+    return visible.map((item) => ({ ...item, label: identityOptionLabel(item) }))
   }
 
   // ── Panel DOM builders ───────────────────────────────────────────────────
@@ -339,7 +366,7 @@
     info.className = 'vdl-format-info'
 
     const label = document.createElement('div')
-    label.className = 'vdl-format-label'
+    label.className = opt.role === 'main' ? 'vdl-format-label vdl-role-main' : 'vdl-format-label'
     label.textContent = opt.label
 
     const meta = document.createElement('div')
@@ -526,7 +553,7 @@
         if (options.length === 0) {
           const empty = document.createElement('div')
           empty.className = 'vdl-panel-empty'
-          empty.textContent = 'No downloads available'
+          empty.textContent = 'Use the toolbar popup to pick media'
           content.appendChild(empty)
           return options
         }
@@ -535,21 +562,17 @@
           if (clickedOpt.source !== 'sniffed') return clickedOpt
           try {
             const resp = await fetchFrameMediaSnapshot({ force: true })
-            const media = resp.media || []
-            const cutoff = Math.max((videoLoadTime || 0) - 1000, 0)
-            const candidates = media
-              .filter((m) => m && m.type === clickedOpt.type && m.timestamp >= cutoff)
-              .sort((a, b) => {
-                const tsDelta = (b.timestamp || 0) - (a.timestamp || 0)
-                if (tsDelta !== 0) return tsDelta
-                return (b.size || 0) - (a.size || 0)
-              })
-            if (!candidates.length) return null
-            const picked = candidates[0]
+            const media = globalThis.VDownloadMediaPatterns?.filterSniffedForOverlay
+              ? globalThis.VDownloadMediaPatterns.filterSniffedForOverlay(resp.media || [], videoLoadTime)
+              : (resp.media || [])
+            const picked = globalThis.VDownloadMediaPatterns?.pickRefreshedSniffedCandidate
+              ? globalThis.VDownloadMediaPatterns.pickRefreshedSniffedCandidate(clickedOpt, media)
+              : clickedOpt
+            if (!picked) return null
             return {
               ...clickedOpt,
               url: picked.url,
-              type: picked.type,
+              type: picked.type || clickedOpt.type,
               initiator: picked.initiator || clickedOpt.initiator || ''
             }
           } catch {
@@ -647,7 +670,7 @@
           ? (listMode === 'all'
               ? 'All mode: showing more stream candidates; pick manually.'
               : 'Page stream — downloading via sniffed address')
-          : 'This video uses encrypted streaming. Try the toolbar popup for available media.'
+          : 'This video uses encrypted streaming. Use the toolbar popup to pick media.'
         panel.appendChild(note)
       }
 
@@ -674,21 +697,21 @@
     }
 
     panel._ytdlAnchorRect = getAnchorRect(video)
-    positionPanel(panel, btn)
-    document.documentElement.appendChild(panel)
+    positionPanel(panel, btn, video)
+    overlayButtonHostForVideo(video).appendChild(panel)
     activePanel = panel
     activePanelVideo = video
   }
 
   // Initial panel placement: measures panel dimensions, then removes (caller must re-append).
-  function positionPanel(panel, btn) {
+  function positionPanel(panel, btn, video) {
     const btnRect = btn.getBoundingClientRect()
 
     // Temporarily place off-screen to measure
     panel.style.visibility = 'hidden'
     panel.style.top = '-9999px'
     panel.style.left = '-9999px'
-    document.documentElement.appendChild(panel)
+    overlayButtonHostForVideo(video).appendChild(panel)
     const pw = panel.offsetWidth || 240
     const ph = panel.offsetHeight || 120
     panel.remove()
@@ -806,7 +829,7 @@
     btn.title = 'Download with V-Download'
     btn.innerHTML = SVG_DOWNLOAD
     btn.setAttribute(BTN_ATTR, '1')
-    document.documentElement.appendChild(btn)
+    overlayButtonHostForVideo(video).appendChild(btn)
 
     let isInViewport = false
     let prevRect = null
@@ -1016,20 +1039,14 @@
         errDiv.className = 'vdl-panel-error'
         errDiv.textContent = errorMsg
         panel.appendChild(errDiv)
-        positionPanel(panel, btn)
-        document.documentElement.appendChild(panel)
+        positionPanel(panel, btn, video)
+        overlayButtonHostForVideo(video).appendChild(panel)
         activePanel = panel
         activePanelVideo = video
         return
       }
 
       const blobDetected = isBlobOrStream(video.currentSrc)
-
-      if (!isYouTube && buildOptions(video, sniffed, videoLoadTime, getListMode()).length === 0) {
-        btn.classList.remove('vdl-visible')
-        btn.classList.add('vdl-hidden')
-        return
-      }
 
       showPanel(video, btn, sniffed, isYouTube, blobDetected, sourceLabel, videoLoadTime)
     })
@@ -1071,21 +1088,135 @@
 
   // ── Video eligibility check ──────────────────────────────────────────────
 
+  function layoutArea(el) {
+    if (PL && typeof PL.layoutArea === 'function') return PL.layoutArea(el)
+    if (!el || typeof el.getBoundingClientRect !== 'function') return 0
+    const rect = el.getBoundingClientRect()
+    return Math.max(0, rect.width) * Math.max(0, rect.height)
+  }
+
+  function largestVideoIn(root) {
+    if (!root || typeof root.querySelectorAll !== 'function') return null
+    const minArea = MIN_VIDEO_WIDTH * MIN_VIDEO_HEIGHT
+    if (PL && typeof PL.pickLargestVisible === 'function') {
+      return PL.pickLargestVisible(root.querySelectorAll('video'), minArea)
+    }
+    let best = null
+    let bestArea = 0
+    for (const candidate of root.querySelectorAll('video')) {
+      const area = layoutArea(candidate)
+      if (area < minArea) continue
+      if (area > bestArea) {
+        bestArea = area
+        best = candidate
+      }
+    }
+    return best
+  }
+
+  function collectYouTubeMainVideos(root, into) {
+    if (!root || typeof root.querySelectorAll !== 'function') return
+    for (const video of root.querySelectorAll('#movie_player video.html5-main-video, video.html5-main-video')) {
+      if (!into.includes(video)) into.push(video)
+    }
+  }
+
+  function getYouTubePrimaryVideo() {
+    const scoped = overlayScopeRoot()
+    const mains = []
+    collectYouTubeMainVideos(scoped, mains)
+    if (scoped !== document) collectYouTubeMainVideos(document, mains)
+
+    const minArea = MIN_VIDEO_WIDTH * MIN_VIDEO_HEIGHT
+    const bestMain = PL && typeof PL.pickLargestVisible === 'function'
+      ? PL.pickLargestVisible(mains, minArea)
+      : (() => {
+          let best = null
+          let bestArea = 0
+          for (const video of mains) {
+            const area = layoutArea(video)
+            if (area < minArea) continue
+            if (area > bestArea) {
+              bestArea = area
+              best = video
+            }
+          }
+          return best
+        })()
+    if (bestMain) return bestMain
+
+    const player = (scoped.querySelector && (
+      scoped.querySelector('.html5-video-player.ytp-fullscreen') ||
+      scoped.querySelector('#movie_player') ||
+      scoped.querySelector('.html5-video-player')
+    )) ||
+      document.querySelector('.html5-video-player.ytp-fullscreen') ||
+      document.querySelector('#movie_player') ||
+      document.querySelector('.html5-video-player')
+    return largestVideoIn(player) || largestVideoIn(scoped) || largestVideoIn(document)
+  }
+
+  function overlayScopeRoot() {
+    if (PL && typeof PL.overlayScopeRoot === 'function') return PL.overlayScopeRoot(document)
+    return document.fullscreenElement || document
+  }
+
+  function overlayButtonHostForVideo(video) {
+    const fullscreen = document.fullscreenElement
+    if (fullscreen && shouldReparentOverlayVideo(video, fullscreen)) return overlayButtonHost()
+    return document.documentElement
+  }
+
+  function overlayButtonHost() {
+    if (PL && typeof PL.overlayButtonHost === 'function') return PL.overlayButtonHost(document)
+    return document.fullscreenElement || document.documentElement
+  }
+
+  function shouldReparentOverlayVideo(video, fullscreenEl) {
+    if (PL && typeof PL.shouldReparentOverlayVideo === 'function') {
+      return PL.shouldReparentOverlayVideo(video, fullscreenEl)
+    }
+    if (!video || !fullscreenEl) return false
+    if (video === fullscreenEl) return true
+    return typeof fullscreenEl.contains === 'function' && fullscreenEl.contains(video)
+  }
+
+  function reparentOverlayButtons() {
+    const fullscreen = document.fullscreenElement
+    for (const video of document.querySelectorAll('video')) {
+      const state = videoState.get(video)
+      if (!state?.btn) continue
+      const host = fullscreen && shouldReparentOverlayVideo(video, fullscreen)
+        ? overlayButtonHost()
+        : document.documentElement
+      if (state.btn.parentElement !== host) host.appendChild(state.btn)
+      state.syncPosition()
+    }
+    if (activePanel) {
+      const host = fullscreen && activePanelVideo && shouldReparentOverlayVideo(activePanelVideo, fullscreen)
+        ? overlayButtonHost()
+        : document.documentElement
+      if (activePanel.parentElement !== host) host.appendChild(activePanel)
+      const state = activePanelVideo ? videoState.get(activePanelVideo) : null
+      if (state?.btn) reposPanel(activePanel, state.btn)
+    }
+    queueVisibleVideoPositions()
+  }
+
   function isEligibleVideo(video) {
     if (processed.has(video)) return false
     if (isDouyinPage()) return false
     if (isTikTokPage()) return false
     if (isXPage()) return false
-    // On YouTube, only inject on the main watch page and only on actual player videos
-    if (isYouTubePage() && !isYouTubeWatchPage()) return false
+    if (isYouTubePage()) {
+      if (!isYouTubeWatchPage()) return false
+      const primary = getYouTubePrimaryVideo()
+      if (primary && video !== primary) return false
+    }
 
-    // Size check via getBoundingClientRect (rendered size)
     const rect = video.getBoundingClientRect()
     if (rect.width >= MIN_VIDEO_WIDTH && rect.height >= MIN_VIDEO_HEIGHT) return true
-
-    // Fallback to intrinsic dimensions (before first paint)
     if (video.videoWidth >= MIN_VIDEO_WIDTH && video.videoHeight >= MIN_VIDEO_HEIGHT) return true
-
     return false
   }
 
@@ -1129,6 +1260,15 @@
   // ── MutationObserver + initial scan ─────────────────────────────────────
 
   function scanVideos() {
+    if (isYouTubeWatchPage()) {
+      const primary = getYouTubePrimaryVideo()
+      if (!primary) return
+      for (const video of document.querySelectorAll('video')) {
+        if (video !== primary) videoState.get(video)?.cleanup()
+      }
+      tryAttach(primary)
+      return
+    }
     for (const video of document.querySelectorAll('video')) {
       tryAttach(video)
     }
@@ -1193,12 +1333,22 @@
   })
 
   function init() {
+    if (PL && typeof PL.shouldBootGenericOverlay === 'function') {
+      if (!PL.shouldBootGenericOverlay()) return
+    } else if (isDouyinPage() || isTikTokPage() || isXPage()) {
+      return
+    }
     updateSuppression()
     scanVideos()
 
     mutationObserver.observe(document.body || document.documentElement, {
       childList: true,
       subtree: true
+    })
+
+    document.addEventListener('fullscreenchange', () => {
+      if (isYouTubeWatchPage()) scanVideos()
+      reparentOverlayButtons()
     })
 
     // Low-frequency fallback for lazy players that render without a useful

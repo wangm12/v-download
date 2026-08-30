@@ -186,6 +186,10 @@ body {
 }
 
 .media-domain { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.media-role { padding: 2px 7px; border-radius: 999px; font-size: 10px; font-weight: 700; white-space: nowrap; }
+.role-main { color: var(--vdl-accent-fg); background: var(--vdl-accent); }
+.role-variant { color: var(--vdl-accent); background: color-mix(in srgb, var(--vdl-accent) 15%, transparent); }
+.role-preview, .role-heatmap, .role-related, .role-ad, .role-unknown { color: var(--vdl-muted); background: var(--vdl-control); }
 .media-type { padding: 2px 7px; border-radius: 999px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
 .type-hls { color: var(--vdl-accent); background: color-mix(in srgb, var(--vdl-accent) 15%, transparent); }
 .type-mp4 { color: #83b8ff; background: rgba(83, 145, 235, 0.16); }

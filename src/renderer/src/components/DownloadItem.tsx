@@ -45,7 +45,8 @@ export const DownloadItem = memo(function DownloadItem({ download, selected = fa
           phase === 'video' ? 'Video' : ''
         const leftParts: string[] = []
         if (phaseLabel) leftParts.push(phaseLabel)
-        leftParts.push(`${Math.round(progress)}%`)
+        leftParts.push(progress < 1 ? 'Starting…' : `${Math.round(progress)}%`)
+        if (download.totalSize) leftParts.push(download.totalSize)
         if (speed) leftParts.push(speed)
 
         const showEta = eta && eta !== '00:00' && eta !== '0:00'

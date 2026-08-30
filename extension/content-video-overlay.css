@@ -217,6 +217,7 @@
 .vdl-type-webm { background: rgba(5, 150, 105, 0.2);  color: #34d399; }
 .vdl-type-flv  { background: rgba(217, 119, 6, 0.2);  color: #fbbf24; }
 .vdl-type-yt   { background: rgba(220, 38, 38, 0.2);  color: #f87171; }
+.vdl-role-main { color: var(--vdl-accent); }
 
 .vdl-format-size {
   font-size: 11px;

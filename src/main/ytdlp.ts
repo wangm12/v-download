@@ -7,6 +7,9 @@ import { resolvedCookiesBrowser } from './cookiesBrowser'
 import type { DownloadProgress, DownloadProcess } from './downloadTypes'
 import { classifyResolverError } from './mediaResolver'
 import { resolveMediaCandidates, type ResolverCandidate } from './mediaResolver'
+import { normalizeProxyUrl } from './settingsModel'
+import { getNativeCookieFileForUrl } from './nativeAuth'
+import { hintDirectMediaUrl } from './mediaIdentity'
 
 export type { DownloadProgress, DownloadProcess } from './downloadTypes'
 
@@ -100,6 +103,8 @@ export interface DownloadOptions {
   /** Optional local PO-token provider args; absent means normal yt-dlp flow. */
   extractorArgs?: string
   pluginDir?: string
+  /** Optional proxy URL applied to yt-dlp network requests. */
+  proxyUrl?: string
   onProgress?: (progress: DownloadProgress) => void
 }
 
@@ -140,11 +145,9 @@ export function isPlaylistUrl(url: string): boolean {
 
 export function getYtdlpPath(customPath?: string): string {
   const names = process.platform === 'win32' ? ['yt-dlp.exe'] : ['yt-dlp']
+  if (customPath && existsSync(customPath)) return customPath
   const roots = [process.resourcesPath, join(process.cwd(), 'resources')].filter((p): p is string => Boolean(p))
   for (const root of roots) { const bundled = join(root, 'engines', `${process.platform}-${process.arch}`, names[0]); if (existsSync(bundled)) return bundled }
-  if (customPath && existsSync(customPath)) {
-    return customPath
-  }
   try {
     // The binary name is a fixed internal constant; use argv rather than a shell string.
     const result = execFileSync(process.platform === 'win32' ? 'where' : 'which', ['yt-dlp'], { encoding: 'utf-8' }).trim().split(/\r?\n/)[0]
@@ -180,6 +183,11 @@ function appendDouyinYtdlpArgs(url: string, args: string[], explicitReferer?: st
  * Other sites: extension-synced cookies.txt when present.
  */
 export function addYtdlpCookieArgs(url: string, args: string[], cookiesPath?: string): void {
+  const nativeCookiePath = getNativeCookieFileForUrl(url)
+  if (nativeCookiePath) {
+    args.push('--cookies', nativeCookiePath)
+    return
+  }
   if (isDouyinUrl(url)) {
     args.push('--cookies-from-browser', resolvedCookiesBrowser())
     return
@@ -312,7 +320,8 @@ export async function getVideoInfo(
   url: string,
   cookiesPath?: string,
   ytdlpPath?: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  proxyUrl?: string
 ): Promise<VideoInfo | { entries: VideoInfo[]; playlist_title?: string; playlist_channel?: string; playlist_count?: number }> {
   const path = getYtdlpPath(ytdlpPath)
   const isPlaylist = isPlaylistUrl(url)
@@ -325,6 +334,8 @@ export async function getVideoInfo(
   ]
 
   addYtdlpCookieArgs(url, args, cookiesPath)
+  const resolvedProxy = normalizeProxyUrl(proxyUrl)
+  if (resolvedProxy) args.push('--proxy', resolvedProxy)
 
   if (isPlaylist) {
     args.push('--flat-playlist')
@@ -459,7 +470,56 @@ function extractDestinationsFromOutput(text: string): string[] {
  * - Without total (common for HLS): `12.3% at  1.00MiB/s ETA 00:05`
  * - Finished: `100% of  942.51KiB in 00:00:01 at 674.91KiB/s`
  */
-function parseProgressLine(line: string, currentPhase: string): { progress: DownloadProgress | null; phase?: string } {
+function clockToSeconds(hours: string, minutes: string, seconds: string): number | null {
+  const h = parseInt(hours, 10)
+  const m = parseInt(minutes, 10)
+  const s = parseFloat(seconds)
+  if (![h, m, s].every(Number.isFinite)) return null
+  return h * 3600 + m * 60 + s
+}
+
+function formatClock(totalSec: number): string {
+  const sec = Math.max(0, Math.floor(totalSec))
+  const hours = Math.floor(sec / 3600)
+  const minutes = Math.floor((sec % 3600) / 60)
+  const seconds = sec % 60
+  if (hours > 0) return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+  return `${minutes}:${String(seconds).padStart(2, '0')}`
+}
+
+function ffmpegTimeToSeconds(line: string): number | null {
+  const timeM = line.match(/time=(\d+):(\d+):(\d+(?:\.\d+)?)/)
+  if (!timeM) return null
+  return clockToSeconds(timeM[1], timeM[2], timeM[3])
+}
+
+export function parseMediaDurationSeconds(line: string): number | null {
+  const plain = stripAnsi(line)
+  if (/Duration:\s*N\/A/i.test(plain)) return null
+  const match = plain.match(/(?:^|\s|\[info\]\s+)Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/i)
+  if (!match) return null
+  const sec = clockToSeconds(match[1], match[2], match[3])
+  return sec != null && sec > 0 ? sec : null
+}
+
+function bitrateToSpeed(line: string): string {
+  const brK = line.match(/bitrate=\s*([\d.]+)\s*kbits\/s/i)
+  if (brK) {
+    const kbits = parseFloat(brK[1])
+    if (Number.isFinite(kbits) && kbits > 0) {
+      const bytesPerSec = (kbits * 1000) / 8
+      if (bytesPerSec >= 1024 * 1024) return `${(bytesPerSec / (1024 * 1024)).toFixed(2)}MiB/s`
+      if (bytesPerSec >= 1024) return `${(bytesPerSec / 1024).toFixed(1)}KiB/s`
+    }
+  }
+  return ''
+}
+
+export function parseYtdlpProgressLine(
+  line: string,
+  currentPhase: string,
+  durationSec?: number
+): { progress: DownloadProgress | null; phase?: string } {
   const plain = stripAnsi(line).replace(/\r$/, '')
 
   if (MERGER_REGEX.test(plain)) {
@@ -552,6 +612,37 @@ function parseProgressLine(line: string, currentPhase: string): { progress: Down
     }
   }
 
+  // yt-dlp's default HLS path shells out to ffmpeg. Those ticks use \r + time=,
+  // not `[download] 12%`. Map muxed time onto the real duration when we have it;
+  // never use the old (t+2)/(t+90) curve — it hits ~90% at 12 minutes on a 2h VOD.
+  if (/time=\d+:\d+:\d+/.test(plain) && /frame=|fps=|bitrate=|speed=/.test(plain)) {
+    const sec = ffmpegTimeToSeconds(plain)
+    if (sec != null && sec >= 0) {
+      const knownDuration = durationSec != null && durationSec > 1 ? durationSec : 0
+      const percent = knownDuration
+        ? Math.min(99, Math.max(0, (100 * sec) / knownDuration))
+        : 1
+      let eta = ''
+      const rateMatch = plain.match(/speed=\s*([\d.]+)x/i)
+      if (knownDuration && rateMatch) {
+        const rate = parseFloat(rateMatch[1])
+        const remain = knownDuration - sec
+        if (rate > 0 && remain > 0) eta = formatClock(remain / rate)
+      }
+      return {
+        progress: {
+          percent,
+          speed: bitrateToSpeed(plain),
+          eta,
+          downloaded: '',
+          total: knownDuration ? `${formatClock(sec)} / ${formatClock(knownDuration)}` : `${formatClock(sec)} muxed`,
+          phase: phase || 'video'
+        },
+        phase: phase || 'video'
+      }
+    }
+  }
+
   return { progress: null }
 }
 
@@ -581,6 +672,7 @@ export function download(
     retrySleeps,
     extractorArgs,
     pluginDir,
+    proxyUrl,
     onProgress: progressCb
   } = options
 
@@ -634,6 +726,8 @@ export function download(
   ]
 
   addYtdlpCookieArgs(url, args, cookiesPath)
+  const resolvedProxy = normalizeProxyUrl(proxyUrl)
+  if (resolvedProxy) args.push('--proxy', resolvedProxy)
 
   if (extractorArgs && isValidYouTubeUrl(url)) args.push('--extractor-args', extractorArgs)
   if (pluginDir && isValidYouTubeUrl(url)) args.push('--plugin-dirs', pluginDir)
@@ -701,7 +795,7 @@ export function download(
 
   appendDouyinYtdlpArgs(url, args, referer)
 
-  args.push(url)
+  args.push(hintDirectMediaUrl(url, mediaType))
 
   const proc = spawn(path, args, {
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -711,6 +805,7 @@ export function download(
   let currentPhase = ''
   let stdoutBuf = ''
   let stderrBuf = ''
+  let durationSec = 0
   const destinations: string[] = []
 
   const parseLine = (line: string) => {
@@ -719,7 +814,10 @@ export function download(
       destinations.push(dest)
     }
 
-    const result = parseProgressLine(line, currentPhase)
+    const parsedDuration = parseMediaDurationSeconds(plain)
+    if (parsedDuration && parsedDuration > durationSec) durationSec = parsedDuration
+
+    const result = parseYtdlpProgressLine(line, currentPhase, durationSec || undefined)
     if (result.phase) {
       currentPhase = result.phase
     }
@@ -731,7 +829,7 @@ export function download(
   proc.stdout?.on('data', (chunk: Buffer) => {
     const text = chunk.toString()
     stdoutBuf += text
-    for (const line of text.split('\n')) {
+    for (const line of text.split(/\r\n|\n|\r/)) {
       parseLine(line)
     }
   })
@@ -739,7 +837,7 @@ export function download(
   proc.stderr?.on('data', (chunk: Buffer) => {
     const text = chunk.toString()
     stderrBuf += text
-    for (const line of text.split('\n')) {
+    for (const line of text.split(/\r\n|\n|\r/)) {
       parseLine(line)
     }
   })

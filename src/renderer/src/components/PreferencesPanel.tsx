@@ -1,17 +1,19 @@
 import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react'
-import { Check, ChevronDown, Folder, RefreshCw, Loader2, X, Puzzle } from 'lucide-react'
+import { Check, ChevronDown, Copy, Download, Folder, Globe, RefreshCw, Loader2, X, Puzzle } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/cn'
 import { Stepper } from './Stepper'
 import { HoverHintWrap } from './HoverHintWrap'
 import type { PrefSection } from '@/preferencesNav'
 import { PREF_SECTION_HEADER } from '@/preferencesNav'
-import type { DouyinBulkJobStatus, SettingsData, SiteRule } from '@/types'
+import type { DouyinBulkJobStatus, EngineStatus, NativeAuthAccountStatus, NativeAuthEvent, NativeAuthSite, SettingsData, SiteRule } from '@/types'
 import { DOUYIN_BULK_URL_PREFILL_SESSION_KEY } from '@/utils/douyinBulk'
 import {
   GENERAL_SECTION_CLASS,
   PREFERENCES_WORKSPACE_CLASS
 } from './preferencesPanelPresentation'
 import { DOWNLOAD_SPEED_MODES, getDownloadSpeedPresentation, getEffectiveIndividualLimit } from './preferencesPanelPresentation'
+import { changeAppLanguage, type AppLanguage } from '@/i18n'
 
 const VIDEO_QUALITIES = ['2160', '1080', '720', '360', '240', '144']
 const AUDIO_QUALITIES = ['320', '256', '128']
@@ -119,11 +121,18 @@ const controlClass = 'min-h-10 rounded-lg bg-raised px-3 py-2 text-[13px] text-f
 const secondaryButtonClass = 'inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-elevated px-3.5 py-2 text-[13px] font-medium text-foreground ring-1 ring-inset ring-divider-subtle transition-colors hover:bg-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:cursor-wait disabled:opacity-50'
 
 export function PreferencesPanel({ section }: PreferencesPanelProps) {
+  const { t, i18n } = useTranslation()
   const [cookieSyncNote, setCookieSyncNote] = useState('')
   const [cookieSyncBusy, setCookieSyncBusy] = useState(false)
   const [extensionPath, setExtensionPath] = useState<string | null>(null)
   const [extensionInstallBusy, setExtensionInstallBusy] = useState(false)
   const [appVersion, setAppVersion] = useState<string | null>(null)
+  const [engineStatuses, setEngineStatuses] = useState<EngineStatus[]>([])
+  const [engineBusy, setEngineBusy] = useState(false)
+  const [engineNote, setEngineNote] = useState('')
+  const [nativeAccounts, setNativeAccounts] = useState<NativeAuthAccountStatus[]>([])
+  const [nativeAuthSite, setNativeAuthSite] = useState<NativeAuthSite>('douyin')
+  const [nativeAuthBusy, setNativeAuthBusy] = useState(false)
   const cookieSyncWaitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const awaitingCookiePushRef = useRef(false)
   const [settings, setSettings] = useState<SettingsData>({
@@ -152,7 +161,13 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
     downloadSpeedMode: 'balanced',
     turboRiskAcknowledged: false,
     ytdlpExternalDownloader: '',
-    siteRules: []
+    siteRules: [],
+    proxyUrl: '',
+    onboardingCompleted: false,
+    remoteApiEnabled: false,
+    remoteApiToken: '',
+    remoteApiBind: '127.0.0.1',
+    remoteApiPort: 18766
   })
   const [bulkUrl, setBulkUrl] = useState('')
   const [bulkJobId, setBulkJobId] = useState('')
@@ -161,6 +176,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
   const [bulkJobNote, setBulkJobNote] = useState('')
   const [turboModalOpen, setTurboModalOpen] = useState(false)
   const turboDialogRef = useRef<HTMLDivElement>(null)
+  const [remoteTokenCopied, setRemoteTokenCopied] = useState(false)
 
   useEffect(() => {
     if (!turboModalOpen) return
@@ -186,6 +202,45 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
     if (!window.api?.getAppVersion) return
     void window.api.getAppVersion().then(setAppVersion).catch(() => setAppVersion(null))
   }, [])
+
+  const refreshEngineStatuses = useCallback(async (checkForUpdates = false) => {
+    const loader = checkForUpdates ? window.api?.checkEngineUpdates : window.api?.getEngineStatus
+    if (!loader) return
+    setEngineBusy(true)
+    setEngineNote('')
+    try {
+      const result = await loader()
+      if (result.error) {
+        setEngineNote(result.error)
+      } else if (result.data) {
+        setEngineStatuses(result.data)
+      }
+    } catch (err) {
+      setEngineNote(err instanceof Error ? err.message : String(err))
+    } finally {
+      setEngineBusy(false)
+    }
+  }, [])
+
+  const updateEngine = useCallback(async (name: 'yt-dlp' | 'ffmpeg') => {
+    if (!window.api?.updateEngine || engineBusy) return
+    setEngineBusy(true)
+    setEngineNote('')
+    try {
+      const result = await window.api.updateEngine(name)
+      if (result.error) setEngineNote(result.error)
+      else if (result.data) setEngineStatuses(result.data)
+    } catch (err) {
+      setEngineNote(err instanceof Error ? err.message : String(err))
+    } finally {
+      setEngineBusy(false)
+    }
+  }, [engineBusy])
+
+  useEffect(() => {
+    if (section !== 'advanced') return
+    void refreshEngineStatuses()
+  }, [refreshEngineStatuses, section])
 
   useEffect(() => {
     if (!window.api?.onSettingsChanged) return
@@ -332,6 +387,26 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
     })
   }, [section])
 
+  useEffect(() => {
+    if (section !== 'browser' || !window.api?.getNativeAuthAccounts) return
+    void window.api.getNativeAuthAccounts().then((res) => {
+      if (res.data) setNativeAccounts(res.data)
+    })
+    if (!window.api.onNativeAuthEvent) return
+    const unsubscribe = window.api.onNativeAuthEvent((event: NativeAuthEvent) => {
+      if (event.type === 'saved') {
+        setNativeAccounts((current) => [
+          ...current.filter((account) => account.site !== event.site),
+          event.account
+        ])
+        setCookieSyncNote(`${event.site} account connected. Cookies are stored in the macOS Keychain.`)
+      } else if (event.type === 'error') {
+        setCookieSyncNote(event.message)
+      }
+    })
+    return unsubscribe
+  }, [section])
+
   const handleInstallExtension = async () => {
     if (!window.api?.installChromeExtension || extensionInstallBusy || cookieSyncBusy) return
     setExtensionInstallBusy(true)
@@ -352,6 +427,36 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
       setCookieSyncNote(err instanceof Error ? err.message : String(err))
     } finally {
       setExtensionInstallBusy(false)
+    }
+  }
+
+  const handleStartNativeAuth = async () => {
+    if (!window.api?.startNativeAuth || nativeAuthBusy) return
+    setNativeAuthBusy(true)
+    setCookieSyncNote(`Opening ${nativeAuthSite} login in a private V-Download browser window…`)
+    try {
+      const result = await window.api.startNativeAuth(nativeAuthSite)
+      if (!result.ok) setCookieSyncNote(result.error || 'Could not open native login.')
+    } catch (err) {
+      setCookieSyncNote(err instanceof Error ? err.message : String(err))
+    } finally {
+      setNativeAuthBusy(false)
+    }
+  }
+
+  const handleClearNativeAuth = async (site: NativeAuthSite) => {
+    if (!window.api?.clearNativeAuth || nativeAuthBusy) return
+    setNativeAuthBusy(true)
+    try {
+      const result = await window.api.clearNativeAuth(site)
+      if (result.ok) {
+        setNativeAccounts((current) => current.filter((account) => account.site !== site))
+        setCookieSyncNote(`${site} account disconnected.`)
+      } else {
+        setCookieSyncNote(result.error || 'Could not disconnect the account.')
+      }
+    } finally {
+      setNativeAuthBusy(false)
     }
   }
 
@@ -484,6 +589,19 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
       >
         {section === 'general' && (
           <div className={PREFERENCES_WORKSPACE_CLASS}>
+            <PrefCard title={t('language.label')} subtitle={t('language.description')} className={GENERAL_SECTION_CLASS}>
+              <FieldBlock label={t('language.label')}>
+                <select
+                  value={i18n.language === 'zh-CN' || i18n.language === 'zh-TW' ? i18n.language : 'en'}
+                  onChange={(event) => void changeAppLanguage(event.target.value as AppLanguage)}
+                  className={controlClass}
+                >
+                  <option value="en">{t('language.english')}</option>
+                  <option value="zh-CN">{t('language.simplifiedChinese')}</option>
+                  <option value="zh-TW">{t('language.traditionalChinese')}</option>
+                </select>
+              </FieldBlock>
+            </PrefCard>
             <PrefCard
               title="Download behavior"
               subtitle="Set the choices that shape every download."
@@ -596,12 +714,12 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
             </PrefCard>
 
             <PrefCard
-              title="Direct media (sniff / extension)"
+              title="Direct media (extension)"
               subtitle="URLs with a detected media type (HLS, MP4, …). Auto uses yt-dlp first for HLS (.m3u8) for faster parallel fragments; other types still try ffmpeg first with yt-dlp fallback."
             >
               <FieldBlock
                 label="Direct media engine"
-                description="Applies to sniffed or extension-sent CDN URLs, not full watch pages (those stay on yt-dlp)."
+                description="Applies to CDN URLs sent by the Chrome extension, not full watch pages (those stay on yt-dlp)."
               >
                 <select
                   value={settings.directMediaEngine ?? 'auto'}
@@ -951,6 +1069,54 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                 </div>
               </div>
 
+              <SettingsDisclosure
+                title="Connect an account in V-Download"
+                subtitle="Sign in inside a separate browser window. Cookies are saved in the macOS Keychain and stay local."
+              >
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <select
+                    value={nativeAuthSite}
+                    onChange={(event) => setNativeAuthSite(event.target.value as NativeAuthSite)}
+                    className={cn(controlClass, 'w-full sm:max-w-[220px]')}
+                    aria-label="Account site"
+                  >
+                    <option value="douyin">Douyin</option>
+                    <option value="youtube">YouTube</option>
+                    <option value="tiktok">TikTok</option>
+                    <option value="bilibili">Bilibili</option>
+                    <option value="xiaohongshu">Xiaohongshu</option>
+                    <option value="x">X / Twitter</option>
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => void handleStartNativeAuth()}
+                    disabled={nativeAuthBusy}
+                    className={cn(secondaryButtonClass, 'sm:flex-initial')}
+                  >
+                    {nativeAuthBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <Globe className="h-3.5 w-3.5" aria-hidden />}
+                    Open login window
+                  </button>
+                </div>
+                <div className="mt-4 space-y-2">
+                  {nativeAccounts.filter((account) => account.connected).map((account) => (
+                    <div key={account.site} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-raised px-3 py-2.5">
+                      <div className="min-w-0">
+                        <p className="text-[12px] font-medium text-foreground">{account.site}</p>
+                        <p className="mt-0.5 text-[10px] text-muted-foreground">{account.cookieCount} cookies · {account.lastSyncedAt ? new Date(account.lastSyncedAt).toLocaleString() : 'saved'}</p>
+                      </div>
+                      <button type="button" onClick={() => void handleClearNativeAuth(account.site)} disabled={nativeAuthBusy} className="min-h-8 rounded-md px-2.5 text-[11px] font-medium text-muted-foreground hover:bg-control hover:text-foreground disabled:opacity-50">
+                        Disconnect
+                      </button>
+                    </div>
+                  ))}
+                  {nativeAccounts.every((account) => !account.connected) && (
+                    <p className="rounded-lg bg-raised/45 px-3 py-2.5 text-[11px] leading-relaxed text-muted-foreground">
+                      No native account sessions connected. Chrome cookie sync remains available above.
+                    </p>
+                  )}
+                </div>
+              </SettingsDisclosure>
+
               <SettingRow
                 label="Browser profile"
                 description="Used when Douyin or TikTok needs your logged-in browser session."
@@ -1003,6 +1169,66 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
               <SettingRow label="App version" description="Installed V-Download version.">
                 <span className="text-[13px] tabular-nums text-muted-foreground">{appVersion ?? '—'}</span>
               </SettingRow>
+              <div className="space-y-3 border-t border-divider-subtle pt-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[13px] font-medium text-foreground">Download engines</p>
+                    <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                      Check signed metadata for yt-dlp and the bundled FFmpeg release without changing your system installation.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void refreshEngineStatuses(true)}
+                    disabled={engineBusy}
+                    className={cn(secondaryButtonClass, 'shrink-0')}
+                  >
+                    {engineBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <RefreshCw className="h-3.5 w-3.5" aria-hidden />}
+                    {engineBusy ? 'Checking…' : 'Check for updates'}
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {engineStatuses.map((engine) => (
+                    <div key={engine.name} className="rounded-xl bg-raised/45 px-3 py-3 ring-1 ring-inset ring-divider-subtle">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-[13px] font-medium text-foreground">{engine.name}</p>
+                          <p className="mt-0.5 truncate text-[11px] text-muted-foreground" title={engine.path || undefined}>
+                            {engine.version ? `Version ${engine.version}` : 'Not available'} · {engine.source}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={cn(
+                            'rounded-full px-2 py-1 text-[10px] font-semibold',
+                            engine.source === 'missing'
+                              ? 'bg-error/[0.12] text-error'
+                              : engine.updateState === 'available'
+                                ? 'bg-selection text-action'
+                                : 'bg-state-complete-bg text-success'
+                          )}>
+                            {engine.source === 'missing' ? 'Missing' : engine.updateState === 'available' ? `Update ${engine.latestVersion}` : engine.version ? 'Ready' : 'Unavailable'}
+                          </span>
+                          {engine.canUpdate && (
+                            <button
+                              type="button"
+                              onClick={() => void updateEngine(engine.name)}
+                              disabled={engineBusy}
+                              className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-action px-2.5 text-[11px] font-semibold text-action-fg hover:bg-action-hover disabled:cursor-wait disabled:opacity-50"
+                            >
+                              <Download className="h-3 w-3" aria-hidden />
+                              Update
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      {engine.updateMessage && (
+                        <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">{engine.updateMessage}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {engineNote && <p className="text-[11px] leading-relaxed text-warning">{engineNote}</p>}
+              </div>
               <SettingsDisclosure title="Engine paths" subtitle="Read-only paths used by yt-dlp and ffmpeg.">
                 <div className="space-y-4">
                   <FieldBlock label="yt-dlp">
@@ -1013,6 +1239,84 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                   </FieldBlock>
                 </div>
               </SettingsDisclosure>
+            </PrefCard>
+            <PrefCard title="Remote Job API" subtitle="Let other apps on this machine or your network enqueue downloads while V-Download is running. The Chrome extension still uses localhost:18765.">
+              <ToggleRow
+                label="Enable Remote API"
+                description="Serves /v1/jobs. Off by default. Token is stored in app settings (mode 0600)."
+                checked={settings.remoteApiEnabled === true}
+                onChange={(v) => {
+                  void (async () => {
+                    await onUpdate('remoteApiEnabled', v)
+                    await refreshSettingsFromMain()
+                  })()
+                }}
+              />
+              <FieldBlock label="Bearer token" description="Send as Authorization: Bearer … on every /v1 request.">
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={settings.remoteApiToken || ''}
+                    className={cn(controlClass, 'min-w-0 flex-1 font-mono text-[12px]')}
+                  />
+                  <button
+                    type="button"
+                    className={secondaryButtonClass}
+                    disabled={!settings.remoteApiToken}
+                    onClick={() => {
+                      if (!settings.remoteApiToken) return
+                      void navigator.clipboard.writeText(settings.remoteApiToken).then(() => {
+                        setRemoteTokenCopied(true)
+                        window.setTimeout(() => setRemoteTokenCopied(false), 1500)
+                      })
+                    }}
+                  >
+                    {remoteTokenCopied ? <Check className="h-3.5 w-3.5" aria-hidden /> : <Copy className="h-3.5 w-3.5" aria-hidden />}
+                    {remoteTokenCopied ? 'Copied' : 'Copy'}
+                  </button>
+                  <button
+                    type="button"
+                    className={secondaryButtonClass}
+                    onClick={() => {
+                      void (async () => {
+                        await onUpdate('remoteApiToken', '')
+                        await refreshSettingsFromMain()
+                      })()
+                    }}
+                  >
+                    Regenerate
+                  </button>
+                </div>
+              </FieldBlock>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FieldBlock label="Bind">
+                  <select
+                    value={settings.remoteApiBind ?? '127.0.0.1'}
+                    onChange={(event) => void onUpdate('remoteApiBind', event.target.value === '0.0.0.0' ? '0.0.0.0' : '127.0.0.1')}
+                    className={cn(controlClass, 'w-full')}
+                  >
+                    <option value="127.0.0.1">127.0.0.1 (this Mac only)</option>
+                    <option value="0.0.0.0">0.0.0.0 (LAN / Tailscale)</option>
+                  </select>
+                </FieldBlock>
+                <FieldBlock label="Port">
+                  <input
+                    type="number"
+                    min={1024}
+                    max={65535}
+                    value={settings.remoteApiPort ?? 18766}
+                    onChange={(event) => {
+                      const port = Number(event.target.value)
+                      if (Number.isFinite(port)) void onUpdate('remoteApiPort', port)
+                    }}
+                    className={cn(controlClass, 'w-full')}
+                  />
+                </FieldBlock>
+              </div>
+              <p className="text-[11px] leading-relaxed text-muted-foreground break-all">
+                {`curl -H "Authorization: Bearer ${settings.remoteApiToken || 'YOUR_TOKEN'}" -d '{"url":"https://example.com/watch?v=1"}' http://${(settings.remoteApiBind === '0.0.0.0' ? '<host>' : '127.0.0.1')}:${settings.remoteApiPort ?? 18766}/v1/jobs`}
+              </p>
             </PrefCard>
           </div>
         )}

@@ -1,5 +1,5 @@
 /**
- * Domains the Chrome extension reads cookies from when syncing to the app / vdl-server.
+ * Domains the Chrome extension reads cookies from when syncing to the desktop app.
  * Regenerate extension/cookie-sync-domains.js via `npm run sync:extension-constants` at repo root.
  */
 export const COOKIE_SYNC_DOMAINS = [
