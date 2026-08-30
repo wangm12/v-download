@@ -15,7 +15,10 @@ import { ActionButton } from './ActionButton'
 import { ThumbnailImage } from './ThumbnailImage'
 import { formatFileSize } from '@/utils/format'
 import { cn } from '@/lib/cn'
+import { revealFolderLabel } from './downloadInspectorPresentation'
 import type { SelectionModifiers } from '@/utils/selection'
+
+const folderActionLabel = revealFolderLabel(typeof window !== 'undefined' ? window.api?.platform : undefined)
 
 interface PlaylistDownloadRowProps {
   download: Download
@@ -45,6 +48,7 @@ export const PlaylistDownloadRow = memo(function PlaylistDownloadRow({
       }}
       className={cn(
         'v-list-row min-h-[56px] flex items-center gap-3 pl-3 pr-4 mx-1 mb-1 rounded-md transition-colors',
+        (d.status === 'error' || d.status === 'interrupted') && 'border border-dashed border-border-strong',
         selected ? 'text-foreground' : 'text-foreground',
         className
       )}
@@ -125,7 +129,7 @@ export const PlaylistDownloadRow = memo(function PlaylistDownloadRow({
           <>
             <ActionButton
               icon={FolderOpen}
-              title="Open folder"
+              title={folderActionLabel}
               size="sm"
               onClick={() => actions.openFolder(d.file_path!)}
             />

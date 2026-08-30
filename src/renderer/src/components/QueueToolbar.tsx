@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect, useLayoutEffect } from 'react
 import { Search, X } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { extractUrlFromDataTransfer } from '@/utils/dragUrl'
+import type { QueueFilter } from '@/utils/queueFilters'
 
 interface QueueToolbarProps {
   searchQuery: string
@@ -10,7 +11,18 @@ interface QueueToolbarProps {
   selectedCount?: number
   onClearSelection?: () => void
   focusSearchSignal?: number
+  visibleCount: number
+  attentionCount: number
+  queueFilter: QueueFilter
+  onQueueFilter: (filter: QueueFilter) => void
 }
+
+const FILTERS: Array<{ id: QueueFilter; label: string }> = [
+  { id: 'all', label: 'All' },
+  { id: 'active', label: 'Active' },
+  { id: 'done', label: 'Done' },
+  { id: 'attention', label: 'Needs attention' }
+]
 
 export function QueueToolbar({
   searchQuery,
@@ -18,7 +30,11 @@ export function QueueToolbar({
   onDropUrl,
   selectedCount = 0,
   onClearSelection,
-  focusSearchSignal
+  focusSearchSignal,
+  visibleCount,
+  attentionCount,
+  queueFilter,
+  onQueueFilter
 }: QueueToolbarProps) {
   const [dragOver, setDragOver] = useState(false)
   const [searchExpanded, setSearchExpanded] = useState(false)
@@ -27,7 +43,6 @@ export function QueueToolbar({
   const searchShellRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  /** px ↔ px width transition (ResizeObserver); %/rem mixes often skip interpolation in Chromium. */
   useLayoutEffect(() => {
     const el = toolbarRowRef.current
     if (!el) return
@@ -100,7 +115,6 @@ export function QueueToolbar({
     [collapseSearch]
   )
 
-  /** Keep in sync with `gap-2` on the toolbar row (0.5rem → 8px at default root). */
   const rowGapPx = 8
 
   return (
@@ -108,21 +122,39 @@ export function QueueToolbar({
       className="shrink-0 flex flex-col gap-2 px-3 py-3 border-b border-divider-subtle bg-window"
       style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
     >
+      <div className="flex min-w-0 items-end justify-between gap-3 px-0.5">
+        <div className="min-w-0">
+          <h1 className="text-[15px] font-semibold tracking-tight text-foreground">Downloads</h1>
+          <p className="mt-0.5 text-xs tabular-nums text-muted-foreground">
+            {visibleCount} {visibleCount === 1 ? 'item' : 'items'}
+          </p>
+        </div>
+      </div>
+
       <div ref={toolbarRowRef} className="flex w-full min-h-[42px] items-stretch gap-2">
-        <div
-          onDragOver={onDragOver}
-          onDragLeave={onDragLeave}
-          onDrop={onDrop}
-          className={cn(
-            'rounded-panel border border-dashed px-3 py-2.5 text-center text-xs text-muted-foreground',
-            'min-w-0 flex-1 flex items-center justify-center',
-            dragOver ? 'border-accent bg-selection text-foreground' : 'border-divider-strong bg-control'
-          )}
-        >
-          <span className="line-clamp-2">
-            Drop a link here or press <span className="text-foreground font-medium">Cmd+V</span> to paste from the
-            clipboard
-          </span>
+        <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
+          {FILTERS.map((filter) => {
+            const active = queueFilter === filter.id
+            return (
+              <button
+                key={filter.id}
+                type="button"
+                aria-pressed={active}
+                onClick={() => onQueueFilter(filter.id)}
+                className={cn(
+                  'inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-border-focus',
+                  active
+                    ? 'bg-action text-action-fg'
+                    : 'text-muted-foreground hover:bg-control hover:text-foreground'
+                )}
+              >
+                {filter.label}
+                {filter.id === 'attention' && attentionCount > 0 ? (
+                  <span className="tabular-nums text-[11px]">{attentionCount}</span>
+                ) : null}
+              </button>
+            )
+          })}
         </div>
 
         <div
@@ -144,7 +176,7 @@ export function QueueToolbar({
               onClick={expandSearch}
               className={cn(
                 'w-full min-w-0 flex items-center justify-center rounded-lg bg-raised ring-1 ring-inset ring-divider-subtle',
-                'text-tertiary-foreground hover:text-foreground hover:bg-elevated hover:ring-accent/45',
+                'text-tertiary-foreground hover:text-foreground hover:bg-elevated hover:ring-border-strong',
                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-border-focus',
                 'transition-colors duration-200'
               )}
@@ -189,9 +221,25 @@ export function QueueToolbar({
           )}
         </div>
       </div>
+
+      <div
+        onDragOver={onDragOver}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop}
+        className={cn(
+          'rounded-lg border border-dashed px-3 py-2.5 text-center text-xs text-muted-foreground',
+          'min-w-0 flex items-center justify-center',
+          dragOver ? 'border-border-strong bg-selection text-foreground' : 'border-divider-strong bg-control'
+        )}
+      >
+        <span className="line-clamp-2">
+          Drop a link here or press <span className="text-foreground font-medium">Cmd+V</span> to paste from the
+          clipboard
+        </span>
+      </div>
       {selectedCount > 0 && (
-        <div className="flex min-h-8 items-center justify-between gap-3 rounded-lg bg-selection px-2.5 py-1.5 text-xs ring-1 ring-inset ring-accent/30" role="status" aria-live="polite">
-          <span className="font-medium text-accent tabular-nums">{selectedCount} selected</span>
+        <div className="flex min-h-8 items-center justify-between gap-3 rounded-lg bg-selection px-2.5 py-1.5 text-xs ring-1 ring-inset ring-border-strong" role="status" aria-live="polite">
+          <span className="font-medium text-foreground tabular-nums">{selectedCount} selected</span>
           {onClearSelection && (
             <button
               type="button"

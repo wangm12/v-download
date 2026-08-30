@@ -44,7 +44,7 @@ export function PlaylistDeleteDialog({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex flex-col items-center text-center mb-6">
-          <div className="w-12 h-12 rounded-full bg-error/[0.12] text-error flex items-center justify-center mb-4">
+          <div className="w-12 h-12 rounded-full bg-state-error-bg text-foreground flex items-center justify-center mb-4">
             <AlertTriangle className="w-6 h-6" />
           </div>
           <h2 id="playlist-delete-dialog-title" className="text-lg font-semibold text-foreground mb-2">Remove playlist</h2>
@@ -70,7 +70,7 @@ export function PlaylistDeleteDialog({
           <button
             type="button"
             onClick={handleWithFiles}
-            className="w-full min-h-11 flex items-center justify-center gap-2 py-2.5 rounded-button bg-error/10 text-error font-medium hover:bg-error/15 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+            className="w-full min-h-11 flex items-center justify-center gap-2 py-2.5 rounded-button border border-dashed border-border-strong bg-control text-foreground font-medium hover:bg-surface-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
           >
             <Trash2 className="w-4 h-4" />
             Delete files and remove

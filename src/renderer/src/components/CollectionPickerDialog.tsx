@@ -176,7 +176,7 @@ export function CollectionPickerDialog({ sourceUrl, settings, onClose }: Collect
           ) : items.length === 0 ? (
             <>
               {error ? (
-                <div className="rounded-button bg-error/10 px-3 py-2 text-sm text-error mb-3">
+                <div className="rounded-button border border-dashed border-border-strong bg-state-error-bg px-3 py-2 text-sm text-foreground mb-3">
                   {error}
                 </div>
               ) : null}
@@ -185,7 +185,7 @@ export function CollectionPickerDialog({ sourceUrl, settings, onClose }: Collect
           ) : (
             <>
               {error ? (
-                <div className="rounded-button bg-error/10 px-3 py-2 text-sm text-error mb-3">
+                <div className="rounded-button border border-dashed border-border-strong bg-state-error-bg px-3 py-2 text-sm text-foreground mb-3">
                   {error}
                 </div>
               ) : null}

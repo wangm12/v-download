@@ -25,7 +25,12 @@ import { useSettings } from '@/hooks/useSettings'
 import { useUrlHandler } from '@/hooks/useUrlHandler'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { groupDownloadsByPlaylist } from '@/utils/downloads'
-import { filterDownloadsBySearch } from '@/utils/queueFilters'
+import {
+  countQueueAttention,
+  filterQueueDownloads,
+  getQueueEmptyKind,
+  type QueueFilter
+} from '@/utils/queueFilters'
 import { isPlaylistUrl } from '@/utils/youtube'
 import { DOUYIN_BULK_URL_PREFILL_SESSION_KEY } from '@/utils/douyinBulk'
 import { parseSpeedToBytes, formatSpeed } from '@/utils/format'
@@ -131,6 +136,7 @@ function MainApp() {
   } = useUrlHandler(settings)
 
   const [searchQuery, setSearchQuery] = useState('')
+  const [queueFilter, setQueueFilter] = useState<QueueFilter>('all')
   const [searchFocusSignal, setSearchFocusSignal] = useState(0)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [selectionAnchorId, setSelectionAnchorId] = useState<string | null>(null)
@@ -207,7 +213,7 @@ function MainApp() {
     }
     setMainView('preferences')
     clearQueueSelection()
-    setPrefSection('downloads')
+    setPrefSection('advanced')
   }, [clearQueueSelection])
 
   useEffect(() => {
@@ -468,11 +474,21 @@ function MainApp() {
   }, [refreshDownloads])
 
   const filteredDownloads = useMemo(
-    () => filterDownloadsBySearch(downloads, searchQuery),
-    [downloads, searchQuery]
+    () => filterQueueDownloads(downloads, searchQuery, queueFilter),
+    [downloads, searchQuery, queueFilter]
   )
-
+  const attentionCount = useMemo(() => countQueueAttention(downloads), [downloads])
   const grouped = useMemo(() => groupDownloadsByPlaylist(filteredDownloads), [filteredDownloads])
+  const emptyKind = useMemo(
+    () =>
+      getQueueEmptyKind({
+        totalCount: downloads.length,
+        visibleCount: grouped.length,
+        searchQuery,
+        filter: queueFilter
+      }),
+    [downloads.length, grouped.length, searchQuery, queueFilter]
+  )
   const visibleSelectionIds = useMemo(
     () => getVisibleQueueSelectionIds(grouped, playlistViewStates),
     [grouped, playlistViewStates]
@@ -672,9 +688,9 @@ function MainApp() {
           <div
             className={cn(
               'flex-shrink-0 flex items-start gap-3 px-4 py-3 border-b border-divider-subtle',
-              cookieSyncBanner.kind === 'ok' && 'bg-success/[0.1]',
+              cookieSyncBanner.kind === 'ok' && 'bg-state-complete-bg',
               (cookieSyncBanner.kind === 'progress' || cookieSyncBanner.kind === 'wait') && 'bg-selection',
-              cookieSyncBanner.kind === 'warn' && 'bg-error/[0.1]'
+              cookieSyncBanner.kind === 'warn' && 'bg-state-error-bg'
             )}
             style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
             role="status"
@@ -737,6 +753,10 @@ function MainApp() {
                   selectedCount={selectedIds.size}
                   onClearSelection={clearQueueSelection}
                   focusSearchSignal={searchFocusSignal > 0 ? searchFocusSignal : undefined}
+                  visibleCount={filteredDownloads.length}
+                  attentionCount={attentionCount}
+                  queueFilter={queueFilter}
+                  onQueueFilter={setQueueFilter}
                 />
 
                 <main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
@@ -746,11 +766,41 @@ function MainApp() {
                     </StatusBlock>
                   )}
 
-                  {grouped.length === 0 ? (
+                  {emptyKind === 'ready' ? (
                     <EmptyState
                       className="flex-1"
                       title="Your queue is ready"
                       description="Paste a URL with Cmd+V, drop a link here, or use the browser companion for logged-in pages."
+                    />
+                  ) : emptyKind === 'noSearchMatches' ? (
+                    <EmptyState
+                      className="flex-1"
+                      title={`No downloads match “${searchQuery.trim()}”`}
+                      description="Try another title, URL, or clear the search to see the full queue."
+                      action={
+                        <button
+                          type="button"
+                          onClick={() => setSearchQuery('')}
+                          className="min-h-10 rounded-button bg-action px-4 text-sm font-medium text-action-fg hover:bg-action-hover"
+                        >
+                          Clear search
+                        </button>
+                      }
+                    />
+                  ) : emptyKind === 'noFilterMatches' ? (
+                    <EmptyState
+                      className="flex-1"
+                      title="No items in this view"
+                      description="This filter has no matching downloads right now."
+                      action={
+                        <button
+                          type="button"
+                          onClick={() => setQueueFilter('all')}
+                          className="min-h-10 rounded-button bg-action px-4 text-sm font-medium text-action-fg hover:bg-action-hover"
+                        >
+                          Show all
+                        </button>
+                      }
                     />
                   ) : (
                     <VirtualizedQueue

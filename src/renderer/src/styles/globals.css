@@ -4,79 +4,83 @@
 
 /* Semantic tokens: rgb triplets use rgb(var(--x) / <alpha-value>) in Tailwind. */
 :root[data-theme='dark'] {
-  --color-app: 7 9 11;
-  --color-window: 12 14 17;
-  --color-sidebar: 15 18 21;
-  --color-background: 8 10 12;
-  --color-surface: 18 21 24;
-  --color-raised: 24 28 32;
-  --color-elevated: 31 36 41;
-  --color-foreground: 239 243 245;
-  --color-muted-foreground: 164 174 180;
-  --color-tertiary-foreground: 112 124 132;
-  --color-subtle-foreground: 133 143 151;
-  --color-inverse: 12 14 17;
-  --color-action: 242 184 96;
-  --color-action-hover: 255 199 117;
-  --color-action-fg: 29 20 9;
-  --color-accent: 242 184 96;
-  --color-accent-hover: 255 199 117;
-  --color-accent-fg: 29 20 9;
-  --color-success: 95 208 163;
-  --color-warning: 242 184 96;
-  --color-error: 244 123 111;
+  --color-app: 5 5 5;
+  --color-window: 11 11 11;
+  --color-sidebar: 13 13 13;
+  --color-background: 8 8 8;
+  --color-surface: 17 17 17;
+  --color-raised: 22 22 22;
+  --color-elevated: 28 28 28;
+  --color-foreground: 255 255 255;
+  --color-muted-foreground: 164 164 164;
+  --color-tertiary-foreground: 112 112 112;
+  --color-subtle-foreground: 133 133 133;
+  --color-inverse: 5 5 5;
+  --color-action: 255 255 255;
+  --color-action-hover: 232 232 232;
+  --color-action-fg: 5 5 5;
+  --color-accent: 255 255 255;
+  --color-accent-hover: 232 232 232;
+  --color-accent-fg: 5 5 5;
+  --color-success: 180 180 180;
+  --color-warning: 164 164 164;
+  --color-error: 196 196 196;
   --color-control: rgba(255, 255, 255, 0.055);
   --color-surface-hover: rgba(255, 255, 255, 0.07);
-  --color-selection: rgba(242, 184, 96, 0.14);
-  --color-border: rgba(255, 255, 255, 0.07);
-  --color-border-strong: rgba(255, 255, 255, 0.13);
-  --color-border-focus: rgba(242, 184, 96, 0.78);
-  --color-divider-subtle: rgba(255, 255, 255, 0.055);
-  --color-divider-strong: rgba(255, 255, 255, 0.1);
-  --color-state-active-bg: rgba(242, 184, 96, 0.14);
-  --color-state-complete-bg: rgba(95, 208, 163, 0.12);
-  --color-state-queued-bg: rgba(255, 255, 255, 0.06);
-  --color-state-error-bg: rgba(244, 123, 111, 0.13);
-  --color-progress: rgba(242, 184, 96, 0.92);
+  --color-selection: rgba(255, 255, 255, 0.12);
+  --color-border: rgba(255, 255, 255, 0.12);
+  --color-border-strong: rgba(255, 255, 255, 0.22);
+  --color-border-focus: rgba(255, 255, 255, 0.34);
+  --color-divider-subtle: rgba(255, 255, 255, 0.08);
+  --color-divider-strong: rgba(255, 255, 255, 0.16);
+  --color-state-active-bg: rgba(255, 255, 255, 0.12);
+  --color-state-complete-bg: rgba(255, 255, 255, 0.1);
+  --color-state-queued-bg: rgba(255, 255, 255, 0.07);
+  --color-state-error-bg: rgba(255, 255, 255, 0.13);
+  --color-progress: rgba(255, 255, 255, 0.88);
   --color-progress-muted: rgba(255, 255, 255, 0.35);
+  --color-scrollbar: rgba(255, 255, 255, 0.08);
+  --color-scrollbar-hover: rgba(255, 255, 255, 0.28);
 }
 
 :root[data-theme='light'] {
-  --color-app: 245 247 248;
-  --color-window: 251 252 252;
-  --color-sidebar: 238 242 244;
-  --color-background: 246 248 249;
-  --color-surface: 235 239 241;
-  --color-raised: 225 230 233;
-  --color-elevated: 214 220 224;
-  --color-foreground: 24 29 32;
-  --color-muted-foreground: 82 94 101;
-  --color-tertiary-foreground: 111 121 127;
-  --color-subtle-foreground: 91 103 110;
-  --color-inverse: 251 252 252;
-  --color-action: 190 122 31;
-  --color-action-hover: 169 105 22;
-  --color-action-fg: 255 250 238;
-  --color-accent: 190 122 31;
-  --color-accent-hover: 169 105 22;
-  --color-accent-fg: 255 250 238;
-  --color-success: 32 139 101;
-  --color-warning: 169 105 22;
-  --color-error: 184 63 54;
-  --color-control: rgba(12, 25, 30, 0.055);
-  --color-surface-hover: rgba(12, 25, 30, 0.075);
-  --color-selection: rgba(190, 122, 31, 0.12);
-  --color-border: rgba(12, 25, 30, 0.075);
-  --color-border-strong: rgba(12, 25, 30, 0.15);
-  --color-border-focus: rgba(169, 105, 22, 0.78);
-  --color-divider-subtle: rgba(12, 25, 30, 0.055);
-  --color-divider-strong: rgba(12, 25, 30, 0.11);
-  --color-state-active-bg: rgba(190, 122, 31, 0.12);
-  --color-state-complete-bg: rgba(32, 139, 101, 0.11);
-  --color-state-queued-bg: rgba(12, 25, 30, 0.05);
-  --color-state-error-bg: rgba(184, 63, 54, 0.1);
-  --color-progress: rgba(169, 105, 22, 0.9);
-  --color-progress-muted: rgba(12, 25, 30, 0.32);
+  --color-app: 245 245 245;
+  --color-window: 251 251 251;
+  --color-sidebar: 238 238 238;
+  --color-background: 246 246 246;
+  --color-surface: 235 235 235;
+  --color-raised: 225 225 225;
+  --color-elevated: 214 214 214;
+  --color-foreground: 24 24 24;
+  --color-muted-foreground: 82 82 82;
+  --color-tertiary-foreground: 111 111 111;
+  --color-subtle-foreground: 91 91 91;
+  --color-inverse: 251 251 251;
+  --color-action: 24 24 24;
+  --color-action-hover: 8 8 8;
+  --color-action-fg: 255 255 255;
+  --color-accent: 24 24 24;
+  --color-accent-hover: 8 8 8;
+  --color-accent-fg: 255 255 255;
+  --color-success: 82 82 82;
+  --color-warning: 82 82 82;
+  --color-error: 64 64 64;
+  --color-control: rgba(12, 12, 12, 0.055);
+  --color-surface-hover: rgba(12, 12, 12, 0.075);
+  --color-selection: rgba(12, 12, 12, 0.1);
+  --color-border: rgba(12, 12, 12, 0.12);
+  --color-border-strong: rgba(12, 12, 12, 0.2);
+  --color-border-focus: rgba(12, 12, 12, 0.34);
+  --color-divider-subtle: rgba(12, 12, 12, 0.08);
+  --color-divider-strong: rgba(12, 12, 12, 0.16);
+  --color-state-active-bg: rgba(12, 12, 12, 0.1);
+  --color-state-complete-bg: rgba(12, 12, 12, 0.08);
+  --color-state-queued-bg: rgba(12, 12, 12, 0.05);
+  --color-state-error-bg: rgba(12, 12, 12, 0.1);
+  --color-progress: rgba(12, 12, 12, 0.82);
+  --color-progress-muted: rgba(12, 12, 12, 0.32);
+  --color-scrollbar: rgba(12, 12, 12, 0.08);
+  --color-scrollbar-hover: rgba(12, 12, 12, 0.28);
 }
 
 @layer base {
@@ -101,12 +105,35 @@
     }
   }
 
-  ::-webkit-scrollbar {
-    display: none;
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
   }
 
-  * {
-    scrollbar-width: none;
+  *:hover {
+    scrollbar-color: var(--color-scrollbar-hover) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 999px;
+  }
+
+  *:hover::-webkit-scrollbar-thumb {
+    background: var(--color-scrollbar);
+  }
+
+  *:hover::-webkit-scrollbar-thumb:hover {
+    background: var(--color-scrollbar-hover);
   }
 
   :focus-visible {
@@ -124,7 +151,7 @@
   .v-list-row {
     position: relative;
     background: transparent;
-    transition: background-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+    transition: background-color 160ms ease, box-shadow 160ms ease;
   }
 
   .v-list-row:hover {
@@ -133,7 +160,15 @@
 
   .v-list-row[data-selected='true'] {
     background: var(--color-selection);
-    box-shadow: inset 0 0 0 1px rgb(var(--color-accent) / 0.44);
+    box-shadow: inset 0 0 0 1px var(--color-border-strong);
+  }
+
+  .v-list-row[data-attention='true'] {
+    box-shadow: inset 0 0 0 1px var(--color-border-strong);
+  }
+
+  .v-list-row[data-attention='true'][data-selected='true'] {
+    box-shadow: inset 0 0 0 1px var(--color-border-strong);
   }
 
   .v-divider-y > * + * {
@@ -169,29 +204,6 @@
   .v-animated-list[data-ready='true'] .v-animated-list-item {
     animation: v-list-enter 420ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
   }
-
-  .v-spotlight-card {
-    position: relative;
-    overflow: hidden;
-  }
-
-  .v-spotlight-card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    opacity: 0;
-    background: radial-gradient(
-      260px circle at var(--v-spotlight-x, 50%) var(--v-spotlight-y, 50%),
-      rgb(var(--color-accent) / 0.12),
-      transparent 68%
-    );
-    transition: opacity 180ms ease;
-  }
-
-  .v-spotlight-card:hover::before {
-    opacity: 1;
-  }
 }
 
 @keyframes v-list-enter {
@@ -202,8 +214,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .v-list-row,
-  .v-spotlight-card::before {
+  .v-list-row {
     transition: none;
   }
 

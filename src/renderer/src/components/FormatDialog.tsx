@@ -5,7 +5,7 @@ import { formatDuration, formatViews } from '@/utils/format'
 import { isDouyinProfileHomeUrl } from '@/utils/douyinBulk'
 import { HoverHintWrap } from './HoverHintWrap'
 import { ThumbnailImage } from './ThumbnailImage'
-import { fallbackQuality, formatAccessibleDownloadLabel, getPresentationCandidates, hasOtherFormats } from './formatDialogPresentation'
+import { fallbackQuality, formatAccessibleDownloadLabel, getDefaultSelectedKey, getPresentationCandidates, hasOtherFormats } from './formatDialogPresentation'
 
 interface FormatDialogProps {
   videoInfo: VideoInfo
@@ -36,6 +36,7 @@ export function FormatDialog({
   const [bulkNote, setBulkNote] = useState('')
   const [bulkBusy, setBulkBusy] = useState(false)
   const [queuedKeys, setQueuedKeys] = useState<Set<string>>(new Set())
+  const [selectedKey, setSelectedKey] = useState<string | null>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
   const openerRef = useRef<HTMLElement | null>(null)
   useEffect(() => {
@@ -53,8 +54,19 @@ export function FormatDialog({
     document.addEventListener('keydown', onKeyDown)
     return () => { document.removeEventListener('keydown', onKeyDown); openerRef.current?.focus() }
   }, [onClose])
-  const videoFormats = getPresentationCandidates(videoInfo.formats, 'video', settings.defaultVideoQuality, siteRule)
-  const audioFormats = getPresentationCandidates(videoInfo.formats, 'audio', settings.defaultAudioQuality, siteRule)
+  const videoFormatsRaw = getPresentationCandidates(videoInfo.formats, 'video', settings.defaultVideoQuality, siteRule)
+  const audioFormatsRaw = getPresentationCandidates(videoInfo.formats, 'audio', settings.defaultAudioQuality, siteRule)
+  const videoFormats = videoFormatsRaw.length
+    ? videoFormatsRaw
+    : [{ format_id: 'best', quality: fallbackQuality('video', settings.defaultVideoQuality || '1080', siteRule), kind: 'video' as const, ext: 'auto', key: 'best', recommended: true }]
+  const audioFormats = audioFormatsRaw.length
+    ? audioFormatsRaw
+    : [{ format_id: 'best-audio', quality: fallbackQuality('audio', settings.defaultAudioQuality || '320', siteRule), kind: 'audio' as const, ext: 'auto', key: 'best-audio', recommended: true }]
+  const activeFormats = activeTab === 'audio' ? audioFormats : videoFormats
+  const resolvedSelectedKey = selectedKey && activeFormats.some((item) => item.key === selectedKey)
+    ? selectedKey
+    : getDefaultSelectedKey(activeFormats)
+  const selectedFormat = activeFormats.find((item) => item.key === resolvedSelectedKey) ?? activeFormats[0]
   const formatSize = (bytes?: number, approximate = false) => {
     if (!bytes || bytes <= 0) return 'Size unknown'
     const value = bytes >= 1073741824 ? `${(bytes / 1073741824).toFixed(2)} GB` : `${(bytes / 1048576).toFixed(1)} MB`
@@ -104,7 +116,7 @@ export function FormatDialog({
         return
       }
       const id = result.data?.id
-      setBulkNote(id ? `Bulk job started (${id}). Open Preferences → Downloads for status.` : 'Bulk job started. Open Preferences → Downloads for status.')
+      setBulkNote(id ? `Bulk job started (${id}). Open Preferences → Advanced for status.` : 'Bulk job started. Open Preferences → Advanced for status.')
     } catch (err) {
       setBulkNote(err instanceof Error ? err.message : String(err))
     } finally {
@@ -223,59 +235,56 @@ export function FormatDialog({
           ) : (
             <>
               <div className="flex items-center h-9 px-3">
-                <span className="w-[160px] text-[11px] font-semibold text-muted-foreground">Quality</span>
-                <span className="w-[100px] text-[11px] font-semibold text-muted-foreground">Details</span>
-                <span className="flex-1 text-[11px] font-semibold text-muted-foreground text-right">Action</span>
+                <span className="w-[160px] text-xs font-semibold text-muted-foreground">Quality</span>
+                <span className="flex-1 text-xs font-semibold text-muted-foreground">Details</span>
               </div>
               <div className="h-px bg-divider-subtle" />
 
-              {activeTab === 'video' && (videoFormats.length ? videoFormats : [{ format_id: 'best', quality: fallbackQuality('video', settings.defaultVideoQuality || '1080', siteRule), kind: 'video' as const, ext: 'auto', key: 'best', recommended: true }]).map((fmt, index) => (
-                  <div key={fmt.key || `${fmt.format_id || fmt.format || 'candidate'}-${index}`}>
-                    <div className="flex flex-wrap items-center gap-2 min-h-11 px-3 py-2">
-                      <span className="min-w-0 flex-1 text-[13px] font-medium text-foreground"><span className="block">{fmt.quality}p · MP4</span><span className="block text-[11px] text-subtle-foreground">{fmt.kind === 'video' ? candidateMeta(fmt, false) : 'Best available'}</span></span>
-                      <div className="flex-1 flex justify-end items-center gap-2">
-                        {fmt.recommended ? <span className="text-[10px] font-semibold text-foreground" aria-label="Recommended format">★ Recommended</span> : null}
-                        <button
-                          type="button"
-                          onClick={() => handleDownload('mp4', fmt.quality, fmt.key)}
-                          disabled={queuedKeys.has(fmt.key)}
-                          aria-label={formatAccessibleDownloadLabel(fmt, 'MP4')}
-                          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-action text-action-fg text-xs font-semibold hover:bg-action-hover transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
-                        >
-                          <Download size={13} />
-                          <span aria-live="polite">{queuedKeys.has(fmt.key) ? 'Added' : 'Download'}</span>
-                        </button>
-                      </div>
-                    </div>
-                    <div className="h-px bg-divider-subtle" />
-                  </div>
-                ))}
-
-              {activeTab === 'audio' && (audioFormats.length ? audioFormats : [{ format_id: 'best-audio', quality: fallbackQuality('audio', settings.defaultAudioQuality || '320', siteRule), kind: 'audio' as const, ext: 'auto', key: 'best-audio', recommended: true }]).map((fmt, index) => (
-                  <div key={fmt.key || `${fmt.format_id || fmt.format || 'candidate'}-${index}`}>
-                    <div className="flex flex-wrap items-center gap-2 min-h-11 px-3 py-2">
-                      <span className="min-w-0 flex-1 text-[13px] font-medium text-foreground"><span className="block">{fmt.quality} kbps · MP3</span><span className="block text-[11px] text-subtle-foreground">{fmt.kind === 'audio' ? candidateMeta(fmt, true) : 'Best available'}</span></span>
-                      <div className="flex-1 flex justify-end items-center gap-2">
-                        {fmt.recommended ? <span className="text-[10px] font-semibold text-foreground" aria-label="Recommended format">★ Recommended</span> : null}
-                        <button
-                          type="button"
-                          onClick={() => handleDownload('mp3', fmt.quality, fmt.key)}
-                          disabled={queuedKeys.has(fmt.key)}
-                          aria-label={formatAccessibleDownloadLabel(fmt, 'MP3')}
-                          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-action text-action-fg text-xs font-semibold hover:bg-action-hover transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
-                        >
-                          <Download size={13} />
-                          <span aria-live="polite">{queuedKeys.has(fmt.key) ? 'Added' : 'Download'}</span>
-                        </button>
-                      </div>
-                    </div>
-                    <div className="h-px bg-divider-subtle" />
-                  </div>
-                ))}
-
-              {activeTab === 'other' && (
+              {activeTab === 'other' ? (
                 <div className="flex items-center justify-center h-24 text-muted-foreground text-sm">
                   No other formats available
+                </div>
+              ) : (
+                <div role="radiogroup" aria-label="Output format">
+                {activeFormats.map((fmt, index) => {
+                  const selected = fmt.key === resolvedSelectedKey
+                  const audio = activeTab === 'audio'
+                  return (
+                    <div key={fmt.key || `${fmt.format_id || fmt.format || 'candidate'}-${index}`}>
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        aria-label={formatAccessibleDownloadLabel(fmt, audio ? 'MP3' : 'MP4')}
+                        onClick={() => setSelectedKey(fmt.key)}
+                        className={`flex w-full flex-wrap items-center gap-2 min-h-11 px-3 py-2 text-left rounded-md ${
+                          selected ? 'bg-selection ring-1 ring-inset ring-border-strong' : 'hover:bg-control'
+                        }`}
+                      >
+                        <span
+                          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
+                            selected ? 'border-foreground' : 'border-border-strong'
+                          }`}
+                          aria-hidden
+                        >
+                          {selected ? <span className="h-2 w-2 rounded-full bg-foreground" /> : null}
+                        </span>
+                        <span className="min-w-0 flex-1 text-[13px] font-medium text-foreground">
+                          <span className="block">{audio ? `${fmt.quality} kbps · MP3` : `${fmt.quality}p · MP4`}</span>
+                          <span className="block text-xs text-subtle-foreground">
+                            {fmt.kind === 'audio' || fmt.kind === 'video' ? candidateMeta(fmt, audio) : 'Best available'}
+                          </span>
+                        </span>
+                        {fmt.recommended ? (
+                          <span className="text-[10px] font-semibold uppercase tracking-wide text-foreground" aria-label="Recommended format">
+                            Recommended
+                          </span>
+                        ) : null}
+                      </button>
+                      <div className="h-px bg-divider-subtle" />
+                    </div>
+                  )
+                })}
                 </div>
               )}
             </>
@@ -287,8 +296,8 @@ export function FormatDialog({
           {showDouyinBulkHint && (
             <div className="border-b border-border py-3 space-y-2">
               <p className="text-xs font-medium text-foreground">Douyin profile URL</p>
-              <p className="text-[11px] text-muted-foreground leading-relaxed">
-                This page looks like a creator profile. Use the external douyin-downloader for multi-post bulk; single-post queue download uses the buttons above.
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                This page looks like a creator profile. Use the external douyin-downloader for multi-post bulk; single-post queue download uses Download selected below.
               </p>
               <div className="flex flex-wrap gap-2">
                 {bulkConfigured ? (
@@ -296,7 +305,7 @@ export function FormatDialog({
                     type="button"
                     disabled={bulkBusy}
                     onClick={() => void handleStartDouyinBulkFromDialog()}
-                    className="px-3 py-1.5 rounded-lg bg-action text-action-fg text-xs font-semibold hover:bg-action-hover disabled:opacity-50"
+                    className="px-3 py-1.5 rounded-lg border border-border bg-raised text-xs font-medium text-foreground hover:bg-control disabled:opacity-50"
                   >
                     {bulkBusy ? 'Starting…' : 'Bulk download profile'}
                   </button>
@@ -314,17 +323,42 @@ export function FormatDialog({
               {bulkNote ? <p className="text-[11px] text-muted-foreground">{bulkNote}</p> : null}
             </div>
           )}
-          <div className="flex items-center gap-2 h-10">
-            <Folder size={14} className="text-muted-foreground" />
-            <span className="text-[11px] text-muted-foreground truncate">{downloadDir}</span>
+          {!isImageGallery && activeTab !== 'other' ? (
+            <div className="flex items-center justify-between gap-3 py-3">
+              <div className="flex min-w-0 items-center gap-2">
+                <Folder size={14} className="text-muted-foreground" />
+                <span className="text-xs text-muted-foreground truncate">{downloadDir}</span>
+                <button
+                  type="button"
+                  onClick={handleChangeFolder}
+                  className="text-xs font-medium text-foreground hover:underline flex-shrink-0"
+                >
+                  Change
+                </button>
+              </div>
               <button
-              type="button"
+                type="button"
+                disabled={!selectedFormat || queuedKeys.has(selectedFormat.key)}
+                onClick={() => selectedFormat && handleDownload(activeTab === 'audio' ? 'mp3' : 'mp4', selectedFormat.quality, selectedFormat.key)}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-action text-action-fg text-xs font-semibold hover:bg-action-hover disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+              >
+                <Download size={13} />
+                <span aria-live="polite">{selectedFormat && queuedKeys.has(selectedFormat.key) ? 'Added' : 'Download selected'}</span>
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 h-10">
+              <Folder size={14} className="text-muted-foreground" />
+              <span className="text-xs text-muted-foreground truncate">{downloadDir}</span>
+              <button
+                type="button"
                 onClick={handleChangeFolder}
-              className="text-[11px] font-medium text-foreground hover:underline flex-shrink-0"
-            >
-              Change
-            </button>
-          </div>
+                className="text-xs font-medium text-foreground hover:underline flex-shrink-0"
+              >
+                Change
+              </button>
+            </div>
+          )}
           {queueCount > 0 && (
             <div className="flex items-center justify-between pb-3 pt-1">
               <span className="text-[13px] font-medium text-foreground">

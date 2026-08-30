@@ -6,7 +6,11 @@ import { ActionButton } from './ActionButton'
 import { formatDuration } from '@/utils/format'
 import { cn } from '@/lib/cn'
 import { ThumbnailImage } from './ThumbnailImage'
+import { StatusPill } from './ui'
+import { revealFolderLabel } from './downloadInspectorPresentation'
 import type { SelectionModifiers } from '@/utils/selection'
+
+const folderActionLabel = revealFolderLabel(typeof window !== 'undefined' ? window.api?.platform : undefined)
 
 interface DownloadItemProps {
   download: Download
@@ -71,61 +75,34 @@ export const DownloadItem = memo(function DownloadItem({ download, selected = fa
         )
       }
       case 'complete':
-        return (
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-success">
-            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-foreground" aria-hidden />
-            Complete
-          </span>
-        )
+        return <StatusPill>Complete</StatusPill>
       case 'resolving':
         return (
-          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-control px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+          <StatusPill>
             <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
             Resolving…
-          </span>
+          </StatusPill>
         )
       case 'ready':
-        return (
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-success">
-            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-foreground" aria-hidden />
-            Ready to download
-          </span>
-        )
+        return <StatusPill tone="accent">Ready to download</StatusPill>
       case 'queued':
-        return (
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-control px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-foreground" aria-hidden />
-            Queued
-          </span>
-        )
+        return <StatusPill>Queued</StatusPill>
       case 'paused':
         return (
           <span className="text-xs text-muted-foreground tabular-nums">Paused · {Math.round(progress)}%</span>
         )
       case 'error':
         return (
-          <span
-            className="inline-flex shrink-0 max-w-full min-w-0 items-center gap-1 rounded-full bg-error/15 px-2 py-0.5 text-[10px] font-medium text-error"
-            title={error || 'Unknown error'}
-          >
-            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-foreground" aria-hidden />
-            <span className="truncate">Failed{error ? `: ${error}` : ''}</span>
+          <span title={error || 'Unknown error'} className="max-w-full min-w-0">
+            <StatusPill tone="error" className="max-w-full min-w-0">
+              <span className="truncate">Failed{error ? `: ${error}` : ''}</span>
+            </StatusPill>
           </span>
         )
       case 'interrupted':
-        return (
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-error/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-error">
-            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-foreground" aria-hidden />
-            Interrupted
-          </span>
-        )
+        return <StatusPill tone="error">Interrupted</StatusPill>
       case 'cancelled':
-        return (
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-error/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-error">
-            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-foreground" aria-hidden />
-            Cancelled
-          </span>
-        )
+        return <StatusPill>Cancelled</StatusPill>
       default:
         return null
     }
@@ -136,6 +113,7 @@ export const DownloadItem = memo(function DownloadItem({ download, selected = fa
       role="button"
       tabIndex={0}
       data-selected={selected}
+      data-attention={status === 'error' || status === 'interrupted' ? 'true' : undefined}
       aria-pressed={selected}
       aria-selected={selected}
       onClick={(event) => onSelect?.(id, event)}
@@ -147,6 +125,7 @@ export const DownloadItem = memo(function DownloadItem({ download, selected = fa
       }}
       className={cn(
         'v-list-row min-h-[98px] flex items-center gap-4 px-4 py-3 rounded-lg mx-1 transition-colors cursor-default focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-border-focus [content-visibility:auto] [contain-intrinsic-size:98px]',
+        (status === 'error' || status === 'interrupted') && 'border border-dashed border-border-strong',
         selected
           ? 'text-foreground'
           : 'text-foreground'
@@ -186,7 +165,7 @@ export const DownloadItem = memo(function DownloadItem({ download, selected = fa
         {status === 'complete' && (
           <>
             {download.file_path && (
-              <ActionButton icon={FolderOpen} title="Open folder" onClick={() => actions.openFolder(download.file_path!)} />
+              <ActionButton icon={FolderOpen} title={folderActionLabel} onClick={() => actions.openFolder(download.file_path!)} />
             )}
             <ActionButton icon={Trash2} title="Remove from list" onClick={() => actions.remove(id)} />
           </>

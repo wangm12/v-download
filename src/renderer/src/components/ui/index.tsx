@@ -49,10 +49,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       ref={ref}
       className={cn(
         'inline-flex min-h-10 items-center justify-center gap-2 rounded-button px-3 text-sm font-medium transition-[background-color,color,box-shadow,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:cursor-not-allowed disabled:opacity-45 active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100',
-        tone === 'primary' && 'bg-accent text-accent-fg hover:bg-accent-hover shadow-[0_8px_22px_rgb(var(--color-accent)/0.16)]',
+        tone === 'primary' && 'bg-action text-action-fg hover:bg-action-hover',
         tone === 'secondary' && 'bg-control text-foreground hover:bg-surface-hover',
         tone === 'ghost' && 'text-muted-foreground hover:bg-control hover:text-foreground',
-        tone === 'danger' && 'bg-state-error-bg text-foreground hover:bg-error/15',
+        tone === 'danger' && 'border border-dashed border-border-strong bg-control text-foreground hover:bg-surface-hover',
         className
       )}
       {...props}
@@ -75,12 +75,12 @@ export function Badge({ className, tone = 'neutral', ...props }: BadgeProps) {
   return (
     <span
       className={cn(
-        'inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em]',
-        tone === 'neutral' && 'bg-control text-muted-foreground',
-        tone === 'accent' && 'bg-accent/15 text-accent',
-        tone === 'success' && 'bg-success/15 text-success',
-        tone === 'warning' && 'bg-warning/15 text-warning',
-        tone === 'error' && 'bg-error/15 text-error',
+        'inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em]',
+        tone === 'neutral' && 'border-divider-subtle bg-control text-muted-foreground',
+        tone === 'accent' && 'border-border-strong bg-selection text-foreground',
+        tone === 'success' && 'border-divider-subtle bg-state-complete-bg text-foreground',
+        tone === 'warning' && 'border-divider-subtle bg-control text-foreground',
+        tone === 'error' && 'border-dashed border-border-strong bg-state-error-bg text-foreground',
         className
       )}
       {...props}
@@ -99,7 +99,7 @@ export function StatusPill({
 }) {
   return (
     <Badge tone={tone} className={cn('normal-case tracking-normal', className)}>
-      <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
+      <span className="h-1.5 w-1.5 rounded-full bg-foreground" aria-hidden />
       {children}
     </Badge>
   )
@@ -120,7 +120,7 @@ export function EmptyState({
 }) {
   return (
     <div className={cn('flex min-h-56 flex-col items-center justify-center px-6 text-center', className)}>
-      {icon ? <div className="mb-4 text-accent/80" aria-hidden>{icon}</div> : null}
+      {icon ? <div className="mb-4 text-muted-foreground" aria-hidden>{icon}</div> : null}
       <h2 className="text-base font-semibold tracking-tight text-foreground">{title}</h2>
       {description ? <p className="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">{description}</p> : null}
       {action ? <div className="mt-5">{action}</div> : null}
@@ -139,9 +139,9 @@ export function StatusBlock({
       className={cn(
         'rounded-button px-3 py-2.5 text-sm leading-relaxed',
         tone === 'neutral' && 'bg-control text-muted-foreground',
-        tone === 'success' && 'bg-success/[0.12] text-success',
-        tone === 'warning' && 'bg-warning/[0.12] text-warning',
-        tone === 'error' && 'bg-error/[0.12] text-error',
+        tone === 'success' && 'bg-state-complete-bg text-foreground',
+        tone === 'warning' && 'border border-dashed border-border-strong bg-control text-foreground',
+        tone === 'error' && 'border border-dashed border-border-strong bg-state-error-bg text-foreground',
         className
       )}
       {...props}

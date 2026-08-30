@@ -8,12 +8,20 @@ export const PREFERENCES_SECTION_TITLES = [
   'Save files',
   'Default format',
   'Download speed',
-  'Browser connection',
+  'Queue behavior',
+  'Network / engine',
+  'Playlists',
+  'Chrome cookie sync',
+  'In-app account login',
   'Per-site rules',
-  'Power-user download controls',
   'System',
+  'Expert tools',
   'Remote Job API'
 ] as const
+
+export function canPersistSiteRule(domain: string): boolean {
+  return domain.trim().length > 0
+}
 
 export function hasSingleColumnPolicy(className: string): boolean {
   return className.includes('max-w-') && className.includes('space-y-')

@@ -57,9 +57,9 @@ const config: Config = {
         ]
       },
       borderRadius: {
-        button: '12px',
-        card: '18px',
-        panel: '22px'
+        button: '8px',
+        card: '10px',
+        panel: '12px'
       },
       transitionDuration: {
         panel: '320ms'

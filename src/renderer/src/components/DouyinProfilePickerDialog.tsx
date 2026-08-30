@@ -442,7 +442,7 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose }: Dou
           ) : items.length === 0 ? (
             <div className="flex min-h-[360px] flex-1 flex-col items-center justify-center text-center">
               {error ? (
-                <div role="alert" aria-live="assertive" className="mb-5 max-w-xl rounded-button bg-error/10 px-4 py-3 text-sm text-error">
+                <div role="alert" aria-live="assertive" className="mb-5 max-w-xl rounded-button border border-dashed border-border-strong bg-state-error-bg px-4 py-3 text-sm text-foreground">
                   {error}
                 </div>
               ) : null}
@@ -502,7 +502,7 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose }: Dou
               {(error || listWarning || loadAllNote) && (
                 <div className="mt-4 flex flex-col gap-2">
                   {error ? (
-                    <div role="alert" aria-live="assertive" className="flex items-start gap-2 rounded-button bg-error/10 px-3 py-2.5 text-xs text-error">
+                    <div role="alert" aria-live="assertive" className="flex items-start gap-2 rounded-button border border-dashed border-border-strong bg-state-error-bg px-3 py-2.5 text-xs text-foreground">
                       <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
                       <span>{error}</span>
                     </div>

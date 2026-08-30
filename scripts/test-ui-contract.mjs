@@ -25,6 +25,12 @@ for (const token of [
 ]) {
   assert.match(tokenSource, new RegExp(token), `missing renderer token ${token}`)
 }
+assert.match(tokenSource, /--color-action: 255 255 255/, 'dark primary action must be white')
+assert.match(tokenSource, /scrollbar-width: thin/, 'scrollbars must remain visible')
+assert.doesNotMatch(tokenSource, /::-webkit-scrollbar \{\s*display: none/, 'global scrollbar hiding is not allowed')
+assert.match(tailwind, /button: '8px'/, 'button radius must be 8px')
+assert.match(tailwind, /card: '10px'/, 'card radius must be 10px')
+assert.match(tailwind, /panel: '12px'/, 'panel radius must be 12px')
 for (const color of ['surface-hover', 'selection', 'accent', 'divider-subtle', 'divider-strong']) {
   assert.match(tailwind, new RegExp(`['"]?${color}['"]?`), `missing Tailwind color ${color}`)
 }
@@ -36,6 +42,7 @@ const rendererFiles = [
 for (const path of rendererFiles) {
   const source = read(path)
   assert.doesNotMatch(source, /border-white|ring-white/, `high-contrast white border remains in ${path}`)
+  assert.doesNotMatch(source, /242 184 96|95 208 163|244 123 111/, `colored status token remains in ${path}`)
 }
 
 assert.match(read('extension/manifest.json'), /"theme\.css"/)

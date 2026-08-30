@@ -1,4 +1,4 @@
-import { fallbackQuality, formatAccessibleDownloadLabel, getPresentationCandidates, hasOtherFormats } from './formatDialogPresentation'
+import { fallbackQuality, formatAccessibleDownloadLabel, getDefaultSelectedKey, getPresentationCandidates, hasOtherFormats } from './formatDialogPresentation'
 
 function equal(actual: unknown, expected: unknown) {
   if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error(`Expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`)
@@ -27,4 +27,6 @@ const exactPreferred = getPresentationCandidates([{ height: 720, ext: 'mp4', fil
 equal(exactPreferred[0].filesize, 40)
 equal(hasOtherFormats([{ format_id: 'story', ext: 'webp' }]), false)
 equal(hasOtherFormats(video), false)
+equal(getDefaultSelectedKey(sorted), sorted.find((item) => item.recommended)?.key ?? null)
+equal(getDefaultSelectedKey([]), null)
 console.log('format dialog presentation tests passed')

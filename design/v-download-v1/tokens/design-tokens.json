@@ -103,11 +103,11 @@
     "xxl": 32
   },
   "radius": {
-    "button": 12,
-    "card": 18,
-    "panel": 22,
-    "window": 26,
-    "pill": 999
+    "button": 8,
+    "card": 10,
+    "panel": 12,
+    "window": 16,
+    "pill": 6
   },
   "shadow": {
     "window": "0 22px 70px rgba(0,0,0,0.58)",

@@ -27,7 +27,7 @@ export function DeleteSelectionDialog({ count, onClose, onConfirm }: DeleteSelec
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-6 flex flex-col items-center text-center">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-error/[0.12] text-error">
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-state-error-bg text-foreground">
             <AlertTriangle className="h-6 w-6" aria-hidden />
           </div>
           <h2 id="delete-selection-dialog-title" className="mb-2 text-lg font-semibold text-foreground">
@@ -42,7 +42,7 @@ export function DeleteSelectionDialog({ count, onClose, onConfirm }: DeleteSelec
           <button
             type="button"
             onClick={onConfirm}
-            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-button bg-error/10 py-2.5 font-medium text-error transition-colors hover:bg-error/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-button border border-dashed border-border-strong bg-control py-2.5 font-medium text-foreground transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
           >
             <Trash2 className="h-4 w-4" aria-hidden />
             Remove from list

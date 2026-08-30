@@ -10,7 +10,8 @@ import type { DouyinBulkJobStatus, EngineStatus, NativeAuthAccountStatus, Native
 import { DOUYIN_BULK_URL_PREFILL_SESSION_KEY } from '@/utils/douyinBulk'
 import {
   GENERAL_SECTION_CLASS,
-  PREFERENCES_WORKSPACE_CLASS
+  PREFERENCES_WORKSPACE_CLASS,
+  canPersistSiteRule
 } from './preferencesPanelPresentation'
 import { DOWNLOAD_SPEED_MODES, getDownloadSpeedPresentation, getEffectiveIndividualLimit } from './preferencesPanelPresentation'
 import { changeAppLanguage, type AppLanguage } from '@/i18n'
@@ -34,11 +35,11 @@ function PrefCard({
   className?: string
 }) {
   return (
-    <section className={cn('overflow-hidden rounded-2xl bg-surface/70 ring-1 ring-inset ring-divider-subtle', className)}>
+    <section className={cn('overflow-hidden rounded-card bg-surface/70 ring-1 ring-inset ring-divider-subtle', className)}>
       <div className="px-5 pt-5">
         <h3 className="text-[13px] font-semibold tracking-tight text-foreground">{title}</h3>
         {subtitle ? (
-          <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{subtitle}</p>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{subtitle}</p>
         ) : null}
       </div>
       <div className="space-y-4 px-5 pb-5 pt-4">{children}</div>
@@ -60,7 +61,7 @@ function FieldBlock({
       <div>
         <p className="text-[13px] font-medium text-foreground">{label}</p>
         {description ? (
-          <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">{description}</p>
+          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{description}</p>
         ) : null}
       </div>
       {children}
@@ -83,7 +84,7 @@ function SettingRow({
     <div className={cn('v-settings-row flex items-center justify-between gap-6 py-2 first:pt-0 last:pb-0 max-sm:flex-col max-sm:items-start', className)}>
       <div className="min-w-0">
         <p className="text-[13px] font-medium text-foreground">{label}</p>
-        {description ? <p className="mt-0.5 max-w-[46ch] text-[11px] leading-relaxed text-muted-foreground">{description}</p> : null}
+        {description ? <p className="mt-0.5 max-w-[46ch] text-xs leading-relaxed text-muted-foreground">{description}</p> : null}
       </div>
       <div className="shrink-0 max-sm:w-full">{children}</div>
     </div>
@@ -104,11 +105,11 @@ function SettingsDisclosure({
   className?: string
 }) {
   return (
-    <details className={cn('v-settings-disclosure overflow-hidden rounded-2xl bg-surface/35 ring-1 ring-inset ring-divider-subtle', className)} open={defaultOpen || undefined}>
+    <details className={cn('v-settings-disclosure overflow-hidden rounded-card bg-surface/35 ring-1 ring-inset ring-divider-subtle', className)} open={defaultOpen || undefined}>
       <summary className="v-settings-summary flex cursor-pointer items-center justify-between gap-4 px-5 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-border-focus">
         <span className="min-w-0">
           <span className="block text-[13px] font-semibold text-foreground">{title}</span>
-          <span className="mt-0.5 block text-[11px] leading-relaxed text-muted-foreground">{subtitle}</span>
+          <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">{subtitle}</span>
         </span>
         <ChevronDown className="v-settings-chevron h-4 w-4 shrink-0 text-muted-foreground transition-transform motion-reduce:transition-none" aria-hidden />
       </summary>
@@ -677,15 +678,15 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                     )
                   })}
                 </div>
-                <p className="text-[11px] leading-relaxed text-muted-foreground" aria-live="polite">
+                <p className="text-xs leading-relaxed text-muted-foreground" aria-live="polite">
                   {getDownloadSpeedPresentation(settings.downloadSpeedMode ?? 'balanced').shortDescription}
                 </p>
               </FieldBlock>
             </PrefCard>
 
             <SettingsDisclosure
-              title="More download controls"
-              subtitle="Queue limits, network pacing, playlist mode, and bulk tools. Most people can leave these alone."
+              title="Queue behavior"
+              subtitle="How many downloads start at once, and how long to wait between them."
               className="order-3"
             >
             <PrefCard
@@ -710,9 +711,15 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                   onChange={(v) => onUpdate('sleepInterval', v)}
                 />
               </FieldBlock>
-              <p className="text-[11px] text-muted-foreground leading-relaxed border-t border-border pt-3">Failed and interrupted items expose Retry in the queue and inspector. Pause and cancel remain available while a task is active.</p>
+              <p className="text-xs text-muted-foreground leading-relaxed border-t border-border pt-3">Failed and interrupted items expose Retry in the queue and inspector. Pause and cancel remain available while a task is active.</p>
             </PrefCard>
+            </SettingsDisclosure>
 
+            <SettingsDisclosure
+              title="Network / engine"
+              subtitle="Fragment concurrency, direct-media engine, and optional external downloader."
+              className="order-4"
+            >
             <PrefCard
               title="Direct media (extension)"
               subtitle="URLs with a detected media type (HLS, MP4, …). Auto uses yt-dlp first for HLS (.m3u8) for faster parallel fragments; other types still try ffmpeg first with yt-dlp fallback."
@@ -757,7 +764,13 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                 />
               </FieldBlock>
             </PrefCard>
+            </SettingsDisclosure>
 
+            <SettingsDisclosure
+              title="Playlists"
+              subtitle="How channel and list URLs are queued."
+              className="order-5"
+            >
             <PrefCard
               title="YouTube playlists"
               subtitle="Channel and list URLs can be one yt-dlp job (fewer tasks, stable ordering) or many parallel tasks (legacy)."
@@ -796,11 +809,302 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                 />
               </FieldBlock>
             </PrefCard>
+            </SettingsDisclosure>
 
             <PrefCard
-              title="Douyin bulk (optional)"
+              title="Default format"
+              subtitle="Used when the format picker is turned off."
+              className="order-2"
+            >
+              <FieldBlock
+                label="Video quality"
+                description="Higher quality uses more storage and bandwidth."
+              >
+                <select
+                  value={settings.defaultVideoQuality}
+                  onChange={(e) => onUpdate('defaultVideoQuality', e.target.value)}
+                  className="w-full max-w-md px-3 py-2 rounded-lg bg-raised border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-border-focus"
+                >
+                  {VIDEO_QUALITIES.map((q) => (
+                    <option key={q} value={q}>
+                      {q}p
+                    </option>
+                  ))}
+                </select>
+              </FieldBlock>
+              <FieldBlock label="Audio quality" description="Bitrate used for audio-only downloads.">
+                <select
+                  value={settings.defaultAudioQuality}
+                  onChange={(e) => onUpdate('defaultAudioQuality', e.target.value)}
+                  className="w-full max-w-md px-3 py-2 rounded-lg bg-raised border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-border-focus"
+                >
+                  {AUDIO_QUALITIES.map((q) => (
+                    <option key={q} value={q}>
+                      {q}kbps
+                    </option>
+                  ))}
+                </select>
+              </FieldBlock>
+            </PrefCard>
+          </div>
+        )}
+
+        {section === 'browser' && (
+          <div className={PREFERENCES_WORKSPACE_CLASS}>
+            <PrefCard title="Chrome cookie sync" subtitle="Use the Chrome extension to detect media and sync login cookies from your browser.">
+              {(cookieSyncBusy || extensionInstallBusy || cookieSyncNote) && (
+                <div
+                  className={cn(
+                    'rounded-lg border px-3 py-3 flex gap-3 items-start',
+                    cookieSyncBusy || extensionInstallBusy
+                      ? 'border-border-strong bg-state-active-bg'
+                      : 'border-border bg-raised'
+                  )}
+                  role="status"
+                >
+                  {(cookieSyncBusy || extensionInstallBusy) && (
+                    <Loader2 className="w-5 h-5 shrink-0 mt-0.5 animate-spin text-foreground" aria-hidden />
+                  )}
+                  <p className="text-sm text-foreground leading-relaxed flex-1 min-w-0">{cookieSyncNote}</p>
+                  {!cookieSyncBusy && !extensionInstallBusy && cookieSyncNote && (
+                    <HoverHintWrap text="Dismiss message" side="bottom">
+                      <button
+                        type="button"
+                        onClick={() => setCookieSyncNote('')}
+                        className="shrink-0 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-control transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+                        aria-label="Dismiss message"
+                      >
+                        <X className="w-4 h-4" aria-hidden />
+                      </button>
+                    </HoverHintWrap>
+                  )}
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm text-foreground">Chrome extension</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                    {settings.cookiesPath ? 'Cookies synced and ready.' : extensionPath ? 'Extension folder ready.' : 'Extension is ready to load in Chrome.'}
+                  </p>
+                  <p className="text-xs text-muted-foreground/90 mt-1.5 leading-relaxed">
+                    Cookies stay on this computer and are used for authenticated downloads.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch">
+                  <button
+                    type="button"
+                    onClick={() => void handleInstallExtension()}
+                    disabled={cookieSyncBusy || extensionInstallBusy}
+                    className={cn(
+                      `${secondaryButtonClass} flex-1 sm:flex-initial`,
+                      cookieSyncBusy || extensionInstallBusy
+                        ? 'cursor-wait'
+                        : ''
+                    )}
+                    title="Open extension folder and Chrome Extensions for Load unpacked"
+                    aria-busy={extensionInstallBusy}
+                  >
+                    {extensionInstallBusy ? (
+                      <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden />
+                    ) : (
+                      <Puzzle className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    )}
+                    {extensionInstallBusy ? 'Opening…' : 'Install extension'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleForceCookieSync}
+                    disabled={cookieSyncBusy || extensionInstallBusy}
+                    className={cn(
+                      `${secondaryButtonClass} flex-1 sm:flex-initial`,
+                      cookieSyncBusy || extensionInstallBusy
+                        ? 'cursor-wait'
+                        : ''
+                    )}
+                    title="Push fresh cookies from Chrome into V-Download"
+                    aria-busy={cookieSyncBusy}
+                  >
+                    {cookieSyncBusy ? (
+                      <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden />
+                    ) : (
+                      <RefreshCw className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    )}
+                    {cookieSyncBusy ? 'Syncing…' : 'Sync browser cookies'}
+                  </button>
+                </div>
+              </div>
+
+              <SettingRow
+                label="Browser profile"
+                description="Used when Douyin or TikTok needs your logged-in browser session."
+              >
+                <select
+                  value={settings.cookiesFromBrowser ?? 'chrome'}
+                  onChange={(e) => onUpdate('cookiesFromBrowser', e.target.value)}
+                  className={cn(controlClass, 'w-full min-w-[180px]')}
+                >
+                  <option value="chrome">Google Chrome</option>
+                  <option value="chromium">Chromium</option>
+                  <option value="brave">Brave</option>
+                  <option value="edge">Microsoft Edge</option>
+                  <option value="opera">Opera</option>
+                  <option value="vivaldi">Vivaldi</option>
+                  <option value="firefox">Firefox</option>
+                  <option value="safari">Safari (macOS)</option>
+                </select>
+              </SettingRow>
+
+              <SettingsDisclosure title="If Douyin pages fail" subtitle="Optional recovery mode for difficult pages.">
+                <ToggleRow
+                  label="Use CloakBrowser"
+                  description="Downloads a separate patched browser on first use."
+                  checked={settings.douyinUseCloakBrowser === true}
+                  onChange={(v) => onUpdate('douyinUseCloakBrowser', v)}
+                />
+                <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                  See the{' '}
+                  <a href="https://github.com/CloakHQ/cloakbrowser/blob/main/BINARY-LICENSE.md" className="text-foreground underline underline-offset-2 hover:no-underline">
+                    binary license terms
+                  </a>{' '}before enabling it.
+                </p>
+              </SettingsDisclosure>
+            </PrefCard>
+            <PrefCard title="In-app account login" subtitle="Sign in inside a separate V-Download browser window. Cookies are saved in the macOS Keychain and stay local.">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <select
+                  value={nativeAuthSite}
+                  onChange={(event) => setNativeAuthSite(event.target.value as NativeAuthSite)}
+                  className={cn(controlClass, 'w-full sm:max-w-[220px]')}
+                  aria-label="Account site"
+                >
+                  <option value="douyin">Douyin</option>
+                  <option value="youtube">YouTube</option>
+                  <option value="tiktok">TikTok</option>
+                  <option value="bilibili">Bilibili</option>
+                  <option value="xiaohongshu">Xiaohongshu</option>
+                  <option value="x">X / Twitter</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={() => void handleStartNativeAuth()}
+                  disabled={nativeAuthBusy}
+                  className={cn(secondaryButtonClass, 'sm:flex-initial')}
+                >
+                  {nativeAuthBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <Globe className="h-3.5 w-3.5" aria-hidden />}
+                  Open login window
+                </button>
+              </div>
+              <div className="space-y-2">
+                {nativeAccounts.filter((account) => account.connected).map((account) => (
+                  <div key={account.site} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-raised px-3 py-2.5">
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-foreground">{account.site}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{account.cookieCount} cookies · {account.lastSyncedAt ? new Date(account.lastSyncedAt).toLocaleString() : 'saved'}</p>
+                    </div>
+                    <button type="button" onClick={() => void handleClearNativeAuth(account.site)} disabled={nativeAuthBusy} className="min-h-8 rounded-md px-2.5 text-xs font-medium text-muted-foreground hover:bg-control hover:text-foreground disabled:opacity-50">
+                      Disconnect
+                    </button>
+                  </div>
+                ))}
+                {nativeAccounts.every((account) => !account.connected) && (
+                  <p className="rounded-lg bg-raised/45 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
+                    No native account sessions connected. Chrome cookie sync remains available above.
+                  </p>
+                )}
+              </div>
+            </PrefCard>
+          </div>
+        )}
+
+        {section === 'sites' && (
+          <div className={PREFERENCES_WORKSPACE_CLASS}>
+            <PrefCard title="Per-site rules" subtitle="Override the default format for a specific website. Changes save immediately.">
+              <SiteRulesEditor settings={settings} onUpdate={onUpdate} />
+            </PrefCard>
+          </div>
+        )}
+
+        {section === 'advanced' && (
+          <div className={PREFERENCES_WORKSPACE_CLASS}>
+            <PrefCard title="System" subtitle="Only open these details when troubleshooting.">
+              <SettingRow label="App version" description="Installed V-Download version.">
+                <span className="text-[13px] tabular-nums text-muted-foreground">{appVersion ?? '—'}</span>
+              </SettingRow>
+              <div className="space-y-3 border-t border-divider-subtle pt-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[13px] font-medium text-foreground">Download engines</p>
+                    <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                      Check signed metadata for yt-dlp and the bundled FFmpeg release without changing your system installation.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void refreshEngineStatuses(true)}
+                    disabled={engineBusy}
+                    className={cn(secondaryButtonClass, 'shrink-0')}
+                  >
+                    {engineBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <RefreshCw className="h-3.5 w-3.5" aria-hidden />}
+                    {engineBusy ? 'Checking…' : 'Check for updates'}
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {engineStatuses.map((engine) => (
+                    <div key={engine.name} className="rounded-xl bg-raised/45 px-3 py-3 ring-1 ring-inset ring-divider-subtle">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-[13px] font-medium text-foreground">{engine.name}</p>
+                          <p className="mt-0.5 truncate text-xs text-muted-foreground" title={engine.path || undefined}>
+                            {engine.version ? `Version ${engine.version}` : 'Not available'} · {engine.source}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={cn(
+                            'rounded-full px-2 py-1 text-[10px] font-semibold',
+                            engine.source === 'missing'
+                              ? 'border border-dashed border-border-strong bg-state-error-bg text-foreground'
+                              : engine.updateState === 'available'
+                                ? 'bg-selection text-foreground'
+                                : 'bg-state-complete-bg text-foreground'
+                          )}>
+                            {engine.source === 'missing' ? 'Missing' : engine.updateState === 'available' ? `Update ${engine.latestVersion}` : engine.version ? 'Ready' : 'Unavailable'}
+                          </span>
+                          {engine.canUpdate && (
+                            <button
+                              type="button"
+                              onClick={() => void updateEngine(engine.name)}
+                              disabled={engineBusy}
+                              className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-action px-2.5 text-xs font-semibold text-action-fg hover:bg-action-hover disabled:cursor-wait disabled:opacity-50"
+                            >
+                              <Download className="h-3 w-3" aria-hidden />
+                              Update
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      {engine.updateMessage && (
+                        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{engine.updateMessage}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {engineNote && <p className="text-xs leading-relaxed text-muted-foreground">{engineNote}</p>}
+              </div>
+              <SettingsDisclosure title="Engine paths" subtitle="Read-only paths used by yt-dlp and ffmpeg.">
+                <div className="space-y-4">
+                  <FieldBlock label="yt-dlp">
+                    <input type="text" value={settings.ytdlpPath ?? ''} readOnly className={cn(controlClass, 'w-full text-muted-foreground')} />
+                  </FieldBlock>
+                  <FieldBlock label="ffmpeg">
+                    <input type="text" value={settings.ffmpegPath ?? ''} readOnly className={cn(controlClass, 'w-full text-muted-foreground')} />
+                  </FieldBlock>
+                </div>
+              </SettingsDisclosure>
+            </PrefCard>
+            <PrefCard
+              title="Expert tools"
               subtitle="Creator/profile bulk via external jiji262/douyin-downloader. Align `-p` with your app download folder using the fields below; `mode`, `number`, and cookies stay in config.yml per upstream README."
-              className="lg:col-span-2"
             >
               <div className="text-xs text-muted-foreground leading-relaxed">
                 <a
@@ -846,7 +1150,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                   <button
                     type="button"
                     onClick={handleBrowseBulkOutput}
-                      className="inline-flex min-h-11 items-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-elevated text-xs font-medium text-foreground hover:bg-control"
+                    className="inline-flex min-h-11 items-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-elevated text-xs font-medium text-foreground hover:bg-control"
                   >
                     <Folder size={14} aria-hidden />
                     Choose folder
@@ -927,12 +1231,12 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                       <p className="text-xs text-foreground">
                         Job <code>{bulkJob.id}</code> - <span className="capitalize">{bulkJob.state}</span>
                       </p>
-                      <p className="text-[11px] text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         Started: {new Date(bulkJob.startedAt).toLocaleString()}
                         {bulkJob.endedAt ? `  Ended: ${new Date(bulkJob.endedAt).toLocaleString()}` : ''}
                       </p>
                       {bulkJob.stderrTail ? (
-                        <pre className="text-[11px] leading-relaxed text-muted-foreground whitespace-pre-wrap break-words border border-border rounded-md p-2 max-h-32 overflow-y-auto">
+                        <pre className="text-xs leading-relaxed text-muted-foreground whitespace-pre-wrap break-words border border-border rounded-md p-2 max-h-32 overflow-y-auto">
                           {bulkJob.stderrTail}
                         </pre>
                       ) : null}
@@ -941,304 +1245,6 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                   {bulkJobNote ? <p className="text-xs text-muted-foreground">{bulkJobNote}</p> : null}
                 </div>
               )}
-            </PrefCard>
-
-            </SettingsDisclosure>
-
-            <PrefCard
-              title="Default format"
-              subtitle="Used when the format picker is turned off."
-              className="order-2"
-            >
-              <FieldBlock
-                label="Video quality"
-                description="Higher quality uses more storage and bandwidth."
-              >
-                <select
-                  value={settings.defaultVideoQuality}
-                  onChange={(e) => onUpdate('defaultVideoQuality', e.target.value)}
-                  className="w-full max-w-md px-3 py-2 rounded-lg bg-raised border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-border-focus"
-                >
-                  {VIDEO_QUALITIES.map((q) => (
-                    <option key={q} value={q}>
-                      {q}p
-                    </option>
-                  ))}
-                </select>
-              </FieldBlock>
-              <FieldBlock label="Audio quality" description="Bitrate used for audio-only downloads.">
-                <select
-                  value={settings.defaultAudioQuality}
-                  onChange={(e) => onUpdate('defaultAudioQuality', e.target.value)}
-                  className="w-full max-w-md px-3 py-2 rounded-lg bg-raised border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-border-focus"
-                >
-                  {AUDIO_QUALITIES.map((q) => (
-                    <option key={q} value={q}>
-                      {q}kbps
-                    </option>
-                  ))}
-                </select>
-              </FieldBlock>
-            </PrefCard>
-          </div>
-        )}
-
-        {section === 'browser' && (
-          <div className={PREFERENCES_WORKSPACE_CLASS}>
-            <PrefCard title="Browser connection" subtitle="Use the extension to detect media and sync login cookies.">
-              {(cookieSyncBusy || extensionInstallBusy || cookieSyncNote) && (
-                <div
-                  className={cn(
-                    'rounded-lg border px-3 py-3 flex gap-3 items-start',
-                    cookieSyncBusy || extensionInstallBusy
-                      ? 'border-border-strong bg-state-active-bg'
-                      : 'border-border bg-raised'
-                  )}
-                  role="status"
-                >
-                  {(cookieSyncBusy || extensionInstallBusy) && (
-                    <Loader2 className="w-5 h-5 shrink-0 mt-0.5 animate-spin text-foreground" aria-hidden />
-                  )}
-                  <p className="text-sm text-foreground leading-relaxed flex-1 min-w-0">{cookieSyncNote}</p>
-                  {!cookieSyncBusy && !extensionInstallBusy && cookieSyncNote && (
-                    <HoverHintWrap text="Dismiss message" side="bottom">
-                      <button
-                        type="button"
-                        onClick={() => setCookieSyncNote('')}
-                        className="shrink-0 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-control transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
-                        aria-label="Dismiss message"
-                      >
-                        <X className="w-4 h-4" aria-hidden />
-                      </button>
-                    </HoverHintWrap>
-                  )}
-                </div>
-              )}
-
-              <div className="space-y-3">
-                <div>
-                  <p className="text-sm text-foreground">Chrome extension</p>
-                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                    {settings.cookiesPath ? 'Cookies synced and ready.' : extensionPath ? 'Extension folder ready.' : 'Extension is ready to load in Chrome.'}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground/90 mt-1.5 leading-relaxed">
-                    Cookies stay on this computer and are used for authenticated downloads.
-                  </p>
-                </div>
-                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch">
-                  <button
-                    type="button"
-                    onClick={() => void handleInstallExtension()}
-                    disabled={cookieSyncBusy || extensionInstallBusy}
-                    className={cn(
-                      `${secondaryButtonClass} flex-1 sm:flex-initial`,
-                      cookieSyncBusy || extensionInstallBusy
-                        ? 'cursor-wait'
-                        : ''
-                    )}
-                    title="Open extension folder and Chrome Extensions for Load unpacked"
-                    aria-busy={extensionInstallBusy}
-                  >
-                    {extensionInstallBusy ? (
-                      <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden />
-                    ) : (
-                      <Puzzle className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                    )}
-                    {extensionInstallBusy ? 'Opening…' : 'Install extension'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleForceCookieSync}
-                    disabled={cookieSyncBusy || extensionInstallBusy}
-                    className={cn(
-                      `${secondaryButtonClass} flex-1 sm:flex-initial`,
-                      cookieSyncBusy || extensionInstallBusy
-                        ? 'cursor-wait'
-                        : ''
-                    )}
-                    title="Push fresh cookies from Chrome into V-Download"
-                    aria-busy={cookieSyncBusy}
-                  >
-                    {cookieSyncBusy ? (
-                      <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden />
-                    ) : (
-                      <RefreshCw className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                    )}
-                    {cookieSyncBusy ? 'Syncing…' : 'Sync browser cookies'}
-                  </button>
-                </div>
-              </div>
-
-              <SettingsDisclosure
-                title="Connect an account in V-Download"
-                subtitle="Sign in inside a separate browser window. Cookies are saved in the macOS Keychain and stay local."
-              >
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <select
-                    value={nativeAuthSite}
-                    onChange={(event) => setNativeAuthSite(event.target.value as NativeAuthSite)}
-                    className={cn(controlClass, 'w-full sm:max-w-[220px]')}
-                    aria-label="Account site"
-                  >
-                    <option value="douyin">Douyin</option>
-                    <option value="youtube">YouTube</option>
-                    <option value="tiktok">TikTok</option>
-                    <option value="bilibili">Bilibili</option>
-                    <option value="xiaohongshu">Xiaohongshu</option>
-                    <option value="x">X / Twitter</option>
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => void handleStartNativeAuth()}
-                    disabled={nativeAuthBusy}
-                    className={cn(secondaryButtonClass, 'sm:flex-initial')}
-                  >
-                    {nativeAuthBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <Globe className="h-3.5 w-3.5" aria-hidden />}
-                    Open login window
-                  </button>
-                </div>
-                <div className="mt-4 space-y-2">
-                  {nativeAccounts.filter((account) => account.connected).map((account) => (
-                    <div key={account.site} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-raised px-3 py-2.5">
-                      <div className="min-w-0">
-                        <p className="text-[12px] font-medium text-foreground">{account.site}</p>
-                        <p className="mt-0.5 text-[10px] text-muted-foreground">{account.cookieCount} cookies · {account.lastSyncedAt ? new Date(account.lastSyncedAt).toLocaleString() : 'saved'}</p>
-                      </div>
-                      <button type="button" onClick={() => void handleClearNativeAuth(account.site)} disabled={nativeAuthBusy} className="min-h-8 rounded-md px-2.5 text-[11px] font-medium text-muted-foreground hover:bg-control hover:text-foreground disabled:opacity-50">
-                        Disconnect
-                      </button>
-                    </div>
-                  ))}
-                  {nativeAccounts.every((account) => !account.connected) && (
-                    <p className="rounded-lg bg-raised/45 px-3 py-2.5 text-[11px] leading-relaxed text-muted-foreground">
-                      No native account sessions connected. Chrome cookie sync remains available above.
-                    </p>
-                  )}
-                </div>
-              </SettingsDisclosure>
-
-              <SettingRow
-                label="Browser profile"
-                description="Used when Douyin or TikTok needs your logged-in browser session."
-              >
-                <select
-                  value={settings.cookiesFromBrowser ?? 'chrome'}
-                  onChange={(e) => onUpdate('cookiesFromBrowser', e.target.value)}
-                  className={cn(controlClass, 'w-full min-w-[180px]')}
-                >
-                  <option value="chrome">Google Chrome</option>
-                  <option value="chromium">Chromium</option>
-                  <option value="brave">Brave</option>
-                  <option value="edge">Microsoft Edge</option>
-                  <option value="opera">Opera</option>
-                  <option value="vivaldi">Vivaldi</option>
-                  <option value="firefox">Firefox</option>
-                  <option value="safari">Safari (macOS)</option>
-                </select>
-              </SettingRow>
-
-              <SettingsDisclosure title="If Douyin pages fail" subtitle="Optional recovery mode for difficult pages.">
-                <ToggleRow
-                  label="Use CloakBrowser"
-                  description="Downloads a separate patched browser on first use."
-                  checked={settings.douyinUseCloakBrowser === true}
-                  onChange={(v) => onUpdate('douyinUseCloakBrowser', v)}
-                />
-                <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
-                  See the{' '}
-                  <a href="https://github.com/CloakHQ/cloakbrowser/blob/main/BINARY-LICENSE.md" className="text-foreground underline underline-offset-2 hover:no-underline">
-                    binary license terms
-                  </a>{' '}before enabling it.
-                </p>
-              </SettingsDisclosure>
-            </PrefCard>
-          </div>
-        )}
-
-        {section === 'sites' && (
-          <div className={PREFERENCES_WORKSPACE_CLASS}>
-            <PrefCard title="Per-site rules" subtitle="Override the default format for a specific website. Changes save immediately.">
-              <SiteRulesEditor settings={settings} onUpdate={onUpdate} />
-            </PrefCard>
-          </div>
-        )}
-
-        {section === 'advanced' && (
-          <div className={PREFERENCES_WORKSPACE_CLASS}>
-            <PrefCard title="System" subtitle="Only open these details when troubleshooting.">
-              <SettingRow label="App version" description="Installed V-Download version.">
-                <span className="text-[13px] tabular-nums text-muted-foreground">{appVersion ?? '—'}</span>
-              </SettingRow>
-              <div className="space-y-3 border-t border-divider-subtle pt-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-[13px] font-medium text-foreground">Download engines</p>
-                    <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
-                      Check signed metadata for yt-dlp and the bundled FFmpeg release without changing your system installation.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => void refreshEngineStatuses(true)}
-                    disabled={engineBusy}
-                    className={cn(secondaryButtonClass, 'shrink-0')}
-                  >
-                    {engineBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <RefreshCw className="h-3.5 w-3.5" aria-hidden />}
-                    {engineBusy ? 'Checking…' : 'Check for updates'}
-                  </button>
-                </div>
-                <div className="space-y-2">
-                  {engineStatuses.map((engine) => (
-                    <div key={engine.name} className="rounded-xl bg-raised/45 px-3 py-3 ring-1 ring-inset ring-divider-subtle">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="text-[13px] font-medium text-foreground">{engine.name}</p>
-                          <p className="mt-0.5 truncate text-[11px] text-muted-foreground" title={engine.path || undefined}>
-                            {engine.version ? `Version ${engine.version}` : 'Not available'} · {engine.source}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className={cn(
-                            'rounded-full px-2 py-1 text-[10px] font-semibold',
-                            engine.source === 'missing'
-                              ? 'bg-error/[0.12] text-error'
-                              : engine.updateState === 'available'
-                                ? 'bg-selection text-action'
-                                : 'bg-state-complete-bg text-success'
-                          )}>
-                            {engine.source === 'missing' ? 'Missing' : engine.updateState === 'available' ? `Update ${engine.latestVersion}` : engine.version ? 'Ready' : 'Unavailable'}
-                          </span>
-                          {engine.canUpdate && (
-                            <button
-                              type="button"
-                              onClick={() => void updateEngine(engine.name)}
-                              disabled={engineBusy}
-                              className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-action px-2.5 text-[11px] font-semibold text-action-fg hover:bg-action-hover disabled:cursor-wait disabled:opacity-50"
-                            >
-                              <Download className="h-3 w-3" aria-hidden />
-                              Update
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      {engine.updateMessage && (
-                        <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">{engine.updateMessage}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                {engineNote && <p className="text-[11px] leading-relaxed text-warning">{engineNote}</p>}
-              </div>
-              <SettingsDisclosure title="Engine paths" subtitle="Read-only paths used by yt-dlp and ffmpeg.">
-                <div className="space-y-4">
-                  <FieldBlock label="yt-dlp">
-                    <input type="text" value={settings.ytdlpPath ?? ''} readOnly className={cn(controlClass, 'w-full text-muted-foreground')} />
-                  </FieldBlock>
-                  <FieldBlock label="ffmpeg">
-                    <input type="text" value={settings.ffmpegPath ?? ''} readOnly className={cn(controlClass, 'w-full text-muted-foreground')} />
-                  </FieldBlock>
-                </div>
-              </SettingsDisclosure>
             </PrefCard>
             <PrefCard title="Remote Job API" subtitle="Let other apps on this machine or your network enqueue downloads while V-Download is running. The Chrome extension still uses localhost:18765.">
               <ToggleRow
@@ -1314,7 +1320,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                   />
                 </FieldBlock>
               </div>
-              <p className="text-[11px] leading-relaxed text-muted-foreground break-all">
+              <p className="text-xs leading-relaxed text-muted-foreground break-all">
                 {`curl -H "Authorization: Bearer ${settings.remoteApiToken || 'YOUR_TOKEN'}" -d '{"url":"https://example.com/watch?v=1"}' http://${(settings.remoteApiBind === '0.0.0.0' ? '<host>' : '127.0.0.1')}:${settings.remoteApiPort ?? 18766}/v1/jobs`}
               </p>
             </PrefCard>
@@ -1363,21 +1369,53 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
 }
 
 function SiteRulesEditor({ settings, onUpdate }: { settings: SettingsData; onUpdate: (key: string, value: unknown) => Promise<void> }) {
-  const rules = settings.siteRules ?? []
-  const add = () => void onUpdate('siteRules', [...rules, { id: crypto.randomUUID(), domain: '', format: 'best', quality: '1080', enabled: true } satisfies SiteRule])
+  const persisted = settings.siteRules ?? []
+  const [drafts, setDrafts] = useState<SiteRule[]>([])
+  const rows = [...persisted, ...drafts]
+  const persist = (next: SiteRule[]) => void onUpdate('siteRules', next.filter((rule) => canPersistSiteRule(rule.domain)))
+
+  const add = () => {
+    setDrafts((current) => [
+      ...current,
+      { id: crypto.randomUUID(), domain: '', format: 'best', quality: '1080', enabled: true } satisfies SiteRule
+    ])
+  }
+
+  const updateRow = (id: string, patch: Partial<SiteRule>) => {
+    const draft = drafts.find((rule) => rule.id === id)
+    if (draft) {
+      const nextDraft = { ...draft, ...patch }
+      if (canPersistSiteRule(nextDraft.domain)) {
+        setDrafts((current) => current.filter((rule) => rule.id !== id))
+        persist([...persisted, nextDraft])
+        return
+      }
+      setDrafts((current) => current.map((rule) => (rule.id === id ? nextDraft : rule)))
+      return
+    }
+    persist(persisted.map((rule) => (rule.id === id ? { ...rule, ...patch } : rule)))
+  }
+
+  const removeRow = (id: string) => {
+    if (drafts.some((rule) => rule.id === id)) {
+      setDrafts((current) => current.filter((rule) => rule.id !== id))
+      return
+    }
+    persist(persisted.filter((rule) => rule.id !== id))
+  }
 
   return (
     <div className="space-y-4">
-      {rules.length > 0 ? (
+      {rows.length > 0 ? (
         <div className="space-y-3">
-          {rules.map((rule, index) => (
-            <div key={rule.id} className="rounded-xl bg-raised/45 p-3 ring-1 ring-inset ring-divider-subtle">
+          {rows.map((rule, index) => (
+            <div key={rule.id} className="rounded-lg bg-raised/45 p-3 ring-1 ring-inset ring-divider-subtle">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto] sm:items-end">
                 <FieldBlock label="Website">
                   <input
                     aria-label={`Site rule ${index + 1} domain`}
                     value={rule.domain}
-                    onChange={(e) => void onUpdate('siteRules', rules.map((r) => r.id === rule.id ? { ...r, domain: e.target.value } : r))}
+                    onChange={(e) => updateRow(rule.id, { domain: e.target.value })}
                     placeholder="youtube.com"
                     className={cn(controlClass, 'w-full')}
                   />
@@ -1386,7 +1424,7 @@ function SiteRulesEditor({ settings, onUpdate }: { settings: SettingsData; onUpd
                   <select
                     aria-label={`Site rule ${index + 1} output type`}
                     value={rule.format}
-                    onChange={(e) => void onUpdate('siteRules', rules.map((r) => r.id === rule.id ? { ...r, format: e.target.value as SiteRule['format'] } : r))}
+                    onChange={(e) => updateRow(rule.id, { format: e.target.value as SiteRule['format'] })}
                     className={controlClass}
                   >
                     <option value="best">Best</option>
@@ -1399,10 +1437,10 @@ function SiteRulesEditor({ settings, onUpdate }: { settings: SettingsData; onUpd
                     aria-label={`Site rule ${index + 1} quality`}
                     inputMode="numeric"
                     value={rule.quality}
-                    onChange={(e) => void onUpdate('siteRules', rules.map((r) => r.id === rule.id ? { ...r, quality: e.target.value.replace(/[^0-9]/g, '') } : r))}
+                    onChange={(e) => updateRow(rule.id, { quality: e.target.value.replace(/[^0-9]/g, '') })}
                     onBlur={() => {
                       const n = Number(rule.quality)
-                      if (!Number.isFinite(n) || n <= 0) void onUpdate('siteRules', rules.map((r) => r.id === rule.id ? { ...r, quality: r.format === 'audio' ? '320' : '1080' } : r))
+                      if (!Number.isFinite(n) || n <= 0) updateRow(rule.id, { quality: rule.format === 'audio' ? '320' : '1080' })
                     }}
                     className={cn(controlClass, 'w-full sm:w-24')}
                   />
@@ -1412,7 +1450,7 @@ function SiteRulesEditor({ settings, onUpdate }: { settings: SettingsData; onUpd
                     <input
                       type="checkbox"
                       checked={rule.enabled}
-                      onChange={(e) => void onUpdate('siteRules', rules.map((r) => r.id === rule.id ? { ...r, enabled: e.target.checked } : r))}
+                      onChange={(e) => updateRow(rule.id, { enabled: e.target.checked })}
                       className="h-4 w-4 accent-[rgb(var(--color-accent))]"
                     />
                     Active
@@ -1420,7 +1458,7 @@ function SiteRulesEditor({ settings, onUpdate }: { settings: SettingsData; onUpd
                   <button
                     type="button"
                     aria-label={`Remove ${rule.domain || 'site'} rule`}
-                    onClick={() => void onUpdate('siteRules', rules.filter((r) => r.id !== rule.id))}
+                    onClick={() => removeRow(rule.id)}
                     className="inline-flex min-h-10 items-center justify-center rounded-lg px-2.5 text-[13px] text-muted-foreground transition-colors hover:bg-control hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
                   >
                     <X className="h-4 w-4" aria-hidden />
@@ -1432,7 +1470,7 @@ function SiteRulesEditor({ settings, onUpdate }: { settings: SettingsData; onUpd
           ))}
         </div>
       ) : (
-        <div className="rounded-xl bg-raised/35 px-4 py-4 text-[12px] leading-relaxed text-muted-foreground ring-1 ring-inset ring-divider-subtle">
+        <div className="rounded-lg bg-raised/35 px-4 py-4 text-xs leading-relaxed text-muted-foreground ring-1 ring-inset ring-divider-subtle">
           No site-specific rules. Downloads use the defaults from Downloads.
         </div>
       )}
@@ -1458,7 +1496,7 @@ function ToggleRow({
     <div className="v-settings-row flex min-h-11 items-center justify-between gap-6 py-2 first:pt-0 last:pb-0">
       <div className="min-w-0">
         <p className="text-[13px] text-foreground">{label}</p>
-        {description ? <p className="mt-0.5 max-w-[46ch] text-[11px] leading-relaxed text-muted-foreground">{description}</p> : null}
+        {description ? <p className="mt-0.5 max-w-[46ch] text-xs leading-relaxed text-muted-foreground">{description}</p> : null}
       </div>
       <button
         type="button"

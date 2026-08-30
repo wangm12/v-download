@@ -16,8 +16,12 @@ import { useDownloadActions } from '@/contexts/DownloadActionsContext'
 import { formatDuration, formatFileSize } from '@/utils/format'
 import { cn } from '@/lib/cn'
 import { ThumbnailImage } from './ThumbnailImage'
-import { DOWNLOAD_DETAILS_LABEL, DOWNLOAD_DETAILS_RAIL_CLASS } from './downloadInspectorPresentation'
-import { SpotlightCard } from './reactbits/SpotlightCard'
+import {
+  DOWNLOAD_DETAILS_LABEL,
+  DOWNLOAD_DETAILS_RAIL_CLASS,
+  getInspectorStatCells,
+  revealFolderLabel
+} from './downloadInspectorPresentation'
 
 type TranscodePresetId = 'mp3' | 'aac' | 'opus' | 'flac' | 'wav' | 'mp4' | 'h265' | 'vp9'
 
@@ -69,27 +73,19 @@ const DOWNLOAD_ERROR_ACTIONS: Record<DownloadErrorCode, 'retry' | 'sync-cookies'
 }
 
 function StatusPill({ status }: { status: Download['status'] }) {
-  const failed = status === 'error' || status === 'interrupted' || status === 'cancelled'
+  const failed = status === 'error' || status === 'interrupted'
   return (
     <span
       className={cn(
         'inline-flex shrink-0 items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
-        status === 'complete' &&
-          'bg-success/15 text-success',
-        status === 'downloading' && 'bg-selection text-accent',
-        (status === 'queued' || status === 'paused') && 'bg-control text-muted-foreground',
-        failed && 'bg-error/15 text-error'
+        failed
+          ? 'border-dashed border-border-strong bg-state-error-bg text-foreground'
+          : status === 'downloading'
+            ? 'border-border-strong bg-selection text-foreground'
+            : 'border-divider-subtle bg-control text-muted-foreground'
       )}
     >
-      <span
-        className={cn(
-          'h-1.5 w-1.5 shrink-0 rounded-full',
-          status === 'complete' && 'bg-foreground',
-          failed && 'bg-foreground',
-          !failed && status !== 'complete' && 'bg-foreground'
-        )}
-        aria-hidden
-      />
+      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-foreground" aria-hidden />
       {statusLabel(status)}
     </span>
   )
@@ -161,6 +157,7 @@ function InspectorDetailBody({
   onSyncBrowserCookies?: () => void
 }) {
   const [showSafeDetails, setShowSafeDetails] = useState(false)
+  const [showErrorDetails, setShowErrorDetails] = useState(false)
   const [transcodePreset, setTranscodePreset] = useState<TranscodePresetId>('mp4')
   const [transcodeState, setTranscodeState] = useState<{
     status: 'started' | 'progress' | 'complete' | 'error'
@@ -169,14 +166,19 @@ function InspectorDetailBody({
   } | null>(null)
   const { id, title, format, quality, status, progress, speed, eta, phase, thumbnail, duration, channel, error, error_code, file_path, file_size, url } =
     download
-  const meta = [channel, format, quality, duration != null ? formatDuration(duration) : ''].filter(Boolean).join(' · ')
   const recoveryAction = error_code ? DOWNLOAD_ERROR_ACTIONS[error_code] : null
 
+  const folderLabel = revealFolderLabel(typeof window !== 'undefined' ? window.api?.platform : undefined)
   const btn =
     'w-full min-h-11 flex items-center justify-center gap-2 py-2 px-3 rounded-button text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar'
   const btnPrimary = `${btn} bg-action text-action-fg hover:bg-action-hover`
   const btnSecondary = `${btn} border border-border bg-control text-foreground hover:bg-state-active-bg`
-  const btnDanger = `${btn} bg-error/10 text-error hover:bg-error/15`
+  const btnDanger = `${btn} border border-dashed border-border-strong bg-control text-foreground hover:bg-surface-hover`
+  const statCells = getInspectorStatCells({
+    durationLabel: duration != null ? formatDuration(duration) : null,
+    sizeLabel: file_size != null ? formatFileSize(file_size) : null,
+    formatLabel: [format, quality].filter(Boolean).join(' · ') || null
+  })
   const isTranscoding = transcodeState?.status === 'started' || transcodeState?.status === 'progress'
 
   useEffect(() => {
@@ -205,16 +207,25 @@ function InspectorDetailBody({
     <div
       className={cn('flex min-h-0 min-w-0 flex-1 flex-col gap-4', 'animate-panel-fade-in motion-reduce:animate-none')}
     >
-      <SpotlightCard className="aspect-video w-full rounded-card overflow-hidden bg-raised ring-1 ring-inset ring-divider-subtle shrink-0">
+      <div className="aspect-video w-full overflow-hidden rounded-card bg-raised ring-1 ring-inset ring-divider-subtle shrink-0">
         <ThumbnailImage src={thumbnail} referer={url || undefined} />
-      </SpotlightCard>
+      </div>
 
       <div className="min-w-0">
         <h2 className="text-sm font-semibold text-foreground leading-snug break-words">{title}</h2>
-        {meta && <p className="text-xs text-muted-foreground mt-1.5 break-words">{meta}</p>}
+        {channel ? <p className="text-xs text-muted-foreground mt-1.5 break-words">{channel}</p> : null}
         <div className="mt-2">
           <StatusPill status={status} />
         </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        {statCells.map((cell) => (
+          <div key={cell.label} className="rounded-lg bg-control px-2.5 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-tertiary-foreground">{cell.label}</p>
+            <p className="mt-1 text-xs font-medium text-foreground tabular-nums break-words">{cell.value}</p>
+          </div>
+        ))}
       </div>
 
       {status === 'downloading' && (
@@ -234,14 +245,21 @@ function InspectorDetailBody({
         </div>
       )}
 
-      {file_size != null && status === 'complete' && (
-        <p className="text-xs text-muted-foreground">Size · {formatFileSize(file_size)}</p>
-      )}
-
       {(status === 'error' || status === 'interrupted' || status === 'cancelled') && error && (
-        <p className="rounded-button bg-error/10 p-3 text-xs leading-relaxed text-error">
-          {error}
-        </p>
+        <div className="rounded-button border border-dashed border-border-strong bg-state-error-bg p-3">
+          <p className="text-xs font-medium text-foreground">Needs attention</p>
+          {showErrorDetails ? (
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{error}</p>
+          ) : null}
+          <button
+            type="button"
+            className="mt-2 text-xs font-medium text-foreground underline underline-offset-2 hover:no-underline"
+            onClick={() => setShowErrorDetails((value) => !value)}
+            aria-expanded={showErrorDetails}
+          >
+            {showErrorDetails ? 'Hide details' : 'Show details'}
+          </button>
+        </div>
       )}
 
       {status === 'error' && error_code && (
@@ -267,9 +285,23 @@ function InspectorDetailBody({
         <ExternalLink className="w-3.5 h-3.5 shrink-0 mt-0.5" aria-hidden />
         <span className="underline-offset-2 hover:underline">{showSafeDetails ? url : (() => { try { return new URL(url).origin + new URL(url).pathname } catch { return 'Source page' } })()}</span>
       </button>
-      <button type="button" className="text-left text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus rounded" onClick={() => setShowSafeDetails((v) => !v)} aria-expanded={showSafeDetails}>
-        {showSafeDetails ? 'Hide link details' : 'Show link details'}
-      </button>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          className="text-left text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus rounded"
+          onClick={() => setShowSafeDetails((v) => !v)}
+          aria-expanded={showSafeDetails}
+        >
+          {showSafeDetails ? 'Hide link details' : 'Show link details'}
+        </button>
+        <button
+          type="button"
+          className="text-left text-xs font-medium text-foreground underline underline-offset-2 hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus rounded"
+          onClick={() => void navigator.clipboard.writeText(url)}
+        >
+          Copy source link
+        </button>
+      </div>
 
       <div className="flex flex-col gap-2 mt-auto pt-2 border-t border-border">
         {status === 'complete' && file_path && (
@@ -280,7 +312,7 @@ function InspectorDetailBody({
             </button>
             <button type="button" className={btnSecondary} onClick={() => actions.openFolder(file_path)}>
               <FolderOpen className="w-4 h-4 shrink-0" aria-hidden />
-              Reveal in Finder
+              {folderLabel}
             </button>
             <div className="rounded-button border border-border bg-control p-3">
               <label htmlFor={`transcode-preset-${id}`} className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-tertiary-foreground">
@@ -304,10 +336,10 @@ function InspectorDetailBody({
                 </button>
               </div>
               {transcodeState?.status === 'complete' && (
-                <p className="mt-2 text-xs text-success" role="status">Converted copy created.</p>
+                <p className="mt-2 text-xs text-foreground" role="status">Converted copy created.</p>
               )}
               {transcodeState?.status === 'error' && transcodeState.error && (
-                <p className="mt-2 text-xs leading-relaxed text-error" role="alert">{transcodeState.error}</p>
+                <p className="mt-2 text-xs leading-relaxed text-foreground" role="alert">{transcodeState.error}</p>
               )}
             </div>
             <button type="button" className={btnDanger} onClick={() => actions.remove(id)}>

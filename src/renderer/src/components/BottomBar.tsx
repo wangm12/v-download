@@ -1,6 +1,7 @@
 import { Play, Pause, Trash2, ArrowDown, RefreshCw, Loader2 } from 'lucide-react'
 import { HoverHintWrap } from './HoverHintWrap'
 import type { CSSProperties } from 'react'
+import { cn } from '@/lib/cn'
 
 interface BottomBarProps {
   statusText: string
@@ -11,9 +12,7 @@ interface BottomBarProps {
   onResumeAll: () => void
   onPauseAll: () => void
   onSyncCookies?: () => void
-  /** True while waiting for the browser / extension to finish syncing */
   syncCookiesBusy?: boolean
-  /** Finer phase for tooltip / short label */
   syncCookiesPhase?: 'opening' | 'waiting' | null
   onClear: () => void
 }
@@ -39,40 +38,47 @@ export function BottomBar({
         : 'Sync cookies from Chrome (all supported sites)'
   const syncShortLabel =
     syncCookiesPhase === 'opening' ? 'Opening…' : syncCookiesPhase === 'waiting' ? 'Waiting…' : null
+
+  const iconButton = (enabled: boolean) =>
+    cn(
+      'min-h-11 rounded-md px-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus',
+      enabled
+        ? 'text-foreground hover:bg-control'
+        : 'text-muted-foreground/40 cursor-default'
+    )
+
   return (
     <footer
       className="h-11 flex-shrink-0 relative flex items-center px-4 bg-window border-t border-divider-subtle"
       style={{ WebkitAppRegion: 'no-drag' } as CSSProperties}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1">
         <HoverHintWrap text="Start all downloads">
           <button
             type="button"
             onClick={onResumeAll}
-            className={`min-h-11 min-w-11 p-1.5 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus ${
-              hasResumable
-                ? 'text-muted-foreground hover:text-foreground hover:bg-control'
-                : 'text-muted-foreground/40 cursor-default'
-            }`}
+            className={iconButton(hasResumable)}
             aria-label="Start all downloads"
             disabled={!hasResumable}
           >
-            <Play className="w-4 h-4" aria-hidden />
+            <span className="inline-flex items-center gap-1.5">
+              <Play className="w-4 h-4" aria-hidden />
+              {hasResumable ? <span className="text-xs font-medium">Resume</span> : null}
+            </span>
           </button>
         </HoverHintWrap>
         <HoverHintWrap text="Pause all downloads">
           <button
             type="button"
             onClick={onPauseAll}
-            className={`min-h-11 min-w-11 p-1.5 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus ${
-              hasActive
-                ? 'text-muted-foreground hover:text-foreground hover:bg-control'
-                : 'text-muted-foreground/40 cursor-default'
-            }`}
+            className={iconButton(hasActive)}
             aria-label="Pause all downloads"
             disabled={!hasActive}
           >
-            <Pause className="w-4 h-4" aria-hidden />
+            <span className="inline-flex items-center gap-1.5">
+              <Pause className="w-4 h-4" aria-hidden />
+              {hasActive ? <span className="text-xs font-medium">Pause</span> : null}
+            </span>
           </button>
         </HoverHintWrap>
         <HoverHintWrap text="Clear downloads">
@@ -80,14 +86,13 @@ export function BottomBar({
             type="button"
             onClick={onClear}
             disabled={!hasDownloads}
-            className={`min-h-11 min-w-11 p-1.5 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus ${
-              hasDownloads
-                ? 'text-muted-foreground hover:text-foreground hover:bg-control'
-                : 'text-muted-foreground/40 cursor-default'
-            }`}
+            className={iconButton(hasDownloads)}
             aria-label="Clear downloads"
           >
-            <Trash2 className="w-4 h-4" aria-hidden />
+            <span className="inline-flex items-center gap-1.5">
+              <Trash2 className="w-4 h-4" aria-hidden />
+              {hasDownloads ? <span className="text-xs font-medium">Clear</span> : null}
+            </span>
           </button>
         </HoverHintWrap>
       </div>
@@ -111,11 +116,12 @@ export function BottomBar({
               type="button"
               onClick={onSyncCookies}
               disabled={syncCookiesBusy}
-              className={`min-h-11 min-w-11 max-w-full flex items-center justify-center gap-1.5 rounded-md p-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus ${
+              className={cn(
+                'min-h-11 max-w-full flex items-center justify-center gap-1.5 rounded-md px-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus',
                 syncCookiesBusy
-                  ? 'text-foreground cursor-wait ring-1 ring-inset ring-accent/35 bg-selection'
+                  ? 'text-foreground cursor-wait ring-1 ring-inset ring-border-strong bg-selection'
                   : 'text-muted-foreground hover:text-foreground hover:bg-control active:text-foreground'
-              }`}
+              )}
               aria-busy={syncCookiesBusy}
               aria-label={syncTitle}
             >
@@ -125,7 +131,7 @@ export function BottomBar({
                 <RefreshCw className="w-4 h-4 shrink-0" aria-hidden />
               )}
               {syncShortLabel && (
-                <span className="text-[11px] font-medium text-foreground tabular-nums max-w-[4.25rem] truncate">
+                <span className="text-xs font-medium text-foreground tabular-nums max-w-[4.25rem] truncate">
                   {syncShortLabel}
                 </span>
               )}

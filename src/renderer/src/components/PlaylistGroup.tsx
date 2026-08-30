@@ -129,7 +129,7 @@ export const PlaylistGroup = memo(function PlaylistGroup({
       )}
       <div
         className={`mx-1 mb-1 overflow-hidden rounded-panel bg-background ring-1 ring-inset ring-divider-subtle [content-visibility:auto] [contain-intrinsic-size:180px] ${
-          selected ? 'bg-selection ring-accent/45' : ''
+          selected ? 'bg-selection ring-border-strong' : ''
         }`}
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
@@ -215,8 +215,8 @@ export const PlaylistGroup = memo(function PlaylistGroup({
                 <span
                   className={
                     isComplete
-                      ? 'inline-flex shrink-0 items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-success'
-                      : 'rounded-full bg-control px-2 py-0.5 text-foreground'
+                      ? 'inline-flex shrink-0 items-center gap-1 rounded-md border border-divider-subtle bg-state-complete-bg px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-foreground'
+                      : 'rounded-md bg-control px-2 py-0.5 text-foreground'
                   }
                 >
                   {isComplete && (

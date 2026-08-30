@@ -63,3 +63,7 @@ export function getPresentationCandidates(
 export function formatAccessibleDownloadLabel(candidate: Pick<PresentationCandidate, 'kind' | 'quality'>, container: string) {
   return `Download ${candidate.kind === 'audio' ? `${candidate.quality} kbps` : `${candidate.quality}p`} ${container}`
 }
+
+export function getDefaultSelectedKey(candidates: Array<Pick<PresentationCandidate, 'key' | 'recommended'>>): string | null {
+  return candidates.find((candidate) => candidate.recommended)?.key ?? candidates[0]?.key ?? null
+}

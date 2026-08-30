@@ -149,7 +149,7 @@ export function OnboardingWizard({ settings, onComplete }: OnboardingWizardProps
               {steps.map((item, index) => (
                 <li key={item.label} className="min-w-[130px] md:min-w-0">
                   <button type="button" onClick={() => index <= step && setStep(index)} className={cn('flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors', index === step ? 'bg-selection text-action' : 'text-muted-foreground hover:bg-control', index > step && 'opacity-60')}>
-                    <span className={cn('flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ring-1 ring-inset', index < step ? 'bg-state-complete-bg text-success ring-success/30' : index === step ? 'bg-action text-action-fg ring-action' : 'bg-control text-muted-foreground ring-divider-subtle')}>
+                    <span className={cn('flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ring-1 ring-inset', index < step ? 'bg-state-complete-bg text-foreground ring-border-strong' : index === step ? 'bg-action text-action-fg ring-action' : 'bg-control text-muted-foreground ring-divider-subtle')}>
                       {index < step ? <Check className="h-3.5 w-3.5" aria-hidden /> : index + 1}
                     </span>
                     <span className="min-w-0">
@@ -177,7 +177,7 @@ export function OnboardingWizard({ settings, onComplete }: OnboardingWizardProps
                           <p className="text-[13px] font-semibold text-foreground">{engine.name}</p>
                           <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{engine.version ? `Version ${engine.version}` : 'Not found'} · {engine.source}</p>
                         </div>
-                        <span className={cn('rounded-full px-2 py-1 text-[10px] font-semibold', engine.version ? 'bg-state-complete-bg text-success' : 'bg-error/[0.12] text-error')}>
+                        <span className={cn('rounded-md px-2 py-1 text-[10px] font-semibold', engine.version ? 'bg-state-complete-bg text-foreground' : 'border border-dashed border-border-strong bg-state-error-bg text-foreground')}>
                           {engine.version ? 'Ready' : 'Missing'}
                         </span>
                       </div>
@@ -234,7 +234,7 @@ export function OnboardingWizard({ settings, onComplete }: OnboardingWizardProps
               </section>
             )}
 
-            {note && <p className="mt-4 rounded-lg bg-state-error-bg px-3 py-2 text-xs leading-relaxed text-error" role="status">{note}</p>}
+            {note && <p className="mt-4 rounded-lg border border-dashed border-border-strong bg-state-error-bg px-3 py-2 text-xs leading-relaxed text-foreground" role="status">{note}</p>}
           </main>
         </div>
 
