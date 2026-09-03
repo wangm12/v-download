@@ -27,6 +27,12 @@ import { existsSync } from 'fs'
 import { stat, readdir, unlink, rm, rename } from 'fs/promises'
 import { statfs } from 'fs/promises'
 import { sanitizeDownloadBasename } from './sanitizeDownloadBasename'
+import {
+  hasNoteBody,
+  noteFieldsFromMetadata,
+  noteFilePath,
+  writeNoteMarkdownFile,
+} from './noteMarkdown'
 import { classifyResolverError, filterPersistedHeaders, mediaTypeForCandidate, sanitizeResolverError } from './mediaResolver'
 import { ensurePoTokenProvider } from './poTokenServer'
 import { planQueueAdmissions } from './groupedQueueScheduler'
@@ -129,6 +135,7 @@ async function tryAdoptExistingYtdlpOutput(
   if (!hit || isTaskAborted(task.id)) return false
 
   task.filePath = hit.path
+  writeTaskNote(task, 'sidecar', hit.path)
   task.status = 'complete'
   task.progress = 100
   task.error = null
@@ -161,6 +168,7 @@ async function tryAdoptExistingDouyinOutput(task: DownloadTask, outDir: string):
     if (isTaskAborted(task.id)) return false
     if (!st.isFile() || st.size < MIN_DOUYIN_OUTPUT_BYTES) return false
     task.filePath = outputPath
+    writeTaskNote(task, 'sidecar', outputPath)
     task.status = 'complete'
     task.progress = 100
     task.error = null
@@ -328,6 +336,23 @@ function classifyDownloadError(message: string, isYoutube: boolean): DownloadErr
   return isYoutube ? 'NETWORK_RETRYABLE' : 'UNSUPPORTED'
 }
 
+function writeTaskNote(
+  task: DownloadTask,
+  kind: 'gallery' | 'sidecar' | 'text',
+  dest: string
+): string | null {
+  const fields = noteFieldsFromMetadata(task.metadata, {
+    title: task.title,
+    url: task.url,
+    author: typeof task.metadata?.channel === 'string' ? task.metadata.channel : '',
+  })
+  if (!hasNoteBody(fields) && !fields.url.trim()) return null
+  if (kind === 'text' && !hasNoteBody(fields)) return null
+  const path = noteFilePath(kind, dest, fields.title || task.title)
+  writeNoteMarkdownFile(path, fields)
+  return path
+}
+
 function setTaskError(task: DownloadTask, message: string, code?: DownloadErrorCode): void {
   task.status = 'error'
   task.error = sanitizeResolverError(message)
@@ -395,6 +420,11 @@ function serializeExtras(metadata?: Record<string, unknown>): string | null {
   if (typeof metadata.remoteOutputDir === 'string' && metadata.remoteOutputDir.trim()) {
     out.remoteOutputDir = metadata.remoteOutputDir.trim()
   }
+  if (typeof metadata.noteTitle === 'string') out.noteTitle = metadata.noteTitle
+  if (typeof metadata.noteAuthor === 'string') out.noteAuthor = metadata.noteAuthor
+  if (typeof metadata.noteUrl === 'string') out.noteUrl = metadata.noteUrl
+  if (typeof metadata.noteDescription === 'string') out.noteDescription = metadata.noteDescription
+  if (metadata.noteOnly === true) out.noteOnly = true
   return Object.keys(out).length ? JSON.stringify(out) : null
 }
 
@@ -689,6 +719,7 @@ async function runDouyinDirectDownload(
       /* ignore */
     }
     task.filePath = filePath
+    writeTaskNote(task, 'sidecar', filePath)
     task.status = 'complete'
     task.progress = 100
     task.error = null
@@ -1305,6 +1336,7 @@ async function runTask(task: DownloadTask): Promise<void> {
       } catch {
         /* ignore */
       }
+      writeTaskNote(task, 'gallery', dir)
       task.filePath = dir
       task.status = 'complete'
       task.progress = 100
@@ -1328,6 +1360,42 @@ async function runTask(task: DownloadTask): Promise<void> {
       setTaskError(task, e instanceof Error ? e.message : String(e))
       emitProgress(task)
     }
+    taskProgress.delete(task.id)
+    releaseSlot()
+    processQueue()
+    return
+  }
+
+  if (taskMeta?.noteOnly === true) {
+    task.status = 'downloading'
+    task.updatedAt = new Date().toISOString()
+    db.updateDownload(task.id, { status: 'downloading', progress: 1 })
+    emitProgress(task)
+    const notePath = writeTaskNote(task, 'text', outDir)
+    if (!notePath) {
+      setTaskError(task, 'This post has no title or text to save')
+      emitProgress(task)
+      taskProgress.delete(task.id)
+      releaseSlot()
+      processQueue()
+      return
+    }
+    task.filePath = notePath
+    task.status = 'complete'
+    task.progress = 100
+    task.error = null
+    task.errorCode = null
+    task.updatedAt = new Date().toISOString()
+    taskExtraMeta.delete(task.id)
+    db.updateDownload(task.id, {
+      status: 'complete',
+      progress: 100,
+      file_path: notePath,
+      file_size: null,
+      error: null,
+      error_code: null
+    })
+    emitProgress(task)
     taskProgress.delete(task.id)
     releaseSlot()
     processQueue()
@@ -1463,6 +1531,7 @@ async function runTask(task: DownloadTask): Promise<void> {
           const actualFinalPath = await chooseSafeOutputPath(finalPath)
           await rename(`${finalPath}.part`, actualFinalPath)
           task.filePath = actualFinalPath
+          writeTaskNote(task, 'sidecar', actualFinalPath)
           task.status = 'complete'
           task.progress = 100
           task.error = null
@@ -1676,6 +1745,7 @@ async function runTask(task: DownloadTask): Promise<void> {
           /* folder missing — still mark playlist folder */
         }
         task.filePath = outDir
+        writeTaskNote(task, 'gallery', outDir)
         task.status = 'complete'
         task.progress = 100
         task.error = null
@@ -1826,6 +1896,7 @@ async function runTask(task: DownloadTask): Promise<void> {
       }
 
       task.filePath = filePath
+      writeTaskNote(task, 'sidecar', filePath)
       task.status = 'complete'
       task.progress = 100
       task.error = null

@@ -68,6 +68,10 @@ export interface SettingsSchema {
   remoteApiToken: string
   remoteApiBind: '127.0.0.1' | '0.0.0.0'
   remoteApiPort: number
+  /** MCP write tools (enqueue/cancel) on the same listener. Off by default. */
+  remoteApiMcpAllowWrite: boolean
+  /** Write tools require `confirm: true` in the tool arguments. */
+  remoteApiMcpRequireConfirm: boolean
 }
 
 export interface SiteRule {
@@ -141,7 +145,9 @@ const defaults: SettingsSchema = {
   remoteApiEnabled: false,
   remoteApiToken: '',
   remoteApiBind: '127.0.0.1',
-  remoteApiPort: 18766
+  remoteApiPort: 18766,
+  remoteApiMcpAllowWrite: false,
+  remoteApiMcpRequireConfirm: true
 }
 
 let settingsPath = ''
@@ -209,6 +215,8 @@ function normalizeLoadedSettings(s: SettingsSchema): void {
   let remotePort = Number(s.remoteApiPort)
   if (!Number.isFinite(remotePort) || remotePort === 18765) remotePort = 18766
   s.remoteApiPort = Math.min(65535, Math.max(1024, Math.floor(remotePort)))
+  s.remoteApiMcpAllowWrite = Boolean(s.remoteApiMcpAllowWrite)
+  s.remoteApiMcpRequireConfirm = s.remoteApiMcpRequireConfirm !== false
   s.siteRules = Array.isArray(s.siteRules) ? s.siteRules.filter((rule): rule is SiteRule => {
     return Boolean(rule && typeof rule.id === 'string' && typeof rule.domain === 'string' && rule.domain.trim() &&
       ['best', 'video', 'audio'].includes(rule.format) && typeof rule.quality === 'string' &&
@@ -289,7 +297,7 @@ export function validateSettingUpdate(key: string, value: unknown): value is Set
   if (key === 'cookiesPath') return false
   if (typeof value === 'string' && value.length > 4096) return false
   if (['downloadDir', 'douyinBulkRunPyPath', 'douyinBulkConfigPath', 'douyinBulkOutputPath', 'ytdlpPath', 'ffmpegPath'].includes(key) && typeof value === 'string' && (value.length === 0 || /[\0\r\n]/.test(value))) return false
-  if (['showFormatDialog', 'playlistSubfolder', 'douyinUseCloakBrowser', 'turboRiskAcknowledged', 'douyinBulkVerboseWarnings', 'onboardingCompleted', 'remoteApiEnabled'].includes(key)) return typeof value === 'boolean'
+  if (['showFormatDialog', 'playlistSubfolder', 'douyinUseCloakBrowser', 'turboRiskAcknowledged', 'douyinBulkVerboseWarnings', 'onboardingCompleted', 'remoteApiEnabled', 'remoteApiMcpAllowWrite', 'remoteApiMcpRequireConfirm'].includes(key)) return typeof value === 'boolean'
   // Accept legacy persisted/update values (including 0 and values above 3); set() normalizes concurrency to 1..3.
   if (['concurrency', 'sleepInterval', 'youtubePlaylistSleepRequests', 'youtubePlaylistMaxDownloads', 'douyinBulkThreads', 'concurrentFragments'].includes(key)) return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 100
   if (key === 'remoteApiPort') return typeof value === 'number' && Number.isFinite(value) && value >= 1024 && value <= 65535 && value !== 18765

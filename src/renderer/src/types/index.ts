@@ -62,6 +62,8 @@ export interface VideoInfo {
   playlist_count?: number
   /** Douyin / Xiaohongshu image note — passed through format dialog for gallery metadata */
   image_urls?: string[]
+  /** Parsed caption / description for note.md */
+  description?: string
   formats?: Array<{ format_id?: string; format?: string; ext?: string; container?: string; height?: number; width?: number; abr?: number; bitrate?: number; tbr?: number; filesize?: number; filesize_approx?: number; vcodec?: string; acodec?: string; source?: string }>
 }
 
@@ -110,6 +112,8 @@ export interface SettingsData {
   remoteApiToken?: string
   remoteApiBind?: '127.0.0.1' | '0.0.0.0'
   remoteApiPort?: number
+  remoteApiMcpAllowWrite?: boolean
+  remoteApiMcpRequireConfirm?: boolean
 }
 
 export interface SiteRule {

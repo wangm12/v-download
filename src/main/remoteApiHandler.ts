@@ -12,6 +12,7 @@ import {
   type JobRecord,
   type JobView,
 } from './apiJobsModel'
+import { dispatchMcpJsonRpc, getMcpLogs, listJobSummaries } from './remoteMcpModel'
 import { sanitizeDownloadBasename } from './sanitizeDownloadBasename'
 
 export const MAX_REMOTE_API_BODY_BYTES = 64 * 1024
@@ -20,13 +21,17 @@ export interface RemoteJobBackend {
   getToken(): string
   createJob(url: string): { id: string; status: string; url: string }
   getJob(id: string): JobRecord | null
+  listJobs(): JobRecord[]
   artifactsFor(id: string): Artifact[]
   ownedPathsFor(id: string): string[]
   cancelJob(id: string): 'ok' | 'not_found' | 'not_cancellable'
+  allowMcpWrite(): boolean
+  requireMcpConfirm(): boolean
 }
 
 export type RemoteApiDispatch =
   | { type: 'json'; status: number; body: unknown }
+  | { type: 'empty'; status: number }
   | { type: 'file'; status: number; path: string; name: string }
   | { type: 'archive'; status: number; files: Array<{ path: string; name: string }>; zipName: string }
 
@@ -45,10 +50,10 @@ function viewFor(backend: RemoteJobBackend, record: JobRecord): JobView {
   return buildJobView(record, { artifacts: backend.artifactsFor(record.id) })
 }
 
-function parsePath(url: string): { pathname: string; segments: string[] } {
+function parsePath(url: string): { pathname: string; segments: string[]; searchParams: URLSearchParams } {
   const parsed = new URL(url, 'http://127.0.0.1')
   const pathname = parsed.pathname.replace(/\/+$/, '') || '/'
-  return { pathname, segments: pathname.split('/').filter(Boolean) }
+  return { pathname, segments: pathname.split('/').filter(Boolean), searchParams: parsed.searchParams }
 }
 
 function streamNamedFile(backend: RemoteJobBackend, id: string, name: string): RemoteApiDispatch {
@@ -59,10 +64,25 @@ function streamNamedFile(backend: RemoteJobBackend, id: string, name: string): R
 
 export function dispatchRemoteApi(request: RemoteApiRequest, backend: RemoteJobBackend): RemoteApiDispatch {
   const method = request.method.toUpperCase()
-  const { pathname, segments } = parsePath(request.url)
+  const { pathname, segments, searchParams } = parsePath(request.url)
 
   if (method === 'GET' && (pathname === '/api/health' || pathname === '/health')) {
     return { type: 'json', status: 200, body: { ok: true, service: 'v-download-remote-api' } }
+  }
+
+  if (pathname === '/mcp') {
+    if (method === 'GET') {
+      return { type: 'json', status: 405, body: { error: { code: 'method_not_allowed', message: 'Use POST /mcp' } } }
+    }
+    if (method !== 'POST') {
+      return jsonError(404, { code: 'not_found', message: 'Not found' })
+    }
+    if (!hasApiAuth(request.headers ?? {}, backend.getToken())) {
+      return jsonError(401, { code: 'unauthorized', message: 'Authorization Bearer token required' })
+    }
+    const mcp = dispatchMcpJsonRpc(request.body, backend)
+    if (mcp.type === 'notification') return { type: 'empty', status: 204 }
+    return { type: 'json', status: 200, body: mcp.body }
   }
 
   if (!pathname.startsWith('/v1')) {
@@ -71,6 +91,15 @@ export function dispatchRemoteApi(request: RemoteApiRequest, backend: RemoteJobB
 
   if (!hasApiAuth(request.headers ?? {}, backend.getToken())) {
     return jsonError(401, { code: 'unauthorized', message: 'Authorization Bearer token required' })
+  }
+
+  if (method === 'GET' && pathname === '/v1/jobs') {
+    return { type: 'json', status: 200, body: { jobs: listJobSummaries(backend.listJobs()) } }
+  }
+
+  if (method === 'GET' && pathname === '/v1/mcp/logs') {
+    const limit = Number(searchParams.get('limit') || 50)
+    return { type: 'json', status: 200, body: { logs: getMcpLogs(limit) } }
   }
 
   if (method === 'POST' && pathname === '/v1/jobs') {

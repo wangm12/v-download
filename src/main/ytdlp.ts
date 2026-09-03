@@ -50,7 +50,23 @@ export interface VideoInfo {
   entries?: VideoInfo[]
   _type?: string
   webpage_url: string
+  description?: string
   candidates?: ResolverCandidate[]
+}
+
+export class YtdlpInfoError extends Error {
+  readonly stdout: string
+  readonly stderr: string
+  constructor(message: string, stdout: string, stderr: string) {
+    super(message)
+    this.name = 'YtdlpInfoError'
+    this.stdout = stdout
+    this.stderr = stderr
+  }
+}
+
+export function isYtdlpNoFormatsError(message: string): boolean {
+  return /No video formats found/i.test(message)
 }
 
 export interface FormatInfo {
@@ -312,8 +328,26 @@ function parseVideoInfoFromJson(json: Record<string, unknown>): VideoInfo {
     playlist_count: typeof json.playlist_count === 'number' ? json.playlist_count : undefined,
     webpage_url: String(json.webpage_url ?? json.url ?? ''),
     _type: json._type as string | undefined,
+    description: typeof json.description === 'string' ? json.description : '',
     candidates: resolveMediaCandidates(formatInfos.filter((f) => f.url).map((f) => ({ ...f, url: f.url! } as ResolverCandidate)), { pageUrl: String(json.webpage_url ?? ''), source: 'yt-dlp' })
   }
+}
+
+export function textInfoFromYtdlpDump(stdout: string): VideoInfo | null {
+  const lines = stdout.trim().split('\n').filter(Boolean)
+  for (let i = lines.length - 1; i >= 0; i--) {
+    try {
+      const json = JSON.parse(lines[i]!) as Record<string, unknown>
+      const info = parseVideoInfoFromJson(json)
+      const description = info.description?.trim() ?? ''
+      const titled = info.title.trim() && info.title !== 'Unknown'
+      if (!titled && !description) continue
+      return { ...info, _type: 'text', formats: [], candidates: [] }
+    } catch {
+      /* next line */
+    }
+  }
+  return null
 }
 
 export async function getVideoInfo(
@@ -387,7 +421,7 @@ export async function getVideoInfo(
     proc.on('close', (code) => {
       if (settled) return
       if (code !== 0 && code !== null) {
-        rejectOnce(new Error(`yt-dlp exited with code ${code}: ${stderr || stdout}`))
+        rejectOnce(new YtdlpInfoError(`yt-dlp exited with code ${code}: ${stderr || stdout}`, stdout, stderr))
         return
       }
 

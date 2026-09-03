@@ -1,6 +1,6 @@
 # Download engines and routing
 
-This document describes how **V-Download** chooses between **yt-dlp**, **ffmpeg**, **Douyin-specific code**, and **external bulk tools**. It complements [MANUAL_TESTING.md](./MANUAL_TESTING.md).
+This document describes how **V-Download** chooses between **yt-dlp**, **ffmpeg**, **Douyin-specific code**, and **external bulk tools**. Recovery and Douyin fallback research: [download-reliability.md](./download-reliability.md). Release checks: [MANUAL_TESTING.md](./MANUAL_TESTING.md).
 
 ## Glossary
 

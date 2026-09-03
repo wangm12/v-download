@@ -32,6 +32,7 @@ import {
   type QueueFilter
 } from '@/utils/queueFilters'
 import { isPlaylistUrl } from '@/utils/youtube'
+import { noteMetadataFromVideoInfo } from '@/utils/noteMetadata'
 import { DOUYIN_BULK_URL_PREFILL_SESSION_KEY } from '@/utils/douyinBulk'
 import { parseSpeedToBytes, formatSpeed } from '@/utils/format'
 import {
@@ -356,6 +357,7 @@ function MainApp() {
           const isGallery =
             (galleryType === 'douyin_gallery' || galleryType === 'xhs_gallery') && Boolean(imgs?.length)
           const imageMetaKey = galleryType === 'xhs_gallery' ? 'xhsImageUrls' : 'douyinImageUrls'
+          const noteMeta = noteMetadataFromVideoInfo(pendingVideoInfo)
           const promoted = await window.api.promoteInfoResolve({
             id: pendingResolverId,
             url: pendingVideoInfo.webpage_url || _url,
@@ -365,10 +367,11 @@ function MainApp() {
             thumbnail: pendingVideoInfo.thumbnail,
             duration: pendingVideoInfo.duration,
             metadata: isGallery
-              ? { [imageMetaKey]: imgs, channel: pendingVideoInfo.channel ?? '' }
+              ? { [imageMetaKey]: imgs, channel: pendingVideoInfo.channel ?? '', ...noteMeta }
               : {
                   ...(pendingVideoInfo.channel ? { channel: pendingVideoInfo.channel } : {}),
-                  ...(pendingVideoInfo.id ? { ytdlpId: pendingVideoInfo.id } : {})
+                  ...(pendingVideoInfo.id ? { ytdlpId: pendingVideoInfo.id } : {}),
+                  ...noteMeta
                 }
           })
           if (promoted?.error) consumeResolver = false
@@ -418,6 +421,7 @@ function MainApp() {
           const isGallery =
             (galleryType === 'douyin_gallery' || galleryType === 'xhs_gallery') && imgs && imgs.length > 0
           const imageMetaKey = galleryType === 'xhs_gallery' ? 'xhsImageUrls' : 'douyinImageUrls'
+          const noteMeta = pendingVideoInfo ? noteMetadataFromVideoInfo(pendingVideoInfo) : {}
 
           await window.api.startDownload({
             url: pageUrl,
@@ -429,11 +433,13 @@ function MainApp() {
             metadata: isGallery
               ? {
                   [imageMetaKey]: imgs,
-                  channel: pendingVideoInfo?.channel ?? ''
+                  channel: pendingVideoInfo?.channel ?? '',
+                  ...noteMeta
                 }
               : {
                   ...(pendingVideoInfo?.channel ? { channel: pendingVideoInfo.channel } : {}),
-                  ...(pendingVideoInfo?.id ? { ytdlpId: pendingVideoInfo.id } : {})
+                  ...(pendingVideoInfo?.id ? { ytdlpId: pendingVideoInfo.id } : {}),
+                  ...noteMeta
                 }
           })
         }

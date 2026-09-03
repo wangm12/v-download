@@ -40,6 +40,7 @@ const backend: RemoteJobBackend = {
     return { id, status: 'queued', url }
   },
   getJob: (id) => jobs.get(id) ?? null,
+  listJobs: () => [...jobs.values()],
   artifactsFor: (id) => {
     const dir = artifactDirs.get(id)
     return dir ? listJobArtifacts(dir) : []
@@ -52,6 +53,8 @@ const backend: RemoteJobBackend = {
     job.status = 'cancelled'
     return 'ok'
   },
+  allowMcpWrite: () => false,
+  requireMcpConfirm: () => true,
 }
 
 jobs.set('queuedjob1', {
@@ -153,6 +156,15 @@ assert.equal(created.type, 'json')
 if (created.type === 'json') {
   assert.equal(created.status, 202)
   assert.equal((created.body as { id: string }).id, 'createdjob1')
+}
+
+const listed = dispatchRemoteApi({ method: 'GET', url: '/v1/jobs', headers: auth }, backend)
+assert.equal(listed.type, 'json')
+if (listed.type === 'json') {
+  assert.equal(listed.status, 200)
+  const jobsBody = listed.body as { jobs: Array<{ id: string; files?: unknown }> }
+  assert.ok(jobsBody.jobs.some((job) => job.id === 'createdjob1'))
+  assert.ok(jobsBody.jobs.every((job) => job.files === undefined))
 }
 
 const pending = dispatchRemoteApi({ method: 'GET', url: '/v1/jobs/queuedjob1', headers: auth }, backend)

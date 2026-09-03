@@ -7,9 +7,11 @@ import {
   isDouyinPostUnavailableError,
 } from './douyin'
 import {
+  formatXhsResolveError,
   getXiaohongshuInfo,
   getLastXhsInfoError,
   isXiaohongshuGallery,
+  isXiaohongshuText,
   isXiaohongshuUrl,
 } from './xiaohongshu'
 import { protocolFor, resolveMediaCandidates } from './mediaResolver'
@@ -85,7 +87,8 @@ function toDouyinData(
       formats: [],
       webpage_url: url,
       _type: 'douyin_gallery',
-      image_urls: douyin.imageUrls
+      image_urls: douyin.imageUrls,
+      description: douyin.title,
     }
   }
   return {
@@ -97,7 +100,8 @@ function toDouyinData(
     view_count: 0,
     formats: [],
     webpage_url: url,
-    _type: 'video'
+    _type: 'video',
+    description: douyin.title,
   }
 }
 
@@ -105,6 +109,20 @@ function toXhsData(
   url: string,
   xhs: NonNullable<Awaited<ReturnType<typeof getXiaohongshuInfo>>>
 ): Record<string, unknown> {
+  if (xhs.kind === 'text') {
+    return {
+      id: xhs.id,
+      title: xhs.title,
+      thumbnail: '',
+      duration: 0,
+      channel: xhs.author,
+      view_count: 0,
+      formats: [],
+      webpage_url: url,
+      _type: 'text',
+      description: xhs.description,
+    }
+  }
   return {
     id: xhs.id,
     title: xhs.title,
@@ -116,6 +134,7 @@ function toXhsData(
     webpage_url: url,
     _type: 'xhs_gallery',
     image_urls: xhs.imageUrls,
+    description: xhs.description,
   }
 }
 
@@ -172,7 +191,9 @@ export async function resolveVideoInfo(url: string, signal?: AbortSignal): Promi
     if (xhsUrl) {
       xhsHint = await getXiaohongshuInfo(url, cookiesPath || undefined)
       throwIfAborted(resolveSignal)
-      if (isXiaohongshuGallery(xhsHint)) return { data: toXhsData(url, xhsHint) }
+      if (xhsHint && (isXiaohongshuGallery(xhsHint) || isXiaohongshuText(xhsHint))) {
+        return { data: toXhsData(url, xhsHint) }
+      }
     }
 
     try {
@@ -189,6 +210,10 @@ export async function resolveVideoInfo(url: string, signal?: AbortSignal): Promi
       if (douyinTimebox?.timedOut()) return { error: douyinTimeoutError() }
       throwIfAborted(signal)
       const msg = err instanceof Error ? err.message : String(err)
+      if (err instanceof ytdlp.YtdlpInfoError && ytdlp.isYtdlpNoFormatsError(msg)) {
+        const text = ytdlp.textInfoFromYtdlpDump(err.stdout)
+        if (text) return { data: text }
+      }
       if (douyinUrl) {
         const douyin = douyinHint ?? await getDouyinInfo(url, cookiesPath || undefined, { signal: resolveSignal })
         if (douyin) return { data: toDouyinData(url, douyin) }
@@ -197,9 +222,8 @@ export async function resolveVideoInfo(url: string, signal?: AbortSignal): Promi
       }
       if (xhsUrl) {
         const xhs = xhsHint ?? (await getXiaohongshuInfo(url, cookiesPath || undefined))
-        if (xhs && isXiaohongshuGallery(xhs)) return { data: toXhsData(url, xhs) }
-        const hint = getLastXhsInfoError()
-        if (hint) return { error: `${msg} | ${hint}` }
+        if (xhs && (isXiaohongshuGallery(xhs) || isXiaohongshuText(xhs))) return { data: toXhsData(url, xhs) }
+        return { error: formatXhsResolveError(msg, getLastXhsInfoError()) }
       }
       return { error: msg }
     }

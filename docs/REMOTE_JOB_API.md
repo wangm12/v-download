@@ -1,6 +1,6 @@
 # Remote Job API
 
-HTTP API on the **running V-Download desktop app**. Other programs enqueue a URL; the app downloads it with the same queue, cookies, yt-dlp/ffmpeg engines, and quality settings as a paste in the UI.
+HTTP API on the **running V-Download desktop app**. Other programs enqueue a URL; the app **resolves it the same way as a paste in the UI** (gallery vs video vs text), then downloads with the same queue, cookies, yt-dlp/ffmpeg engines, and quality settings. Parsed titles and captions are saved as Markdown next to the media (or as a lone `.md` when there is no media).
 
 This is **not** the Chrome extension pairing server. The extension talks to `127.0.0.1:18765`. This API is a separate listener (default `:18766`).
 
@@ -81,7 +81,9 @@ Token shape: 16–128 characters, `[A-Za-z0-9_-]`. The app generates a 48-charac
 | Errors | Always `{ "error": { "code": string, "message": string, "details"?: object } }` |
 | File names | Basename only. `/`, `\`, `..`, NUL → `400` `invalid_name`. |
 
-There is **no** list-jobs endpoint, webhook, or quality/format field. Quality comes from Preferences (`defaultVideoQuality`). Jobs show up in the Downloads queue.
+There is **no** webhook or quality/format field on create. Quality comes from Preferences (`defaultVideoQuality`). Jobs also show up in the Downloads queue.
+
+`GET /v1/jobs` lists job snapshots (no file bodies). `POST /mcp` is a JSON-RPC MCP facade on the same listener and Bearer token.
 
 ---
 
@@ -131,6 +133,52 @@ No auth. Process liveness only — does not prove a token is valid.
 ```json
 { "ok": true, "service": "v-download-remote-api" }
 ```
+
+---
+
+### `GET /v1/jobs`
+
+List Remote Job API jobs. Newest `updatedAt` first. Auth required. Does **not** include file bytes or paths.
+
+**200**
+
+```json
+{
+  "jobs": [
+    {
+      "id": "a1b2c3d4e5f67890",
+      "status": "queued",
+      "url": "https://example.com/watch?v=1",
+      "title": null,
+      "progress": 0,
+      "updatedAt": "2026-08-31T08:00:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+### `POST /mcp`
+
+JSON-RPC 2.0 MCP endpoint for Claude Code / Codex / similar agents. Same Bearer token as `/v1`. `GET /mcp` returns `405`.
+
+Methods: `initialize`, `ping`, `tools/list`, `tools/call`, `notifications/initialized`.
+
+| Tool | Kind | Maps to |
+|------|------|---------|
+| `health` | read | `GET /health` |
+| `list_jobs` | read | `GET /v1/jobs` |
+| `get_job` | read | `GET /v1/jobs/:id` |
+| `get_job_files` | read | artifact names/sizes for that job only |
+| `enqueue_job` | write | `POST /v1/jobs` |
+| `cancel_job` | write | `POST /v1/jobs/:id/cancel` |
+
+Write tools are **off** until Preferences → Advanced → **Allow MCP write tools**. When **Require confirm on writes** is on (default), pass `"confirm": true` in the tool arguments.
+
+Copy the client config block from that same preferences card (`URL` + `Authorization: Bearer …`).
+
+`GET /v1/mcp/logs?limit=50` (auth) returns a redacted in-memory call log. Tokens, cookies, and URL query strings are not stored.
 
 ---
 
@@ -361,12 +409,14 @@ Poll `GET /v1/jobs/:id` until `complete`, `error`, or `cancelled`. A few hundred
 
 ## How a URL is handled
 
-The body cannot set format or quality. The job uses **Preferences → default video quality** and `format: video`.
+The body cannot set format or quality. The job uses **Preferences → default video quality**. Single URLs run the same `resolveVideoInfo` path as a UI paste before enqueue (not a blind `format: video` task).
 
 | URL class | What happens |
 |---|---|
 | Direct media (path ends in `.mp4`, `.m3u8`, `.mp3`, `.jpg`, …) | One download task |
-| Ordinary watch page | One yt-dlp task |
+| Xiaohongshu image note | Image folder + `note.md` |
+| Xiaohongshu / X / other text-only (resolver has title or description, no media) | Lone `.md` |
+| Ordinary watch page with video | One yt-dlp task + sidecar `.md` when description exists |
 | YouTube playlist / channel / `@handle` | **Collection.** If playlist mode is *fan-out*, each entry becomes a task (max **50**). Otherwise one playlist task. |
 
 Cookies and site logins are whatever the desktop app already has (Chrome cookie sync, native auth). The API does not accept a cookie header.

@@ -49,6 +49,7 @@ const api = {
   openFile: (path: string) => ipcRenderer.invoke('open-file', path),
   getSettings: () => ipcRenderer.invoke('get-settings'),
   updateSettings: (key: string, value: unknown) => ipcRenderer.invoke('update-settings', key, value),
+  getRemoteMcpLogs: (limit?: number) => ipcRenderer.invoke('get-remote-mcp-logs', limit),
   applyDownloadSpeedMode: (
     mode: 'balanced' | 'turbo' | 'gentle',
     options?: { acknowledgeTurboRisk?: boolean }

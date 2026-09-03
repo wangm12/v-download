@@ -168,7 +168,9 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
     remoteApiEnabled: false,
     remoteApiToken: '',
     remoteApiBind: '127.0.0.1',
-    remoteApiPort: 18766
+    remoteApiPort: 18766,
+    remoteApiMcpAllowWrite: false,
+    remoteApiMcpRequireConfirm: true
   })
   const [bulkUrl, setBulkUrl] = useState('')
   const [bulkJobId, setBulkJobId] = useState('')
@@ -178,6 +180,32 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
   const [turboModalOpen, setTurboModalOpen] = useState(false)
   const turboDialogRef = useRef<HTMLDivElement>(null)
   const [remoteTokenCopied, setRemoteTokenCopied] = useState(false)
+  const [mcpConfigCopied, setMcpConfigCopied] = useState(false)
+  const [mcpLogs, setMcpLogs] = useState<Array<{
+    timestamp: string
+    tool: string
+    argumentSummary: string
+    success: boolean
+    elapsedMs: number
+    errorCode?: string | null
+    message: string
+  }>>([])
+
+  useEffect(() => {
+    if (section !== 'advanced' || !settings.remoteApiEnabled) return
+    let cancelled = false
+    const pull = () => {
+      void window.api?.getRemoteMcpLogs?.(20).then((result) => {
+        if (!cancelled && Array.isArray(result?.data)) setMcpLogs(result.data)
+      })
+    }
+    pull()
+    const timer = window.setInterval(pull, 3000)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [section, settings.remoteApiEnabled])
 
   useEffect(() => {
     if (!turboModalOpen) return
@@ -1323,6 +1351,58 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
               <p className="text-xs leading-relaxed text-muted-foreground break-all">
                 {`curl -H "Authorization: Bearer ${settings.remoteApiToken || 'YOUR_TOKEN'}" -d '{"url":"https://example.com/watch?v=1"}' http://${(settings.remoteApiBind === '0.0.0.0' ? '<host>' : '127.0.0.1')}:${settings.remoteApiPort ?? 18766}/v1/jobs`}
               </p>
+              <FieldBlock
+                label="MCP (Claude / Codex)"
+                description="Same listener and Bearer token. POST /mcp. Write tools stay off until you enable them."
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    className={secondaryButtonClass}
+                    disabled={!settings.remoteApiEnabled || !settings.remoteApiToken}
+                    onClick={() => {
+                      const host = settings.remoteApiBind === '0.0.0.0' ? '127.0.0.1' : (settings.remoteApiBind || '127.0.0.1')
+                      const port = settings.remoteApiPort ?? 18766
+                      const text = `URL: http://${host}:${port}/mcp\nHeader: Authorization: Bearer ${settings.remoteApiToken}`
+                      void navigator.clipboard.writeText(text).then(() => {
+                        setMcpConfigCopied(true)
+                        window.setTimeout(() => setMcpConfigCopied(false), 1500)
+                      })
+                    }}
+                  >
+                    {mcpConfigCopied ? <Check className="h-3.5 w-3.5" aria-hidden /> : <Copy className="h-3.5 w-3.5" aria-hidden />}
+                    {mcpConfigCopied ? 'Copied' : 'Copy MCP config'}
+                  </button>
+                </div>
+              </FieldBlock>
+              <ToggleRow
+                label="Allow MCP write tools"
+                description="Lets agents enqueue or cancel jobs. Keep off unless you trust the local client."
+                checked={settings.remoteApiMcpAllowWrite === true}
+                onChange={(v) => void onUpdate('remoteApiMcpAllowWrite', v)}
+              />
+              <ToggleRow
+                label="Require confirm on writes"
+                description="Write tools must pass confirm: true. Recommended."
+                checked={settings.remoteApiMcpRequireConfirm !== false}
+                onChange={(v) => void onUpdate('remoteApiMcpRequireConfirm', v)}
+              />
+              {settings.remoteApiEnabled ? (
+                <div className="space-y-1.5">
+                  <p className="text-[11px] font-medium text-muted-foreground">Recent MCP calls</p>
+                  {mcpLogs.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No agent calls yet.</p>
+                  ) : (
+                    <ul className="max-h-36 space-y-1 overflow-y-auto rounded-md border border-border p-2 text-[11px] leading-relaxed text-muted-foreground">
+                      {mcpLogs.map((entry) => (
+                        <li key={`${entry.timestamp}-${entry.tool}-${entry.elapsedMs}`}>
+                          {entry.success ? 'ok' : entry.errorCode || 'error'} · {entry.argumentSummary} · {entry.elapsedMs}ms
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ) : null}
             </PrefCard>
           </div>
         )}

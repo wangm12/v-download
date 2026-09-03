@@ -25,7 +25,7 @@ build:
 run:
 	npm run dev
 
-mac:
+dmg:
 	npm run build:mac
 
 mac-arm64:

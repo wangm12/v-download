@@ -29,12 +29,12 @@
 | **V-Download** | macOS **Electron** 应用 + **React** 界面 + [Chrome 扩展](extension/)，本地下载（`Cmd+V`、格式选择、媒体嗅探）。可选 **Remote Job API**（`:18766`）供其它程序走同一条下载队列。 |
 | **@v-download/shared** | [packages/shared](packages/shared)：Netscape Cookie 与域名列表；在仓库根目录执行 `npm install` 会构建该包并运行 [`sync:extension-constants`](package.json)，以更新 [extension/cookie-sync-domains.js](extension/cookie-sync-domains.js)。 |
 
-**延伸阅读：** [docs/REMOTE_JOB_API.md](docs/REMOTE_JOB_API.md)（Remote Job API，英文）、[docs/DESIGN_PLAN.md](docs/DESIGN_PLAN.md)（黑白重设计总览与阶段）、[docs/MANUAL_TESTING.md](docs/MANUAL_TESTING.md)（手动与 E2E 测试清单）、[docs/FUTURE_ENHANCEMENTS.md](docs/FUTURE_ENHANCEMENTS.md)（抖音 / 无头浏览器后续改进与调研，英文）。
+**延伸阅读：** [docs/README.md](docs/README.md)（文档索引，英文）、[docs/REMOTE_JOB_API.md](docs/REMOTE_JOB_API.md)（Remote Job API + MCP，英文）、[docs/PRODUCT_DIRECTION.md](docs/PRODUCT_DIRECTION.md)（产品方向与待办，英文）、[docs/MANUAL_TESTING.md](docs/MANUAL_TESTING.md)（手动测试清单）。
 
 ## 设计
 
 - **[docs/DESIGN_PLAN.md](docs/DESIGN_PLAN.md)** — 端到端设计计划：愿景、设计令牌、信息架构、界面目录、阶段划分、无障碍与治理说明。
-- **[design/v-download-bw-redesign-pack/](design/v-download-bw-redesign-pack/)** — 设计稿（PNG/PDF）、[specs/redesign-spec.md](design/v-download-bw-redesign-pack/specs/redesign-spec.md)、[tokens/design-tokens.json](design/v-download-bw-redesign-pack/tokens/design-tokens.json) 与 [index.html](design/v-download-bw-redesign-pack/index.html) 设计看板。
+- **[design/v-download-v1/](design/v-download-v1/)** — 设计稿（PNG/PDF）、[specs/redesign-spec.md](design/v-download-v1/specs/redesign-spec.md)、[tokens/design-tokens.json](design/v-download-v1/tokens/design-tokens.json) 与 [index.html](design/v-download-v1/index.html) 设计看板。
 
 ## 功能特性
 
@@ -107,6 +107,8 @@ npm run build:mac
 
 构建产物位于 `dist/mac-arm64/V-Download.app`，DMG 在 `dist/` 目录。
 
+## 使用方法
+
 ### 粘贴 URL
 
 1. 复制任意视频 URL（YouTube、直接媒体链接、或任何包含嵌入视频的网页）
@@ -148,7 +150,7 @@ npm run build:mac
 | 默认音频品质 | 320kbps | 关闭格式选择框时使用 |
 | 下载间隔 | 3秒 | 队列中每个下载之间的等待时间（用于限速保护） |
 | 抖音用 CloakBrowser（测试） | 关闭 | 可选：用 CloakBrowser 的 Chromium 拉取抖音页面（见上文「抖音页面与 CloakBrowser」） |
-| Remote Job API | 关闭 | 偏好设置 → 高级。Bearer `/v1/jobs`，默认 `127.0.0.1:18766`。完整说明见 [docs/REMOTE_JOB_API.md](docs/REMOTE_JOB_API.md)。扩展 pairing 仍只在本机 `:18765`。 |
+| Remote Job API | 关闭 | 偏好设置 → 高级。Bearer `/v1/jobs` 与 `POST /mcp`，默认 `127.0.0.1:18766`。MCP 写操作默认关闭。完整说明见 [docs/REMOTE_JOB_API.md](docs/REMOTE_JOB_API.md)。扩展 pairing 仍只在本机 `:18765`。 |
 
 ## 架构
 
@@ -178,7 +180,7 @@ flowchart TB
 
 - **桌面路径：** 渲染进程负责 UI；主进程运行 [ytdlp.ts](src/main/ytdlp.ts)、[downloadManager.ts](src/main/downloadManager.ts)、[localServer.ts](src/main/localServer.ts)，在 **18765** 端口为扩展提供 HTTP。
 - **扩展：** 内容脚本做媒体检测与页面 UI；[background.js](extension/background.js) 转发 URL，并处理显式触发的本地 Cookie 同步（通过 `importScripts('cookie-sync-domains.js')`）。
-- **Remote Job API：** 默认关闭。在偏好设置 → 高级里打开后，其它程序可用 Bearer token 向 `http://<host>:18766/v1/jobs` 提交 `{ url }`。下载走同一条队列、Cookie 与引擎。**18765** pairing 仍只绑定本机。
+- **Remote Job API：** 默认关闭。在偏好设置 → 高级里打开后，其它程序可用 Bearer token 向 `http://<host>:18766/v1/jobs` 提交 `{ url }`，或对 `POST /mcp` 使用 MCP（默认只读）。下载走同一条队列、Cookie 与引擎。**18765** pairing 仍只绑定本机。
 
 ### 技术栈
 
@@ -201,9 +203,14 @@ packages/shared/            # @v-download/shared — Cookie 与域名列表（�
 └── README.md
 
 docs/
-├── DESIGN_PLAN.md             # 黑白重设计总览与 mockup 阶段
-├── MANUAL_TESTING.md          # 回归与 E2E 清单（含 mockup 对照表）
-└── FUTURE_ENHANCEMENTS.md     # 抖音 / Chromium / CloakBrowser 后续规划（英文正文）
+├── README.md                  # 索引
+├── PRODUCT_DIRECTION.md       # 产品方向与待办
+├── REMOTE_JOB_API.md          # REST + MCP（:18766）
+├── MANUAL_TESTING.md          # 发版清单
+├── download-engines.md        # 引擎路由
+├── download-reliability.md    # 排障与抖音 fallback
+├── DESIGN_PLAN.md             # 黑白 UI 计划
+└── …                          # DEBUG、RELEASE、PRIVACY、douyin-bulk
 
 scripts/
 └── write-extension-cookie-sync.mjs   # 由 npm run sync:extension-constants 调用
@@ -242,11 +249,11 @@ extension/                  # Chrome 扩展 (Manifest V3)
 | **运行 macOS 应用** | 安装 [前置依赖](#前置依赖)，再按 [安装](#安装) 或开发使用 `npm run dev`。 |
 | **使用扩展** | 在 Chrome 中加载 [`extension/`](extension/) 目录；桌面应用需运行以提供 `127.0.0.1:18765`。 |
 | **修改 Cookie 同步域名** | 编辑 [packages/shared/src/cookie-sync-domains.ts](packages/shared/src/cookie-sync-domains.ts)，在仓库根目录执行 `npm run sync:extension-constants`，然后重新加载扩展。 |
-| **让其它程序提交下载** | 在偏好设置 → 高级打开 **Remote Job API**，按 [docs/REMOTE_JOB_API.md](docs/REMOTE_JOB_API.md) 调用（默认 `127.0.0.1:18766`）。 |
+| **让其它程序提交下载** | 在偏好设置 → 高级打开 **Remote Job API**，按 [docs/REMOTE_JOB_API.md](docs/REMOTE_JOB_API.md) 调用（`POST /v1/jobs` 或 `POST /mcp`，默认 `127.0.0.1:18766`）。 |
 | **发版前测试** | 见 [docs/MANUAL_TESTING.md](docs/MANUAL_TESTING.md)。 |
-| **后续改进 / 调研** | 见 [docs/FUTURE_ENHANCEMENTS.md](docs/FUTURE_ENHANCEMENTS.md)（抖音 hydration、URL/解析、可选 CloakBrowser）。 |
+| **产品 / 调研待办** | 见 [docs/PRODUCT_DIRECTION.md](docs/PRODUCT_DIRECTION.md)。抖音 fallback 见 [docs/download-reliability.md](docs/download-reliability.md)。 |
 
-粘贴 URL、快捷键、设置等日常用法见下文 [使用方法](#使用方法) 与 [设置](#设置)。
+粘贴 URL、快捷键、设置等日常用法见 [使用方法](#使用方法) 与 [设置](#设置)。
 
 ## 开发
 

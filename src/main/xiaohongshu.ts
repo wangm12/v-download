@@ -27,9 +27,19 @@ export interface XiaohongshuGalleryInfo {
   author: string
   cover: string
   imageUrls: string[]
+  description: string
 }
 
-export type XiaohongshuMediaResult = XiaohongshuGalleryInfo
+export interface XiaohongshuTextInfo {
+  kind: 'text'
+  id: string
+  title: string
+  author: string
+  cover: string
+  description: string
+}
+
+export type XiaohongshuMediaResult = XiaohongshuGalleryInfo | XiaohongshuTextInfo
 
 let lastGetXhsInfoError = ''
 
@@ -37,14 +47,47 @@ export function getLastXhsInfoError(): string {
   return lastGetXhsInfoError
 }
 
+export function isXhsShortUrl(url: string): boolean {
+  return /xhslink\.(?:com|cn)\b/i.test(url)
+}
+
 export function isXiaohongshuUrl(url: string): boolean {
-  return /xiaohongshu\.com|xhslink\.com/i.test(url)
+  return /xiaohongshu\.com|xhslink\.(?:com|cn)/i.test(url)
+}
+
+export function extractNoteId(url: string): string | null {
+  const m = url.match(
+    /xiaohongshu\.com\/(?:explore|discovery\/item|user\/profile\/[a-f0-9]+)\/([a-f0-9]+)/i
+  )
+  return m ? m[1] : null
+}
+
+export function isXhsNoVideoFormatsError(message: string): boolean {
+  return /No video formats found/i.test(message)
+}
+
+export function formatXhsResolveError(ytdlpMessage: string, hint: string): string {
+  const trimmedHint = hint.trim()
+  if (isXhsNoVideoFormatsError(ytdlpMessage)) {
+    const parts = ['This Xiaohongshu post has no video formats (likely an image note).']
+    parts.push(
+      trimmedHint ||
+        'Image gallery parse failed — paste the full explore link (with xsec_token) or sync Xiaohongshu cookies.'
+    )
+    return parts.join(' ')
+  }
+  if (trimmedHint) return `${ytdlpMessage} | ${trimmedHint}`
+  return ytdlpMessage
 }
 
 export function isXiaohongshuGallery(
   info: XiaohongshuMediaResult | null
 ): info is XiaohongshuGalleryInfo {
   return info != null && info.kind === 'gallery' && info.imageUrls.length > 0
+}
+
+export function isXiaohongshuText(info: XiaohongshuMediaResult | null): info is XiaohongshuTextInfo {
+  return info != null && info.kind === 'text' && Boolean(info.title.trim() || info.description.trim())
 }
 
 function normalizeHttpsUrl(url: string): string {
@@ -73,13 +116,8 @@ function buildXhsCookieHeader(cookiesFilePath?: string): string {
     .join('; ')
 }
 
-function extractNoteId(url: string): string | null {
-  const m = url.match(/xiaohongshu\.com\/(?:explore|discovery\/item)\/([a-f0-9]+)/i)
-  return m ? m[1] : null
-}
-
 async function resolveShortUrl(url: string): Promise<string> {
-  if (!/xhslink\.com/i.test(url)) return url.trim()
+  if (!isXhsShortUrl(url)) return url.trim()
   const res = await fetchWithTimeout(url.trim(), {
     method: 'GET',
     redirect: 'follow',
@@ -152,12 +190,38 @@ function bestImageUrl(img: Record<string, unknown>): string | null {
   return null
 }
 
+function isVideoNote(note: Record<string, unknown>): boolean {
+  if (note.type === 'video') return true
+  return Boolean(note.video && typeof note.video === 'object')
+}
+
 function isGalleryNote(note: Record<string, unknown>): boolean {
   const imageList = note.imageList
   if (!Array.isArray(imageList) || imageList.length === 0) return false
-  if (note.type === 'video') return false
-  if (note.video && typeof note.video === 'object') return false
+  if (isVideoNote(note)) return false
   return true
+}
+
+function noteAuthor(note: Record<string, unknown>): string {
+  const user = note.user as Record<string, unknown> | undefined
+  return (
+    (typeof user?.nickname === 'string' && user.nickname.trim()) ||
+    (typeof user?.nickName === 'string' && user.nickName.trim()) ||
+    ''
+  )
+}
+
+function noteDescription(note: Record<string, unknown>): string {
+  return typeof note.desc === 'string' ? note.desc.trim() : ''
+}
+
+function noteTitle(note: Record<string, unknown>, noteId: string, html: string): string {
+  return (
+    (typeof note.title === 'string' && note.title.trim()) ||
+    (typeof note.desc === 'string' && note.desc.trim().split('\n')[0]) ||
+    html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)/i)?.[1]?.trim() ||
+    `xiaohongshu-${noteId}`
+  )
 }
 
 function parseGalleryFromNote(
@@ -175,26 +239,42 @@ function parseGalleryFromNote(
   }
   if (imageUrls.length === 0) return null
 
-  const title =
-    (typeof note.title === 'string' && note.title.trim()) ||
-    (typeof note.desc === 'string' && note.desc.trim().split('\n')[0]) ||
-    html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)/i)?.[1]?.trim() ||
-    `xiaohongshu-${noteId}`
-
-  const user = note.user as Record<string, unknown> | undefined
-  const author =
-    (typeof user?.nickname === 'string' && user.nickname.trim()) ||
-    (typeof user?.nickName === 'string' && user.nickName.trim()) ||
-    ''
-
   return {
     kind: 'gallery',
     id: noteId,
-    title,
-    author,
+    title: noteTitle(note, noteId, html),
+    author: noteAuthor(note),
     cover: imageUrls[0],
     imageUrls,
+    description: noteDescription(note),
   }
+}
+
+function parseTextFromNote(
+  note: Record<string, unknown>,
+  noteId: string,
+  html: string
+): XiaohongshuTextInfo | null {
+  if (isVideoNote(note) || isGalleryNote(note)) return null
+  const description = noteDescription(note)
+  const title = noteTitle(note, noteId, html)
+  if (!title.trim() && !description) return null
+  return {
+    kind: 'text',
+    id: noteId,
+    title: title.trim() || 'Untitled',
+    author: noteAuthor(note),
+    cover: '',
+    description,
+  }
+}
+
+export function parseXiaohongshuNote(
+  note: Record<string, unknown>,
+  noteId: string,
+  html = ''
+): XiaohongshuMediaResult | null {
+  return parseGalleryFromNote(note, noteId, '', html) ?? parseTextFromNote(note, noteId, html)
 }
 
 async function fetchPageHtml(pageUrl: string, cookiesFilePath?: string): Promise<string> {
@@ -241,12 +321,14 @@ export async function getXiaohongshuInfo(
       return null
     }
 
-    const gallery = parseGalleryFromNote(note, noteId, resolved, html)
-    if (!gallery) {
-      lastGetXhsInfoError = 'This Xiaohongshu post is not an image gallery'
+    const parsed = parseXiaohongshuNote(note, noteId, html)
+    if (!parsed) {
+      lastGetXhsInfoError = isVideoNote(note)
+        ? 'This Xiaohongshu post is not an image gallery'
+        : 'Note has no images or text'
       return null
     }
-    return gallery
+    return parsed
   } catch (e) {
     lastGetXhsInfoError = e instanceof Error ? e.message : String(e)
     return null

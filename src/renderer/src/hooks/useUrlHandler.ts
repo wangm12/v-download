@@ -4,6 +4,7 @@ import { extractUrlFromClipboard, isMediaUrl, isYouTubeUrl, filenameFromUrl } fr
 import { isDouyinProfileHomeUrl } from '@/utils/douyinBulk'
 import { shouldOpenCollectionPicker } from '@/utils/collectionPicker'
 import { normalizeThumbnailUrl } from '@/utils/thumbnail'
+import { noteMetadataFromVideoInfo } from '@/utils/noteMetadata'
 
 interface PendingPlaylistMeta {
   title?: string
@@ -47,6 +48,7 @@ function toVideoInfo(data: unknown, fallbackUrl: string): VideoInfo {
     image_urls: Array.isArray(info.image_urls)
       ? info.image_urls.filter((item): item is string => typeof item === 'string')
       : undefined,
+    description: typeof info.description === 'string' ? info.description : undefined,
   }
 }
 
@@ -169,14 +171,17 @@ export function useUrlHandler(settings: SettingsData) {
     const rule = siteDefaults(result.url)
     const selectedFormat = format || result.format || (rule?.format === 'audio' ? 'mp3' : 'video')
     const selectedQuality = quality || result.quality || rule?.quality || settings.defaultVideoQuality
+    const noteMeta = noteMetadataFromVideoInfo(info)
     const metadata = isGalleryInfo(info)
       ? {
           [info._type === 'xhs_gallery' ? 'xhsImageUrls' : 'douyinImageUrls']: info.image_urls,
-          channel: info.channel
+          channel: info.channel,
+          ...noteMeta
         }
       : {
           ...(info.channel ? { channel: info.channel } : {}),
-          ...(info.id ? { ytdlpId: info.id } : {})
+          ...(info.id ? { ytdlpId: info.id } : {}),
+          ...noteMeta
         }
     const promoted = await window.api.promoteInfoResolve({
       id: result.id,

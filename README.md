@@ -29,12 +29,12 @@ This repository ships the **desktop app**, a **Chrome extension**, and a small *
 | **V-Download** | macOS **Electron** app + **React** UI + [Chrome extension](extension/) for local downloads (`Cmd+V`, format picker, media sniffer). Optional **Remote Job API** (`:18766`) lets other apps enqueue the same download queue. |
 | **@v-download/shared** | [packages/shared](packages/shared): Netscape cookie helpers + domain list for cookie sync; root `npm install` builds it and runs [`sync:extension-constants`](package.json) so [extension/cookie-sync-domains.js](extension/cookie-sync-domains.js) stays in sync. |
 
-**Read next:** [docs/REMOTE_JOB_API.md](docs/REMOTE_JOB_API.md) (Remote Job API), [docs/DESIGN_PLAN.md](docs/DESIGN_PLAN.md) (monochrome redesign master plan & phases), [docs/MANUAL_TESTING.md](docs/MANUAL_TESTING.md) (manual & E2E checklist), [docs/FUTURE_ENHANCEMENTS.md](docs/FUTURE_ENHANCEMENTS.md) (Douyin / headless research backlog).
+**Read next:** [docs/README.md](docs/README.md) (docs index), [docs/REMOTE_JOB_API.md](docs/REMOTE_JOB_API.md) (Remote Job API + MCP), [docs/PRODUCT_DIRECTION.md](docs/PRODUCT_DIRECTION.md) (strategy and open backlog), [docs/MANUAL_TESTING.md](docs/MANUAL_TESTING.md) (manual checklist).
 
 ## Design
 
 - **[docs/DESIGN_PLAN.md](docs/DESIGN_PLAN.md)** — End-to-end design plan: vision, tokens, IA, screen catalog, phases, accessibility, governance.
-- **[design/v-download-bw-redesign-pack/](design/v-download-bw-redesign-pack/)** — Mockups (PNG/PDF), [specs/redesign-spec.md](design/v-download-bw-redesign-pack/specs/redesign-spec.md), [tokens/design-tokens.json](design/v-download-bw-redesign-pack/tokens/design-tokens.json), and [index.html](design/v-download-bw-redesign-pack/index.html) design board.
+- **[design/v-download-v1/](design/v-download-v1/)** — Mockups (PNG/PDF), [specs/redesign-spec.md](design/v-download-v1/specs/redesign-spec.md), [tokens/design-tokens.json](design/v-download-v1/tokens/design-tokens.json), and [index.html](design/v-download-v1/index.html) design board.
 
 ## Features
 
@@ -151,7 +151,7 @@ Preferences open **inside the main window** (sidebar **Preferences…**, bottom 
 | Default audio quality | 320kbps | Used when format dialog is off |
 | Delay between downloads | 3s | Pause between starting queued downloads (rate limit mitigation) |
 | Use CloakBrowser for Douyin (beta) | Off | Optional patched Chromium for Douyin hydration; see [Douyin hydration & CloakBrowser](#douyin-hydration--cloakbrowser-optional) |
-| Remote Job API | Off | Preferences → Advanced. Bearer `/v1/jobs` on `127.0.0.1:18766`. Full reference: [docs/REMOTE_JOB_API.md](docs/REMOTE_JOB_API.md). Extension pairing stays on localhost `:18765`. |
+| Remote Job API | Off | Preferences → Advanced. Bearer `/v1/jobs` and `POST /mcp` on `127.0.0.1:18766`. MCP writes stay off until enabled. Full reference: [docs/REMOTE_JOB_API.md](docs/REMOTE_JOB_API.md). Extension pairing stays on localhost `:18765`. |
 
 ## Architecture
 
@@ -181,7 +181,7 @@ flowchart TB
 
 - **Desktop path:** Renderer controls UI; main process runs [ytdlp.ts](src/main/ytdlp.ts), [downloadManager.ts](src/main/downloadManager.ts), [localServer.ts](src/main/localServer.ts) on port **18765** for the extension.
 - **Extension:** Content scripts detect media / inject UI; [background.js](extension/background.js) forwards URLs and handles explicit local cookie sync (see `COOKIE_SYNC_DOMAINS` via `importScripts('cookie-sync-domains.js')`).
-- **Remote Job API:** Optional, off by default. Enable in Preferences → Advanced. Other apps POST `{ url }` to `http://<host>:18766/v1/jobs` with a Bearer token. Downloads reuse the same queue, cookies, and engines. Pairing on **18765** stays localhost-only.
+- **Remote Job API:** Optional, off by default. Enable in Preferences → Advanced. Other apps POST `{ url }` to `http://<host>:18766/v1/jobs` with a Bearer token, or speak MCP at `POST /mcp` (read tools by default). Downloads reuse the same queue, cookies, and engines. Pairing on **18765** stays localhost-only.
 
 ### Tech stack
 
@@ -204,9 +204,14 @@ packages/shared/            # @v-download/shared — cookies + domain list for a
 └── README.md
 
 docs/
-├── DESIGN_PLAN.md             # Monochrome redesign master plan & mockup phases
-├── MANUAL_TESTING.md          # Regression & E2E checklist (+ mockup vs build matrix)
-└── FUTURE_ENHANCEMENTS.md     # Douyin / Chromium / CloakBrowser backlog
+├── README.md                  # Index
+├── PRODUCT_DIRECTION.md       # Strategy and open backlog
+├── REMOTE_JOB_API.md          # REST + MCP on :18766
+├── MANUAL_TESTING.md          # Release checklist
+├── download-engines.md        # Engine routing
+├── download-reliability.md    # Runbook + Douyin fallback
+├── DESIGN_PLAN.md             # Monochrome UI plan
+└── …                          # DEBUG, RELEASE, PRIVACY, douyin-bulk
 
 scripts/
 └── write-extension-cookie-sync.mjs   # Called from npm run sync:extension-constants
@@ -247,11 +252,11 @@ extension/                  # Chrome Extension (Manifest V3)
 | **Run the macOS app** | Install [Prerequisites](#prerequisites), then [Installation](#installation) / `npm run dev` for development. |
 | **Use the extension** | Load the [`extension/`](extension/) folder in Chrome; keep the desktop app running for `127.0.0.1:18765`. |
 | **Change cookie sync domains** | Edit [packages/shared/src/cookie-sync-domains.ts](packages/shared/src/cookie-sync-domains.ts), then run `npm run sync:extension-constants` at the repo root and reload the extension. |
-| **Invoke downloads from another app** | Enable **Remote Job API** in Preferences → Advanced, then follow [docs/REMOTE_JOB_API.md](docs/REMOTE_JOB_API.md) (`POST /v1/jobs`, default `127.0.0.1:18766`). |
+| **Invoke downloads from another app** | Enable **Remote Job API** in Preferences → Advanced, then follow [docs/REMOTE_JOB_API.md](docs/REMOTE_JOB_API.md) (`POST /v1/jobs` or `POST /mcp`, default `127.0.0.1:18766`). |
 | **Test releases** | See [docs/MANUAL_TESTING.md](docs/MANUAL_TESTING.md). |
-| **Future / research backlog** | See [docs/FUTURE_ENHANCEMENTS.md](docs/FUTURE_ENHANCEMENTS.md) (Douyin hydration, URL/parser work, optional CloakBrowser). |
+| **Product / research backlog** | See [docs/PRODUCT_DIRECTION.md](docs/PRODUCT_DIRECTION.md). Douyin fallback notes: [docs/download-reliability.md](docs/download-reliability.md). |
 
-Desktop usage details (paste URL, shortcuts, settings) are in [Usage](#usage) and [Settings](#settings) below.
+Desktop usage details (paste URL, shortcuts, settings) are in [Usage](#usage) and [Settings](#settings).
 
 ## Development
 

@@ -28,6 +28,8 @@ import {
   type StoredRemoteJob,
 } from './remoteJobModel'
 import type { RemoteJobBackend } from './remoteApiHandler'
+import { resolveVideoInfo } from './videoInfoResolver'
+import { isResolvePlaylist, taskOptionsFromResolveData } from './remoteResolveTask'
 
 export const MAX_COLLECTION_ITEMS = 50
 export type { StoredRemoteJob }
@@ -204,17 +206,44 @@ async function enqueueJob(jobId: string): Promise<void> {
 
     const current = readJob(jobId)
     if (!canContinueRemoteJob(current)) return
+    const resolved = await resolveVideoInfo(current.url)
+    const latest = readJob(jobId)
+    if (!canContinueRemoteJob(latest)) return
+    if (resolved.error) {
+      latest.error = classifyFailureMessage(resolved.error)
+      latest.updatedAt = nowIso()
+      putJob(latest)
+      return
+    }
+    if (isResolvePlaylist(resolved.data)) {
+      const task = downloadManager.addTask({
+        url: latest.url,
+        title: latest.title || 'download',
+        format: 'video',
+        quality,
+        forceNew: true,
+        metadata: remoteTaskMeta(latest),
+      })
+      latest.downloadTaskIds = [task.id]
+      latest.updatedAt = nowIso()
+      putJob(latest)
+      return
+    }
+    const fields = taskOptionsFromResolveData(resolved.data, latest.url)
     const task = downloadManager.addTask({
-      url: current.url,
-      title: current.title || 'download',
-      format: 'video',
+      url: latest.url,
+      title: fields.title,
+      format: fields.format,
       quality,
+      thumbnail: fields.thumbnail,
+      duration: fields.duration,
       forceNew: true,
-      metadata: remoteTaskMeta(current),
+      metadata: remoteTaskMeta(latest, fields.metadata),
     })
-    current.downloadTaskIds = [task.id]
-    current.updatedAt = nowIso()
-    putJob(current)
+    latest.downloadTaskIds = [task.id]
+    latest.title = fields.title
+    latest.updatedAt = nowIso()
+    putJob(latest)
   } catch (err) {
     const latest = readJob(jobId)
     if (!latest || latest.cancelled) return
@@ -327,14 +356,26 @@ export function cancelRemoteJob(id: string): 'ok' | 'not_found' | 'not_cancellab
   return 'ok'
 }
 
+export function listJobRecords(): JobRecord[] {
+  return Object.values(loadStore())
+    .map((job) => {
+      const records = db.getDownloads().filter((row) => job.downloadTaskIds.includes(row.id))
+      return deriveJobRecord(job, records)
+    })
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+}
+
 export function createElectronRemoteJobBackend(): RemoteJobBackend {
   return {
     getToken: () => settings.get('remoteApiToken'),
     createJob: createRemoteJob,
     getJob: getJobRecord,
+    listJobs: listJobRecords,
     artifactsFor: artifactsForJob,
     ownedPathsFor: ownedPathsForStoredJob,
     cancelJob: cancelRemoteJob,
+    allowMcpWrite: () => settings.get('remoteApiMcpAllowWrite'),
+    requireMcpConfirm: () => settings.get('remoteApiMcpRequireConfirm'),
   }
 }
 

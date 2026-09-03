@@ -49,5 +49,6 @@ The main process registers a **one-time `webRequest` listener** on the dedicated
 
 ## Related docs
 
-- [MANUAL_TESTING.md](./MANUAL_TESTING.md) — regression checklist  
-- [download-engines.md](./download-engines.md) — download routing  
+- [MANUAL_TESTING.md](./MANUAL_TESTING.md) — regression checklist
+- [download-engines.md](./download-engines.md) — download routing
+- [download-reliability.md](./download-reliability.md) — runbook and Douyin fallback

@@ -3,6 +3,7 @@ import { setCookieSyncRequested } from '../localServer'
 import * as settings from '../settings'
 import type { SettingsSchema } from '../settings'
 import { syncRemoteApiServer } from '../remoteApiServer'
+import { getMcpLogs } from '../remoteMcpModel'
 
 const COOKIE_SYNC_LANDING = 'http://127.0.0.1:18765/cookie-sync-landing'
 
@@ -43,6 +44,10 @@ export function registerSettingsHandlers(): void {
 
   ipcMain.handle('read-clipboard', async () => {
     return clipboard.readText()
+  })
+
+  ipcMain.handle('get-remote-mcp-logs', async (_event, limit?: number) => {
+    return { data: getMcpLogs(typeof limit === 'number' ? limit : 50) }
   })
 
   ipcMain.handle('request-browser-cookie-sync', async () => {

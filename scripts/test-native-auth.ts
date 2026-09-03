@@ -7,6 +7,7 @@ import {
 
 assert.equal(nativeAuthSiteForUrl('https://www.douyin.com/video/1'), 'douyin')
 assert.equal(nativeAuthSiteForUrl('https://www.youtube.com/watch?v=1'), 'youtube')
+assert.equal(nativeAuthSiteForUrl('https://xhslink.cn/o/7OA0OYWB0EB'), 'xiaohongshu')
 assert.equal(nativeAuthSiteForUrl('https://example.com/video'), null)
 assert.equal(cookieDomainMatchesHost('.douyin.com', 'www.douyin.com'), true)
 assert.equal(cookieDomainMatchesHost('www.douyin.com', 'douyin.com'), false)

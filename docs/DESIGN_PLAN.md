@@ -1,6 +1,6 @@
 # V-Download — full design plan
 
-This document unifies [design/v-download-bw-redesign-pack/specs/redesign-spec.md](../design/v-download-bw-redesign-pack/specs/redesign-spec.md), [mockup-index.md](../design/v-download-bw-redesign-pack/specs/mockup-index.md), [tokens/design-tokens.json](../design/v-download-bw-redesign-pack/tokens/design-tokens.json), and [design/v-download-bw-redesign-pack/README.md](../design/v-download-bw-redesign-pack/README.md). Use it as the single narrative for product, design, and engineering alignment. **Authoritative pixels and copy** remain in the pack; this plan adds structure, acceptance framing, and traceability.
+This document unifies [design/v-download-v1/specs/redesign-spec.md](../design/v-download-v1/specs/redesign-spec.md), [mockup-index.md](../design/v-download-v1/specs/mockup-index.md), [tokens/design-tokens.json](../design/v-download-v1/tokens/design-tokens.json), and [design/v-download-v1/README.md](../design/v-download-v1/README.md). Use it as the single narrative for product, design, and engineering alignment. **Authoritative pixels and copy** remain in the pack; this plan adds structure, acceptance framing, and traceability.
 
 ---
 
@@ -39,13 +39,13 @@ flowchart LR
 
 ## 3. Design system (source of truth)
 
-**Canonical file:** [design/v-download-bw-redesign-pack/tokens/design-tokens.json](../design/v-download-bw-redesign-pack/tokens/design-tokens.json).
+**Canonical file:** [design/v-download-v1/tokens/design-tokens.json](../design/v-download-v1/tokens/design-tokens.json).
 
 **Layers (from spec):** App `#050505` → Window `#0B0B0B` → Sidebar/Inspector `#0D0D0D` → Surfaces `#111111` / `#161616` / `#1C1C1C` → Borders `rgba(255,255,255,0.12–0.22)` → Text primary / secondary / tertiary → Primary action white fill, `#050505` text.
 
 **State tokens (semantic):** `active`, `complete`, `queued`, `error` (neutral backgrounds + borders; error may use **dashed** border per spec).
 
-**Typography, spacing, radius, shadow, layout:** Defined in JSON (e.g. window title 13px/800, row height 98px, sidebar 244px, inspector 328px). Implementation maps these into app theming (e.g. Tailwind); **design QA** compares rendered app to [exports/png/14-component-library.png](../design/v-download-bw-redesign-pack/exports/png/14-component-library.png).
+**Typography, spacing, radius, shadow, layout:** Defined in JSON (e.g. window title 13px/800, row height 98px, sidebar 244px, inspector 328px). Implementation maps these into app theming (e.g. Tailwind); **design QA** compares rendered app to [exports/png/14-component-library.png](../design/v-download-v1/exports/png/14-component-library.png).
 
 **Light mode:** Spec Phase 4 + mockup `15-white-mode.png` — same monochrome **language**, inverted surfaces; not required for initial ship.
 
@@ -69,7 +69,7 @@ flowchart TB
 | **Sidebar** | App icon + **Downloads** list (filter via queue search), link to **Preferences**, capture modes (future); **Cmd+V** / drop for URLs (no sidebar Paste button) | redesign-spec §Sidebar |
 | **Queue** | Search, drop/paste banner, download rows, **batch controls** when multi-select / playlist | redesign-spec §Center queue |
 | **Inspector** | Selection detail: preview, format, metrics, destination, actions (Open, Reveal, Change format, Retry, Sync cookies) | redesign-spec §Right inspector |
-| **Preferences** | **In-app:** the **same 244px sidebar** lists **Queue** (download queue) and **Settings** (General → Sites, then **Advanced** below a gap) on one home shell—no separate prefs-only sidebar. The center swaps between queue+inspector and [`PreferencesPanel`](src/renderer/src/components/PreferencesPanel.tsx) (section title header, grouped cards; **Downloads** aligns with v2 `02-preferences-downloads`: Storage, Queue, Output format). **Sites** stub; compact modal (`06`) remains a fallback | v2 settings pack |
+| **Preferences** | **In-app:** the **same 244px sidebar** lists **Queue** (download queue) and **Settings** (General → Sites, then **Advanced** below a gap) on one home shell—no separate prefs-only sidebar. The center swaps between queue+inspector and [`PreferencesPanel`](../src/renderer/src/components/PreferencesPanel.tsx) (section title header, grouped cards; **Downloads** aligns with v2 `02-preferences-downloads`: Storage, Queue, Output format). **Sites** stub; compact modal (`06`) remains a fallback | v2 settings pack |
 | **Chrome** | Custom title bar: traffic-light inset (macOS), **inspector collapse** + **appearance menu** (Dark / Light / Device) on the right; optional bottom status/actions bar | Mockups 01, 07 |
 
 **Deep link:** Loading the app with `#/settings` still opens Preferences (hash is normalized after load).
@@ -101,9 +101,9 @@ flowchart TB
 | 14 | Component library | `14-component-library.png` | QA reference | ongoing |
 | 15 | White mode | `15-white-mode.png` | Light appearance variant | 4 |
 
-**Interactive board:** [design/v-download-bw-redesign-pack/index.html](../design/v-download-bw-redesign-pack/index.html).
+**Interactive board:** [design/v-download-v1/index.html](../design/v-download-v1/index.html).
 
-**Combined PDF:** [design/v-download-bw-redesign-pack/exports/pdf/v-download-bw-redesign-mockups.pdf](../design/v-download-bw-redesign-pack/exports/pdf/v-download-bw-redesign-mockups.pdf).
+**Combined PDF:** [design/v-download-v1/exports/pdf/v-download-bw-redesign-mockups.pdf](../design/v-download-v1/exports/pdf/v-download-bw-redesign-mockups.pdf).
 
 ---
 
@@ -121,11 +121,11 @@ Summarized from redesign-spec §Component rules; detail in mockup `14` + tokens.
 
 ## 7. Copy and content
 
-**Global:** Apply [redesign-spec §Copy guidelines](../design/v-download-bw-redesign-pack/specs/redesign-spec.md) table (format picker toggle, subfolders, sync wording, Douyin browser label, “Best available”, scanning string).
+**Global:** Apply [redesign-spec §Copy guidelines](../design/v-download-v1/specs/redesign-spec.md) table (format picker toggle, subfolders, sync wording, Douyin browser label, “Best available”, scanning string).
 
 **Error strings:** User-facing problem statements, not raw logs (recovery screen).
 
-**Keyboard (target):** [redesign-spec suggested shortcuts](../design/v-download-bw-redesign-pack/specs/redesign-spec.md) — document in app help or settings; implement in Phase 4 (or incrementally when selection model supports ⌘O / ⌘R / Space / Delete). **Shipped:** **⌘,** / **Ctrl+,** and the app menu **Settings…** item open in-app Preferences (see README shortcut table).
+**Keyboard (target):** [redesign-spec suggested shortcuts](../design/v-download-v1/specs/redesign-spec.md) — document in app help or settings; implement in Phase 4 (or incrementally when selection model supports ⌘O / ⌘R / Space / Delete). **Shipped:** **⌘,** / **Ctrl+,** and the app menu **Settings…** item open in-app Preferences (see README shortcut table).
 
 ---
 
@@ -149,7 +149,7 @@ From redesign-spec §Accessibility notes:
 | **3** | Recovery, prefs sections, extension guide, compact window | Match 09–13; settings IA split |
 | **4** | White mode, motion, shortcuts, a11y polish | Match 15 + shortcut table; reduced-motion |
 
-**Out of scope for this design plan (product backlog):** See [FUTURE_ENHANCEMENTS.md](./FUTURE_ENHANCEMENTS.md) (Douyin hydration, experimental CloakBrowser, etc.) — **orthogonal** to monochrome IA unless a screen explicitly references them (e.g. cookie sync).
+**Out of scope for this design plan (product backlog):** See [PRODUCT_DIRECTION.md](./PRODUCT_DIRECTION.md). Douyin hydration / CloakBrowser notes: [download-reliability.md](./download-reliability.md). Orthogonal to monochrome IA unless a screen explicitly references them (e.g. cookie sync).
 
 ---
 
@@ -165,8 +165,8 @@ From redesign-spec §Accessibility notes:
 
 | Path | Contents |
 |------|----------|
-| `design/v-download-bw-redesign-pack/specs/redesign-spec.md` | UX rationale, screen behavior, component rules, implementation priority |
-| `design/v-download-bw-redesign-pack/specs/mockup-index.md` | PNG/PDF index |
-| `design/v-download-bw-redesign-pack/tokens/design-tokens.json` | Color, type, spacing, radius, shadow, layout |
-| `design/v-download-bw-redesign-pack/exports/png/` | Individual mockups |
-| `design/v-download-bw-redesign-pack/exports/pdf/` | Combined mockups PDF |
+| `design/v-download-v1/specs/redesign-spec.md` | UX rationale, screen behavior, component rules, implementation priority |
+| `design/v-download-v1/specs/mockup-index.md` | PNG/PDF index |
+| `design/v-download-v1/tokens/design-tokens.json` | Color, type, spacing, radius, shadow, layout |
+| `design/v-download-v1/exports/png/` | Individual mockups |
+| `design/v-download-v1/exports/pdf/` | Combined mockups PDF |

@@ -60,6 +60,16 @@ interface WindowApi {
   openFile: (path: string) => Promise<{ ok?: boolean; error?: string }>
   getSettings: () => Promise<{ data: unknown }>
   updateSettings: (key: string, value: unknown) => Promise<{ ok: boolean; error?: string }>
+  getRemoteMcpLogs: (limit?: number) => Promise<{ data: Array<{
+    timestamp: string
+    tool: string
+    category: string
+    argumentSummary: string
+    success: boolean
+    elapsedMs: number
+    errorCode?: string | null
+    message: string
+  }> }>
   applyDownloadSpeedMode: (
     mode: 'balanced' | 'turbo' | 'gentle',
     options?: { acknowledgeTurboRisk?: boolean }

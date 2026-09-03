@@ -1,18 +1,14 @@
-# Download reliability (architecture notes)
+# Download reliability
 
-This document summarizes how **V-Download** stays reliable compared to ad‑hoc scripts, and where fragility remains.
+Runbook for **V-Download**: what stays fragile, how to recover, and remaining Douyin parser research. Engine routing and settings live in [download-engines.md](./download-engines.md). Profile picker / Python bulk: [douyin-bulk.md](./douyin-bulk.md).
 
 ## Stack
 
 - **yt-dlp** is the primary engine for supported sites (including YouTube). Keep it **updated** (`brew upgrade yt-dlp` or your package manager); site extractors change often.
 - **Cookies**: Logged-in or age-gated content needs cookies. Use the app’s **cookie sync** (Chrome companion) or a **Netscape cookies file** plus per-site settings (`cookiesFromBrowser` for Douyin, etc.).
-- **YouTube playlists**
-  - **Native** (default): one task, original list/channel URL, `metadata.nativeYoutubePlaylist`; yt-dlp runs with playlist options (`--yes-playlist`, optional `--sleep-requests`, `--max-downloads`). Output goes under the playlist subfolder when enabled.
-  - **Fan-out**: one queued task per video (legacy, more parallel pressure on YouTube).
-- **Douyin**
-  - Primary path: yt-dlp with cookies; on failure the app may fall back to **HTML parsing** (`getDouyinInfo`) and direct video or **image gallery** download.
-  - **Fragility**: Douyin changes layouts and bot-detection frequently. If downloads fail, **refresh cookies**, try **CloakBrowser** (settings), and **update yt-dlp**. Errors may include hints from the last parser attempt.
-- **Optional bulk**: [jiji262/douyin-downloader](https://github.com/jiji262/douyin-downloader) can be wired via **Preferences → Douyin bulk** (`douyinBulkRunPyPath`, `douyinBulkConfigPath`). Use lifecycle IPC/API (`start`, `status`, `cancel`) so long runs can be observed and interrupted safely.
+- **YouTube playlists:** **Native** (default) is one yt-dlp job; **fan-out** is one queued task per video. Routing detail: [download-engines.md](./download-engines.md).
+- **Douyin:** yt-dlp first, then the HTML / Chromium fallback below. Refresh cookies, try **CloakBrowser** (settings), and update yt-dlp when pages fail.
+- **Optional bulk:** [douyin-bulk.md](./douyin-bulk.md) — prefer the built-in picker; Python `run.py` is a power-user escape hatch.
 
 ## Chrome extension
 
@@ -42,3 +38,30 @@ This document summarizes how **V-Download** stays reliable compared to ad‑hoc 
 2. Refresh cookies after login/password/2FA changes before retrying gated URLs.
 3. For large YouTube lists, prefer native playlist mode with non-zero sleep between requests.
 4. For Douyin bulk runs, always use start/status/cancel flow instead of fire-and-forget execution.
+
+## Douyin fallback (single video)
+
+When yt-dlp cannot resolve a Douyin page:
+
+1. **`getDouyinInfo`** in [`src/main/douyin.ts`](../src/main/douyin.ts) expands short links (`v.douyin.com/...`), extracts a numeric video id, and tries **`https://www.douyin.com/video/{id}`** first, then ies/m share URLs, with mobile and desktop `fetch`.
+2. Node `fetch` often gets an anti-bot HTML shell (empty `<body>`, `byted_acrawler`) with no `_ROUTER_DATA` / `play_addr` JSON.
+3. [`src/main/douyinBrowserFetch.ts`](../src/main/douyinBrowserFetch.ts) loads the URL in a hidden Electron window (persistent partition, optional Netscape cookies) and polls until the page looks hydrated, then parses again.
+4. A final Chromium pass uses the canonical `www.douyin.com/video/{id}` URL if earlier fetches failed.
+5. **`downloadDouyinVideo`** streams from the constructed `aweme.snssdk.com` play URL when metadata was recovered.
+
+**CloakBrowser** (Settings, or `V_DOWNLOAD_CLOAKBROWSER=1`) is an optional patched Chromium if stock Electron still times out. It stays optional: extra binary on disk, separate license, Gatekeeper friction on macOS. See the README CloakBrowser section.
+
+### Remaining research
+
+- Capture a stable hydrated **iesdouyin** HTML sample and extend `parseDouyinPageHtml` / `JSON_MARKERS` for embeds that omit `_ROUTER_DATA`.
+- Optionally refine `htmlLooksHydrated` so large but still unparseable pages do not exit the poll loop too early.
+- Tune hydration timeouts after real `did-finish-load` + reload patterns. Gate experimental Chromium flags only if a platform-specific failure needs them.
+
+### Related code
+
+| Area | Path |
+|------|------|
+| Douyin metadata + parse | [`src/main/douyin.ts`](../src/main/douyin.ts) |
+| Electron Chromium hydration | [`src/main/douyinBrowserFetch.ts`](../src/main/douyinBrowserFetch.ts) |
+| Queue / yt-dlp then fallback | [`src/main/downloadManager.ts`](../src/main/downloadManager.ts) |
+| Clipboard URL extraction | [`src/renderer/src/utils/youtube.ts`](../src/renderer/src/utils/youtube.ts) |

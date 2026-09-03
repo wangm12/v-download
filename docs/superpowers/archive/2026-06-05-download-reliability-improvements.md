@@ -1,5 +1,7 @@
 # Download Reliability Improvements Implementation Plan
 
+> Archived. Living runbook: [download-reliability.md](../../download-reliability.md).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Harden long-running download reliability and error recovery by adding cancellable Douyin bulk jobs, clearer extension error lifecycle, and vdl-server Douyin gallery parity.

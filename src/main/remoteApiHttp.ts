@@ -38,7 +38,22 @@ function sendJson(res: ServerResponse, status: number, body: unknown): void {
 }
 
 function sendDispatch(res: ServerResponse, result: RemoteApiDispatch): void {
+  if (result.type === 'empty') {
+    res.writeHead(result.status, { Allow: 'POST' })
+    res.end()
+    return
+  }
   if (result.type === 'json') {
+    if (result.status === 405) {
+      const payload = JSON.stringify(result.body)
+      res.writeHead(result.status, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Content-Length': Buffer.byteLength(payload),
+        Allow: 'POST',
+      })
+      res.end(payload)
+      return
+    }
     sendJson(res, result.status, result.body)
     return
   }

@@ -32,7 +32,9 @@ const DEFAULT_SETTINGS: SettingsData = {
   remoteApiEnabled: false,
   remoteApiToken: '',
   remoteApiBind: '127.0.0.1',
-  remoteApiPort: 18766
+  remoteApiPort: 18766,
+  remoteApiMcpAllowWrite: false,
+  remoteApiMcpRequireConfirm: true
 }
 
 export function useSettings() {

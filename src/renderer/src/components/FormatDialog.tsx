@@ -80,10 +80,12 @@ export function FormatDialog({
   const isImageGallery =
     (videoInfo._type === 'douyin_gallery' || videoInfo._type === 'xhs_gallery') &&
     Array.isArray(videoInfo.image_urls)
+  const isTextNote = videoInfo._type === 'text'
+  const simpleSave = isImageGallery || isTextNote
   const galleryCount = isImageGallery ? videoInfo.image_urls!.length : 0
   const galleryLabel = videoInfo._type === 'xhs_gallery' ? 'Xiaohongshu' : 'Douyin'
   const pageUrl = videoInfo.webpage_url || ''
-  const showDouyinBulkHint = !isImageGallery && isDouyinProfileHomeUrl(pageUrl)
+  const showDouyinBulkHint = !simpleSave && isDouyinProfileHomeUrl(pageUrl)
   const bulkConfigured = Boolean(
     (settings.douyinBulkRunPyPath ?? '').trim() && (settings.douyinBulkConfigPath ?? '').trim()
   )
@@ -178,7 +180,7 @@ export function FormatDialog({
         </div>
 
         {/* Tabs */}
-        {!isImageGallery && (
+        {!simpleSave && (
           <div className="flex bg-surface px-5 h-10 items-center gap-0" role="tablist" aria-label="Format type">
             {tabs.map((tab) => {
               const Icon = tab.icon
@@ -209,11 +211,30 @@ export function FormatDialog({
 
         {/* Table */}
         <div
-          id={isImageGallery ? 'format-gallery-panel' : `format-panel-${activeTab}`}
-          {...(isImageGallery ? { role: 'region' as const, 'aria-labelledby': 'format-dialog-title' } : { role: 'tabpanel' as const, 'aria-labelledby': `format-tab-${activeTab}` })}
+          id={simpleSave ? 'format-gallery-panel' : `format-panel-${activeTab}`}
+          {...(simpleSave ? { role: 'region' as const, 'aria-labelledby': 'format-dialog-title' } : { role: 'tabpanel' as const, 'aria-labelledby': `format-tab-${activeTab}` })}
           className="px-5 max-h-[min(300px,45vh)] overflow-y-auto min-h-0"
         >
-          {isImageGallery ? (
+          {isTextNote ? (
+            <div className="py-5 space-y-4">
+              <div className="rounded-button bg-control px-4 py-3 ring-1 ring-inset ring-divider-subtle">
+                <p className="text-sm font-medium text-foreground">Text note</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  This post has no video or images. V-Download will save the title and caption as Markdown.
+                </p>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => handleDownload('video', Number(settings.defaultVideoQuality || '1080'), 'text-note')}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-action text-action-fg text-xs font-semibold hover:bg-action-hover transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+                >
+                  <Download size={13} />
+                  Save note
+                </button>
+              </div>
+            </div>
+          ) : isImageGallery ? (
             <div className="py-5 space-y-4">
               <div className="rounded-button bg-control px-4 py-3 ring-1 ring-inset ring-divider-subtle">
                 <p className="text-sm font-medium text-foreground">{galleryLabel} image gallery</p>
@@ -323,7 +344,7 @@ export function FormatDialog({
               {bulkNote ? <p className="text-[11px] text-muted-foreground">{bulkNote}</p> : null}
             </div>
           )}
-          {!isImageGallery && activeTab !== 'other' ? (
+          {!simpleSave && activeTab !== 'other' ? (
             <div className="flex items-center justify-between gap-3 py-3">
               <div className="flex min-w-0 items-center gap-2">
                 <Folder size={14} className="text-muted-foreground" />

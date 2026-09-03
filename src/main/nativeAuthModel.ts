@@ -5,7 +5,7 @@ const SITE_HOSTS: Record<NativeAuthSite, string[]> = {
   douyin: ['douyin.com', 'iesdouyin.com'],
   tiktok: ['tiktok.com'],
   bilibili: ['bilibili.com', 'b23.tv'],
-  xiaohongshu: ['xiaohongshu.com', 'xhslink.com'],
+  xiaohongshu: ['xiaohongshu.com', 'xhslink.com', 'xhslink.cn'],
   x: ['x.com', 'twitter.com']
 }
 

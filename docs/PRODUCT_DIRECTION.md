@@ -28,4 +28,37 @@ Keeping the focus also lets the app improve the moment users care about most: ge
 
 Reconsider a media-center pivot only if there is sustained evidence that users primarily return to browse and play an existing collection, rather than capture new media. Useful signals would include repeated Library sessions, requests for playback or metadata management, and a clear target audience for RSS or music workflows.
 
-Until those signals exist, the next investments should deepen the downloader: Sniff session quality, engine freshness, authentication recovery, format/post-processing presets, and Library search and batch operations.
+Until those signals exist, the next investments should deepen the downloader: Sniff session quality, engine freshness, authentication recovery, format/post-processing presets, Library search and batch operations, and user-facing output templates.
+
+## Shipped (from this backlog)
+
+| Item | Living doc |
+|------|------------|
+| **MCP facade** — `POST /mcp` and `GET /v1/jobs` on the Remote Job API listener; writes off by default | [REMOTE_JOB_API.md](./REMOTE_JOB_API.md) |
+| **Shared resolve + note.md** — UI paste and Remote API use the same resolver; captions saved as markdown | [REMOTE_JOB_API.md](./REMOTE_JOB_API.md), [MANUAL_TESTING.md](./MANUAL_TESTING.md) |
+
+Historical specs: [superpowers/archive/](./superpowers/archive/).
+
+## Open backlog (from better-douyin review)
+
+Public [better-douyin](https://github.com/anYuJia/better-douyin) is a Douyin-native desktop shell. Learn **library grouping, archive templates, and local AI control-surface packaging** — not their player, feed, IM, or platform connectors. Do not copy that repository's source (Non-Commercial license) into this MIT project.
+
+| Priority | Item | Spec |
+|----------|------|------|
+| 1 | **Library Phase A** — completed-file home: disk scan + existing SQLite rows; file view / work view; search, filter, page, Reveal, delete, refresh | [2026-08-31-library-phase-a-design.md](superpowers/specs/2026-08-31-library-phase-a-design.md) |
+| 2 | **Output templates** — filename / folder tokens and optional author folders, mapped to yt-dlp `-o` and existing Douyin/XHS sanitizers | [2026-08-31-output-templates-design.md](superpowers/specs/2026-08-31-output-templates-design.md) |
+| Later | **Creator watch list** — save a Douyin profile already listable today; manual “check for new posts” first; conservative caps. No new signing or hidden crawl. | — |
+| Polish | Template / Remote API field-level save feedback | — |
+
+Douyin hydration and parser research: [download-reliability.md](./download-reliability.md).
+
+## Explicit non-goals
+
+These stay out of scope even if a Douyin client implements them:
+
+- In-app immersive **playback** (system Open / Reveal only)
+- Recommended feed, likes/favorites browsing, notices, friends/IM
+- Auto like / comment / follow / DM / “AI social” automation
+- Replacing Electron with Tauri, or hiding engines behind an open-shell split
+- Completing or translating third-party private platform connectors, signing, or bypass logic
+- A standalone `v-download-cli` — other apps should call the running desktop app on `:18766` ([REMOTE_JOB_API.md](./REMOTE_JOB_API.md))

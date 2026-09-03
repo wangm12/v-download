@@ -19,9 +19,9 @@ Debug logging: see [DEBUG.md](./DEBUG.md) (`make dev` session log + release `wor
 3. If API pagination stops early, click **Load in browser** (opt-in) — a **system browser window** opens (Chrome/Edge/Brave per Settings), with live cookies injected; a second window may appear if that browser is already running. Click **Open profile in browser** to scroll manually in your configured browser. Set **`V_DOWNLOAD_DOUYIN_PROFILE_RECOVERY=0`** to disable the automated recovery backend.
 4. If Chromium spins on captcha widgets (noisy `rmc-captcha` logs), set **`V_DOWNLOAD_DOUYIN_PROFILE_CHROMIUM_MS`** (ms, ≥5000) to cap hydrate wait. Profile **Load in browser** uses Playwright + your configured system browser (not Electron).
 5. Run **`npm run test:douyin-profile`** for parser/signing smoke tests (no network).
-4. Select several posts → **Add to queue**; confirm tasks appear in the main list with correct titles/thumbnails.
-5. If **Load more** is enabled, click it once and confirm new rows append without duplicates.
-6. **Load all pages (capped)** stops at the documented cap; cancel by closing the modal mid-flight (no crash).
+6. Select several posts → **Add to queue**; confirm tasks appear in the main list with correct titles/thumbnails.
+7. If **Load more** is enabled, click it once and confirm new rows append without duplicates.
+8. **Load all pages (capped)** stops at the documented cap; cancel by closing the modal mid-flight (no crash).
 
 ### Bulk lifecycle (Python escape hatch)
 
@@ -52,7 +52,7 @@ Debug logging: see [DEBUG.md](./DEBUG.md) (`make dev` session log + release `wor
 - X / Twitter (tweet video)
 - TikTok
 - Bilibili
-- Xiaohongshu (best-effort; login-sensitive)
+- Xiaohongshu (best-effort; login-sensitive). Image notes via `xhslink.cn` / `xhslink.com` should resolve as a gallery, not yt-dlp video — both UI paste and `POST /v1/jobs`. Probe: `npx tsx scripts/test-xhs-url.ts --download 'https://xhslink.cn/o/7OA0OYWB0EB'` (folder should include `note.md`).
 - Instagram (usually needs synced cookies)
 
 ## P2 — desktop depth
@@ -92,22 +92,24 @@ See [download-engines.md](./download-engines.md) for the routing matrix.
 Full contract: [REMOTE_JOB_API.md](./REMOTE_JOB_API.md).
 
 - Preferences → Advanced → enable Remote API (default off, `127.0.0.1:18766`).
-- `POST /v1/jobs` with Bearer token and `{ "url": "…" }` returns 202; poll `GET /v1/jobs/:id`.
+- `POST /v1/jobs` with Bearer token and `{ "url": "…" }` returns 202; poll `GET /v1/jobs/:id` or list with `GET /v1/jobs`.
+- Copy MCP config; `POST /mcp` `tools/list` works with the same token. Write tools stay off until enabled; enqueue requires `confirm: true` when that toggle is on.
+- Enqueue a Xiaohongshu image short link (`xhslink.cn`) via `POST /v1/jobs`; the job should complete as a gallery folder with `note.md`, not fail with yt-dlp `No video formats found`.
 - Extension pairing on **18765** still refuses non-localhost clients.
 
 ## End-to-end narratives
 
 - **A — Desktop only:** app + yt-dlp/ffmpeg; YouTube paste + optional extension; queue controls.
 - **B — Cookies → app:** logged-in YouTube in Chrome; gated content works after sync.
-- **C — Remote API:** enable Remote Job API; `POST /v1/jobs` for a public URL; poll until complete; `GET /file` or `/archive`.
+- **C — Remote API:** enable Remote Job API; `POST /v1/jobs` for a public URL; poll until complete; `GET /file` or `/archive`. Optional: `POST /mcp` health + list_jobs.
 
 Record: URL, surface (paste / extension / remote API), pass/fail, yt-dlp version, Chrome login state, cookie sync timing, notes.
 
-See also [FUTURE_ENHANCEMENTS.md](./FUTURE_ENHANCEMENTS.md) for Douyin / headless Chromium backlog and optional CloakBrowser research.
+See also [download-reliability.md](./download-reliability.md) for Douyin fallback / CloakBrowser notes, and [PRODUCT_DIRECTION.md](./PRODUCT_DIRECTION.md) for the open backlog.
 
 ## Monochrome redesign — mockup vs build
 
-Use this matrix with [DESIGN_PLAN.md](./DESIGN_PLAN.md) and the PNGs under [`design/v-download-bw-redesign-pack/exports/png/`](../design/v-download-bw-redesign-pack/exports/png/) (or the combined [PDF](../design/v-download-bw-redesign-pack/exports/pdf/v-download-bw-redesign-mockups.pdf)). For each row, open the mockup, compare to the current app, and tick when the **Verify** criteria are met (or mark N/A if the phase is not shipped yet).
+Use this matrix with [DESIGN_PLAN.md](./DESIGN_PLAN.md) and the PNGs under [`design/v-download-v1/exports/png/`](../design/v-download-v1/exports/png/) (or the combined [PDF](../design/v-download-v1/exports/pdf/v-download-bw-redesign-mockups.pdf)). For each row, open the mockup, compare to the current app, and tick when the **Verify** criteria are met (or mark N/A if the phase is not shipped yet).
 
 | Mockup | Screen | Phase | Verify in build |
 |--------|--------|-------|-----------------|
@@ -136,4 +138,4 @@ Use this matrix with [DESIGN_PLAN.md](./DESIGN_PLAN.md) and the PNGs under [`des
 
 **Pass/fail log (optional):** Record date, build or commit, mockup IDs checked, and notes in your release doc or issue.
 
-**Related:** [mockup-index.md](../design/v-download-bw-redesign-pack/specs/mockup-index.md) (short descriptions per file).
+**Related:** [mockup-index.md](../design/v-download-v1/specs/mockup-index.md) (short descriptions per file).
