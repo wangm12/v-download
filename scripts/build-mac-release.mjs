@@ -82,6 +82,13 @@ function restoreHostNativeDependencies() {
   delete env.npm_config_runtime
   run('npm', ['rebuild', 'better-sqlite3', `--arch=${process.arch}`, `--platform=${process.platform}`], env)
 }
+function envForElectronBuilder() {
+  const env = { ...process.env, RELEASE_ARCH: arch }
+  for (const key of ['CSC_LINK', 'CSC_KEY_PASSWORD', 'CSC_NAME', 'APPLE_ID', 'APPLE_APP_SPECIFIC_PASSWORD', 'APPLE_TEAM_ID']) {
+    if (!String(env[key] ?? '').trim()) delete env[key]
+  }
+  return env
+}
 let lockOwned = false
 let nativeBuildMayHaveChanged = false
 try {
@@ -90,7 +97,7 @@ try {
   run('npm', ['run', 'build'], { ...process.env, RELEASE_ARCH: arch })
   nativeBuildMayHaveChanged = true
   rebuildTargetNativeDependencies()
-  run('npx', ['electron-builder', '--mac', `--${arch}`], { ...process.env, RELEASE_ARCH: arch })
+  run('npx', ['electron-builder', '--mac', `--${arch}`, '--publish', 'never'], envForElectronBuilder())
   validatePackagedNativeModule()
 } catch (error) {
   console.error(`MAC RELEASE BUILD BLOCKED: ${error.message}`)

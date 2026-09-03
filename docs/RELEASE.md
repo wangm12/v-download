@@ -40,9 +40,14 @@ Use `RELEASE_DRY_RUN=1 npm run verify:release` only for local fixture validation
 
 ## GitHub Actions
 
-Pushing a tag that matches `package.json` (`v1.1.7` for version `1.1.7`) runs `.github/workflows/release.yml`. It builds `arm64` and `x64` separately through `npm run build:mac:*`, then attaches the `.dmg`, `.zip`, `.blockmap`, and a merged `latest-mac.yml` to a **draft** GitHub Release. GitHub adds Source code zip/tar.gz on its own.
+`.github/workflows/release.yml` builds `arm64` and `x64` separately through `npm run build:mac:*` (the per-arch equivalent of `make dmg`), then attaches the `.dmg`, `.zip`, `.blockmap`, and a merged `latest-mac.yml` to a **published** GitHub Release. GitHub adds Source code zip/tar.gz on its own.
 
-`workflow_dispatch` builds the same installers without creating a Release, so you can inspect the workflow artifacts first.
+Trigger either way:
+
+1. **Actions → Release → Run workflow** — uses the `package.json` version (`v1.1.7` today) as the tag and release name.
+2. **Push a tag** that matches `package.json` (`git tag v1.1.7 && git push origin v1.1.7`).
+
+Until the extension is on the Chrome Web Store, set repository secret `CHROME_EXTENSION_ID` to any 32-character id using only `a–p`. Replace it with the store id when you publish. Do not commit the id.
 
 ### Secrets
 
@@ -57,4 +62,4 @@ Pushing a tag that matches `package.json` (`v1.1.7` for version `1.1.7`) runs `.
 
 Without the signing secrets the Action still produces installers, but other Macs will typically refuse to open them.
 
-After the draft looks right, publish it on [Releases](https://github.com/wangm12/v-download/releases). In-app updates still need `latest-mac.yml` plus the zips at an HTTPS generic-provider URL such as `https://github.com/wangm12/v-download/releases/latest/download`; that URL is injected at runtime via `VDOWNLOAD_UPDATE_PROVIDER_URL` and is not stored in source.
+The workflow publishes the Release when the build succeeds. In-app updates still need `latest-mac.yml` plus the zips at an HTTPS generic-provider URL such as `https://github.com/wangm12/v-download/releases/latest/download`; that URL is injected at runtime via `VDOWNLOAD_UPDATE_PROVIDER_URL` and is not stored in source.
