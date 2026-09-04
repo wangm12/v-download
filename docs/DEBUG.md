@@ -10,7 +10,7 @@ make dev
 
 This runs `electron-vite dev` with:
 
-- **`V_DOWNLOAD_VERBOSE=1`** — reserved for future optional verbosity in the main process (worklog lines always print in dev).
+- **`V_DOWNLOAD_VERBOSE=1`** — set by `make dev` for extra session context. Structured `[worklog]` lines always print in development.
 - **`ELECTRON_ENABLE_LOGGING=1`** — extra Chromium / Electron logging to stderr.
 - **`tee logs/dev-latest.log`** — everything printed in the terminal is also appended to **`logs/dev-latest.log`** (overwrite each session).
 

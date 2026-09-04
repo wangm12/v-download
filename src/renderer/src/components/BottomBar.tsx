@@ -41,7 +41,7 @@ export function BottomBar({
 
   const iconButton = (enabled: boolean) =>
     cn(
-      'min-h-11 rounded-md px-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus',
+      'min-h-11 min-w-11 rounded-md px-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus',
       enabled
         ? 'text-foreground hover:bg-control'
         : 'text-muted-foreground/40 cursor-default'
@@ -117,7 +117,7 @@ export function BottomBar({
               onClick={onSyncCookies}
               disabled={syncCookiesBusy}
               className={cn(
-                'min-h-11 max-w-full flex items-center justify-center gap-1.5 rounded-md px-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus',
+                'min-h-11 min-w-11 max-w-full flex items-center justify-center gap-1.5 rounded-md px-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus',
                 syncCookiesBusy
                   ? 'text-foreground cursor-wait ring-1 ring-inset ring-border-strong bg-selection'
                   : 'text-muted-foreground hover:text-foreground hover:bg-control active:text-foreground'

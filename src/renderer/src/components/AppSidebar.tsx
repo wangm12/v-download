@@ -134,9 +134,9 @@ export function AppSidebar({
           <img
             src={APP_ICON_SRC}
             alt=""
-            width={28}
-            height={28}
-            className="h-7 w-7 shrink-0 rounded-lg object-cover shadow-sm ring-1 ring-divider-subtle"
+            width={40}
+            height={40}
+            className="h-10 w-10 shrink-0 object-contain"
             draggable={false}
             role="presentation"
           />
@@ -157,9 +157,9 @@ export function AppSidebar({
           <img
             src={APP_ICON_SRC}
             alt=""
-            width={32}
-            height={32}
-            className="h-8 w-8 shrink-0 rounded-lg object-cover shadow-sm ring-1 ring-divider-subtle"
+            width={40}
+            height={40}
+            className="h-10 w-10 shrink-0 object-contain"
             draggable={false}
           />
           <div className="min-w-0 flex-1">

@@ -1,22 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
   <defs>
     <linearGradient id="tile" x1="20%" y1="4%" x2="82%" y2="96%">
+      <stop offset="0%" stop-color="#2A2A2E"/>
+      <stop offset="55%" stop-color="#141416"/>
+      <stop offset="100%" stop-color="#0C0C0E"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="50%" y1="0%" x2="50%" y2="40%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="arrow" x1="50%" y1="16%" x2="50%" y2="90%">
       <stop offset="0%" stop-color="#F4F0E9"/>
       <stop offset="55%" stop-color="#E4DED4"/>
       <stop offset="100%" stop-color="#C8C1B7"/>
     </linearGradient>
-    <linearGradient id="sheen" x1="50%" y1="0%" x2="50%" y2="40%">
-      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.28"/>
-      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
-    </linearGradient>
-    <linearGradient id="arrow" x1="50%" y1="16%" x2="50%" y2="90%">
-      <stop offset="0%" stop-color="#2F2F33"/>
-      <stop offset="100%" stop-color="#1A1A1D"/>
-    </linearGradient>
   </defs>
   <rect width="1024" height="1024" rx="228" fill="url(#tile)"/>
   <rect width="1024" height="1024" rx="228" fill="url(#sheen)"/>
-  <rect x="5" y="5" width="1014" height="1014" rx="223" fill="none" stroke="#FFFFFF" stroke-opacity="0.22" stroke-width="3"/>
   <path fill="url(#arrow)" d="
     M 440 236
     h 144

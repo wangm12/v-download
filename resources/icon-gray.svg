@@ -1,21 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
   <defs>
     <linearGradient id="tile" x1="20%" y1="4%" x2="82%" y2="96%">
-      <stop offset="0%" stop-color="#D4D4D8"/>
-      <stop offset="55%" stop-color="#A1A1AA"/>
-      <stop offset="100%" stop-color="#71717A"/>
-    </linearGradient>
-    <linearGradient id="sheen" x1="50%" y1="0%" x2="50%" y2="40%">
-      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.18"/>
-      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="0%" stop-color="#3F3F46"/>
+      <stop offset="55%" stop-color="#27272A"/>
+      <stop offset="100%" stop-color="#18181B"/>
     </linearGradient>
     <linearGradient id="arrow" x1="50%" y1="16%" x2="50%" y2="90%">
-      <stop offset="0%" stop-color="#52525B"/>
-      <stop offset="100%" stop-color="#3F3F46"/>
+      <stop offset="0%" stop-color="#A1A1AA"/>
+      <stop offset="100%" stop-color="#71717A"/>
     </linearGradient>
   </defs>
   <rect width="1024" height="1024" rx="228" fill="url(#tile)"/>
-  <rect width="1024" height="1024" rx="228" fill="url(#sheen)"/>
   <path fill="url(#arrow)" d="
     M 440 236
     h 144

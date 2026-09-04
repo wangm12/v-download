@@ -2,12 +2,14 @@
 
 ## Decision
 
-V-Download will remain a Downie-style downloader as its primary product. The core promise is fast, reliable capture from pasted URLs, browser-extension events, Douyin workflows, and sniff sessions—not a general-purpose media center.
+V-Download will remain a Downie-style downloader as its primary product. The core promise is fast, reliable capture from pasted URLs, the Chrome extension, and Douyin workflows—not a general-purpose media center.
 
-The Library and Sniff experiences are supporting surfaces around that promise:
+**Shipped today:** the download queue, in-app Preferences, format/collection pickers, and extension page sniffing. There is **no** in-app Library or Sniff workspace (the shell contract tests forbid those nav entries).
 
-- **Library Phase A** gives completed downloads a searchable, grouped home without introducing a second media database.
-- **Sniff** exposes browser-captured resources when yt-dlp cannot resolve a page directly.
+These remain **backlog**, not current UI:
+
+- **Library Phase A** — a completed-download home on top of existing SQLite rows and `downloadDir`, without a second media database.
+- **Sniff (in-app)** — a dedicated session UI for browser-captured resources when yt-dlp cannot resolve a page. Capture today goes through the Chrome extension and the queue.
 - **Native account login**, engine updates, onboarding, and lightweight localization reduce setup and recovery friction.
 
 ## Why this direction
@@ -28,7 +30,7 @@ Keeping the focus also lets the app improve the moment users care about most: ge
 
 Reconsider a media-center pivot only if there is sustained evidence that users primarily return to browse and play an existing collection, rather than capture new media. Useful signals would include repeated Library sessions, requests for playback or metadata management, and a clear target audience for RSS or music workflows.
 
-Until those signals exist, the next investments should deepen the downloader: Sniff session quality, engine freshness, authentication recovery, format/post-processing presets, Library search and batch operations, and user-facing output templates.
+Until those signals exist, the next investments should deepen the downloader: extension sniff quality, engine freshness, authentication recovery, format/post-processing presets, the Library Phase A backlog, and user-facing output templates.
 
 ## Shipped (from this backlog)
 

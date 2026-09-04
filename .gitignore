@@ -31,6 +31,9 @@ logs/*.log
 # Design files
 *.pen
 
+# Local icon exploration (not product assets)
+resources/_icon-previews/
+
 # Reference files
 reference.js
 # Release-fetched engine binaries and temporary archives are intentionally not tracked.

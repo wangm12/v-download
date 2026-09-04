@@ -8,7 +8,8 @@ help:
 	@echo "  make mac       build + electron-builder --mac"
 	@echo "  make clean     rm out/, dist/, vite cache"
 	@echo "  make ext       reminder to reload Chrome extension"
-	@echo "  make release   build + mac"
+	@echo "  make test      npm test"
+	@echo "  make release   macOS DMG/zip (npm run build:mac)"
 	@echo "  make verify-release  fail-closed packaging/signing/engine/update checks"
 
 install:
@@ -25,8 +26,10 @@ build:
 run:
 	npm run dev
 
-dmg:
+mac:
 	npm run build:mac
+
+dmg: mac
 
 mac-arm64:
 	npm run build:mac:arm64
@@ -61,8 +64,8 @@ commit:
 push:
 	git push origin main
 
-# Build then package for macOS in one step
-release: build mac
+# Package macOS installers (build-mac-release already compiles)
+release: mac
 
 verify-release:
 	npm run verify:release

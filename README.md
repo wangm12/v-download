@@ -45,7 +45,7 @@ This repository ships the **desktop app**, a **Chrome extension**, and a small *
 - **YouTube integration** — One-click download on YouTube pages with format selection (4K to 144p, MP3)
 - **X/Twitter integration** — Download buttons on tweets with video (action bar + video overlay); sends tweet URL to yt-dlp for full quality download
 - **Douyin integration** — Dedicated download panel with full quality options, cover images, and music extraction via React fiber inspection
-- **App-side sniffer** — For sites yt-dlp doesn't support, the app loads the page in a hidden browser and detects streams automatically
+- **Page sniffing** — The Chrome extension detects HLS, MP4, WebM, and FLV on the open tab. Douyin may also hydrate in a hidden Electron or CloakBrowser window when a plain fetch is not enough.
 - **Playlist & channel support** — Download entire playlists or channels with organized subfolders
 - **Concurrent downloads** — Configurable parallel download queue (1-10 simultaneous)
 - **Dock progress animation** — macOS dock icon fills top-to-bottom during downloads with live speed display (e.g. `12 MB/s`)
@@ -53,13 +53,7 @@ This repository ships the **desktop app**, a **Chrome extension**, and a small *
 - **Download management** — Pause, resume, retry, cancel, and delete individual or all tasks
 - **Explicit cookie sync** — Syncs supported site cookies from Chrome only after the user requests it; cookies stay on the local desktop app by default
 - **Crash recovery** — Interrupted downloads are detected and can be resumed on restart
-- **Dark UI** — Clean, minimal dark theme with black and white accents
-
-## Screenshots
-
-<p align="center">
-  <em>Main window with active downloads, playlist groups, and real-time progress</em>
-</p>
+- **Monochrome UI** — Dark / Light / device appearance; black and white accents, status by label and shape
 
 ## Prerequisites
 
@@ -133,13 +127,13 @@ The built app will be in `dist/mac-arm64/V-Download.app` and a DMG installer in 
 | Shortcut | Action |
 |----------|--------|
 | `Cmd+V` | Paste URL and start download |
-| `Cmd+,` (macOS) / `Ctrl+,` (Windows/Linux) | Open Preferences |
+| `Cmd+,` | Open Preferences |
 | `Cmd+W` | Hide window (app stays in dock) |
 | `Cmd+Q` | Quit app |
 
 ## Settings
 
-Preferences open **inside the main window** (sidebar **Preferences…**, bottom bar settings control, or **Cmd+,** / **Ctrl+,**); they are not a separate window. The following options are stored locally:
+Preferences open **inside the main window** (sidebar **Preferences…**, bottom bar settings control, or **Cmd+,**); they are not a separate window. The following options are stored locally:
 
 | Setting | Default | Description |
 |---------|---------|-------------|
@@ -220,16 +214,12 @@ src/                        # Electron app (main + renderer)
 ├── main/
 │   ├── index.ts            # App entry, windows, IPC handlers
 │   ├── downloadManager.ts  # Queue, concurrency, task lifecycle
-│   ├── dockProgress.ts     # macOS dock icon animation + speed badge
+│   ├── mediaResolver.ts    # yt-dlp / sniff / extension candidate resolution
 │   ├── ytdlp.ts            # yt-dlp CLI wrapper
-│   ├── mediaSniffer.ts     # Hidden browser media stream detection
-│   ├── database.ts         # SQLite persistence
-│   ├── settings.ts         # JSON settings store
+│   ├── douyin.ts           # Douyin page parse + download fallback
 │   ├── localServer.ts      # HTTP server for Chrome extension (:18765)
 │   └── remoteApiServer.ts  # Optional Remote Job API (:18766)
 ├── preload/
-│   ├── index.ts
-│   └── index.d.ts
 └── renderer/
     └── src/
         ├── App.tsx
@@ -275,6 +265,9 @@ npm run build:mac
 
 # Regenerate extension domain list only (after editing packages/shared)
 npm run sync:extension-constants
+
+# Automated tests
+npm test
 
 # Makefile targets
 make help

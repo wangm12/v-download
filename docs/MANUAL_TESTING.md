@@ -2,7 +2,7 @@
 
 Short regression matrix for **V-Download** (desktop + extension). Use legal URLs you control or stable public samples; rotate when sites change.
 
-Debug logging: see [DEBUG.md](./DEBUG.md) (`make dev` session log + release `worklog.txt`).
+Debug logging: see [DEBUG.md](./DEBUG.md) (`make dev` session log + release `worklog.txt`). Automated suite: `npm test` at the repo root.
 
 ## P0 — every release
 

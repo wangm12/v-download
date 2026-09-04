@@ -47,31 +47,31 @@ function generateSvg(percent: number, speedText: string): string {
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
   <defs>
     <linearGradient id="tile" x1="20%" y1="4%" x2="82%" y2="96%">
-      <stop offset="0%" stop-color="#F4F0E9"/>
-      <stop offset="55%" stop-color="#E4DED4"/>
-      <stop offset="100%" stop-color="#C8C1B7"/>
+      <stop offset="0%" stop-color="#2A2A2E"/>
+      <stop offset="55%" stop-color="#141416"/>
+      <stop offset="100%" stop-color="#0C0C0E"/>
     </linearGradient>
     <clipPath id="fill">
       <rect x="0" y="${fillY}" width="1024" height="${fillHeight}"/>
     </clipPath>
   </defs>
   <rect width="1024" height="1024" rx="228" fill="url(#tile)"/>
-  <path d="${ARROW_PATH}" fill="#1A1A1D" opacity="0.18"/>`
+  <path d="${ARROW_PATH}" fill="#E4DED4" opacity="0.22"/>`
 
   if (hasSpeed) {
     svg += `
-  <rect x="112" y="785" width="800" height="130" rx="65" fill="#1A1A1D" opacity="0.12"/>
+  <rect x="112" y="785" width="800" height="130" rx="65" fill="#E4DED4" opacity="0.12"/>
   <g clip-path="url(#fill)">
-    <path d="${ARROW_PATH}" fill="#1A1A1D"/>
-    <rect x="112" y="785" width="800" height="130" rx="65" fill="#1A1A1D"/>
+    <path d="${ARROW_PATH}" fill="#E4DED4"/>
+    <rect x="112" y="785" width="800" height="130" rx="65" fill="#E4DED4"/>
   </g>
   <text x="512" y="855" text-anchor="middle" dominant-baseline="central"
         font-family="-apple-system, Helvetica Neue, sans-serif"
-        font-size="100" font-weight="bold" fill="#F4F0E9">${speedText}</text>`
+        font-size="100" font-weight="bold" fill="#141416">${speedText}</text>`
   } else {
     svg += `
   <g clip-path="url(#fill)">
-    <path d="${ARROW_PATH}" fill="#1A1A1D"/>
+    <path d="${ARROW_PATH}" fill="#E4DED4"/>
   </g>`
   }
 

@@ -1,5 +1,6 @@
 # electron-builder packages compiled app + resources; it does NOT bundle the optional
 # CloakBrowser Chromium binary (downloaded at runtime to the user/cache when enabled in Settings).
+# Historical bundle id — changing it breaks updates and Gatekeeper identity.
 appId: com.ytdownload.app
 productName: V-Download
 # build-mac-release.mjs performs the target Electron rebuild explicitly.
@@ -47,6 +48,7 @@ protocols:
       # Browser extension cold-start uses vdownload://wake so macOS does not hand
       # ytdl:// to a stray node_modules Electron.app from local dev runs.
       - vdownload
+# Win/Linux stanzas are unused. Shipping is macOS-only (`npm run build:mac*`).
 win:
   icon: resources/icon.png
   target:

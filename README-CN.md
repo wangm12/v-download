@@ -45,7 +45,7 @@
 - **YouTube 集成** — YouTube 页面一键下载，支持格式选择（4K 到 144p、MP3）
 - **X/Twitter 集成** — 推文视频自动出现下载按钮（操作栏 + 视频叠加层），发送推文链接至 yt-dlp 获取最佳画质
 - **抖音集成** — 专属下载面板，支持完整画质选项、封面图片、音乐提取（通过 React Fiber 提取元数据）
-- **应用端嗅探** — 对于 yt-dlp 不支持的站点，应用会在隐藏浏览器中加载页面并自动检测媒体流
+- **页面嗅探** — Chrome 扩展在当前标签页检测 HLS、MP4、WebM、FLV。抖音在普通 fetch 不够时，可能再用隐藏 Electron 或 CloakBrowser 窗口做页面 hydration。
 - **播放列表 & 频道支持** — 下载完整播放列表或频道，自动按子文件夹整理
 - **并发下载** — 可配置的并行下载队列（1-10 个同时下载）
 - **Dock 进度动画** — macOS Dock 图标从上到下填充动画，实时显示下载速度（如 `12 MB/s`）
@@ -53,13 +53,7 @@
 - **下载管理** — 暂停、恢复、重试、取消、删除单个或全部任务
 - **显式 Cookie 同步** — 只有用户主动请求时才从 Chrome 同步支持站点的 Cookie；默认只保存到本机桌面应用
 - **崩溃恢复** — 检测到中断的下载，重启后可继续
-- **暗色 UI** — 简洁的深色主题，黑白配色
-
-## 截图
-
-<p align="center">
-  <em>主窗口：活跃下载、播放列表分组、实时进度</em>
-</p>
+- **黑白 UI** — 深色 / 浅色 / 跟随系统；黑白配色，状态用标签和形状区分
 
 ## 前置依赖
 
@@ -126,19 +120,20 @@ npm run build:mac
 5. **抖音页面** — 当前视频上方出现下载按钮，支持完整画质选择、封面图片、音乐下载
 6. **其他页面** — 检测到的视频元素上会出现下载叠加按钮；点击扩展图标可打开弹窗查看所有检测到的媒体流（HLS、MP4、WebM、FLV）
 7. 只有在应用中点击 **Sync cookies** 后才会同步 Cookie；扩展不会自动把 Cookie 上传到可选服务器
+8. **冷启动** — 桌面应用未运行时，扩展会在同一次点击里打开 `vdownload://wake`（或从扩展弹窗打开），让 Chrome 把请求和当前页面绑定，并可以提示 **「始终允许打开此类链接」**。请安装 `/dist`（或正式 Release）里的 **打包版** V-Download；`npm run dev` 的开发二进制不会注册 URL scheme，也不应设为默认处理程序。若 Chrome 仍显示 **「打开 Electron？」**，请选择 `/Applications`（或你的安装位置）中的 **V-Download**，而不是 `node_modules` 下的 `Electron.app`。
 
 ### 快捷键
 
 | 快捷键 | 功能 |
 |--------|------|
 | `Cmd+V` | 粘贴 URL 并开始下载 |
-| `Cmd+,`（macOS）/ `Ctrl+,`（Windows/Linux） | 打开偏好设置 |
+| `Cmd+,` | 打开偏好设置 |
 | `Cmd+W` | 隐藏窗口（应用保留在 Dock） |
 | `Cmd+Q` | 退出应用 |
 
 ## 设置
 
-偏好设置**在主窗口内**打开（侧栏 **Preferences…**、底部栏设置按钮，或 **Cmd+,** / **Ctrl+,**），不再使用单独设置窗口。下表为本地保存的选项：
+偏好设置**在主窗口内**打开（侧栏 **Preferences…**、底部栏设置按钮，或 **Cmd+,**），不再使用单独设置窗口。下表为本地保存的选项：
 
 | 设置项 | 默认值 | 说明 |
 |--------|--------|------|
@@ -219,11 +214,9 @@ src/                        # Electron 应用（主进程 + 渲染进程）
 ├── main/
 │   ├── index.ts
 │   ├── downloadManager.ts
-│   ├── dockProgress.ts
+│   ├── mediaResolver.ts    # yt-dlp / 嗅探 / 扩展候选解析
 │   ├── ytdlp.ts
-│   ├── mediaSniffer.ts
-│   ├── database.ts
-│   ├── settings.ts
+│   ├── douyin.ts           # 抖音页面解析与下载回退
 │   ├── localServer.ts      # 扩展 HTTP 服务 :18765
 │   └── remoteApiServer.ts  # 可选 Remote Job API :18766
 ├── preload/
@@ -272,6 +265,9 @@ npm run build:mac
 
 # 仅重新生成扩展域名列表（修改 packages/shared 后）
 npm run sync:extension-constants
+
+# 自动化测试
+npm test
 
 # Makefile 目标
 make help
