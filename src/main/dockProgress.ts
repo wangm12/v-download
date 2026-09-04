@@ -16,7 +16,7 @@ const TMP_SVG = join(tmpdir(), 'vdl-dock-progress.svg')
 const TMP_PNG = join(tmpdir(), 'vdl-dock-progress.png')
 
 const ARROW_PATH =
-  'M448,200 L576,200 Q596,200 596,220 L596,500 L700,500 Q730,500 710,530 L532,740 Q512,764 492,740 L314,530 Q294,500 324,500 L428,500 L428,220 Q428,200 448,200 Z'
+  'M 440 236 h 144 a 40 40 0 0 1 40 40 v 292 l 12 0 c 14 0 18 20 8 30 L 544 800 c -14 22 -50 22 -64 0 L 320 598 c -10 -10 -6 -30 8 -30 l 12 0 V 276 a 40 40 0 0 1 40 -40 Z'
 
 function resourcePath(relative: string): string {
   return join(__dirname, '../../resources', relative)
@@ -37,43 +37,41 @@ function generateSvg(percent: number, speedText: string): string {
   const clamped = Math.max(0, Math.min(100, percent))
   const hasSpeed = !!speedText
 
-  // Arrow spans y=200..764
-  // When speed text present: speed pill replaces base line at y=785..915
-  // When no speed text: base line at y=800..876
-  const fillTop = 200
-  const fillBottom = hasSpeed ? 915 : 876
+  // Arrow spans y=236..800
+  const fillTop = 236
+  const fillBottom = hasSpeed ? 915 : 800
   const fillRange = fillBottom - fillTop
-  const fillHeight = Math.round(fillRange * (clamped / 100))
+  const fillY = fillBottom - Math.round(fillRange * (clamped / 100))
+  const fillHeight = fillBottom - fillY
 
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
   <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#27272A"/>
-      <stop offset="100%" style="stop-color:#18181B"/>
+    <linearGradient id="tile" x1="20%" y1="4%" x2="82%" y2="96%">
+      <stop offset="0%" stop-color="#F4F0E9"/>
+      <stop offset="55%" stop-color="#E4DED4"/>
+      <stop offset="100%" stop-color="#C8C1B7"/>
     </linearGradient>
     <clipPath id="fill">
-      <rect x="0" y="${fillTop}" width="1024" height="${fillHeight}"/>
+      <rect x="0" y="${fillY}" width="1024" height="${fillHeight}"/>
     </clipPath>
   </defs>
-  <rect x="0" y="0" width="1024" height="1024" rx="220" ry="220" fill="url(#bg)"/>
-  <path d="${ARROW_PATH}" fill="white" opacity="0.15"/>`
+  <rect width="1024" height="1024" rx="228" fill="url(#tile)"/>
+  <path d="${ARROW_PATH}" fill="#1A1A1D" opacity="0.18"/>`
 
   if (hasSpeed) {
     svg += `
-  <rect x="112" y="785" width="800" height="130" rx="65" fill="black" opacity="0.45"/>
+  <rect x="112" y="785" width="800" height="130" rx="65" fill="#1A1A1D" opacity="0.12"/>
   <g clip-path="url(#fill)">
-    <path d="${ARROW_PATH}" fill="white" opacity="0.95"/>
-    <rect x="112" y="785" width="800" height="130" rx="65" fill="white" opacity="0.95"/>
+    <path d="${ARROW_PATH}" fill="#1A1A1D"/>
+    <rect x="112" y="785" width="800" height="130" rx="65" fill="#1A1A1D"/>
   </g>
   <text x="512" y="855" text-anchor="middle" dominant-baseline="central"
         font-family="-apple-system, Helvetica Neue, sans-serif"
-        font-size="100" font-weight="bold" fill="white">${speedText}</text>`
+        font-size="100" font-weight="bold" fill="#F4F0E9">${speedText}</text>`
   } else {
     svg += `
-  <rect x="280" y="800" width="464" height="76" rx="38" fill="white" opacity="0.15"/>
   <g clip-path="url(#fill)">
-    <path d="${ARROW_PATH}" fill="white" opacity="0.95"/>
-    <rect x="280" y="800" width="464" height="76" rx="38" fill="white" opacity="0.95"/>
+    <path d="${ARROW_PATH}" fill="#1A1A1D"/>
   </g>`
   }
 
