@@ -25,6 +25,8 @@ jobs:
           node-version: 22
           cache: npm
 
+      # postinstall rebuilds better-sqlite3 for Electron. npm pretest restores
+      # the host Node ABI so test:foundation can load the native module.
       - run: npm ci
       - run: npm run typecheck
       - run: npm test

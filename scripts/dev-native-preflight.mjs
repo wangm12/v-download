@@ -47,6 +47,13 @@ const isMain = process.argv[1] && resolve(process.argv[1]) === resolve(new URL(i
 if (isMain && process.argv.includes('--check')) {
   const plan = getPreflightPlan()
   console.log(JSON.stringify(plan))
+} else if (isMain && process.argv.includes('--restore')) {
+  try {
+    runRestore()
+  } catch (error) {
+    console.error(`HOST NATIVE RESTORE BLOCKED: ${error.message}`)
+    process.exitCode = 1
+  }
 } else if (isMain) {
   try {
     runPreflight()

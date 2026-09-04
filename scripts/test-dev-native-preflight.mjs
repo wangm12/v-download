@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { getPreflightPlan, getRestorePlan } from './dev-native-preflight.mjs'
 import { getDevPlan, isIgnorableKillError } from './dev.mjs'
 
@@ -23,4 +24,15 @@ assert.equal(isIgnorableKillError({ code: 'ESRCH' }), true)
 assert.equal(isIgnorableKillError({ code: 'EPERM' }), true)
 assert.equal(isIgnorableKillError({ code: 'EACCES' }), true)
 assert.equal(isIgnorableKillError({ code: 'EIO' }), false)
+
+const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+assert.equal(
+  pkg.scripts.pretest,
+  'node scripts/dev-native-preflight.mjs --restore',
+  'npm test must restore host Node better-sqlite3 after Electron postinstall'
+)
+const preflightSource = readFileSync(new URL('./dev-native-preflight.mjs', import.meta.url), 'utf8')
+assert.match(preflightSource, /process\.argv\.includes\('--restore'\)/)
+assert.match(preflightSource, /runRestore\(\)/)
+
 console.log('dev native preflight and restore contract passed')

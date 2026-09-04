@@ -10,6 +10,7 @@
     "dev": "node scripts/dev.mjs",
     "dev:preflight": "node scripts/dev-native-preflight.mjs",
     "test:dev-native-preflight": "node scripts/test-dev-native-preflight.mjs",
+    "pretest": "node scripts/dev-native-preflight.mjs --restore",
     "build": "electron-vite build",
     "typecheck": "npm run typecheck:web && npm run typecheck:node",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json",
