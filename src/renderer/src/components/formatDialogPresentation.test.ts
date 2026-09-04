@@ -1,4 +1,4 @@
-import { fallbackQuality, formatAccessibleDownloadLabel, getDefaultSelectedKey, getPresentationCandidates, hasOtherFormats } from './formatDialogPresentation'
+import { DEFAULT_INCLUDE_NOTE, INCLUDE_NOTE_CHECKBOX_LABEL, fallbackQuality, formatAccessibleDownloadLabel, getDefaultSelectedKey, getPresentationCandidates, hasOtherFormats, shouldPromptFormatDialog } from './formatDialogPresentation'
 
 function equal(actual: unknown, expected: unknown) {
   if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error(`Expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`)
@@ -29,4 +29,9 @@ equal(hasOtherFormats([{ format_id: 'story', ext: 'webp' }]), false)
 equal(hasOtherFormats(video), false)
 equal(getDefaultSelectedKey(sorted), sorted.find((item) => item.recommended)?.key ?? null)
 equal(getDefaultSelectedKey([]), null)
+equal(shouldPromptFormatDialog({ autoStart: true }), false)
+equal(shouldPromptFormatDialog({ autoStart: false }), true)
+equal(shouldPromptFormatDialog({}), true)
+equal(DEFAULT_INCLUDE_NOTE, true)
+equal(INCLUDE_NOTE_CHECKBOX_LABEL, 'Save caption as Markdown')
 console.log('format dialog presentation tests passed')

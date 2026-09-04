@@ -43,8 +43,26 @@ assert.equal(parseJobUrl('  https://example.com/v  ').ok, true)
 
 const created = parseJobCreateBody({ url: 'https://example.com/watch?v=1' })
 assert.equal(created.ok, true)
+if (created.ok) assert.equal(created.includeNote, false)
+
+const createdWithNote = parseJobCreateBody({ url: 'https://example.com/watch?v=1', include_note: true })
+assert.equal(createdWithNote.ok, true)
+if (createdWithNote.ok) {
+  assert.equal(createdWithNote.includeNote, true)
+  assert.equal(createdWithNote.url, 'https://example.com/watch?v=1')
+}
+
+const createdNoteOff = parseJobCreateBody({ url: 'https://example.com/a', include_note: false })
+assert.equal(createdNoteOff.ok, true)
+if (createdNoteOff.ok) assert.equal(createdNoteOff.includeNote, false)
+
+const badNote = parseJobCreateBody({ url: 'https://example.com/a', include_note: 'yes' })
+assert.equal(badNote.ok, false)
+if (!badNote.ok) assert.equal(badNote.error.code, 'unexpected_field')
+
 assert.equal(parseJobCreateBody({ url: 'https://example.com/a', quality: 'full' }).ok, false)
 assert.equal(parseJobCreateBody({ url: 'https://example.com/a', format: 'mp4' }).ok, false)
+assert.equal(parseJobCreateBody({ url: 'https://example.com/a', include_note: true, quality: '1080' }).ok, false)
 assert.equal(parseJobCreateBody(null).ok, false)
 assert.equal(parseJobCreateBody('https://example.com/a').ok, false)
 
@@ -165,11 +183,13 @@ assert.equal(tooBig.details?.max, 50)
 assert.equal(classifyFailureMessage('Fresh cookies are needed').code, 'auth_required')
 assert.equal(classifyFailureMessage('Please log in to download').code, 'auth_required')
 assert.equal(classifyFailureMessage('This live event is upcoming').code, 'unsupported_live')
+assert.equal(classifyFailureMessage('This post has no video or images to download').code, 'no_media')
 assert.equal(classifyFailureMessage('ERROR: unable to download').code, 'download_failed')
 
 assert.equal(shouldRetryError('download_failed'), true)
 assert.equal(shouldRetryError('remux_failed'), true)
 assert.equal(shouldRetryError('auth_required'), false)
+assert.equal(shouldRetryError('no_media'), false)
 assert.equal(shouldRetryError('unsupported_live'), false)
 assert.equal(shouldRetryError('file_too_large'), false)
 assert.equal(shouldRetryError('collection_too_large'), false)

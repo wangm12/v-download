@@ -93,11 +93,16 @@ function ensureOutputDir(job: StoredRemoteJob): string {
   return outputDir
 }
 
-function remoteTaskMeta(job: StoredRemoteJob, extra?: Record<string, unknown>): Record<string, unknown> {
+function remoteTaskMeta(
+  job: StoredRemoteJob,
+  extra?: Record<string, unknown>,
+  options?: { includeNote?: boolean },
+): Record<string, unknown> {
   return {
     ...(extra ?? {}),
     remoteJobId: job.id,
     remoteOutputDir: ensureOutputDir(job),
+    ...(options?.includeNote !== false && job.includeNote === true ? { includeNote: true } : {}),
   }
 }
 
@@ -176,7 +181,7 @@ async function enqueueJob(jobId: string): Promise<void> {
             playlistIndex: item.playlistIndex ?? index + 1,
             playlistTitle: listed.playlistTitle,
             forceNew: true,
-            metadata: remoteTaskMeta(current, { playlistTitle: listed.playlistTitle }),
+            metadata: remoteTaskMeta(current, { playlistTitle: listed.playlistTitle }, { includeNote: false }),
           })
           ids.push(task.id)
           current.downloadTaskIds = [...ids]
@@ -230,6 +235,12 @@ async function enqueueJob(jobId: string): Promise<void> {
       return
     }
     const fields = taskOptionsFromResolveData(resolved.data, latest.url)
+    if (fields.metadata.noteOnly === true && latest.includeNote !== true) {
+      latest.error = { code: 'no_media', message: 'This post has no video or images to download' }
+      latest.updatedAt = nowIso()
+      putJob(latest)
+      return
+    }
     const task = downloadManager.addTask({
       url: latest.url,
       title: fields.title,
@@ -293,7 +304,10 @@ export function attachRemoteJobListener(): void {
   })
 }
 
-export function createRemoteJob(url: string): { id: string; status: string; url: string } {
+export function createRemoteJob(
+  url: string,
+  options?: { includeNote?: boolean },
+): { id: string; status: string; url: string } {
   const id = newJobId()
   const outputDir = remoteJobOutputDir(settings.get('downloadDir'), id)
   mkdirSync(outputDir, { recursive: true })
@@ -309,6 +323,7 @@ export function createRemoteJob(url: string): { id: string; status: string; url:
     cancelled: false,
     attempts: {},
     lastTaskStatus: {},
+    ...(options?.includeNote === true ? { includeNote: true } : {}),
   }
   putJob(job)
   void enqueueJob(job.id)

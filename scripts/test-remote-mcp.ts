@@ -21,6 +21,7 @@ const jobs = new Map<string, JobRecord>()
 const artifactDirs = new Map<string, string>()
 let allowWrite = false
 let requireConfirm = true
+let lastCreate: { url: string; includeNote?: boolean } | null = null
 
 function ownedPaths(id: string): string[] {
   const dir = artifactDirs.get(id)
@@ -29,7 +30,8 @@ function ownedPaths(id: string): string[] {
 
 const backend: RemoteJobBackend = {
   getToken: () => token,
-  createJob: (url) => {
+  createJob: (url, options) => {
+    lastCreate = { url, includeNote: options?.includeNote }
     const id = 'createdjob1'
     jobs.set(id, {
       id,
@@ -131,8 +133,10 @@ if (notify.type === 'empty') assert.equal(notify.status, 204)
 const listed = mcpCall('tools/list')
 assert.equal(listed.type, 'json')
 if (listed.type === 'json') {
-  const tools = (listed.body as { result: { tools: Array<{ name: string }> } }).result.tools
+  const tools = (listed.body as { result: { tools: Array<{ name: string; inputSchema?: { properties?: Record<string, unknown> } }> } }).result.tools
   assert.deepEqual(tools.map((t) => t.name).sort(), [...MCP_TOOL_NAMES].sort())
+  const enqueue = tools.find((t) => t.name === 'enqueue_job')
+  assert.ok(enqueue?.inputSchema?.properties?.include_note)
 }
 
 const health = textPayload(mcpCall('tools/call', { name: 'health', arguments: {} }))
@@ -179,6 +183,14 @@ assert.equal((noConfirm.parsed as { error: { code: string } }).error.code, 'conf
 const enqueued = textPayload(mcpCall('tools/call', { name: 'enqueue_job', arguments: { url: 'https://example.com/watch?v=2', confirm: true } }))
 assert.equal(enqueued.isError, false)
 assert.equal((enqueued.parsed as { id: string }).id, 'createdjob1')
+assert.equal(lastCreate?.includeNote, false)
+
+const enqueuedNote = textPayload(mcpCall('tools/call', { name: 'enqueue_job', arguments: { url: 'https://example.com/watch?v=3', confirm: true, include_note: true } }))
+assert.equal(enqueuedNote.isError, false)
+assert.equal(lastCreate?.includeNote, true)
+
+const badNote = textPayload(mcpCall('tools/call', { name: 'enqueue_job', arguments: { url: 'https://example.com/watch?v=4', confirm: true, include_note: 'yes' } }))
+assert.equal(badNote.isError, true)
 
 const cancelled = textPayload(mcpCall('tools/call', { name: 'cancel_job', arguments: { id: 'createdjob1', confirm: true } }))
 assert.equal(cancelled.isError, false)

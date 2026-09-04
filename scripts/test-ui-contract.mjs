@@ -105,4 +105,17 @@ assert.doesNotMatch(appShell, /LibraryView|openLibrary|'library'/, 'Library view
 assert.doesNotMatch(sidebar, /onSelectSniff|nav\.sniff/, 'Sniff workspace entry must be removed')
 assert.doesNotMatch(appShell, /SniffPanel|openSniff|'sniff'/, 'In-app Sniff view must be removed; capture goes through the Chrome extension')
 
+const formatDialog = read('src/renderer/src/components/FormatDialog.tsx')
+const formatFooter = formatDialog.match(/\{\/\* Footer \*\/\}\s*<div className="([^"]+)"/)
+assert.ok(formatFooter, 'format dialog footer className must be present')
+assert.match(formatFooter[1], /\bshrink-0\b/, 'format dialog footer must be shrink-0 so flex + overflow-hidden cannot clip the action row')
+assert.match(formatFooter[1], /\bpb-5\b/, 'format dialog footer must own pb-5; last-child pb-3 equals rounded-panel and looks flush under overflow-hidden')
+assert.doesNotMatch(formatFooter[1], /^bg-elevated px-5$/, 'format dialog footer must not use horizontal-only padding')
+const noteCheckbox = formatDialog.match(/<label className="[^"]*\bpb-5\b[^"]*">[\s\S]*?INCLUDE_NOTE_CHECKBOX_LABEL/)
+assert.ok(noteCheckbox, 'note checkbox must have pb-5 so there is a gap before the footer')
+assert.ok(
+  formatDialog.indexOf(noteCheckbox[0]) < formatDialog.indexOf('{/* Footer */}'),
+  'note checkbox must sit above the footer so the selection is not flush with the action row'
+)
+
 console.log(`ui contract: ${rendererFiles.length} renderer files and ${extensionFiles.length} extension files checked`)

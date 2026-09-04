@@ -1,0 +1,10 @@
+---
+description: Owner does all git writes; never add Cursor attribution
+alwaysApply: true
+---
+
+# Git ownership
+
+- Never run `git commit`, `git push`, `git tag`, or force-push. The repo owner does every commit and push.
+- Never add `Co-authored-by: Cursor`, `Made-with: Cursor`, or any `cursoragent@cursor.com` trailer.
+- Leave changes in the working tree and tell the owner what to commit.

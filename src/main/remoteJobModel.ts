@@ -16,6 +16,7 @@ export interface StoredRemoteJob {
   cancelled: boolean
   attempts: Record<string, number>
   lastTaskStatus: Record<string, string>
+  includeNote?: boolean
 }
 
 export interface JobTaskSnapshot {

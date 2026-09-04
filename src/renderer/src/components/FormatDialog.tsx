@@ -5,13 +5,13 @@ import { formatDuration, formatViews } from '@/utils/format'
 import { isDouyinProfileHomeUrl } from '@/utils/douyinBulk'
 import { HoverHintWrap } from './HoverHintWrap'
 import { ThumbnailImage } from './ThumbnailImage'
-import { fallbackQuality, formatAccessibleDownloadLabel, getDefaultSelectedKey, getPresentationCandidates, hasOtherFormats } from './formatDialogPresentation'
+import { DEFAULT_INCLUDE_NOTE, INCLUDE_NOTE_CHECKBOX_LABEL, fallbackQuality, formatAccessibleDownloadLabel, getDefaultSelectedKey, getPresentationCandidates, hasOtherFormats } from './formatDialogPresentation'
 
 interface FormatDialogProps {
   videoInfo: VideoInfo
   settings: SettingsData
   onClose: () => void
-  onDownload: (url: string, format: string, quality: string) => void
+  onDownload: (url: string, format: string, quality: string, includeNote: boolean) => void
   queueCount?: number
   onSkipAll?: () => void
   /** Opens Preferences → Downloads and prefills the bulk URL field (Douyin profile flows). */
@@ -37,6 +37,7 @@ export function FormatDialog({
   const [bulkBusy, setBulkBusy] = useState(false)
   const [queuedKeys, setQueuedKeys] = useState<Set<string>>(new Set())
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
+  const [includeNote, setIncludeNote] = useState(DEFAULT_INCLUDE_NOTE)
   const dialogRef = useRef<HTMLDivElement>(null)
   const openerRef = useRef<HTMLElement | null>(null)
   useEffect(() => {
@@ -102,7 +103,7 @@ export function FormatDialog({
   const handleDownload = (format: string, quality: number, key: string) => {
     if (queuedKeys.has(key)) return
     const url = videoInfo.webpage_url || `https://www.youtube.com/watch?v=${videoInfo.id}`
-    onDownload(url, format, String(quality))
+    onDownload(url, format, String(quality), includeNote)
     setQueuedKeys((previous) => new Set(previous).add(key))
   }
 
@@ -220,14 +221,15 @@ export function FormatDialog({
               <div className="rounded-button bg-control px-4 py-3 ring-1 ring-inset ring-divider-subtle">
                 <p className="text-sm font-medium text-foreground">Text note</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  This post has no video or images. V-Download will save the title and caption as Markdown.
+                  This post has no video or images. Check Save caption as Markdown to save the title and caption.
                 </p>
               </div>
               <div className="flex justify-end">
                 <button
                   type="button"
+                  disabled={!includeNote || queuedKeys.has('text-note')}
                   onClick={() => handleDownload('video', Number(settings.defaultVideoQuality || '1080'), 'text-note')}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-action text-action-fg text-xs font-semibold hover:bg-action-hover transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-action text-action-fg text-xs font-semibold hover:bg-action-hover disabled:opacity-50 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
                 >
                   <Download size={13} />
                   Save note
@@ -302,7 +304,7 @@ export function FormatDialog({
                           </span>
                         ) : null}
                       </button>
-                      <div className="h-px bg-divider-subtle" />
+                      {index < activeFormats.length - 1 ? <div className="h-px bg-divider-subtle" /> : null}
                     </div>
                   )
                 })}
@@ -311,11 +313,20 @@ export function FormatDialog({
             </>
           )}
         </div>
+        <label className="flex shrink-0 items-center gap-2 px-5 pt-4 pb-5">
+          <input
+            type="checkbox"
+            checked={includeNote}
+            onChange={(event) => setIncludeNote(event.target.checked)}
+            className="h-3.5 w-3.5 rounded border-border-strong"
+          />
+          <span className="text-xs text-foreground">{INCLUDE_NOTE_CHECKBOX_LABEL}</span>
+        </label>
 
         {/* Footer */}
-        <div className="bg-elevated px-5">
+        <div className="shrink-0 border-t border-divider-subtle bg-elevated px-5 pt-4 pb-5 flex flex-col gap-3">
           {showDouyinBulkHint && (
-            <div className="border-b border-border py-3 space-y-2">
+            <div className="border-b border-border pb-3 space-y-2">
               <p className="text-xs font-medium text-foreground">Douyin profile URL</p>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 This page looks like a creator profile. Use the external douyin-downloader for multi-post bulk; single-post queue download uses Download selected below.
@@ -345,7 +356,7 @@ export function FormatDialog({
             </div>
           )}
           {!simpleSave && activeTab !== 'other' ? (
-            <div className="flex items-center justify-between gap-3 py-3">
+            <div className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2">
                 <Folder size={14} className="text-muted-foreground" />
                 <span className="text-xs text-muted-foreground truncate">{downloadDir}</span>
@@ -368,7 +379,7 @@ export function FormatDialog({
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-2 h-10">
+            <div className="flex items-center gap-2 min-h-10">
               <Folder size={14} className="text-muted-foreground" />
               <span className="text-xs text-muted-foreground truncate">{downloadDir}</span>
               <button
@@ -381,7 +392,7 @@ export function FormatDialog({
             </div>
           )}
           {queueCount > 0 && (
-            <div className="flex items-center justify-between pb-3 pt-1">
+            <div className="flex items-center justify-between">
               <span className="text-[13px] font-medium text-foreground">
                 +{queueCount} more video{queueCount > 1 ? 's' : ''} queued
               </span>

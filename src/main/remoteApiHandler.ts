@@ -19,7 +19,7 @@ export const MAX_REMOTE_API_BODY_BYTES = 64 * 1024
 
 export interface RemoteJobBackend {
   getToken(): string
-  createJob(url: string): { id: string; status: string; url: string }
+  createJob(url: string, options?: { includeNote?: boolean }): { id: string; status: string; url: string }
   getJob(id: string): JobRecord | null
   listJobs(): JobRecord[]
   artifactsFor(id: string): Artifact[]
@@ -105,7 +105,7 @@ export function dispatchRemoteApi(request: RemoteApiRequest, backend: RemoteJobB
   if (method === 'POST' && pathname === '/v1/jobs') {
     const parsed = parseJobCreateBody(request.body)
     if (!parsed.ok) return jsonError(400, parsed.error)
-    const created = backend.createJob(parsed.url)
+    const created = backend.createJob(parsed.url, { includeNote: parsed.includeNote })
     return { type: 'json', status: 202, body: created }
   }
 

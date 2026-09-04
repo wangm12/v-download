@@ -52,7 +52,7 @@ Debug logging: see [DEBUG.md](./DEBUG.md) (`make dev` session log + release `wor
 - X / Twitter (tweet video)
 - TikTok
 - Bilibili
-- Xiaohongshu (best-effort; login-sensitive). Image notes via `xhslink.cn` / `xhslink.com` should resolve as a gallery, not yt-dlp video — both UI paste and `POST /v1/jobs`. Probe: `npx tsx scripts/test-xhs-url.ts --download 'https://xhslink.cn/o/7OA0OYWB0EB'` (folder should include `note.md`).
+- Xiaohongshu (best-effort; login-sensitive). Image notes via `xhslink.cn` / `xhslink.com` should resolve as a gallery, not yt-dlp video — both UI paste and `POST /v1/jobs`. Probe: `npx tsx scripts/test-xhs-url.ts --download 'https://xhslink.cn/o/7OA0OYWB0EB'` (images always; `note.md` only if you check **Save caption as Markdown** in the format dialog, or pass `"include_note": true` on the API). Paste always opens the format dialog; Chrome extension page downloads stay video-only with no Markdown.
 - Instagram (usually needs synced cookies)
 
 ## P2 — desktop depth
@@ -92,9 +92,9 @@ See [download-engines.md](./download-engines.md) for the routing matrix.
 Full contract: [REMOTE_JOB_API.md](./REMOTE_JOB_API.md).
 
 - Preferences → Advanced → enable Remote API (default off, `127.0.0.1:18766`).
-- `POST /v1/jobs` with Bearer token and `{ "url": "…" }` returns 202; poll `GET /v1/jobs/:id` or list with `GET /v1/jobs`.
-- Copy MCP config; `POST /mcp` `tools/list` works with the same token. Write tools stay off until enabled; enqueue requires `confirm: true` when that toggle is on.
-- Enqueue a Xiaohongshu image short link (`xhslink.cn`) via `POST /v1/jobs`; the job should complete as a gallery folder with `note.md`, not fail with yt-dlp `No video formats found`.
+- `POST /v1/jobs` with Bearer token and `{ "url": "…" }` returns 202; poll `GET /v1/jobs/:id` or list with `GET /v1/jobs`. Default is media only (no caption Markdown). `{ "url": "…", "include_note": true }` writes `note.md` / a sidecar `.md`.
+- Copy MCP config; `POST /mcp` `tools/list` works with the same token. Write tools stay off until enabled; enqueue requires `confirm: true` when that toggle is on. `enqueue_job` accepts the same optional `include_note` field (default false).
+- Enqueue a Xiaohongshu image short link (`xhslink.cn`) via `POST /v1/jobs`; the job should complete as a gallery folder, not fail with yt-dlp `No video formats found`. Without `include_note` the folder has images only; with `"include_note": true` it also has `note.md`. A text-only post without `include_note` should error `no_media`.
 - Extension pairing on **18765** still refuses non-localhost clients.
 
 ## End-to-end narratives

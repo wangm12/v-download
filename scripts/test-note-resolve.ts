@@ -6,6 +6,7 @@ import {
   hasNoteBody,
   noteFilePath,
   renderNoteMarkdown,
+  shouldWriteNote,
   writeNoteMarkdownFile,
 } from '../src/main/noteMarkdown'
 import { parseXiaohongshuNote } from '../src/main/xiaohongshu'
@@ -36,6 +37,12 @@ assert.match(noAuthor, /URL: https:\/\/example.com\/p/)
 assert.equal(hasNoteBody({ title: '', author: 'x', url: 'https://a', description: '' }), false)
 assert.equal(hasNoteBody({ title: 'T', author: '', url: '', description: '' }), true)
 assert.equal(hasNoteBody({ title: '', author: '', url: '', description: 'd' }), true)
+
+assert.equal(shouldWriteNote(undefined), false)
+assert.equal(shouldWriteNote({}), false)
+assert.equal(shouldWriteNote({ includeNote: false, noteTitle: 'T' }), false)
+assert.equal(shouldWriteNote({ includeNote: 'true' }), false)
+assert.equal(shouldWriteNote({ includeNote: true }), true)
 
 assert.equal(noteFilePath('gallery', '/tmp/Album', 'Album'), join('/tmp/Album', 'note.md'))
 assert.equal(noteFilePath('sidecar', '/tmp/Album.mp4', 'Album'), join('/tmp', 'Album.md'))
@@ -130,5 +137,12 @@ assert.equal(textInfoFromYtdlpDump(''), null)
 const resolver = readFileSync('src/main/remoteJobService.ts', 'utf8')
 assert.match(resolver, /taskOptionsFromResolveData/)
 assert.match(resolver, /resolveVideoInfo/)
+assert.match(resolver, /includeNote/)
+assert.match(readFileSync('src/main/downloadManager.ts', 'utf8'), /shouldWriteNote/)
+assert.match(readFileSync('src/main/index.ts', 'utf8'), /params\.set\('autoStart', '1'\)/)
+const urlHandler = readFileSync('src/renderer/src/hooks/useUrlHandler.ts', 'utf8')
+assert.match(urlHandler, /shouldPromptFormatDialog/)
+assert.doesNotMatch(urlHandler, /!settings\.showFormatDialog/)
+assert.match(readFileSync('src/renderer/src/components/FormatDialog.tsx', 'utf8'), /INCLUDE_NOTE_CHECKBOX_LABEL/)
 
 console.log('note resolve helpers passed')

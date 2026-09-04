@@ -1,7 +1,7 @@
-import { buildJobView, parseJobId, parseJobUrl, type Artifact, type JobRecord } from './apiJobsModel'
+import { buildJobView, parseIncludeNote, parseJobId, parseJobUrl, type Artifact, type JobRecord } from './apiJobsModel'
 
 export interface McpJobBackend {
-  createJob(url: string): { id: string; status: string; url: string }
+  createJob(url: string, options?: { includeNote?: boolean }): { id: string; status: string; url: string }
   getJob(id: string): JobRecord | null
   listJobs(): JobRecord[]
   artifactsFor(id: string): Artifact[]
@@ -95,6 +95,7 @@ const TOOL_SCHEMAS: Array<{
       properties: {
         url: { type: 'string', description: 'http(s) URL to download' },
         confirm: { type: 'boolean', description: 'Must be true when confirmation is required' },
+        include_note: { type: 'boolean', description: 'When true, save caption as Markdown next to the media' },
       },
       required: ['url'],
       additionalProperties: false,
@@ -252,7 +253,9 @@ function invokeTool(backend: McpJobBackend, name: string, rawArgs: unknown): { p
   if (tool === 'enqueue_job') {
     const parsed = parseJobUrl(args.url)
     if (!parsed.ok) return { payload: { error: parsed.error }, isError: true, errorCode: parsed.error.code }
-    return { payload: backend.createJob(parsed.url), isError: false }
+    const note = parseIncludeNote(args.include_note, Object.prototype.hasOwnProperty.call(args, 'include_note'))
+    if (!note.ok) return { payload: { error: note.error }, isError: true, errorCode: note.error.code }
+    return { payload: backend.createJob(parsed.url, { includeNote: note.includeNote }), isError: false }
   }
 
   const parsed = parseJobId(args.id)

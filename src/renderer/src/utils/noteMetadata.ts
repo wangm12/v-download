@@ -14,3 +14,10 @@ export function noteMetadataFromVideoInfo(info: VideoInfo): Record<string, unkno
 export function isTextInfo(info: VideoInfo): boolean {
   return info._type === 'text'
 }
+
+export function withIncludeNote(
+  metadata: Record<string, unknown>,
+  includeNote: boolean
+): Record<string, unknown> {
+  return includeNote ? { ...metadata, includeNote: true } : metadata
+}

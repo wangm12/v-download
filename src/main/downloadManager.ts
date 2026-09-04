@@ -31,6 +31,7 @@ import {
   hasNoteBody,
   noteFieldsFromMetadata,
   noteFilePath,
+  shouldWriteNote,
   writeNoteMarkdownFile,
 } from './noteMarkdown'
 import { classifyResolverError, filterPersistedHeaders, mediaTypeForCandidate, sanitizeResolverError } from './mediaResolver'
@@ -341,6 +342,7 @@ function writeTaskNote(
   kind: 'gallery' | 'sidecar' | 'text',
   dest: string
 ): string | null {
+  if (!shouldWriteNote(task.metadata as Record<string, unknown> | undefined)) return null
   const fields = noteFieldsFromMetadata(task.metadata, {
     title: task.title,
     url: task.url,
@@ -425,6 +427,7 @@ function serializeExtras(metadata?: Record<string, unknown>): string | null {
   if (typeof metadata.noteUrl === 'string') out.noteUrl = metadata.noteUrl
   if (typeof metadata.noteDescription === 'string') out.noteDescription = metadata.noteDescription
   if (metadata.noteOnly === true) out.noteOnly = true
+  if (metadata.includeNote === true) out.includeNote = true
   return Object.keys(out).length ? JSON.stringify(out) : null
 }
 
@@ -1371,6 +1374,14 @@ async function runTask(task: DownloadTask): Promise<void> {
     task.updatedAt = new Date().toISOString()
     db.updateDownload(task.id, { status: 'downloading', progress: 1 })
     emitProgress(task)
+    if (!shouldWriteNote(taskMeta)) {
+      setTaskError(task, 'This post has no video or images to download')
+      emitProgress(task)
+      taskProgress.delete(task.id)
+      releaseSlot()
+      processQueue()
+      return
+    }
     const notePath = writeTaskNote(task, 'text', outDir)
     if (!notePath) {
       setTaskError(task, 'This post has no title or text to save')

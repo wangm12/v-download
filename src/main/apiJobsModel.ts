@@ -124,21 +124,37 @@ export function parseJobUrl(input: unknown): { ok: true; url: string } | { ok: f
   }
 }
 
+export function parseIncludeNote(
+  value: unknown,
+  present: boolean,
+): { ok: true; includeNote: boolean } | { ok: false; error: JobError } {
+  if (!present) return { ok: true, includeNote: false }
+  if (typeof value !== 'boolean') {
+    return { ok: false, error: { code: 'unexpected_field', message: 'include_note must be a boolean' } }
+  }
+  return { ok: true, includeNote: value }
+}
+
 export function parseJobCreateBody(
   body: unknown,
-): { ok: true; url: string } | { ok: false; error: JobError } {
+): { ok: true; url: string; includeNote: boolean } | { ok: false; error: JobError } {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
     return { ok: false, error: { code: 'invalid_url', message: 'JSON object with url is required' } }
   }
-  const keys = Object.keys(body as Record<string, unknown>)
-  const unexpected = keys.filter((key) => key !== 'url')
+  const record = body as Record<string, unknown>
+  const keys = Object.keys(record)
+  const unexpected = keys.filter((key) => key !== 'url' && key !== 'include_note')
   if (unexpected.length > 0) {
     return {
       ok: false,
       error: { code: 'unexpected_field', message: `Unexpected field: ${unexpected[0]}` },
     }
   }
-  return parseJobUrl((body as { url?: unknown }).url)
+  const note = parseIncludeNote(record.include_note, Object.prototype.hasOwnProperty.call(record, 'include_note'))
+  if (!note.ok) return note
+  const parsed = parseJobUrl(record.url)
+  if (!parsed.ok) return parsed
+  return { ok: true, url: parsed.url, includeNote: note.includeNote }
 }
 
 export function parseJobId(id: unknown): { ok: true; id: string } | { ok: false; error: JobError } {
@@ -301,11 +317,14 @@ export function classifyFailureMessage(message: string): JobError {
   if (/remux_failed|did not remux/i.test(text)) {
     return { code: 'remux_failed', message: text }
   }
+  if (/no video or images|no_media|no title or text to save/i.test(text)) {
+    return { code: 'no_media', message: text }
+  }
   return { code: 'download_failed', message: text || 'Download failed' }
 }
 
 export function shouldRetryError(code: string): boolean {
-  return !['auth_required', 'unsupported_live', 'file_too_large', 'collection_too_large', 'cancelled'].includes(code)
+  return !['auth_required', 'unsupported_live', 'file_too_large', 'collection_too_large', 'cancelled', 'no_media'].includes(code)
 }
 
 export async function withRetries<T>(

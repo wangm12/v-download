@@ -67,3 +67,10 @@ export function formatAccessibleDownloadLabel(candidate: Pick<PresentationCandid
 export function getDefaultSelectedKey(candidates: Array<Pick<PresentationCandidate, 'key' | 'recommended'>>): string | null {
   return candidates.find((candidate) => candidate.recommended)?.key ?? candidates[0]?.key ?? null
 }
+
+export const INCLUDE_NOTE_CHECKBOX_LABEL = 'Save caption as Markdown'
+export const DEFAULT_INCLUDE_NOTE = true
+
+export function shouldPromptFormatDialog(options: { autoStart?: boolean }): boolean {
+  return options.autoStart !== true
+}

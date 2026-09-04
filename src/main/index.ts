@@ -165,7 +165,7 @@ function handleDownloadRequest(request: DownloadRequest): DownloadDispatchResult
   const params = new URLSearchParams({ url: request.url })
   if (request.type) params.set('type', request.type)
   if (request.quality) params.set('quality', request.quality)
-  if (request.autoStart) params.set('autoStart', '1')
+  params.set('autoStart', '1')
   if (request.referer) params.set('referer', request.referer)
   if (request.title) params.set('title', request.title)
   if (request.headers) params.set('headers', JSON.stringify(request.headers))

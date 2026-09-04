@@ -146,6 +146,17 @@ if (extra.type === 'json') {
   assert.equal((extra.body as { error: { code: string } }).error.code, 'unexpected_field')
 }
 
+const includeNote = dispatchRemoteApi({
+  method: 'POST',
+  url: '/v1/jobs',
+  headers: auth,
+  body: { url: 'https://example.com/watch?v=1', include_note: true },
+}, backend)
+assert.equal(includeNote.type, 'json')
+if (includeNote.type === 'json') {
+  assert.equal(includeNote.status, 202)
+}
+
 const created = dispatchRemoteApi({
   method: 'POST',
   url: '/v1/jobs',

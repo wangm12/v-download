@@ -4,7 +4,8 @@ import { extractUrlFromClipboard, isMediaUrl, isYouTubeUrl, filenameFromUrl } fr
 import { isDouyinProfileHomeUrl } from '@/utils/douyinBulk'
 import { shouldOpenCollectionPicker } from '@/utils/collectionPicker'
 import { normalizeThumbnailUrl } from '@/utils/thumbnail'
-import { noteMetadataFromVideoInfo } from '@/utils/noteMetadata'
+import { noteMetadataFromVideoInfo, withIncludeNote } from '@/utils/noteMetadata'
+import { shouldPromptFormatDialog } from '@/components/formatDialogPresentation'
 
 interface PendingPlaylistMeta {
   title?: string
@@ -165,24 +166,27 @@ export function useUrlHandler(settings: SettingsData) {
     refreshDialogQueueCount()
   }, [refreshDialogQueueCount])
 
-  const promoteResolvedInfo = useCallback(async (result: InfoResolveResult, format?: string, quality?: string) => {
+  const promoteResolvedInfo = useCallback(async (result: InfoResolveResult, format?: string, quality?: string, includeNote = false) => {
     if (!window.api || result.data === undefined) return false
     const info = toVideoInfo(result.data, result.url)
     const rule = siteDefaults(result.url)
     const selectedFormat = format || result.format || (rule?.format === 'audio' ? 'mp3' : 'video')
     const selectedQuality = quality || result.quality || rule?.quality || settings.defaultVideoQuality
     const noteMeta = noteMetadataFromVideoInfo(info)
-    const metadata = isGalleryInfo(info)
-      ? {
-          [info._type === 'xhs_gallery' ? 'xhsImageUrls' : 'douyinImageUrls']: info.image_urls,
-          channel: info.channel,
-          ...noteMeta
-        }
-      : {
-          ...(info.channel ? { channel: info.channel } : {}),
-          ...(info.id ? { ytdlpId: info.id } : {}),
-          ...noteMeta
-        }
+    const metadata = withIncludeNote(
+      isGalleryInfo(info)
+        ? {
+            [info._type === 'xhs_gallery' ? 'xhsImageUrls' : 'douyinImageUrls']: info.image_urls,
+            channel: info.channel,
+            ...noteMeta
+          }
+        : {
+            ...(info.channel ? { channel: info.channel } : {}),
+            ...(info.id ? { ytdlpId: info.id } : {}),
+            ...noteMeta
+          },
+      includeNote
+    )
     const promoted = await window.api.promoteInfoResolve({
       id: result.id,
       url: info.webpage_url || result.url,
@@ -228,17 +232,17 @@ export function useUrlHandler(settings: SettingsData) {
       return
     }
 
-    if (result.autoStart || !settings.showFormatDialog) {
+    if (!shouldPromptFormatDialog({ autoStart: result.autoStart })) {
       if (promotionInFlightRef.current.has(result.id)) return
       promotionInFlightRef.current.add(result.id)
-      void promoteResolvedInfo(result).finally(() => promotionInFlightRef.current.delete(result.id))
+      void promoteResolvedInfo(result, undefined, undefined, false).finally(() => promotionInFlightRef.current.delete(result.id))
       return
     }
     readyResultsRef.current.set(result.id, result)
     if (!readyOrderRef.current.includes(result.id)) readyOrderRef.current.push(result.id)
     refreshDialogQueueCount()
     advanceDialogQueue()
-  }, [advanceDialogQueue, promoteResolvedInfo, refreshDialogQueueCount, settings.showFormatDialog])
+  }, [advanceDialogQueue, promoteResolvedInfo, refreshDialogQueueCount])
 
   useEffect(() => {
     if (!window.api?.onInfoResolveResult) return

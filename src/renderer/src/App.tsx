@@ -32,7 +32,7 @@ import {
   type QueueFilter
 } from '@/utils/queueFilters'
 import { isPlaylistUrl } from '@/utils/youtube'
-import { noteMetadataFromVideoInfo } from '@/utils/noteMetadata'
+import { noteMetadataFromVideoInfo, withIncludeNote } from '@/utils/noteMetadata'
 import { DOUYIN_BULK_URL_PREFILL_SESSION_KEY } from '@/utils/douyinBulk'
 import { parseSpeedToBytes, formatSpeed } from '@/utils/format'
 import {
@@ -346,7 +346,7 @@ function MainApp() {
   }, [handleExternalUrl])
 
   const handleDownload = useCallback(
-    async (_url: string, format: string, quality: string) => {
+    async (_url: string, format: string, quality: string, includeNote = true) => {
       if (!window.api) return
 
       let consumeResolver = true
@@ -366,13 +366,16 @@ function MainApp() {
             quality,
             thumbnail: pendingVideoInfo.thumbnail,
             duration: pendingVideoInfo.duration,
-            metadata: isGallery
-              ? { [imageMetaKey]: imgs, channel: pendingVideoInfo.channel ?? '', ...noteMeta }
-              : {
-                  ...(pendingVideoInfo.channel ? { channel: pendingVideoInfo.channel } : {}),
-                  ...(pendingVideoInfo.id ? { ytdlpId: pendingVideoInfo.id } : {}),
-                  ...noteMeta
-                }
+            metadata: withIncludeNote(
+              isGallery
+                ? { [imageMetaKey]: imgs, channel: pendingVideoInfo.channel ?? '', ...noteMeta }
+                : {
+                    ...(pendingVideoInfo.channel ? { channel: pendingVideoInfo.channel } : {}),
+                    ...(pendingVideoInfo.id ? { ytdlpId: pendingVideoInfo.id } : {}),
+                    ...noteMeta
+                  },
+              includeNote
+            )
           })
           if (promoted?.error) consumeResolver = false
         } else if (pendingEntries && pendingEntries.length > 0) {
@@ -390,10 +393,10 @@ function MainApp() {
               thumbnail: pendingEntries[0]?.thumbnail,
               duration: pendingEntries[0]?.duration ?? 0,
               playlistId: playlistTitle,
-              metadata: {
+              metadata: withIncludeNote({
                 nativeYoutubePlaylist: true,
                 channel: pendingEntries[0]?.channel ?? ''
-              }
+              }, includeNote)
             })
           } else {
             for (let i = 0; i < pendingEntries.length; i++) {
@@ -430,17 +433,20 @@ function MainApp() {
             quality,
             thumbnail: pendingVideoInfo?.thumbnail,
             duration: pendingVideoInfo?.duration,
-            metadata: isGallery
-              ? {
-                  [imageMetaKey]: imgs,
-                  channel: pendingVideoInfo?.channel ?? '',
-                  ...noteMeta
-                }
-              : {
-                  ...(pendingVideoInfo?.channel ? { channel: pendingVideoInfo.channel } : {}),
-                  ...(pendingVideoInfo?.id ? { ytdlpId: pendingVideoInfo.id } : {}),
-                  ...noteMeta
-                }
+            metadata: withIncludeNote(
+              isGallery
+                ? {
+                    [imageMetaKey]: imgs,
+                    channel: pendingVideoInfo?.channel ?? '',
+                    ...noteMeta
+                  }
+                : {
+                    ...(pendingVideoInfo?.channel ? { channel: pendingVideoInfo.channel } : {}),
+                    ...(pendingVideoInfo?.id ? { ytdlpId: pendingVideoInfo.id } : {}),
+                    ...noteMeta
+                  },
+              includeNote
+            )
           })
         }
       } finally {

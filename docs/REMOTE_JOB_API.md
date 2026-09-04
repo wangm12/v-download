@@ -1,6 +1,6 @@
 # Remote Job API
 
-HTTP API on the **running V-Download desktop app**. Other programs enqueue a URL; the app **resolves it the same way as a paste in the UI** (gallery vs video vs text), then downloads with the same queue, cookies, yt-dlp/ffmpeg engines, and quality settings. Parsed titles and captions are saved as Markdown next to the media (or as a lone `.md` when there is no media).
+HTTP API on the **running V-Download desktop app**. Other programs enqueue a URL; the app **resolves it the same way as a paste in the UI** (gallery vs video vs text), then downloads with the same queue, cookies, yt-dlp/ffmpeg engines, and quality settings. Caption Markdown is **opt-in**: pass `"include_note": true` (default `false`). Without that flag the job is media only.
 
 This is **not** the Chrome extension pairing server. The extension talks to `127.0.0.1:18765`. This API is a separate listener (default `:18766`).
 
@@ -75,13 +75,13 @@ Token shape: 16–128 characters, `[A-Za-z0-9_-]`. The app generates a 48-charac
 | JSON requests | `Content-Type: application/json`. Body is parsed as JSON regardless; invalid JSON is `400`. |
 | JSON responses | `Content-Type: application/json; charset=utf-8` |
 | Request body limit | **64 KiB**. Over that → `413` `{ "error": { "code": "payload_too_large" } }` |
-| Create-job body | **Only** `{ "url": "..." }`. Any extra field → `400` `unexpected_field`. |
+| Create-job body | `{ "url": "..." }` plus optional boolean `include_note` (default `false`). Any other key → `400` `unexpected_field`. |
 | URL | `http` or `https`, 8–8192 characters after trim. |
 | Job id | `[A-Za-z0-9_-]{8,32}`. The app issues 16 hex characters. |
 | Errors | Always `{ "error": { "code": string, "message": string, "details"?: object } }` |
 | File names | Basename only. `/`, `\`, `..`, NUL → `400` `invalid_name`. |
 
-There is **no** webhook or quality/format field on create. Quality comes from Preferences (`defaultVideoQuality`). Jobs also show up in the Downloads queue.
+There is **no** webhook or quality/format field on create. Quality comes from Preferences (`defaultVideoQuality`). Jobs also show up in the Downloads queue. Set `include_note: true` to write caption Markdown (`note.md` in a gallery, sidecar `.md` next to a video, or a lone `.md` for text-only posts). Text-only posts without `include_note` fail with `no_media`.
 
 `GET /v1/jobs` lists job snapshots (no file bodies). `POST /mcp` is a JSON-RPC MCP facade on the same listener and Bearer token.
 
@@ -174,7 +174,7 @@ Methods: `initialize`, `ping`, `tools/list`, `tools/call`, `notifications/initia
 | `enqueue_job` | write | `POST /v1/jobs` |
 | `cancel_job` | write | `POST /v1/jobs/:id/cancel` |
 
-Write tools are **off** until Preferences → Advanced → **Allow MCP write tools**. When **Require confirm on writes** is on (default), pass `"confirm": true` in the tool arguments.
+Write tools are **off** until Preferences → Advanced → **Allow MCP write tools**. When **Require confirm on writes** is on (default), pass `"confirm": true` in the tool arguments. `enqueue_job` accepts the same optional `"include_note"` boolean as `POST /v1/jobs` (default `false`).
 
 Copy the client config block from that same preferences card (`URL` + `Authorization: Bearer …`).
 
@@ -189,8 +189,10 @@ Create a job and return immediately. Download starts in the background.
 **Request**
 
 ```json
-{ "url": "https://example.com/watch?v=1" }
+{ "url": "https://example.com/watch?v=1", "include_note": false }
 ```
+
+`include_note` is optional and defaults to `false`. `true` saves the parsed caption as Markdown.
 
 **202**
 
@@ -210,7 +212,7 @@ Create a job and return immediately. Download starts in the background.
 |---|---|---|
 | 401 | `unauthorized` | Missing / wrong Bearer token |
 | 400 | `invalid_url` | Missing body, not a JSON object, bad / non-http(s) URL, invalid JSON text |
-| 400 | `unexpected_field` | Any key other than `url` (e.g. `quality`) |
+| 400 | `unexpected_field` | Any key other than `url` / `include_note`, or a non-boolean `include_note` |
 | 413 | `payload_too_large` | Body > 64 KiB |
 
 ---
@@ -414,9 +416,9 @@ The body cannot set format or quality. The job uses **Preferences → default vi
 | URL class | What happens |
 |---|---|
 | Direct media (path ends in `.mp4`, `.m3u8`, `.mp3`, `.jpg`, …) | One download task |
-| Xiaohongshu image note | Image folder + `note.md` |
-| Xiaohongshu / X / other text-only (resolver has title or description, no media) | Lone `.md` |
-| Ordinary watch page with video | One yt-dlp task + sidecar `.md` when description exists |
+| Xiaohongshu image note | Image folder; `note.md` only when `include_note` is true |
+| Xiaohongshu / X / other text-only (resolver has title or description, no media) | Lone `.md` when `include_note` is true; otherwise `no_media` |
+| Ordinary watch page with video | One yt-dlp task; sidecar `.md` only when `include_note` is true |
 | YouTube playlist / channel / `@handle` | **Collection.** If playlist mode is *fan-out*, each entry becomes a task (max **50**). Otherwise one playlist task. |
 
 Cookies and site logins are whatever the desktop app already has (Chrome cookie sync, native auth). The API does not accept a cookie header.
@@ -431,7 +433,7 @@ Default `downloadDir` is `~/Downloads`. Only files under that job folder are exp
 
 ### Retries
 
-Transient download failures retry up to **3** attempts (`2s`, then `4s` delay). These codes are **not** retried: `auth_required`, `unsupported_live`, `file_too_large`, `collection_too_large`, `cancelled`.
+Transient download failures retry up to **3** attempts (`2s`, then `4s` delay). These codes are **not** retried: `auth_required`, `unsupported_live`, `file_too_large`, `collection_too_large`, `cancelled`, `no_media`.
 
 If one item in a multi-item collection fails for good, the job becomes `error` with `collection_item_failed` and sibling tasks are cancelled.
 
@@ -460,7 +462,7 @@ Wire shape:
 | `unauthorized` | 401 | Bearer missing or wrong |
 | `not_found` | 404 | Unknown path or job |
 | `invalid_url` | 400 | Bad or missing `url` / invalid JSON |
-| `unexpected_field` | 400 | Extra key on create |
+| `unexpected_field` | 400 | Extra key on create, or non-boolean `include_note` |
 | `invalid_id` | 400 | `:id` does not match `[A-Za-z0-9_-]{8,32}` |
 | `invalid_name` | 400 | Unsafe file name |
 | `payload_too_large` | 413 | Body > 64 KiB |
@@ -482,6 +484,7 @@ Wire shape:
 | `collection_too_large` | Playlist/channel longer than 50 items (fan-out). `details`: `{ itemCount, max }` |
 | `collection_item_failed` | One item in a multi-file job failed. `details` may include `id`, `attempts` |
 | `empty_output` | No media produced, or empty playlist |
+| `no_media` | Text-only post and `include_note` was not set |
 | `remux_failed` | HLS/DASH stayed as a playlist and never remuxed |
 
 ---

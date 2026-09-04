@@ -26,6 +26,10 @@ export function hasNoteBody(fields: NoteFields): boolean {
   return Boolean(fields.title.trim() || fields.description.trim())
 }
 
+export function shouldWriteNote(metadata?: Record<string, unknown>): boolean {
+  return metadata?.includeNote === true
+}
+
 export function renderNoteMarkdown(fields: NoteFields): string {
   const heading = fields.title.trim() || 'Untitled'
   const lines = [`# ${heading}`, '']
