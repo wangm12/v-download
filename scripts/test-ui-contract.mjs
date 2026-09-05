@@ -21,17 +21,41 @@ for (const token of [
   '--color-selection',
   '--color-accent',
   '--color-divider-subtle',
-  '--color-divider-strong'
+  '--color-divider-strong',
+  '--color-info',
+  '--color-state-info-bg',
+  '--color-state-warning-bg',
+  '--color-state-success-border',
+  '--color-state-info-border',
+  '--color-state-warning-border',
+  '--color-state-error-border'
 ]) {
   assert.match(tokenSource, new RegExp(token), `missing renderer token ${token}`)
 }
 assert.match(tokenSource, /--color-action: 255 255 255/, 'dark primary action must be white')
+assert.match(tokenSource, /--color-success: 74 222 128/, 'dark success text must stay green')
+assert.match(tokenSource, /--color-info: 96 165 250/, 'dark info text must stay blue')
+assert.match(tokenSource, /--color-warning: 251 191 36/, 'dark warning text must stay amber')
+assert.match(tokenSource, /--color-error: 248 113 113/, 'dark error text must stay red')
 assert.match(tokenSource, /scrollbar-width: thin/, 'scrollbars must remain visible')
 assert.doesNotMatch(tokenSource, /::-webkit-scrollbar \{\s*display: none/, 'global scrollbar hiding is not allowed')
 assert.match(tailwind, /button: '8px'/, 'button radius must be 8px')
 assert.match(tailwind, /card: '10px'/, 'card radius must be 10px')
 assert.match(tailwind, /panel: '12px'/, 'panel radius must be 12px')
-for (const color of ['surface-hover', 'selection', 'accent', 'divider-subtle', 'divider-strong']) {
+for (const color of [
+  'surface-hover',
+  'selection',
+  'accent',
+  'divider-subtle',
+  'divider-strong',
+  'info',
+  'state-info-bg',
+  'state-warning-bg',
+  'state-success-border',
+  'state-info-border',
+  'state-warning-border',
+  'state-error-border'
+]) {
   assert.match(tailwind, new RegExp(`['"]?${color}['"]?`), `missing Tailwind color ${color}`)
 }
 
@@ -42,8 +66,21 @@ const rendererFiles = [
 for (const path of rendererFiles) {
   const source = read(path)
   assert.doesNotMatch(source, /border-white|ring-white/, `high-contrast white border remains in ${path}`)
-  assert.doesNotMatch(source, /242 184 96|95 208 163|244 123 111/, `colored status token remains in ${path}`)
+  assert.doesNotMatch(source, /242 184 96|95 208 163|244 123 111/, `legacy status token remains in ${path}`)
 }
+
+const badge = read('src/renderer/src/components/ui/index.tsx')
+assert.match(badge, /text-success/, 'success status pills must use the success foreground')
+assert.match(badge, /text-info/, 'in-progress status pills must use the info foreground')
+assert.match(badge, /text-warning/, 'warning status pills must use the warning foreground')
+assert.match(badge, /text-error/, 'error status pills must use the error foreground')
+assert.match(badge, /bg-current/, 'status dots must inherit the pill text color')
+
+const statusMap = read('src/renderer/src/components/statusPresentation.ts')
+assert.match(statusMap, /case 'complete':\s*return 'success'/, 'complete must map to success')
+assert.match(statusMap, /case 'ready':\s*return 'accent'/, 'ready must map to accent/info')
+assert.match(statusMap, /case 'interrupted':\s*return 'warning'/, 'interrupted must map to warning')
+assert.match(statusMap, /case 'error':\s*return 'error'/, 'failed must map to error')
 
 assert.match(read('extension/manifest.json'), /"theme\.css"/)
 assert.match(read('extension/popup.html'), /theme\.css/)
@@ -57,6 +94,20 @@ for (const path of ['extension/content-video-overlay.css', 'extension/content-do
   assert.match(source, /var\(--vdl-overlay-bg\)/, `missing protected overlay surface in ${path}`)
   assert.match(source, /stroke: currentColor !important/, `overlay icon can be overridden by host CSS in ${path}`)
 }
+
+const overlayCss = read('extension/content-video-overlay.css')
+const overlayBtnBlock = overlayCss.match(/\.vdl-overlay-btn \{([^}]+)\}/)
+assert.ok(overlayBtnBlock, 'missing .vdl-overlay-btn rule')
+assert.match(overlayBtnBlock[1], /transition:\s*opacity 0\.25s ease,\s*background 0\.2s/, 'hidden overlay must fade without transform')
+assert.doesNotMatch(overlayBtnBlock[1], /transition:[^;]*transform/, 'default overlay transition must not animate position')
+const overlayVisibleBlock = overlayCss.match(/\.vdl-overlay-btn\.vdl-visible \{([^}]+)\}/)
+assert.ok(overlayVisibleBlock, 'missing .vdl-overlay-btn.vdl-visible rule')
+assert.match(overlayVisibleBlock[1], /transition:[^;]*transform 0\.15s/, 'visible overlay must keep hover/press transform')
+assert.match(
+  overlayCss,
+  /\.vdl-overlay-btn\.vdl-hidden\s*\{[^}]*display:\s*flex\s*!important/,
+  'overlay hidden must override theme display:none so opacity can fade'
+)
 
 const extensionFiles = [
   ...filesUnder('extension', '.css'),

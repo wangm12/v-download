@@ -615,11 +615,21 @@ function MainApp() {
   useEffect(() => {
     const unsubscribeFocus = window.api?.onFocusDownloadSearch?.(focusDownloadSearch)
     const unsubscribeRefresh = window.api?.onRefreshDownloads?.(refreshDownloadQueue)
+    const unsubscribeOpenUrls = window.api?.onOpenUrls?.(() => {
+      setMainView('downloads')
+      void handlePaste()
+    })
+    const unsubscribeClear = window.api?.onOpenClearDownloads?.(() => {
+      setMainView('downloads')
+      setShowClearDialog(true)
+    })
     return () => {
       unsubscribeFocus?.()
       unsubscribeRefresh?.()
+      unsubscribeOpenUrls?.()
+      unsubscribeClear?.()
     }
-  }, [focusDownloadSearch, refreshDownloadQueue])
+  }, [focusDownloadSearch, refreshDownloadQueue, handlePaste])
 
   useKeyboardShortcuts({
     onPaste: handlePaste,

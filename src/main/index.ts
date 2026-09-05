@@ -1,4 +1,4 @@
-import { app, BrowserWindow, protocol, Menu, screen } from 'electron'
+import { app, BrowserWindow, protocol, Menu, screen, shell } from 'electron'
 import { join } from 'path'
 import { optimizer, is } from '@electron-toolkit/utils'
 import * as database from './database'
@@ -19,6 +19,7 @@ import { registerUpdaterHandlers } from './ipc/updater'
 import { registerEngineHandlers } from './ipc/engines'
 import { registerNativeAuthHandlers } from './ipc/nativeAuth'
 import { initializeNativeAuth, stopNativeAuthWindows } from './nativeAuth'
+import { APP_HELP_URL, APP_REPO_URL, buildApplicationMenuTemplate } from './appMenu'
 
 app.setName('V-Download')
 
@@ -217,77 +218,30 @@ app.whenReady().then(() => {
   initWorklog()
   worklog('app_ready', { packaged: app.isPackaged, version: app.getVersion() })
 
-  const template: Electron.MenuItemConstructorOptions[] = [
-    {
-      label: app.name,
-      submenu: [
-        { role: 'about' },
-        { type: 'separator' },
-        {
-          label: 'Settings…',
-          accelerator: 'CmdOrCtrl+,',
-          click: () => {
-            if (mainWindow && !mainWindow.isDestroyed()) {
-              mainWindow.show()
-              mainWindow.focus()
-              mainWindow.webContents.send('open-preferences')
-            }
-          }
+  const sendToRenderer = (channel: string): void => {
+    if (!mainWindow || mainWindow.isDestroyed()) return
+    mainWindow.show()
+    mainWindow.focus()
+    mainWindow.webContents.send(channel)
+  }
+
+  Menu.setApplicationMenu(
+    Menu.buildFromTemplate(
+      buildApplicationMenuTemplate(app.name, {
+        openSettings: () => sendToRenderer('open-preferences'),
+        openUrls: () => sendToRenderer('open-urls'),
+        clearDownloads: () => sendToRenderer('open-clear-downloads'),
+        findDownloads: () => sendToRenderer('focus-download-search'),
+        refreshDownloads: () => sendToRenderer('refresh-downloads'),
+        openHelp: () => {
+          void shell.openExternal(APP_HELP_URL)
         },
-        { type: 'separator' },
-        { role: 'hide' },
-        { role: 'hideOthers' },
-        { role: 'unhide' },
-        { type: 'separator' },
-        { role: 'quit' }
-      ]
-    },
-    {
-      label: 'Edit',
-      submenu: [
-        { role: 'undo' },
-        { role: 'redo' },
-        { type: 'separator' },
-        { role: 'cut' },
-        { role: 'copy' },
-        { role: 'paste' },
-        { role: 'selectAll' }
-      ]
-    },
-    {
-      label: 'View',
-      submenu: [
-        {
-          label: 'Find Downloads',
-          accelerator: 'CmdOrCtrl+F',
-          click: () => {
-            if (mainWindow && !mainWindow.isDestroyed()) {
-              mainWindow.webContents.send('focus-download-search')
-            }
-          }
-        },
-        {
-          label: 'Refresh Downloads',
-          accelerator: 'CmdOrCtrl+R',
-          click: () => {
-            if (mainWindow && !mainWindow.isDestroyed()) {
-              mainWindow.webContents.send('refresh-downloads')
-            }
-          }
+        openRepository: () => {
+          void shell.openExternal(APP_REPO_URL)
         }
-      ]
-    },
-    {
-      label: 'Window',
-      submenu: [
-        { role: 'minimize' },
-        { role: 'zoom' },
-        { type: 'separator' },
-        { role: 'close' }
-      ]
-    }
-  ]
-  Menu.setApplicationMenu(Menu.buildFromTemplate(template))
+      })
+    )
+  )
 
   dockProgress.init()
 

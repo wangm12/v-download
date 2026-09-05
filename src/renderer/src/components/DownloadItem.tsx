@@ -8,6 +8,7 @@ import { cn } from '@/lib/cn'
 import { ThumbnailImage } from './ThumbnailImage'
 import { StatusPill } from './ui'
 import { revealFolderLabel } from './downloadInspectorPresentation'
+import { getStatusTone } from './statusPresentation'
 import type { SelectionModifiers } from '@/utils/selection'
 
 const folderActionLabel = revealFolderLabel(typeof window !== 'undefined' ? window.api?.platform : undefined)
@@ -75,34 +76,36 @@ export const DownloadItem = memo(function DownloadItem({ download, selected = fa
         )
       }
       case 'complete':
-        return <StatusPill>Complete</StatusPill>
+        return <StatusPill tone={getStatusTone('complete')}>Complete</StatusPill>
       case 'resolving':
         return (
-          <StatusPill>
+          <StatusPill tone={getStatusTone('resolving')}>
             <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
             Resolving…
           </StatusPill>
         )
       case 'ready':
-        return <StatusPill tone="accent">Ready to download</StatusPill>
+        return <StatusPill tone={getStatusTone('ready')}>Ready to download</StatusPill>
       case 'queued':
-        return <StatusPill>Queued</StatusPill>
+        return <StatusPill tone={getStatusTone('queued')}>Queued</StatusPill>
       case 'paused':
         return (
-          <span className="text-xs text-muted-foreground tabular-nums">Paused · {Math.round(progress)}%</span>
+          <StatusPill tone={getStatusTone('paused')}>
+            Paused · {Math.round(progress)}%
+          </StatusPill>
         )
       case 'error':
         return (
           <span title={error || 'Unknown error'} className="max-w-full min-w-0">
-            <StatusPill tone="error" className="max-w-full min-w-0">
+            <StatusPill tone={getStatusTone('error')} className="max-w-full min-w-0">
               <span className="truncate">Failed{error ? `: ${error}` : ''}</span>
             </StatusPill>
           </span>
         )
       case 'interrupted':
-        return <StatusPill tone="error">Interrupted</StatusPill>
+        return <StatusPill tone={getStatusTone('interrupted')}>Interrupted</StatusPill>
       case 'cancelled':
-        return <StatusPill>Cancelled</StatusPill>
+        return <StatusPill tone={getStatusTone('cancelled')}>Cancelled</StatusPill>
       default:
         return null
     }

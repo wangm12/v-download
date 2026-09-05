@@ -44,10 +44,12 @@ function generateSvg(percent: number, speedText: string): string {
   const fillY = fillBottom - Math.round(fillRange * (clamped / 100))
   const fillHeight = fillBottom - fillY
 
+  // Nested 84% canvas matches the idle Dock icon padding.
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <svg x="82" y="82" width="860" height="860" viewBox="0 0 1024 1024">
   <defs>
     <linearGradient id="tile" x1="20%" y1="4%" x2="82%" y2="96%">
-      <stop offset="0%" stop-color="#2A2A2E"/>
+      <stop offset="0%" stop-color="#3A3A40"/>
       <stop offset="55%" stop-color="#141416"/>
       <stop offset="100%" stop-color="#0C0C0E"/>
     </linearGradient>
@@ -75,7 +77,7 @@ function generateSvg(percent: number, speedText: string): string {
   </g>`
   }
 
-  svg += '\n</svg>'
+  svg += '\n  </svg>\n</svg>'
   return svg
 }
 

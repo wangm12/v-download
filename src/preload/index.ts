@@ -91,6 +91,16 @@ const api = {
     ipcRenderer.on('refresh-downloads', sub)
     return () => ipcRenderer.removeListener('refresh-downloads', sub)
   },
+  onOpenUrls: (callback: () => void) => {
+    const sub = () => callback()
+    ipcRenderer.on('open-urls', sub)
+    return () => ipcRenderer.removeListener('open-urls', sub)
+  },
+  onOpenClearDownloads: (callback: () => void) => {
+    const sub = () => callback()
+    ipcRenderer.on('open-clear-downloads', sub)
+    return () => ipcRenderer.removeListener('open-clear-downloads', sub)
+  },
   onSettingsChanged: (callback: () => void) => {
     const sub = () => callback()
     ipcRenderer.on('settings-changed', sub)

@@ -18,7 +18,7 @@
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transition: opacity 0.25s, transform 0.15s, background 0.2s;
+  transition: opacity 0.25s ease, background 0.2s;
   z-index: 2147483647;
   pointer-events: none;
   padding: 0;
@@ -29,6 +29,7 @@
 .vdl-overlay-btn.vdl-visible {
   opacity: 0.92;
   pointer-events: auto;
+  transition: opacity 0.25s ease, transform 0.15s, background 0.2s;
 }
 
 .vdl-overlay-btn.vdl-visible:hover {
@@ -49,6 +50,7 @@
 }
 
 .vdl-overlay-btn.vdl-hidden {
+  display: flex !important;
   opacity: 0 !important;
   pointer-events: none;
 }

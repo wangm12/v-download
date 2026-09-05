@@ -77,10 +77,10 @@ export function Badge({ className, tone = 'neutral', ...props }: BadgeProps) {
       className={cn(
         'inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em]',
         tone === 'neutral' && 'border-divider-subtle bg-control text-muted-foreground',
-        tone === 'accent' && 'border-border-strong bg-selection text-foreground',
-        tone === 'success' && 'border-divider-subtle bg-state-complete-bg text-foreground',
-        tone === 'warning' && 'border-divider-subtle bg-control text-foreground',
-        tone === 'error' && 'border-dashed border-border-strong bg-state-error-bg text-foreground',
+        tone === 'accent' && 'border-state-info-border bg-state-info-bg text-info',
+        tone === 'success' && 'border-state-success-border bg-state-complete-bg text-success',
+        tone === 'warning' && 'border-state-warning-border bg-state-warning-bg text-warning',
+        tone === 'error' && 'border-dashed border-state-error-border bg-state-error-bg text-error',
         className
       )}
       {...props}
@@ -99,7 +99,7 @@ export function StatusPill({
 }) {
   return (
     <Badge tone={tone} className={cn('normal-case tracking-normal', className)}>
-      <span className="h-1.5 w-1.5 rounded-full bg-foreground" aria-hidden />
+      <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
       {children}
     </Badge>
   )
@@ -139,9 +139,9 @@ export function StatusBlock({
       className={cn(
         'rounded-button px-3 py-2.5 text-sm leading-relaxed',
         tone === 'neutral' && 'bg-control text-muted-foreground',
-        tone === 'success' && 'bg-state-complete-bg text-foreground',
-        tone === 'warning' && 'border border-dashed border-border-strong bg-control text-foreground',
-        tone === 'error' && 'border border-dashed border-border-strong bg-state-error-bg text-foreground',
+        tone === 'success' && 'bg-state-complete-bg text-success',
+        tone === 'warning' && 'border border-dashed border-state-warning-border bg-state-warning-bg text-warning',
+        tone === 'error' && 'border border-dashed border-state-error-border bg-state-error-bg text-error',
         className
       )}
       {...props}

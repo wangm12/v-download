@@ -16,12 +16,14 @@ import { useDownloadActions } from '@/contexts/DownloadActionsContext'
 import { formatDuration, formatFileSize } from '@/utils/format'
 import { cn } from '@/lib/cn'
 import { ThumbnailImage } from './ThumbnailImage'
+import { StatusPill } from './ui'
 import {
   DOWNLOAD_DETAILS_LABEL,
   DOWNLOAD_DETAILS_RAIL_CLASS,
   getInspectorStatCells,
   revealFolderLabel
 } from './downloadInspectorPresentation'
+import { getStatusLabel, getStatusTone } from './statusPresentation'
 
 type TranscodePresetId = 'mp3' | 'aac' | 'opus' | 'flac' | 'wav' | 'mp4' | 'h265' | 'vp9'
 
@@ -35,27 +37,6 @@ const TRANSCODE_OPTIONS: Array<{ id: TranscodePresetId; label: string }> = [
   { id: 'h265', label: 'H.265 MP4' },
   { id: 'vp9', label: 'VP9 WebM' },
 ]
-
-function statusLabel(status: Download['status']): string {
-  switch (status) {
-    case 'complete':
-      return 'Complete'
-    case 'downloading':
-      return 'Downloading'
-    case 'queued':
-      return 'Queued'
-    case 'paused':
-      return 'Paused'
-    case 'error':
-      return 'Failed'
-    case 'interrupted':
-      return 'Interrupted'
-    case 'cancelled':
-      return 'Cancelled'
-    default:
-      return status
-  }
-}
 
 // Keep renderer recovery behavior safe across the CJS shared-package boundary.
 // The shared package still exposes the additive public mapping for consumers,
@@ -72,23 +53,8 @@ const DOWNLOAD_ERROR_ACTIONS: Record<DownloadErrorCode, 'retry' | 'sync-cookies'
   DRM_PROTECTED: 'open-source',
 }
 
-function StatusPill({ status }: { status: Download['status'] }) {
-  const failed = status === 'error' || status === 'interrupted'
-  return (
-    <span
-      className={cn(
-        'inline-flex shrink-0 items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
-        failed
-          ? 'border-dashed border-border-strong bg-state-error-bg text-foreground'
-          : status === 'downloading'
-            ? 'border-border-strong bg-selection text-foreground'
-            : 'border-divider-subtle bg-control text-muted-foreground'
-      )}
-    >
-      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-foreground" aria-hidden />
-      {statusLabel(status)}
-    </span>
-  )
+function InspectorStatusPill({ status }: { status: Download['status'] }) {
+  return <StatusPill tone={getStatusTone(status)}>{getStatusLabel(status)}</StatusPill>
 }
 
 interface DownloadInspectorProps {
@@ -215,7 +181,7 @@ function InspectorDetailBody({
         <h2 className="text-sm font-semibold text-foreground leading-snug break-words">{title}</h2>
         {channel ? <p className="text-xs text-muted-foreground mt-1.5 break-words">{channel}</p> : null}
         <div className="mt-2">
-          <StatusPill status={status} />
+          <InspectorStatusPill status={status} />
         </div>
       </div>
 

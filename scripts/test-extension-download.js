@@ -201,6 +201,19 @@ assert.doesNotMatch(
   overlay,
   /if \(!isYouTube && buildOptions\(video, sniffed, videoLoadTime, getListMode\(\)\)\.length === 0\) \{\s*btn\.classList\.remove\('vdl-visible'\)\s*btn\.classList\.add\('vdl-hidden'\)\s*return/
 )
+assert.match(overlay, /function revealButton\s*\(/)
+assert.match(overlay, /function hideButton\s*\(/)
+assert.match(overlay, /function setCandidateVisibility[\s\S]*?revealButton\(\)/)
+assert.match(overlay, /IntersectionObserver\(\(entries\) => \{[\s\S]*?revealButton\(\)/)
+assert.match(overlay, /function showEligibleOverlays[\s\S]*?state\.revealButton\(\)/)
+assert.match(overlay, /revealButton,/)
+assert.match(overlay, /hideButton,/)
+assert.doesNotMatch(
+  overlay,
+  /classList\.add\('vdl-visible'\)\s*syncPosition\(\)/,
+  'must position the overlay before making it visible'
+)
+assert.match(overlay, /btn\.setAttribute\('aria-hidden', 'true'\)/)
 assert.match(
   overlayPlacement,
   /video\?\.closest\(['"]\.html5-video-player['"]\) \|\|[\s\S]{0,120}document\.querySelector\(['"]\.html5-video-player['"]\)/

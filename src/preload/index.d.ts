@@ -137,6 +137,10 @@ export interface WindowApi {
   }>
   openSettings: () => Promise<void>
   onOpenPreferences: (callback: () => void) => () => void
+  onFocusDownloadSearch: (callback: () => void) => () => void
+  onRefreshDownloads: (callback: () => void) => () => void
+  onOpenUrls: (callback: () => void) => () => void
+  onOpenClearDownloads: (callback: () => void) => () => void
   onCookiesSynced?: (callback: (data: { count: number }) => void) => () => void
   requestBrowserCookieSync?: () => Promise<{
     ok: boolean

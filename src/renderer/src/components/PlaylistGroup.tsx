@@ -16,11 +16,13 @@ import { formatSpeed, parseSpeedToBytes } from '@/utils/format'
 import { ThumbnailImage } from './ThumbnailImage'
 import { PlaylistDownloadRow } from './PlaylistDownloadRow'
 import { VirtualizedPlaylistItems } from './VirtualizedPlaylistItems'
+import { StatusPill } from './ui'
 import {
   COLLECTION_PREVIEW_LIMIT,
   COLLECTION_VISIBLE_LIMIT,
   getCollectionPresentation
 } from './playlistGroupPresentation'
+import { getCollectionStatus } from './statusPresentation'
 import type { PlaylistViewState } from '@/utils/queueSelection'
 import type { SelectionModifiers } from '@/utils/selection'
 
@@ -103,14 +105,12 @@ export const PlaylistGroup = memo(function PlaylistGroup({
   const hasErrors = downloads.some(
     (d) => d.status === 'error' || d.status === 'interrupted'
   )
-  const statusLabel = hasErrors
-    ? 'Needs attention'
-    : remainingCount === 0
-      ? 'Complete'
-      : hasActiveItems
-        ? 'In progress'
-        : 'Queued'
-  const isComplete = statusLabel === 'Complete'
+  const collectionStatus = getCollectionStatus({
+    hasErrors,
+    remainingCount,
+    hasActiveItems
+  })
+  const isComplete = collectionStatus.label === 'Complete'
 
   return (
     <>
@@ -212,28 +212,14 @@ export const PlaylistGroup = memo(function PlaylistGroup({
               <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                 <span>{playlist.completed_count} completed</span>
                 <span>{remainingCount} remaining</span>
-                <span
-                  className={
-                    isComplete
-                      ? 'inline-flex shrink-0 items-center gap-1 rounded-md border border-divider-subtle bg-state-complete-bg px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-foreground'
-                      : 'rounded-md bg-control px-2 py-0.5 text-foreground'
-                  }
-                >
-                  {isComplete && (
-                    <span
-                      className="h-1.5 w-1.5 shrink-0 rounded-full bg-foreground"
-                      aria-hidden
-                    />
-                  )}
-                  {statusLabel}
-                </span>
+                <StatusPill tone={collectionStatus.tone}>{collectionStatus.label}</StatusPill>
               </div>
             </div>
             <div className="order-last flex basis-full min-w-0 items-center gap-2 pt-2 sm:order-none sm:basis-auto sm:min-w-[8rem] sm:pt-1">
               <div className="flex flex-col items-end gap-0.5 flex-1 min-w-0">
                 <div className="w-full h-1.5 rounded-full bg-control overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-progress transition-all duration-300"
+                    className={`h-full rounded-full transition-all duration-300 ${isComplete ? 'bg-success/80' : 'bg-progress'}`}
                     style={{ width: `${progressPercent}%` }}
                   />
                 </div>

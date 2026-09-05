@@ -90,6 +90,8 @@ interface WindowApi {
   onOpenPreferences: (callback: () => void) => () => void
   onFocusDownloadSearch: (callback: () => void) => () => void
   onRefreshDownloads: (callback: () => void) => () => void
+  onOpenUrls: (callback: () => void) => () => void
+  onOpenClearDownloads: (callback: () => void) => () => void
   getChromeExtensionPath?: () => Promise<{ ok: boolean; path?: string }>
   installChromeExtension?: () => Promise<{
     ok: boolean

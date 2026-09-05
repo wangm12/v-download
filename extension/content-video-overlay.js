@@ -38,7 +38,9 @@
     positionQueue.clear()
     for (const queuedVideo of queued) {
       const state = videoState.get(queuedVideo)
-      if (state) state.syncPosition()
+      if (!state) continue
+      if (typeof state.revealButton === 'function') state.revealButton()
+      else state.syncPosition()
     }
   }
 
@@ -793,8 +795,11 @@
     for (const video of document.querySelectorAll('video')) {
       const state = videoState.get(video)
       if (!state) continue
-      state.btn.classList.remove('vdl-visible')
-      state.btn.classList.add('vdl-hidden')
+      if (typeof state.hideButton === 'function') state.hideButton()
+      else {
+        state.btn.classList.remove('vdl-visible')
+        state.btn.classList.add('vdl-hidden')
+      }
       state.stopCandidateRefresh?.()
     }
     closeActivePanel()
@@ -805,11 +810,7 @@
       const state = videoState.get(video)
       if (!state) continue
       state.rearmCandidateDiscovery?.()
-      const rect = video.getBoundingClientRect()
-      if (state.hasReliableCandidate && rect.width >= MIN_VIDEO_WIDTH && rect.height >= MIN_VIDEO_HEIGHT) {
-        state.btn.classList.remove('vdl-hidden')
-        state.btn.classList.add('vdl-visible')
-      }
+      state.revealButton()
     }
   }
 
@@ -826,6 +827,7 @@
     const btn = document.createElement('button')
     btn.className = 'vdl-overlay-btn vdl-hidden'
     btn.setAttribute('aria-label', 'Download with V-Download')
+    btn.setAttribute('aria-hidden', 'true')
     btn.title = 'Download with V-Download'
     btn.innerHTML = SVG_DOWNLOAD
     btn.setAttribute(BTN_ATTR, '1')
@@ -838,16 +840,33 @@
     let candidateRefreshTimer = null
     let sourceChangeTimer = null
     const isYTResolver = () => isYouTubePage() && isYouTubeWatchPage()
-    const setCandidateVisibility = (available) => {
+    function hideButton() {
+      btn.classList.remove('vdl-visible')
+      btn.classList.add('vdl-hidden')
+      btn.setAttribute('aria-hidden', 'true')
+    }
+    function revealButton() {
+      if (!hasReliableCandidate || !isInViewport || suppressed) {
+        hideButton()
+        return
+      }
+      if (!syncPosition()) {
+        hideButton()
+        return
+      }
+      btn.classList.remove('vdl-hidden')
+      btn.classList.add('vdl-visible')
+      btn.removeAttribute('aria-hidden')
+    }
+    function setCandidateVisibility(available) {
       hasReliableCandidate = isYTResolver() || available
       if (!hasReliableCandidate) {
-        btn.classList.remove('vdl-visible')
-        btn.classList.add('vdl-hidden')
+        hideButton()
       } else if (isInViewport && !suppressed) {
-        btn.classList.remove('vdl-hidden')
-        btn.classList.add('vdl-visible')
-        syncPosition()
+        revealButton()
         queueVideoPosition(video)
+      } else {
+        hideButton()
       }
     }
     let candidateRefreshInFlight = false
@@ -924,7 +943,7 @@
     })
 
     function syncPosition() {
-      if (suppressed) return
+      if (suppressed) return false
 
       const anchorRect = getAnchorRect(video)
       const rect = anchorRect || video.getBoundingClientRect()
@@ -958,7 +977,7 @@
       }
       prevRect = rect
 
-      if (rect.width < 10 || rect.height < 10) return
+      if (rect.width < 10 || rect.height < 10) return false
 
       const btnPos = PL
         ? PL.computeButtonPosition(rect, placementStrategy, BTN_SIZE, BTN_INSET)
@@ -966,23 +985,21 @@
           top: rect.top + BTN_INSET,
           left: rect.right - BTN_INSET - BTN_SIZE
         }
-      if (!btnPos) return
+      if (!btnPos) return false
       btn.style.setProperty('--vdl-overlay-x', `${btnPos.left}px`)
       btn.style.setProperty('--vdl-overlay-y', `${btnPos.top}px`)
+      return true
     }
 
     const observer = new IntersectionObserver((entries) => {
       for (const entry of entries) {
         isInViewport = entry.isIntersecting
         if (isInViewport && !suppressed && hasReliableCandidate) {
-          btn.classList.remove('vdl-hidden')
-          btn.classList.add('vdl-visible')
-          syncPosition()
+          revealButton()
           queueVideoPosition(video)
           stopCandidateRefresh()
         } else {
-          btn.classList.remove('vdl-visible')
-          btn.classList.add('vdl-hidden')
+          hideButton()
           if (activePanel && activePanelVideo === video) closeActivePanel()
           positionQueue.delete(video)
           if (isInViewport && !suppressed && !hasReliableCandidate) startCandidateRefresh()
@@ -1076,6 +1093,8 @@
       get hasReliableCandidate() { return hasReliableCandidate },
       get isInViewport() { return isInViewport },
       syncPosition,
+      revealButton,
+      hideButton,
       rearmCandidateDiscovery: () => {
         if (!hasReliableCandidate && isInViewport && !suppressed) {
           startCandidateRefresh()

@@ -1,29 +1,31 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-  <defs>
-    <linearGradient id="tile" x1="20%" y1="4%" x2="82%" y2="96%">
-      <stop offset="0%" stop-color="#3F3F46"/>
-      <stop offset="55%" stop-color="#27272A"/>
-      <stop offset="100%" stop-color="#18181B"/>
-    </linearGradient>
-    <linearGradient id="arrow" x1="50%" y1="16%" x2="50%" y2="90%">
-      <stop offset="0%" stop-color="#A1A1AA"/>
-      <stop offset="100%" stop-color="#71717A"/>
-    </linearGradient>
-  </defs>
-  <rect width="1024" height="1024" rx="228" fill="url(#tile)"/>
-  <path fill="url(#arrow)" d="
-    M 440 236
-    h 144
-    a 40 40 0 0 1 40 40
-    v 292
-    l 12 0
-    c 14 0 18 20 8 30
-    L 544 800
-    c -14 22 -50 22 -64 0
-    L 320 598
-    c -10 -10 -6 -30 8 -30
-    l 12 0
-    V 276
-    a 40 40 0 0 1 40 -40
-    Z"/>
+  <svg x="82" y="82" width="860" height="860" viewBox="0 0 1024 1024">
+    <defs>
+      <linearGradient id="tile" x1="20%" y1="4%" x2="82%" y2="96%">
+        <stop offset="0%" stop-color="#3F3F46"/>
+        <stop offset="55%" stop-color="#27272A"/>
+        <stop offset="100%" stop-color="#18181B"/>
+      </linearGradient>
+      <linearGradient id="arrow" x1="50%" y1="16%" x2="50%" y2="90%">
+        <stop offset="0%" stop-color="#A1A1AA"/>
+        <stop offset="100%" stop-color="#71717A"/>
+      </linearGradient>
+    </defs>
+    <rect width="1024" height="1024" rx="228" fill="url(#tile)"/>
+    <path fill="url(#arrow)" d="
+      M 440 236
+      h 144
+      a 40 40 0 0 1 40 40
+      v 292
+      l 12 0
+      c 14 0 18 20 8 30
+      L 544 800
+      c -14 22 -50 22 -64 0
+      L 320 598
+      c -10 -10 -6 -30 8 -30
+      l 12 0
+      V 276
+      a 40 40 0 0 1 40 -40
+      Z"/>
+  </svg>
 </svg>
