@@ -93,9 +93,4 @@ export async function changeAppLanguage(language: AppLanguage): Promise<void> {
   await i18n.changeLanguage(language)
 }
 
-export function currentAppLanguage(): AppLanguage {
-  const language = i18n.language
-  return language === 'zh-CN' || language === 'zh-TW' ? language : 'en'
-}
-
 export default i18n

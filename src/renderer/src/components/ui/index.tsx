@@ -1,71 +1,9 @@
 import {
   forwardRef,
-  type ButtonHTMLAttributes,
   type HTMLAttributes,
   type ReactNode
 } from 'react'
 import { cn } from '@/lib/cn'
-
-export const Surface = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(function Surface(
-  { className, ...props },
-  ref
-) {
-  return <div ref={ref} className={cn('v-surface rounded-card', className)} {...props} />
-})
-
-export interface ListRowProps extends HTMLAttributes<HTMLDivElement> {
-  selected?: boolean
-  interactive?: boolean
-}
-
-export const ListRow = forwardRef<HTMLDivElement, ListRowProps>(function ListRow(
-  { className, selected = false, interactive = false, ...props },
-  ref
-) {
-  return (
-    <div
-      ref={ref}
-      data-selected={selected}
-      className={cn(
-        'v-list-row rounded-lg',
-        interactive && 'cursor-pointer',
-        className
-      )}
-      {...props}
-    />
-  )
-})
-
-export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  tone?: 'primary' | 'secondary' | 'ghost' | 'danger'
-}
-
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { className, tone = 'secondary', ...props },
-  ref
-) {
-  return (
-    <button
-      ref={ref}
-      className={cn(
-        'inline-flex min-h-10 items-center justify-center gap-2 rounded-button px-3 text-sm font-medium transition-[background-color,color,box-shadow,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:cursor-not-allowed disabled:opacity-45 active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100',
-        tone === 'primary' && 'bg-action text-action-fg hover:bg-action-hover',
-        tone === 'secondary' && 'bg-control text-foreground hover:bg-surface-hover',
-        tone === 'ghost' && 'text-muted-foreground hover:bg-control hover:text-foreground',
-        tone === 'danger' && 'border border-dashed border-border-strong bg-control text-foreground hover:bg-surface-hover',
-        className
-      )}
-      {...props}
-    />
-  )
-})
-
-export const IconButton = forwardRef<HTMLButtonElement, ButtonProps>(function IconButton(
-  { className, ...props },
-  ref
-) {
-  return <Button ref={ref} className={cn('h-10 w-10 shrink-0 px-0', className)} {...props} />
-})
 
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   tone?: 'neutral' | 'accent' | 'success' | 'warning' | 'error'

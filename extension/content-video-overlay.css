@@ -259,8 +259,7 @@
 /* ── Special states ───────────────────────────────────────────────────────── */
 
 .vdl-panel-empty,
-.vdl-panel-error,
-.vdl-panel-loading {
+.vdl-panel-error {
   padding: 18px 14px;
   text-align: center;
   font-size: 12px;

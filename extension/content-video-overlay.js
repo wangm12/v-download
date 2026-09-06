@@ -7,6 +7,7 @@
   const MIN_VIDEO_HEIGHT = 100
   const BTN_ATTR = 'data-vdl-overlay'
   const LIST_MODE_KEY = 'vdownload_overlay_list_mode'
+  const DENSE_OVERLAY_MIN = 3
 
   // Query params to keep when building dedup key (original URL always used for download)
   const QUERY_WHITELIST = new Set(['token', 'sig', 'signature', 'expires', 'expire', 'key', 'id'])
@@ -59,6 +60,46 @@
     schedulePositionFlush()
   }
 
+  let motionRafId = null
+  let hoveredOverlayVideo = null
+
+  function collectMotionVideos() {
+    const videos = []
+    for (const video of document.querySelectorAll('video')) {
+      const state = videoState.get(video)
+      if (state && (state.isInViewport || activePanelVideo === video)) videos.push(video)
+    }
+    return videos
+  }
+
+  function stopMotionLoop() {
+    if (motionRafId != null) {
+      cancelAnimationFrame(motionRafId)
+      motionRafId = null
+    }
+  }
+
+  function motionTick() {
+    motionRafId = null
+    if (document.hidden) return
+    const videos = collectMotionVideos()
+    if (!videos.length) return
+    for (const video of videos) {
+      const state = videoState.get(video)
+      if (typeof state?.trackMotion === 'function') state.trackMotion()
+    }
+    if (primaryOverlayVideo()) refreshDenseOverlays()
+    if (collectMotionVideos().length && !document.hidden && motionRafId == null) {
+      motionRafId = requestAnimationFrame(motionTick)
+    }
+  }
+
+  function startMotionLoop() {
+    if (document.hidden || motionRafId != null) return
+    if (!collectMotionVideos().length) return
+    motionRafId = requestAnimationFrame(motionTick)
+  }
+
   // Currently open panel (only one at a time)
   let activePanel = null
   let activePanelVideo = null
@@ -107,6 +148,91 @@
       if (anchored) return anchored
     }
     return video.getBoundingClientRect()
+  }
+
+  function eligibleOverlayVideos() {
+    const videos = []
+    for (const video of document.querySelectorAll('video')) {
+      const state = videoState.get(video)
+      if (state && state.isInViewport && state.hasReliableCandidate) videos.push(video)
+    }
+    return videos
+  }
+
+  function overlayClipRect(video) {
+    const viewport = { width: window.innerWidth, height: window.innerHeight }
+    if (typeof PL?.overflowClipRect === 'function') {
+      return PL.overflowClipRect(video, viewport)
+    }
+    return { left: 0, top: 0, right: viewport.width, bottom: viewport.height, width: viewport.width, height: viewport.height }
+  }
+
+  function overlayTargetVisible(video) {
+    const rect = getAnchorRect(video) || video.getBoundingClientRect()
+    const btnSize = PL ? PL.DEFAULT_BTN_SIZE : 32
+    const inset = PL ? PL.DEFAULT_INSET : 10
+    const strategy = getPlacementStrategy()
+    const btnPos = PL
+      ? PL.computeButtonPosition(rect, strategy, btnSize, inset)
+      : { top: rect.top + inset, left: rect.right - inset - btnSize }
+    if (!btnPos) return false
+    const viewport = { width: window.innerWidth, height: window.innerHeight }
+    const clip = overlayClipRect(video)
+    if (typeof PL?.buttonTargetVisible === 'function') {
+      return PL.buttonTargetVisible(rect, btnPos, btnSize, viewport, 2, clip)
+    }
+    return (
+      btnPos.left >= Math.max(clip.left, rect.left, 0) - 2 &&
+      btnPos.top >= Math.max(clip.top, rect.top, 0) - 2 &&
+      btnPos.left + btnSize <= Math.min(clip.right, rect.right, viewport.width) + 2 &&
+      btnPos.top + btnSize <= Math.min(clip.bottom, rect.bottom, viewport.height) + 2
+    )
+  }
+
+  function visibleOverlayArea(video) {
+    const rect = getAnchorRect(video) || video.getBoundingClientRect()
+    const viewport = { width: window.innerWidth, height: window.innerHeight }
+    const clip = overlayClipRect(video)
+    if (typeof PL?.visibleIntersectionArea === 'function') {
+      return PL.visibleIntersectionArea(rect, viewport, clip)
+    }
+    return Math.max(0, Math.min(viewport.width, clip.right, rect.right) - Math.max(0, clip.left, rect.left)) *
+      Math.max(0, Math.min(viewport.height, clip.bottom, rect.bottom) - Math.max(0, clip.top, rect.top))
+  }
+
+  function primaryOverlayVideo() {
+    const eligible = eligibleOverlayVideos()
+    const videos = eligible.map((video) => ({
+      id: video,
+      area: visibleOverlayArea(video),
+      targetVisible: overlayTargetVisible(video),
+      hovered: hoveredOverlayVideo === video
+    }))
+    if (typeof PL?.pickPrimaryOverlay === 'function') {
+      return PL.pickPrimaryOverlay({ videos }, DENSE_OVERLAY_MIN)
+    }
+    if (eligible.length < DENSE_OVERLAY_MIN) return null
+    if (hoveredOverlayVideo && eligible.includes(hoveredOverlayVideo) && overlayTargetVisible(hoveredOverlayVideo)) {
+      return hoveredOverlayVideo
+    }
+    let best = null
+    let bestArea = -1
+    for (const entry of videos) {
+      if (!entry.targetVisible) continue
+      if (entry.area > bestArea) {
+        bestArea = entry.area
+        best = entry.id
+      }
+    }
+    return best
+  }
+
+  function refreshDenseOverlays() {
+    for (const video of document.querySelectorAll('video')) {
+      const state = videoState.get(video)
+      if (!state) continue
+      if (typeof state.revealButton === 'function') state.revealButton()
+    }
   }
 
   // ── URL helpers ──────────────────────────────────────────────────────────
@@ -362,7 +488,7 @@
 
     const icon = document.createElement('span')
     icon.className = 'vdl-format-icon'
-    icon.innerHTML = opt.type === 'hls' ? SVG_VIDEO : SVG_VIDEO
+    icon.innerHTML = SVG_VIDEO
 
     const info = document.createElement('div')
     info.className = 'vdl-format-info'
@@ -703,6 +829,7 @@
     overlayButtonHostForVideo(video).appendChild(panel)
     activePanel = panel
     activePanelVideo = video
+    startMotionLoop()
   }
 
   // Initial panel placement: measures panel dimensions, then removes (caller must re-append).
@@ -800,6 +927,7 @@
         state.btn.classList.remove('vdl-visible')
         state.btn.classList.add('vdl-hidden')
       }
+      state.resetMotionSettle?.()
       state.stopCandidateRefresh?.()
     }
     closeActivePanel()
@@ -835,28 +963,71 @@
 
     let isInViewport = false
     let prevRect = null
+    let motionSamples = []
+    let motionIdle = false
     let lastVideoFingerprint = ''
     let hasReliableCandidate = false
     let candidateRefreshTimer = null
     let sourceChangeTimer = null
     const isYTResolver = () => isYouTubePage() && isYouTubeWatchPage()
+    const idleWindowMs = typeof PL?.MOTION_IDLE_MS === 'number' ? PL.MOTION_IDLE_MS : 400
+    const idleMaxTravel = typeof PL?.MOTION_IDLE_PX === 'number' ? PL.MOTION_IDLE_PX : 2
+    function overlayIsHovered() {
+      return hoveredOverlayVideo === video
+    }
+    function resetMotionSettle() {
+      motionSamples = []
+      motionIdle = false
+    }
     function hideButton() {
       btn.classList.remove('vdl-visible')
       btn.classList.add('vdl-hidden')
       btn.setAttribute('aria-hidden', 'true')
     }
     function revealButton() {
+      startMotionLoop()
       if (!hasReliableCandidate || !isInViewport || suppressed) {
         hideButton()
         return
       }
       if (!syncPosition()) {
         hideButton()
+        resetMotionSettle()
+        return
+      }
+      if (hoveredOverlayVideo !== video && !motionIdle) {
+        hideButton()
+        return
+      }
+      const primary = primaryOverlayVideo()
+      if (primary != null && primary !== video) {
+        hideButton()
         return
       }
       btn.classList.remove('vdl-hidden')
       btn.classList.add('vdl-visible')
       btn.removeAttribute('aria-hidden')
+    }
+    function trackMotion() {
+      if (document.hidden) return
+      if (!syncPosition()) {
+        hideButton()
+        resetMotionSettle()
+        return
+      }
+      const rect = prevRect
+      const now = typeof performance !== 'undefined' && typeof performance.now === 'function'
+        ? performance.now()
+        : Date.now()
+      const nextSample = { rect, t: now }
+      motionSamples = typeof PL?.pruneMotionSamples === 'function'
+        ? PL.pruneMotionSamples(motionSamples.concat(nextSample), now, idleWindowMs)
+        : motionSamples.concat(nextSample).filter((sample) => sample && sample.t >= now - idleWindowMs)
+      motionIdle = typeof PL?.motionIsIdle === 'function'
+        ? PL.motionIsIdle(motionSamples, { now, windowMs: idleWindowMs, maxTravel: idleMaxTravel })
+        : false
+      if (overlayIsHovered() || motionIdle) revealButton()
+      else hideButton()
     }
     function setCandidateVisibility(available) {
       hasReliableCandidate = isYTResolver() || available
@@ -868,6 +1039,7 @@
       } else {
         hideButton()
       }
+      refreshDenseOverlays()
     }
     let candidateRefreshInFlight = false
     let lastCandidateRefreshAt = 0
@@ -986,6 +1158,17 @@
           left: rect.right - BTN_INSET - BTN_SIZE
         }
       if (!btnPos) return false
+      const viewport = { width: window.innerWidth, height: window.innerHeight }
+      const clip = overlayClipRect(video)
+      const targetVisible = typeof PL?.buttonTargetVisible === 'function'
+        ? PL.buttonTargetVisible(rect, btnPos, BTN_SIZE, viewport, 2, clip)
+        : (
+          btnPos.left >= Math.max(clip.left, rect.left, 0) - 2 &&
+          btnPos.top >= Math.max(clip.top, rect.top, 0) - 2 &&
+          btnPos.left + BTN_SIZE <= Math.min(clip.right, rect.right, viewport.width) + 2 &&
+          btnPos.top + BTN_SIZE <= Math.min(clip.bottom, rect.bottom, viewport.height) + 2
+        )
+      if (!targetVisible) return false
       btn.style.setProperty('--vdl-overlay-x', `${btnPos.left}px`)
       btn.style.setProperty('--vdl-overlay-y', `${btnPos.top}px`)
       return true
@@ -994,17 +1177,20 @@
     const observer = new IntersectionObserver((entries) => {
       for (const entry of entries) {
         isInViewport = entry.isIntersecting
+        if (isInViewport) startMotionLoop()
         if (isInViewport && !suppressed && hasReliableCandidate) {
           revealButton()
           queueVideoPosition(video)
           stopCandidateRefresh()
         } else {
           hideButton()
+          if (!isInViewport) resetMotionSettle()
           if (activePanel && activePanelVideo === video) closeActivePanel()
           positionQueue.delete(video)
           if (isInViewport && !suppressed && !hasReliableCandidate) startCandidateRefresh()
         }
       }
+      refreshDenseOverlays()
     }, { threshold: 0.1 })
 
     observer.observe(video)
@@ -1013,6 +1199,36 @@
       queueVideoPosition(video)
     }
     window.addEventListener('resize', onWindowResize)
+    const hoverPlayer = typeof video.closest === 'function' ? video.closest('.html5-video-player') : null
+    const overlayHoverContains = (node) => {
+      if (!node) return false
+      if (video === node || (typeof video.contains === 'function' && video.contains(node))) return true
+      if (hoverPlayer && (hoverPlayer === node || hoverPlayer.contains(node))) return true
+      const panel = activePanelVideo === video ? activePanel : null
+      if (typeof PL?.isOverlayHoverRelated === 'function') {
+        return PL.isOverlayHoverRelated(node, { btn, panel })
+      }
+      return node === btn || Boolean(panel && (node === panel || panel.contains(node)))
+    }
+    const onOverlayHoverEnter = () => {
+      hoveredOverlayVideo = video
+      refreshDenseOverlays()
+    }
+    const onOverlayHoverLeave = (event) => {
+      if (overlayHoverContains(event?.relatedTarget)) return
+      if (hoveredOverlayVideo === video) {
+        hoveredOverlayVideo = null
+        refreshDenseOverlays()
+      }
+    }
+    video.addEventListener('mouseenter', onOverlayHoverEnter)
+    video.addEventListener('mouseleave', onOverlayHoverLeave)
+    btn.addEventListener('mouseenter', onOverlayHoverEnter)
+    btn.addEventListener('mouseleave', onOverlayHoverLeave)
+    if (hoverPlayer) {
+      hoverPlayer.addEventListener('mouseenter', onOverlayHoverEnter)
+      hoverPlayer.addEventListener('mouseleave', onOverlayHoverLeave)
+    }
 
     btn.addEventListener('click', async (e) => {
       e.preventDefault()
@@ -1073,6 +1289,7 @@
       cleanup.done = true
       observer.disconnect()
       positionQueue.delete(video)
+      resetMotionSettle()
       stopCandidateRefresh()
       if (sourceChangeTimer) clearTimeout(sourceChangeTimer)
       btn.remove()
@@ -1081,11 +1298,22 @@
       video.removeEventListener('loadedmetadata', onSourceChange)
       video.removeEventListener('durationchange', onSourceChange)
       video.removeEventListener('emptied', onSourceChange)
+      video.removeEventListener('mouseenter', onOverlayHoverEnter)
+      video.removeEventListener('mouseleave', onOverlayHoverLeave)
+      btn.removeEventListener('mouseenter', onOverlayHoverEnter)
+      btn.removeEventListener('mouseleave', onOverlayHoverLeave)
+      if (hoverPlayer) {
+        hoverPlayer.removeEventListener('mouseenter', onOverlayHoverEnter)
+        hoverPlayer.removeEventListener('mouseleave', onOverlayHoverLeave)
+      }
       sourceObserver.disconnect()
       window.removeEventListener('resize', onWindowResize)
       if (activePanel && activePanelVideo === video) closeActivePanel()
       processed.delete(video)
       videoState.delete(video)
+      if (hoveredOverlayVideo === video) hoveredOverlayVideo = null
+      if (!collectMotionVideos().length) stopMotionLoop()
+      refreshDenseOverlays()
     }
 
     videoState.set(video, {
@@ -1095,6 +1323,8 @@
       syncPosition,
       revealButton,
       hideButton,
+      trackMotion,
+      resetMotionSettle,
       rearmCandidateDiscovery: () => {
         if (!hasReliableCandidate && isInViewport && !suppressed) {
           startCandidateRefresh()
@@ -1370,6 +1600,11 @@
       reparentOverlayButtons()
     })
 
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) stopMotionLoop()
+      else startMotionLoop()
+    })
+
     // Low-frequency fallback for lazy players that render without a useful
     // mutation record. Newly inserted nodes are handled by the observer.
     const scanInterval = setInterval(() => {
@@ -1379,6 +1614,7 @@
 
     window.addEventListener('beforeunload', () => {
       clearInterval(scanInterval)
+      stopMotionLoop()
       mutationObserver.disconnect()
       window.removeEventListener('popstate', handleNavigation)
       if (history.pushState !== originalPushState) history.pushState = originalPushState

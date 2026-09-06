@@ -87,6 +87,182 @@
     return r
   }
 
+  function rectDelta(a, b) {
+    if (!a || !b) return Infinity
+    return Math.max(
+      Math.abs(a.top - b.top),
+      Math.abs(a.left - b.left),
+      Math.abs(a.width - b.width),
+      Math.abs(a.height - b.height)
+    )
+  }
+
+  function rectIsSettled(prev, next, epsilon) {
+    return rectDelta(prev, next) <= (epsilon != null ? epsilon : 1)
+  }
+
+  const MOTION_IDLE_MS = 400
+  const MOTION_IDLE_PX = 2
+
+  function rectExtentDelta(rects) {
+    if (!rects || rects.length < 2) return Infinity
+    let minL = Infinity
+    let maxL = -Infinity
+    let minT = Infinity
+    let maxT = -Infinity
+    let minW = Infinity
+    let maxW = -Infinity
+    let minH = Infinity
+    let maxH = -Infinity
+    for (const rect of rects) {
+      if (!rect) return Infinity
+      minL = Math.min(minL, rect.left)
+      maxL = Math.max(maxL, rect.left)
+      minT = Math.min(minT, rect.top)
+      maxT = Math.max(maxT, rect.top)
+      minW = Math.min(minW, rect.width)
+      maxW = Math.max(maxW, rect.width)
+      minH = Math.min(minH, rect.height)
+      maxH = Math.max(maxH, rect.height)
+    }
+    return Math.max(maxL - minL, maxT - minT, maxW - minW, maxH - minH)
+  }
+
+  function pruneMotionSamples(samples, now, windowMs) {
+    const window = windowMs != null ? windowMs : MOTION_IDLE_MS
+    const cutoff = now - window
+    if (!Array.isArray(samples)) return []
+    return samples.filter((sample) => sample && sample.rect && sample.t >= cutoff)
+  }
+
+  function motionIsIdle(samples, options) {
+    const windowMs = options && options.windowMs != null ? options.windowMs : MOTION_IDLE_MS
+    const maxTravel = options && options.maxTravel != null ? options.maxTravel : MOTION_IDLE_PX
+    const now = options && options.now != null
+      ? options.now
+      : (samples && samples.length ? samples[samples.length - 1].t : 0)
+    const list = pruneMotionSamples(samples, now, windowMs)
+    if (list.length < 2) return false
+    if (list[list.length - 1].t - list[0].t < windowMs * 0.8) return false
+    return rectExtentDelta(list.map((sample) => sample.rect)) <= maxTravel
+  }
+
+  function viewportIntersection(rect, viewport) {
+    const vw = viewport && viewport.width != null ? viewport.width : 0
+    const vh = viewport && viewport.height != null ? viewport.height : 0
+    const left = Math.max(0, rect.left)
+    const top = Math.max(0, rect.top)
+    const right = Math.min(vw, rect.right)
+    const bottom = Math.min(vh, rect.bottom)
+    return {
+      left,
+      top,
+      right,
+      bottom,
+      width: Math.max(0, right - left),
+      height: Math.max(0, bottom - top)
+    }
+  }
+
+  function intersectRects(a, b) {
+    if (!a || !b) return { left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0 }
+    const left = Math.max(a.left, b.left)
+    const top = Math.max(a.top, b.top)
+    const right = Math.min(a.right, b.right)
+    const bottom = Math.min(a.bottom, b.bottom)
+    return {
+      left,
+      top,
+      right,
+      bottom,
+      width: Math.max(0, right - left),
+      height: Math.max(0, bottom - top)
+    }
+  }
+
+  function clipsOverflow(style) {
+    if (!style) return false
+    const x = style.overflowX || style.overflow || 'visible'
+    const y = style.overflowY || style.overflow || 'visible'
+    return x !== 'visible' || y !== 'visible'
+  }
+
+  function overflowClipRect(el, viewport, options) {
+    const vw = viewport && viewport.width != null ? viewport.width : 0
+    const vh = viewport && viewport.height != null ? viewport.height : 0
+    let clip = { left: 0, top: 0, right: vw, bottom: vh, width: vw, height: vh }
+    const getStyle = options && options.getComputedStyle
+      ? options.getComputedStyle
+      : (node) => (typeof globalThis.getComputedStyle === 'function' ? globalThis.getComputedStyle(node) : null)
+    const getRect = options && options.getBoundingClientRect
+      ? options.getBoundingClientRect
+      : (node) => (node && typeof node.getBoundingClientRect === 'function' ? node.getBoundingClientRect() : null)
+    let node = el && el.parentElement
+    while (node) {
+      const name = node.nodeName
+      if (name === 'HTML' || name === 'BODY') break
+      const style = getStyle(node)
+      if (clipsOverflow(style)) {
+        const r = getRect(node)
+        if (r) clip = intersectRects(clip, r)
+      }
+      node = node.parentElement
+    }
+    return clip
+  }
+
+  function visibleIntersectionArea(rect, viewport, clipRect) {
+    let vis = viewportIntersection(rect, viewport)
+    if (clipRect) vis = intersectRects(vis, clipRect)
+    return vis.width * vis.height
+  }
+
+  function buttonTargetVisible(rect, btnPos, btnSize, viewport, pad, clipRect) {
+    if (!rect || !btnPos) return false
+    const size = btnSize != null ? btnSize : 32
+    const slack = pad != null ? pad : 2
+    let vis = viewportIntersection(rect, viewport)
+    if (clipRect) vis = intersectRects(vis, clipRect)
+    if (vis.width <= 0 || vis.height <= 0) return false
+    return (
+      btnPos.left >= vis.left - slack &&
+      btnPos.top >= vis.top - slack &&
+      btnPos.left + size <= vis.right + slack &&
+      btnPos.top + size <= vis.bottom + slack
+    )
+  }
+
+  function isOverlayHoverRelated(related, chrome) {
+    if (!related) return false
+    const btn = chrome && chrome.btn
+    const panel = chrome && chrome.panel
+    if (btn && (related === btn || (typeof btn.contains === 'function' && btn.contains(related)))) {
+      return true
+    }
+    if (panel && (related === panel || (typeof panel.contains === 'function' && panel.contains(related)))) {
+      return true
+    }
+    return false
+  }
+
+  function pickPrimaryOverlay(input, min) {
+    const videos = (input && input.videos) || []
+    const threshold = min != null ? min : 3
+    if (videos.length < threshold) return null
+    const hovered = videos.find((video) => video.hovered)
+    if (hovered && hovered.targetVisible) return hovered.id
+    let best = null
+    let bestArea = -1
+    for (const video of videos) {
+      if (!video.targetVisible) continue
+      if (video.area > bestArea) {
+        bestArea = video.area
+        best = video
+      }
+    }
+    return best ? best.id : null
+  }
+
   function pickLargestRect(elements) {
     let best = null
     let bestArea = 0
@@ -340,10 +516,6 @@
     return site !== 'douyin' && site !== 'tiktok'
   }
 
-  function isMediaElement(el) {
-    return Boolean(el) && (el.nodeName === 'VIDEO' || el.nodeName === 'AUDIO')
-  }
-
   function overlayScopeRoot(doc) {
     const root = doc || document
     return root.fullscreenElement || root
@@ -420,9 +592,6 @@
   }
 
   globalThis.VDownloadOverlayPlacement = {
-    MIN_RECT_SIZE,
-    EDGE_MARGIN,
-    LEFT_EDGE_FLIP_THRESHOLD,
     DEFAULT_BTN_SIZE,
     DEFAULT_INSET,
     isDouyinPage,
@@ -449,7 +618,20 @@
     shouldDismissPanelOnScroll,
     getDouyinPanelAnchorRect,
     rectFromElement,
-    isMediaElement,
+    rectDelta,
+    rectIsSettled,
+    MOTION_IDLE_MS,
+    MOTION_IDLE_PX,
+    rectExtentDelta,
+    pruneMotionSamples,
+    motionIsIdle,
+    viewportIntersection,
+    intersectRects,
+    overflowClipRect,
+    visibleIntersectionArea,
+    buttonTargetVisible,
+    isOverlayHoverRelated,
+    pickPrimaryOverlay,
     overlayScopeRoot,
     overlayButtonHost,
     layoutArea,

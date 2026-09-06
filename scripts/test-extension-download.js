@@ -90,6 +90,204 @@ assert.strictEqual(placement.shouldBootGenericOverlay({ site: 'tiktok' }), false
 assert.strictEqual(placement.shouldBootGenericOverlay({ site: 'x' }), false)
 assert.strictEqual(placement.shouldBootGenericOverlay({ site: 'youtube' }), true)
 assert.strictEqual(placement.shouldBootGenericOverlay({ site: 'generic' }), true)
+const settledRect = { top: 10, left: 20, width: 320, height: 180 }
+assert.strictEqual(placement.rectDelta(settledRect, settledRect), 0)
+assert.strictEqual(placement.rectIsSettled(settledRect, settledRect), true)
+assert.strictEqual(
+  placement.rectIsSettled(settledRect, { ...settledRect, left: settledRect.left + 0.5 }),
+  true
+)
+assert.strictEqual(
+  placement.rectIsSettled(settledRect, { ...settledRect, top: settledRect.top + 2 }),
+  false
+)
+assert.strictEqual(placement.rectIsSettled(null, settledRect), false)
+assert.strictEqual(placement.rectDelta(null, settledRect), Infinity)
+assert.strictEqual(placement.rectDelta(settledRect, null), Infinity)
+assert.strictEqual(placement.MOTION_IDLE_MS, 400)
+assert.strictEqual(placement.MOTION_IDLE_PX, 2)
+const idleBase = { top: 100, left: 0, width: 280, height: 500, right: 280, bottom: 600 }
+function motionSeries(count, stepMs, rectAt) {
+  const samples = []
+  for (let i = 0; i < count; i += 1) {
+    samples.push({ t: i * stepMs, rect: rectAt(i) })
+  }
+  return samples
+}
+assert.strictEqual(placement.rectExtentDelta([idleBase, idleBase]), 0)
+assert.strictEqual(
+  placement.rectExtentDelta([idleBase, { ...idleBase, left: idleBase.left + 12 }]),
+  12
+)
+assert.strictEqual(placement.rectExtentDelta([idleBase]), Infinity)
+assert.deepStrictEqual(
+  placement.pruneMotionSamples(
+    [{ t: 0, rect: idleBase }, { t: 100, rect: idleBase }, { t: 350, rect: idleBase }],
+    500,
+    400
+  ).map((sample) => sample.t),
+  [100, 350]
+)
+const stillSamples = motionSeries(26, 16, () => idleBase)
+assert.strictEqual(placement.motionIsIdle(stillSamples, { now: 400 }), true)
+const slowMarquee = motionSeries(26, 16, (i) => ({
+  ...idleBase,
+  left: i * 0.5,
+  right: idleBase.right + i * 0.5
+}))
+assert.strictEqual(
+  placement.motionIsIdle(slowMarquee, { now: 400 }),
+  false,
+  '0.5px/frame marquee over 400ms must stay hidden'
+)
+assert.strictEqual(placement.motionIsIdle(stillSamples.slice(0, 4), { now: 48 }), false)
+const jitterSamples = motionSeries(26, 16, (i) => ({
+  ...idleBase,
+  left: 0.25 * (i % 2)
+}))
+assert.strictEqual(placement.motionIsIdle(jitterSamples, { now: 400 }), true)
+const bounceSamples = motionSeries(26, 16, (i) => ({
+  ...idleBase,
+  left: i <= 12 ? i : 24 - i
+}))
+assert.strictEqual(
+  placement.motionIsIdle(bounceSamples, { now: 400 }),
+  false,
+  'back-and-forth travel over the window is still motion'
+)
+const clipViewport = { width: 1200, height: 800 }
+const fullClipRect = { left: 100, top: 100, right: 740, bottom: 460, width: 640, height: 360 }
+const topRightOnCard = { left: 100 + 640 - 10 - 32, top: 100 + 10 }
+assert.strictEqual(topRightOnCard.left, 698)
+assert.strictEqual(topRightOnCard.top, 110)
+assert.strictEqual(placement.buttonTargetVisible(fullClipRect, topRightOnCard, 32, clipViewport), true)
+const leftClippedRect = { left: -620, top: 100, right: 20, bottom: 460, width: 640, height: 360 }
+const leftClippedTopRight = { left: leftClippedRect.right - 10 - 32, top: leftClippedRect.top + 10 }
+assert.strictEqual(placement.buttonTargetVisible(leftClippedRect, leftClippedTopRight, 32, clipViewport), false)
+const aboveViewportRect = { left: 100, top: -400, right: 740, bottom: -40, width: 640, height: 360 }
+assert.strictEqual(placement.buttonTargetVisible(aboveViewportRect, { left: 698, top: -390 }, 32, clipViewport), false)
+assert.strictEqual(
+  placement.buttonTargetVisible(fullClipRect, { left: 698, top: fullClipRect.top - 80 }, 32, clipViewport),
+  false
+)
+const gutterViewport = { width: 2100, height: 986 }
+const gutterCard = { left: 1100, top: 420, right: 1380, bottom: 920, width: 280, height: 500 }
+const gutterBtn = placement.computeButtonPosition(gutterCard, 'topRight', 32, 10)
+assert.strictEqual(placement.buttonTargetVisible(gutterCard, gutterBtn, 32, gutterViewport), true)
+const carouselClip = { left: 400, top: 400, right: 1200, bottom: 940, width: 800, height: 540 }
+assert.strictEqual(
+  placement.buttonTargetVisible(gutterCard, gutterBtn, 32, gutterViewport, 2, carouselClip),
+  false,
+  'button in the page gutter must hide when the carousel overflow clip excludes it'
+)
+const onCarouselCard = { left: 500, top: 420, right: 780, bottom: 920, width: 280, height: 500 }
+const onCarouselBtn = placement.computeButtonPosition(onCarouselCard, 'topRight', 32, 10)
+assert.strictEqual(
+  placement.buttonTargetVisible(onCarouselCard, onCarouselBtn, 32, gutterViewport, 2, carouselClip),
+  true
+)
+const clipRoot = {
+  nodeName: 'DIV',
+  parentElement: { nodeName: 'HTML', parentElement: null }
+}
+const clippedVideo = { nodeName: 'VIDEO', parentElement: clipRoot }
+const walkedClip = placement.overflowClipRect(clippedVideo, gutterViewport, {
+  getComputedStyle: (node) => node === clipRoot
+    ? { overflowX: 'hidden', overflowY: 'hidden' }
+    : { overflowX: 'visible', overflowY: 'visible' },
+  getBoundingClientRect: (node) => node === clipRoot ? carouselClip : gutterCard
+})
+assert.strictEqual(walkedClip.left, 400)
+assert.strictEqual(walkedClip.top, 400)
+assert.strictEqual(walkedClip.right, 1200)
+assert.strictEqual(walkedClip.bottom, 940)
+assert.strictEqual(walkedClip.width, 800)
+assert.strictEqual(walkedClip.height, 540)
+assert.strictEqual(
+  placement.visibleIntersectionArea(gutterCard, gutterViewport, carouselClip),
+  100 * 500
+)
+const areaViewport = { width: 200, height: 200 }
+assert.strictEqual(
+  placement.visibleIntersectionArea(
+    { left: 0, top: 0, right: 100, bottom: 100, width: 100, height: 100 },
+    areaViewport
+  ),
+  10000
+)
+assert.strictEqual(
+  placement.visibleIntersectionArea(
+    { left: -50, top: 0, right: 50, bottom: 100, width: 100, height: 100 },
+    areaViewport
+  ),
+  5000
+)
+assert.strictEqual(
+  placement.visibleIntersectionArea(
+    { left: -200, top: 0, right: -100, bottom: 100, width: 100, height: 100 },
+    areaViewport
+  ),
+  0
+)
+const overlayBtn = { id: 'overlay-btn' }
+const overlayPanel = { id: 'overlay-panel', contains (node) { return node && node.parent === this } }
+const overlayBtnChild = { parent: overlayBtn }
+overlayBtn.contains = function contains (node) { return node === overlayBtnChild }
+assert.strictEqual(placement.isOverlayHoverRelated(overlayBtn, { btn: overlayBtn, panel: overlayPanel }), true)
+assert.strictEqual(placement.isOverlayHoverRelated(overlayBtnChild, { btn: overlayBtn, panel: overlayPanel }), true)
+assert.strictEqual(placement.isOverlayHoverRelated(overlayPanel, { btn: overlayBtn, panel: overlayPanel }), true)
+assert.strictEqual(placement.isOverlayHoverRelated({ parent: overlayPanel }, { btn: overlayBtn, panel: overlayPanel }), true)
+assert.strictEqual(placement.isOverlayHoverRelated(null, { btn: overlayBtn, panel: overlayPanel }), false)
+assert.strictEqual(placement.isOverlayHoverRelated({ id: 'other' }, { btn: overlayBtn, panel: overlayPanel }), false)
+assert.strictEqual(
+  placement.pickPrimaryOverlay({
+    videos: [
+      { id: 'large-clipped', area: 90000, targetVisible: false, hovered: false },
+      { id: 'small-visible', area: 40000, targetVisible: true, hovered: false },
+      { id: 'tiny-visible', area: 10000, targetVisible: true, hovered: false }
+    ]
+  }, 3),
+  'small-visible'
+)
+assert.strictEqual(
+  placement.pickPrimaryOverlay({
+    videos: [
+      { id: 'large', area: 90000, targetVisible: true, hovered: false },
+      { id: 'hovered', area: 10000, targetVisible: true, hovered: true },
+      { id: 'mid', area: 40000, targetVisible: true, hovered: false }
+    ]
+  }, 3),
+  'hovered'
+)
+assert.strictEqual(
+  placement.pickPrimaryOverlay({
+    videos: [
+      { id: 'hovered-clipped', area: 90000, targetVisible: false, hovered: true },
+      { id: 'next-visible', area: 40000, targetVisible: true, hovered: false },
+      { id: 'small', area: 10000, targetVisible: true, hovered: false }
+    ]
+  }, 3),
+  'next-visible'
+)
+assert.strictEqual(
+  placement.pickPrimaryOverlay({
+    videos: [
+      { id: 'a', area: 90, targetVisible: false, hovered: false },
+      { id: 'b', area: 80, targetVisible: false, hovered: false },
+      { id: 'c', area: 70, targetVisible: false, hovered: false }
+    ]
+  }, 3),
+  null
+)
+assert.strictEqual(
+  placement.pickPrimaryOverlay({
+    videos: [
+      { id: 'only-a', area: 100, targetVisible: true, hovered: false },
+      { id: 'only-b', area: 50, targetVisible: true, hovered: false }
+    ]
+  }, 3),
+  null
+)
 const policyContext = { globalThis: {}, Number }
 vm.runInNewContext(fs.readFileSync('extension/douyin-policy.js', 'utf8'), policyContext)
 const policy = policyContext.globalThis.VDownloadDouyinPolicy
@@ -186,7 +384,6 @@ assert.match(overlay, /function overlayButtonHost/)
 assert.match(overlayPlacement, /function overlayButtonHost/)
 assert.match(overlay, /PL\.overlayButtonHost/)
 assert.match(overlay, /PL\.pickLargestVisible/)
-assert.match(overlayPlacement, /nodeName === 'VIDEO'/)
 assert.match(overlay, /shouldReparentOverlayVideo/)
 assert.match(overlay, /shouldBootGenericOverlay/)
 assert.match(overlay, /if \(!primary\) return/)
@@ -208,10 +405,69 @@ assert.match(overlay, /IntersectionObserver\(\(entries\) => \{[\s\S]*?revealButt
 assert.match(overlay, /function showEligibleOverlays[\s\S]*?state\.revealButton\(\)/)
 assert.match(overlay, /revealButton,/)
 assert.match(overlay, /hideButton,/)
+assert.match(overlay, /function trackMotion\s*\(/)
+assert.match(overlay, /trackMotion,/)
+assert.match(overlay, /requestAnimationFrame\(/)
+assert.match(overlay, /cancelAnimationFrame\(/)
+assert.match(overlay, /visibilitychange/)
+assert.match(overlayPlacement, /function motionIsIdle/)
+assert.match(overlayPlacement, /function rectExtentDelta/)
+assert.match(overlayPlacement, /function pruneMotionSamples/)
+assert.match(
+  overlay,
+  /function revealButton\s*\(\) \{[\s\S]*?hoveredOverlayVideo[\s\S]*?motionIdle[\s\S]*?vdl-visible/,
+  'revealButton may show while moving only if hovered, otherwise requires motion idle'
+)
+assert.match(
+  overlay,
+  /function trackMotion\s*\(\) \{[\s\S]*?motionIsIdle[\s\S]*?revealButton/,
+  'trackMotion must classify idle from the motion window before reveal'
+)
+assert.doesNotMatch(
+  overlay,
+  /settleCount < 3/,
+  'frame-to-frame settleCount is too coarse for slow marquees'
+)
 assert.doesNotMatch(
   overlay,
   /classList\.add\('vdl-visible'\)\s*syncPosition\(\)/,
   'must position the overlay before making it visible'
+)
+assert.match(
+  overlay,
+  /function syncPosition\s*\(\) \{[\s\S]*?buttonTargetVisible[\s\S]*?setProperty\('--vdl-overlay-x'/,
+  'syncPosition must call buttonTargetVisible before writing --vdl-overlay-x'
+)
+assert.match(
+  overlay,
+  /function syncPosition\s*\(\) \{[\s\S]*?overlayClipRect\(video\)[\s\S]*?buttonTargetVisible/,
+  'syncPosition must clip the button target to ancestor overflow'
+)
+assert.match(overlayPlacement, /function overflowClipRect/)
+assert.match(overlay, /DENSE_OVERLAY_MIN = 3/)
+assert.match(overlay, /function primaryOverlayVideo/)
+assert.match(overlay, /function eligibleOverlayVideos/)
+assert.match(overlay, /function refreshDenseOverlays/)
+assert.match(overlay, /pickPrimaryOverlay/)
+assert.match(overlay, /isOverlayHoverRelated/)
+assert.match(
+  overlay,
+  /function revealButton\s*\(\) \{[\s\S]*?primaryOverlayVideo/,
+  'revealButton must consult primaryOverlayVideo'
+)
+assert.match(overlay, /addEventListener\('mouseenter'/)
+assert.match(overlay, /addEventListener\('mouseleave'/)
+assert.match(overlay, /btn\.addEventListener\('mouseenter'/)
+assert.match(overlay, /btn\.addEventListener\('mouseleave'/)
+assert.match(
+  overlay,
+  /const cleanup = \(\) => \{[\s\S]*?removeEventListener\('mouseenter'[\s\S]*?removeEventListener\('mouseleave'/,
+  'cleanup must remove mouseenter and mouseleave listeners'
+)
+assert.match(
+  overlay,
+  /const cleanup = \(\) => \{[\s\S]*?btn\.removeEventListener\('mouseenter'[\s\S]*?btn\.removeEventListener\('mouseleave'/,
+  'cleanup must remove overlay button hover listeners'
 )
 assert.match(overlay, /btn\.setAttribute\('aria-hidden', 'true'\)/)
 assert.match(
