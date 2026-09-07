@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { X, Loader2, Download, CheckSquare, Square } from 'lucide-react'
+import type { QueueNotice } from '@v-download/shared'
 import type { PlaylistEntryRow, PlaylistListResult, SettingsData } from '@/types'
 import { cn } from '@/lib/cn'
 import { HoverHintWrap } from './HoverHintWrap'
@@ -15,9 +16,10 @@ export interface CollectionPickerDialogProps {
   sourceUrl: string
   settings: SettingsData
   onClose: () => void
+  onQueued?: (payload: { skipped?: number; notice?: QueueNotice; ids?: string[] }) => void
 }
 
-export function CollectionPickerDialog({ sourceUrl, settings, onClose }: CollectionPickerDialogProps) {
+export function CollectionPickerDialog({ sourceUrl, settings, onClose, onQueued }: CollectionPickerDialogProps) {
   const [list, setList] = useState<PlaylistListResult | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
@@ -131,6 +133,7 @@ export function CollectionPickerDialog({ sourceUrl, settings, onClose }: Collect
         setError(res.error)
         return
       }
+      onQueued?.({ skipped: res.data?.skipped, notice: res.data?.notice, ids: res.data?.ids })
       onClose()
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))

@@ -33,7 +33,26 @@ const EPHEMERAL = /^(token|auth|authorization|signature|sig|expires|expire|expir
 const AD_PATH = /(^|[./_-])(ads?|advert|advertising|vast|preroll|midroll|postroll|ima|sponsor)([./_-]|$)/i
 const AD_HOST = /(^|\.)(doubleclick\.|googleadservices\.|googlesyndication\.|adservice\.|adsrvr\.|adnxs\.|exoclick\.|exdynsrv\.|trafficjunky\.|tsyndicate\.|juicyads\.|popads\.|adsterra\.|pubmatic\.|openx\.|criteo\.)/i
 const PAGE_PATH_SKIP = new Set(['videos', 'video', 'watch', 'v', 'embed', 'player', 'hls', 'mp4', 'media'])
-const REUSABLE_STATUS = new Set(['queued', 'downloading', 'paused', 'interrupted', 'complete', 'ready', 'resolving'])
+const ADMISSION_STATUS = new Set(['queued', 'downloading', 'paused', 'interrupted', 'complete', 'ready', 'resolving', 'error', 'cancelled'])
+const YOUTUBE_VIDEO_ID = /^[A-Za-z0-9_-]{11}$/
+const YOUTUBE_ID_PATHS = new Set(['shorts', 'embed', 'live', 'v'])
+
+export type QueueAdmissionAction = 'create' | 'focus' | 'requeue' | 'retry'
+export type QueueNoticeAction = 'reveal' | 'download-again' | 'retry' | 'select-format'
+export type QueueNoticeTone = 'neutral' | 'success' | 'warning' | 'error'
+
+export interface QueueNotice {
+  tone: QueueNoticeTone
+  message: string
+  actions: QueueNoticeAction[]
+}
+
+export interface QueueAdmissionDecision {
+  action: QueueAdmissionAction
+  notice?: QueueNotice
+}
+
+export type QueueAdmissionOutcome = 'created' | 'focused' | 'requeued' | 'retried'
 
 function pathText(url: string): string {
   try { return new URL(url).pathname.toLowerCase() } catch { return String(url || '').toLowerCase() }
@@ -89,15 +108,133 @@ export function hintDirectMediaUrl(url: string, mediaType?: string): string {
   return url
 }
 
-export function findReusableDownload<T extends { url: string; status: string }>(
+function isYoutubeHost(host: string): boolean {
+  const normalized = host.replace(/^www\./, '').toLowerCase()
+  return normalized === 'youtube.com'
+    || normalized === 'youtu.be'
+    || normalized === 'm.youtube.com'
+    || normalized === 'music.youtube.com'
+    || normalized.endsWith('.youtube.com')
+}
+
+export function youtubeVideoIdFromUrl(url: string): string | null {
+  let parsed: URL
+  try {
+    parsed = new URL(url)
+  } catch {
+    return null
+  }
+  if (!isYoutubeHost(parsed.hostname)) return null
+  const path = parsed.pathname.replace(/\/+$/, '') || '/'
+  if (path === '/playlist' || path.startsWith('/playlist/')) return null
+  if (/^\/(@|channel\/|c\/|user\/)/i.test(path) && !parsed.searchParams.get('v')) return null
+
+  const host = parsed.hostname.replace(/^www\./, '').toLowerCase()
+  if (host === 'youtu.be') {
+    const id = path.split('/').filter(Boolean)[0]
+    return id && YOUTUBE_VIDEO_ID.test(id) ? id : null
+  }
+
+  const queryId = parsed.searchParams.get('v')
+  if (queryId && YOUTUBE_VIDEO_ID.test(queryId)) return queryId
+
+  const parts = path.split('/').filter(Boolean)
+  if (parts.length >= 2 && YOUTUBE_ID_PATHS.has(parts[0].toLowerCase()) && YOUTUBE_VIDEO_ID.test(parts[1])) {
+    return parts[1]
+  }
+  return null
+}
+
+export function queueIdentityKey(url: string): string {
+  const youtubeId = youtubeVideoIdFromUrl(url)
+  if (youtubeId) return `youtube:${youtubeId}`
+  return stableMediaUrl(url)
+}
+
+export function findReusableDownload<T extends { url: string; status: string; created_at?: string }>(
   rows: T[],
   url: string
 ): T | undefined {
-  const key = stableMediaUrl(url)
+  const key = queueIdentityKey(url)
   if (!key) return undefined
-  return (Array.isArray(rows) ? rows : []).find((row) => (
-    row && REUSABLE_STATUS.has(String(row.status)) && stableMediaUrl(row.url) === key
+  const matches = (Array.isArray(rows) ? rows : []).filter((row) => (
+    row && ADMISSION_STATUS.has(String(row.status)) && queueIdentityKey(row.url) === key
   ))
+  if (!matches.length) return undefined
+  return matches.slice().sort((left, right) => {
+    const leftTime = Date.parse(left.created_at || '') || 0
+    const rightTime = Date.parse(right.created_at || '') || 0
+    return rightTime - leftTime
+  })[0]
+}
+
+export function decideQueueAdmission(input: {
+  forceNew?: boolean
+  existing?: { status: string; file_path?: string | null }
+  filePresent?: boolean
+}): QueueAdmissionDecision {
+  if (input.forceNew || !input.existing) return { action: 'create' }
+  const status = String(input.existing.status)
+
+  if (status === 'error' || status === 'cancelled') {
+    return {
+      action: 'retry',
+      notice: { tone: 'neutral', message: 'Retrying that download.', actions: ['retry'] }
+    }
+  }
+
+  if (status === 'complete') {
+    if (input.filePresent !== true) {
+      return {
+        action: 'requeue',
+        notice: {
+          tone: 'warning',
+          message: 'The file is gone — downloading again.',
+          actions: []
+        }
+      }
+    }
+    return {
+      action: 'focus',
+      notice: {
+        tone: 'neutral',
+        message: 'Already downloaded.',
+        actions: ['reveal', 'download-again']
+      }
+    }
+  }
+
+  if (status === 'ready') {
+    return {
+      action: 'focus',
+      notice: {
+        tone: 'neutral',
+        message: 'Choose a format to continue.',
+        actions: ['select-format']
+      }
+    }
+  }
+
+  if (status === 'resolving') {
+    return {
+      action: 'focus',
+      notice: { tone: 'neutral', message: 'Already resolving.', actions: [] }
+    }
+  }
+
+  return {
+    action: 'focus',
+    notice: { tone: 'neutral', message: 'Already in your queue.', actions: [] }
+  }
+}
+
+export function bulkQueueNotice(skipped: number): QueueNotice | undefined {
+  if (skipped <= 0) return undefined
+  return {
+    tone: 'neutral',
+    message: skipped === 1 ? '1 already in your queue.' : `${skipped} already in your queue.`,
+    actions: []
+  }
 }
 
 export function shouldRedownloadExisting(

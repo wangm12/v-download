@@ -2,7 +2,8 @@ import assert from 'node:assert/strict'
 import {
   compareEngineVersions,
   parseAssetDigest,
-  resolveEngineUpdateState
+  resolveEngineUpdateState,
+  selectPreferredEnginePath
 } from '../src/main/engineManagerModel'
 
 assert.equal(compareEngineVersions('2026.07.04', '2026.08.01') < 0, true)
@@ -17,6 +18,51 @@ assert.deepEqual(
 assert.deepEqual(
   resolveEngineUpdateState({ currentVersion: '2026.08.01', latestVersion: '2026.07.04' }),
   { state: 'current', version: '2026.08.01' }
+)
+
+assert.equal(
+  selectPreferredEnginePath({
+    requestedPath: '/opt/homebrew/bin/yt-dlp',
+    requestedExists: true,
+    requestedVersion: '2026.04.07.233742',
+    bundledPath: '/app/resources/engines/darwin-arm64/yt-dlp',
+    bundledExists: true,
+    bundledVersion: '2026.07.04'
+  }),
+  '/app/resources/engines/darwin-arm64/yt-dlp'
+)
+assert.equal(
+  selectPreferredEnginePath({
+    requestedPath: '/user/engines/yt-dlp',
+    requestedExists: true,
+    requestedVersion: '2026.08.19',
+    bundledPath: '/app/resources/engines/darwin-arm64/yt-dlp',
+    bundledExists: true,
+    bundledVersion: '2026.07.04'
+  }),
+  '/user/engines/yt-dlp'
+)
+assert.equal(
+  selectPreferredEnginePath({
+    requestedPath: '/opt/homebrew/bin/yt-dlp',
+    requestedExists: true,
+    requestedVersion: null,
+    bundledPath: '/app/resources/engines/darwin-arm64/yt-dlp',
+    bundledExists: true,
+    bundledVersion: '2026.07.04'
+  }),
+  '/app/resources/engines/darwin-arm64/yt-dlp'
+)
+assert.equal(
+  selectPreferredEnginePath({
+    requestedPath: '/opt/homebrew/bin/yt-dlp',
+    requestedExists: true,
+    requestedVersion: '2026.04.07',
+    bundledPath: '/missing/yt-dlp',
+    bundledExists: false,
+    bundledVersion: null
+  }),
+  '/opt/homebrew/bin/yt-dlp'
 )
 
 console.log('engine manager model tests passed')

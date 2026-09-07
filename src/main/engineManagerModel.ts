@@ -30,6 +30,27 @@ export function parseAssetDigest(value: unknown): string | null {
   return match ? match[1]!.toLowerCase() : null
 }
 
+export function selectPreferredEnginePath(input: {
+  requestedPath?: string
+  requestedExists: boolean
+  requestedVersion?: string | null
+  bundledPath?: string
+  bundledExists: boolean
+  bundledVersion?: string | null
+}): string {
+  const requested = input.requestedExists ? (input.requestedPath || '') : ''
+  const bundled = input.bundledExists ? (input.bundledPath || '') : ''
+  if (requested && bundled && requested !== bundled) {
+    const requestedVersion = input.requestedVersion?.trim() || ''
+    const bundledVersion = input.bundledVersion?.trim() || ''
+    if (bundledVersion && (!requestedVersion || compareEngineVersions(requestedVersion, bundledVersion) < 0)) {
+      return bundled
+    }
+    return requested
+  }
+  return requested || bundled || ''
+}
+
 export function resolveEngineUpdateState(input: {
   currentVersion: string
   latestVersion?: string | null

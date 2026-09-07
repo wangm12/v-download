@@ -70,4 +70,15 @@ export interface StartDownloadOptions {
   referer?: string
   customHeaders?: Record<string, string>
   candidates?: MediaCandidate[]
+  forceNew?: boolean
+}
+
+export type QueueAdmissionOutcome = 'created' | 'focused' | 'requeued' | 'retried'
+export type QueueNoticeAction = 'reveal' | 'download-again' | 'retry' | 'select-format'
+export type QueueNoticeTone = 'neutral' | 'success' | 'warning' | 'error'
+
+export interface QueueNotice {
+  tone: QueueNoticeTone
+  message: string
+  actions: QueueNoticeAction[]
 }

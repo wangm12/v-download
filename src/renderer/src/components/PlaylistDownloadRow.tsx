@@ -7,7 +7,8 @@ import {
   Play,
   RotateCcw,
   Timer,
-  Trash2
+  Trash2,
+  Download as DownloadAgainIcon
 } from 'lucide-react'
 import type { Download } from '@/types'
 import { useDownloadActions } from '@/contexts/DownloadActionsContext'
@@ -125,13 +126,21 @@ export const PlaylistDownloadRow = memo(function PlaylistDownloadRow({
             />
           </>
         )}
-        {d.status === 'complete' && d.file_path && (
+        {d.status === 'complete' && (
           <>
+            {d.file_path && (
+              <ActionButton
+                icon={FolderOpen}
+                title={folderActionLabel}
+                size="sm"
+                onClick={() => actions.openFolder(d.file_path!)}
+              />
+            )}
             <ActionButton
-              icon={FolderOpen}
-              title={folderActionLabel}
+              icon={DownloadAgainIcon}
+              title="Download again"
               size="sm"
-              onClick={() => actions.openFolder(d.file_path!)}
+              onClick={() => actions.downloadAgain(d)}
             />
             <ActionButton icon={Trash2} title="Remove" size="sm" onClick={() => actions.remove(d.id)} />
           </>

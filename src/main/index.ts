@@ -6,6 +6,7 @@ import * as downloadManager from './downloadManager'
 import { initializeInfoResolutionManager } from './infoResolutionManager'
 import * as dockProgress from './dockProgress'
 import { initializePoTokenServer, stopPoTokenServer } from './poTokenServer'
+import { reconcileYtdlpPathSetting } from './ytdlp'
 import { startLocalServer, stopLocalServer, setDownloadHandler, setMediaDownloadHandler, DownloadRequest, DownloadDispatchResult, LOCAL_SERVER_PORT } from './localServer'
 import { stopRemoteApiServer, syncRemoteApiServer } from './remoteApiServer'
 import { attachRemoteJobListener, configureRemoteJobStore } from './remoteJobService'
@@ -247,13 +248,14 @@ app.whenReady().then(() => {
 
   database.initDB()
   initializeNativeAuth()
+  reconcileYtdlpPathSetting()
   downloadManager.loadFromDbAndRecover()
   initializeInfoResolutionManager()
   initializePoTokenServer()
   setDownloadHandler((request) => handleDownloadRequest(request))
   setMediaDownloadHandler((request) => {
     const quality = settings.get('defaultVideoQuality')
-    downloadManager.addTask({
+    const admitted = downloadManager.addTaskAdmitted({
       url: request.url,
       title: request.title || 'download',
       format: 'video',
@@ -262,6 +264,7 @@ app.whenReady().then(() => {
       referer: request.referer,
       customHeaders: request.headers
     })
+    downloadManager.emitQueueAdmission(admitted)
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.show()
       mainWindow.focus()

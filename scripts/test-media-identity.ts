@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict'
 import {
+  bulkQueueNotice,
   classifyMediaRole,
+  decideQueueAdmission,
   displayTitleFor,
   findReusableDownload,
   hintDirectMediaUrl,
   pickRefreshedSniffedCandidate,
+  queueIdentityKey,
   selectDefaultMedia,
   selectSmartOverlayMedia,
   shouldRedownloadExisting,
@@ -117,10 +120,70 @@ assert.equal(
   stableMediaUrl('https://video.sacd.example/hls/mide-725/index.m3u8?token=old'),
   stableMediaUrl('https://video.sacd.example/hls/mide-725/index.m3u8?token=new')
 )
+assert.equal(
+  queueIdentityKey('https://youtu.be/5fyy9t7v304'),
+  queueIdentityKey('https://www.youtube.com/watch?v=5fyy9t7v304&si=abc')
+)
+assert.equal(queueIdentityKey('https://www.youtube.com/watch?v=5fyy9t7v304'), 'youtube:5fyy9t7v304')
+assert.equal(queueIdentityKey('https://www.youtube.com/shorts/5fyy9t7v304'), 'youtube:5fyy9t7v304')
+assert.equal(queueIdentityKey('https://music.youtube.com/watch?v=5fyy9t7v304'), 'youtube:5fyy9t7v304')
+assert.notEqual(
+  queueIdentityKey('https://www.youtube.com/playlist?list=PLtest'),
+  queueIdentityKey('https://www.youtube.com/watch?v=5fyy9t7v304&list=PLtest')
+)
+assert.equal(
+  queueIdentityKey('https://video.sacd.example/hls/mide-725/index.m3u8?token=old'),
+  queueIdentityKey('https://video.sacd.example/hls/mide-725/index.m3u8?token=new')
+)
+
 const reused = findReusableDownload([
   { url: 'https://video.sacd.example/hls/mide-725/index.m3u8?token=old', status: 'complete' }
 ], 'https://video.sacd.example/hls/mide-725/index.m3u8?token=new')
 assert.equal(reused?.status, 'complete')
+assert.equal(
+  findReusableDownload([
+    { url: 'https://youtu.be/5fyy9t7v304', status: 'complete' }
+  ], 'https://www.youtube.com/watch?v=5fyy9t7v304')?.status,
+  'complete'
+)
+assert.equal(
+  findReusableDownload([
+    { url: 'https://www.youtube.com/watch?v=5fyy9t7v304', status: 'error' }
+  ], 'https://youtu.be/5fyy9t7v304')?.status,
+  'error'
+)
+const newest = findReusableDownload([
+  { url: 'https://youtu.be/5fyy9t7v304', status: 'complete', created_at: '2026-01-01T00:00:00.000Z' },
+  { url: 'https://www.youtube.com/watch?v=5fyy9t7v304', status: 'complete', created_at: '2026-09-01T00:00:00.000Z' }
+], 'https://youtu.be/5fyy9t7v304')
+assert.equal(newest?.created_at, '2026-09-01T00:00:00.000Z')
+
+assert.equal(decideQueueAdmission({ forceNew: true }).action, 'create')
+assert.equal(decideQueueAdmission({}).action, 'create')
+assert.equal(decideQueueAdmission({ existing: { status: 'resolving' } }).action, 'focus')
+assert.equal(decideQueueAdmission({ existing: { status: 'ready' } }).notice?.actions.includes('select-format'), true)
+assert.equal(decideQueueAdmission({ existing: { status: 'downloading' } }).action, 'focus')
+assert.equal(decideQueueAdmission({ existing: { status: 'queued' } }).notice?.message, 'Already in your queue.')
+assert.deepEqual(
+  decideQueueAdmission({ existing: { status: 'complete', file_path: '/tmp/keep.mp4' }, filePresent: true }),
+  {
+    action: 'focus',
+    notice: {
+      tone: 'neutral',
+      message: 'Already downloaded.',
+      actions: ['reveal', 'download-again']
+    }
+  }
+)
+assert.equal(
+  decideQueueAdmission({ existing: { status: 'complete', file_path: '/tmp/gone.mp4' }, filePresent: false }).action,
+  'requeue'
+)
+assert.equal(decideQueueAdmission({ existing: { status: 'error' } }).action, 'retry')
+assert.equal(decideQueueAdmission({ existing: { status: 'cancelled' } }).action, 'retry')
+assert.equal(bulkQueueNotice(0), undefined)
+assert.equal(bulkQueueNotice(1)?.message, '1 already in your queue.')
+assert.equal(bulkQueueNotice(3)?.message, '3 already in your queue.')
 assert.equal(
   shouldRedownloadExisting({ status: 'complete', file_path: '/tmp/gone.mp4' }, () => false),
   true,

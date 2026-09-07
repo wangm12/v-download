@@ -44,20 +44,59 @@ export function registerDownloadHandlers(): void {
     metadata?: Record<string, unknown>
     referer?: string
     customHeaders?: Record<string, string>
+    forceNew?: boolean
   }) => {
     try {
       if (!options || typeof options.url !== 'string' || !ytdlp.isValidDownloadUrl(options.url)) {
         return { error: 'Invalid URL' }
       }
-      const task = downloadManager.createInfoResolveTask(options)
-      infoResolutionManager.enqueueInfoResolve(task.id)
-      return { data: task }
+      const admitted = downloadManager.createInfoResolveTask(options)
+      let task = admitted.task
+      if (admitted.outcome === 'created') {
+        infoResolutionManager.enqueueInfoResolve(task.id)
+      } else if (
+        admitted.outcome === 'focused'
+        && task.status === 'ready'
+        && !infoResolutionManager.hasReadyResult(task.id)
+      ) {
+        const resolving = downloadManager.markInfoResolveResolving(task.id)
+        if (resolving) {
+          task = resolving
+          infoResolutionManager.enqueueInfoResolve(task.id)
+          return {
+            data: task,
+            outcome: admitted.outcome,
+            notice: { tone: 'neutral', message: 'Already resolving.', actions: [] }
+          }
+        }
+      }
+      return { data: task, outcome: admitted.outcome, notice: admitted.notice }
     } catch (err) {
       return { error: err instanceof Error ? err.message : String(err) }
     }
   })
 
   ipcMain.handle('get-info-resolve-results', async () => ({ data: infoResolutionManager.getPendingInfoResolveResults() }))
+
+  ipcMain.handle('download-again', async (_event, id: string) => {
+    try {
+      if (typeof id !== 'string' || !id.trim()) return { error: 'Invalid download id' }
+      const result = downloadManager.downloadAgainFromId(id.trim())
+      if ('error' in result) return { error: result.error }
+      if (result.outcome === 'created' && downloadManager.isInfoResolveTask(result.task.id)) {
+        infoResolutionManager.enqueueInfoResolve(result.task.id)
+      }
+      return { data: result.task, outcome: result.outcome, notice: result.notice }
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : String(err) }
+    }
+  })
+
+  ipcMain.handle('ensure-info-resolve-ready', async (_event, id: string) => {
+    if (typeof id !== 'string' || !id.trim()) return { ok: false, error: 'Invalid resolver task' }
+    const ok = infoResolutionManager.ensureInfoResolveReady(id.trim())
+    return ok ? { ok: true } : { ok: false, error: 'Resolver task is no longer available' }
+  })
 
   ipcMain.handle('promote-info-resolve', async (_event, payload: {
     id: string
@@ -157,6 +196,7 @@ export function registerDownloadHandlers(): void {
     referer?: string
     customHeaders?: Record<string, string>
     candidates?: Array<Record<string, unknown>>
+    forceNew?: boolean
   }) => {
     try {
       if (!options || typeof options.url !== 'string' || !ytdlp.isValidDownloadUrl(options.url)) {
@@ -164,8 +204,15 @@ export function registerDownloadHandlers(): void {
       }
       const candidates = resolveMediaCandidates((options.candidates || []).filter((c) => typeof c?.url === 'string') as Array<{ url: string } & Record<string, unknown>>)
       const selected = candidates[0]
-      const task = downloadManager.addTask({ ...options, mediaType: options.mediaType || (selected ? mediaTypeForCandidate(selected) : undefined), metadata: { ...(options.metadata || {}), ...(selected ? { candidate: { url: selected.url, formatId: selected.formatId, container: selected.container, protocol: selected.protocol, mimeType: selected.mimeType } } : {}) } })
-      return { data: task }
+      const admitted = downloadManager.addTaskAdmitted({
+        ...options,
+        mediaType: options.mediaType || (selected ? mediaTypeForCandidate(selected) : undefined),
+        metadata: {
+          ...(options.metadata || {}),
+          ...(selected ? { candidate: { url: selected.url, formatId: selected.formatId, container: selected.container, protocol: selected.protocol, mimeType: selected.mimeType } } : {})
+        }
+      })
+      return { data: admitted.task, outcome: admitted.outcome, notice: admitted.notice }
     } catch (err) {
       return { error: err instanceof Error ? err.message : String(err) }
     }
@@ -308,8 +355,8 @@ export function registerDownloadHandlers(): void {
           return { error: 'No tasks' }
         }
 
-        const { count, ids } = downloadManager.addTasksBulk(normalized)
-        return { data: { count, ids } }
+        const { count, ids, skipped, notice } = downloadManager.addTasksBulk(normalized)
+        return { data: { count, ids, skipped, notice } }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
         return { error: msg }

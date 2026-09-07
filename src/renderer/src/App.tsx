@@ -116,6 +116,9 @@ function MainApp() {
   const { settings, loadSettings } = useSettings()
   const {
     errorMsg,
+    queueNotice,
+    focusTaskId,
+    focusNonce,
     showFormatDialog,
     showDouyinProfilePicker,
     douyinProfileUrl,
@@ -128,6 +131,9 @@ function MainApp() {
     queueCount,
     handlePaste,
     handleExternalUrl,
+    downloadAgain,
+    applyBulkNotice,
+    clearQueueNotice,
     clearPending,
     clearQueue,
     selectReadyResolve,
@@ -676,6 +682,24 @@ function MainApp() {
   const rawTotalSpeed = totalSpeedBytes > 0 ? formatSpeed(totalSpeedBytes) : null
   const totalSpeed = useThrottledValue(rawTotalSpeed, 2000)
 
+  const groupedRef = useRef(grouped)
+  groupedRef.current = grouped
+  useEffect(() => {
+    if (!focusTaskId) return
+    const playlist = groupedRef.current.find((item) => (
+      'downloads' in item && item.downloads?.some((download) => download.id === focusTaskId)
+    ))
+    if (playlist && 'downloads' in playlist) {
+      setPlaylistViewStates((previous) => ({
+        ...previous,
+        [playlist.id]: { expanded: true, showAll: true }
+      }))
+    }
+    setSelectedIds(new Set([focusTaskId]))
+    setSelectionAnchorId(focusTaskId)
+    setFocusedId(focusTaskId)
+  }, [focusTaskId, focusNonce])
+
   const onDropUrl = useCallback(
     (url: string) => {
       void handleExternalUrl(url)
@@ -692,6 +716,7 @@ function MainApp() {
       removeDownload={removeDownload}
       removeDownloads={removeDownloads}
       updateDownload={updateDownload}
+      downloadAgain={downloadAgain}
     >
       <div className="flex h-screen min-h-0 min-w-0 w-full flex-col bg-background text-foreground">
         <TitleBar
@@ -782,6 +807,46 @@ function MainApp() {
                 />
 
                 <main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+                  {queueNotice && (
+                    <StatusBlock
+                      tone={queueNotice.tone}
+                      role="status"
+                      className="shrink-0 rounded-none border-b border-divider-subtle px-4 py-2 text-xs"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="min-w-0 flex-1">{queueNotice.message}</span>
+                        {queueNotice.actions.includes('reveal') && queueNotice.filePath ? (
+                          <button
+                            type="button"
+                            className="shrink-0 font-medium text-foreground underline underline-offset-2"
+                            onClick={() => void window.api?.openFileLocation(queueNotice.filePath!)}
+                          >
+                            Show in folder
+                          </button>
+                        ) : null}
+                        {queueNotice.actions.includes('download-again') && queueNotice.taskId ? (
+                          <button
+                            type="button"
+                            className="shrink-0 font-medium text-foreground underline underline-offset-2"
+                            onClick={() => {
+                              const row = downloads.find((item) => item.id === queueNotice.taskId)
+                              if (row) void downloadAgain(row)
+                            }}
+                          >
+                            Download again
+                          </button>
+                        ) : null}
+                        <button
+                          type="button"
+                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
+                          onClick={clearQueueNotice}
+                          aria-label="Dismiss"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </StatusBlock>
+                  )}
                   {errorMsg && (
                     <StatusBlock tone="error" className="shrink-0 rounded-none border-b border-divider-subtle px-4 py-2 text-xs">
                       {errorMsg}
@@ -833,6 +898,8 @@ function MainApp() {
                       onSelectPlaylist={selectPlaylist}
                       playlistViewStates={playlistViewStates}
                       onPlaylistViewStateChange={handlePlaylistViewStateChange}
+                      scrollToId={focusTaskId}
+                      scrollNonce={focusNonce}
                     />
                   )}
                 </main>
@@ -868,6 +935,7 @@ function MainApp() {
             profileUrl={douyinProfileUrl}
             settings={settings}
             onClose={closeDouyinProfilePicker}
+            onQueued={({ notice, ids }) => applyBulkNotice(notice, ids?.[0])}
           />
         ) : null}
 
@@ -876,6 +944,7 @@ function MainApp() {
             sourceUrl={collectionPickerUrl}
             settings={settings}
             onClose={closeCollectionPicker}
+            onQueued={({ notice, ids }) => applyBulkNotice(notice, ids?.[0])}
           />
         ) : null}
 

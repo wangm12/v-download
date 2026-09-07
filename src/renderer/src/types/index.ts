@@ -224,4 +224,5 @@ export interface DownloadActions {
   removeManyWithFiles: (ids: string[]) => void
   openFolder: (path: string) => void
   openFile: (path: string) => void
+  downloadAgain: (download: Download) => void
 }

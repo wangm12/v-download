@@ -7,6 +7,7 @@ import { promisify } from 'node:util'
 import { pipeline } from 'node:stream/promises'
 import * as settings from './settings'
 import { compareEngineVersions, parseAssetDigest, resolveEngineUpdateState, type EngineUpdateResult } from './engineManagerModel'
+import { getYtdlpPath } from './ytdlp'
 
 const execFileAsync = promisify(execFile)
 const ENGINE_UPDATE_MANIFEST_ENV = 'VDOWNLOAD_ENGINE_UPDATE_MANIFEST_URL'
@@ -62,7 +63,8 @@ async function readBundledManifest(): Promise<Record<string, any>> {
 }
 
 function currentEnginePath(name: EngineName): string {
-  return settings.get(name === 'yt-dlp' ? 'ytdlpPath' : 'ffmpegPath')
+  if (name === 'yt-dlp') return getYtdlpPath(settings.get('ytdlpPath'))
+  return settings.get('ffmpegPath')
 }
 
 function bundledEnginePath(name: EngineName): string {

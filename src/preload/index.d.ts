@@ -1,5 +1,5 @@
-import type { AppResult, MediaCandidate, StartDownloadOptions } from '@v-download/shared'
-export type { AppResult, MediaCandidate, StartDownloadOptions } from '@v-download/shared'
+import type { AppResult, MediaCandidate, QueueAdmissionOutcome, QueueNotice, StartDownloadOptions } from '@v-download/shared'
+export type { AppResult, MediaCandidate, QueueAdmissionOutcome, QueueNotice, StartDownloadOptions } from '@v-download/shared'
 
 export interface InfoResolveEvent {
   id: string
@@ -68,8 +68,11 @@ export interface WindowApi {
     metadata?: Record<string, unknown>
     referer?: string
     customHeaders?: Record<string, string>
-  }) => Promise<{ data?: unknown; error?: string }>
+    forceNew?: boolean
+  }) => Promise<{ data?: unknown; error?: string; outcome?: QueueAdmissionOutcome; notice?: QueueNotice }>
   getInfoResolveResults: () => Promise<{ data?: InfoResolveEvent[]; error?: string }>
+  downloadAgain: (id: string) => Promise<{ data?: unknown; error?: string; outcome?: QueueAdmissionOutcome; notice?: QueueNotice }>
+  ensureInfoResolveReady: (id: string) => Promise<{ ok: boolean; error?: string }>
   promoteInfoResolve: (options: {
     id: string
     url?: string
@@ -88,7 +91,7 @@ export interface WindowApi {
   getEntryThumbnail: (pageUrl: string) => Promise<{ data?: string; error?: string }>
   openExternalUrl: (url: string) => Promise<{ ok?: boolean; error?: string }>
   fetchThumbnailDataUrl: (url: string, referer?: string) => Promise<{ data?: string; error?: string }>
-  startDownload: (options: StartDownloadOptions) => Promise<{ data?: unknown; error?: string }>
+  startDownload: (options: StartDownloadOptions) => Promise<{ data?: unknown; error?: string; outcome?: QueueAdmissionOutcome; notice?: QueueNotice }>
   cancelDownload: (id: string) => Promise<{ cancelled: boolean }>
   pauseDownload: (id: string) => Promise<{ paused: boolean }>
   deleteTask: (id: string) => Promise<{ ok: boolean }>
@@ -122,6 +125,7 @@ export interface WindowApi {
   onDownloadProgress: (callback: (data: Record<string, unknown>) => void) => () => void
   onTranscodeProgress: (callback: (data: TranscodeProgressEvent) => void) => () => void
   onNewDownload: (callback: (data: Record<string, unknown>) => void) => () => void
+  onQueueAdmission: (callback: (data: { data?: unknown; outcome?: QueueAdmissionOutcome; notice?: QueueNotice }) => void) => () => void
   onInfoResolveResult: (callback: (data: InfoResolveEvent) => void) => () => void
   onYtdlUrl: (callback: (url: string) => void) => () => void
   onSettingsChanged: (callback: () => void) => () => void
@@ -187,7 +191,7 @@ export interface WindowApi {
       playlistIndex?: number
       playlistTitle?: string
     }>
-  ) => Promise<{ data?: { count: number; ids: string[] }; error?: string }>
+  ) => Promise<{ data?: { count: number; ids: string[]; skipped?: number; notice?: QueueNotice }; error?: string }>
   startDouyinBulk?: (url: string) => Promise<{ data?: { id: string }; error?: string }>
   getDouyinBulkStatus?: (id: string) => Promise<{ data?: DouyinBulkJobStatus; error?: string }>
   cancelDouyinBulk?: (id: string) => Promise<{ ok: boolean; error?: string }>

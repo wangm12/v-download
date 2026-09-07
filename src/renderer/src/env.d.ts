@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import type { StartDownloadOptions } from '@v-download/shared'
+import type { QueueAdmissionOutcome, QueueNotice, StartDownloadOptions } from '@v-download/shared'
 import type { EngineStatus, NativeAuthAccountStatus, NativeAuthEvent } from '@/types'
 
 type TranscodePresetId = 'mp3' | 'aac' | 'opus' | 'flac' | 'wav' | 'mp4' | 'h265' | 'vp9'
@@ -23,8 +23,11 @@ interface WindowApi {
     metadata?: Record<string, unknown>
     referer?: string
     customHeaders?: Record<string, string>
-  }) => Promise<{ data?: unknown; error?: string }>
+    forceNew?: boolean
+  }) => Promise<{ data?: unknown; error?: string; outcome?: QueueAdmissionOutcome; notice?: QueueNotice }>
   getInfoResolveResults: () => Promise<{ data?: Array<{ id: string; url: string; autoStart: boolean; format?: string; quality?: string; requestedTitle?: string; data?: unknown; error?: string }>; error?: string }>
+  downloadAgain: (id: string) => Promise<{ data?: unknown; error?: string; outcome?: QueueAdmissionOutcome; notice?: QueueNotice }>
+  ensureInfoResolveReady: (id: string) => Promise<{ ok: boolean; error?: string }>
   promoteInfoResolve: (options: {
     id: string
     url?: string
@@ -43,7 +46,7 @@ interface WindowApi {
   getEntryThumbnail: (pageUrl: string) => Promise<{ data?: string; error?: string }>
   openExternalUrl: (url: string) => Promise<{ ok?: boolean; error?: string }>
   fetchThumbnailDataUrl: (url: string, referer?: string) => Promise<{ data?: string; error?: string }>
-  startDownload: (options: StartDownloadOptions) => Promise<{ data?: unknown; error?: string }>
+  startDownload: (options: StartDownloadOptions) => Promise<{ data?: unknown; error?: string; outcome?: QueueAdmissionOutcome; notice?: QueueNotice }>
   cancelDownload: (id: string) => Promise<{ cancelled: boolean }>
   pauseDownload: (id: string) => Promise<{ paused: boolean }>
   deleteTask: (id: string) => Promise<{ ok: boolean }>
@@ -77,6 +80,7 @@ interface WindowApi {
   onDownloadProgress: (callback: (data: Record<string, unknown>) => void) => () => void
   onTranscodeProgress: (callback: (data: TranscodeProgressEvent) => void) => () => void
   onNewDownload: (callback: (data: Record<string, unknown>) => void) => () => void
+  onQueueAdmission: (callback: (data: { data?: unknown; outcome?: QueueAdmissionOutcome; notice?: QueueNotice }) => void) => () => void
   onInfoResolveResult: (callback: (data: { id: string; url: string; autoStart: boolean; format?: string; quality?: string; requestedTitle?: string; data?: unknown; error?: string }) => void) => () => void
   onYtdlUrl: (callback: (url: string) => void) => () => void
   onSettingsChanged: (callback: () => void) => () => void
@@ -134,7 +138,7 @@ interface WindowApi {
       playlistIndex?: number
       playlistTitle?: string
     }>
-  ) => Promise<{ data?: { count: number; ids: string[] }; error?: string }>
+  ) => Promise<{ data?: { count: number; ids: string[]; skipped?: number; notice?: QueueNotice }; error?: string }>
   setNativeThemeSource?: (source: 'dark' | 'light' | 'system') => Promise<{ ok: boolean; error?: string }>
   getAppVersion?: () => Promise<string>
   getEngineStatus?: () => Promise<{ data?: EngineStatus[]; error?: string }>

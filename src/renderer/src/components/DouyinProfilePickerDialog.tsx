@@ -12,6 +12,7 @@ import {
   Square,
   X
 } from 'lucide-react'
+import type { QueueNotice } from '@v-download/shared'
 import type { DouyinProfileListResult, DouyinProfilePostRow, SettingsData } from '@/types'
 import { cn } from '@/lib/cn'
 import { applyProfilePickerClick, mergeProfilePosts, profilePickerStatus, selectedProfileCount } from './douyinProfilePickerState'
@@ -30,9 +31,10 @@ export interface DouyinProfilePickerDialogProps {
   profileUrl: string
   settings: SettingsData
   onClose: () => void
+  onQueued?: (payload: { skipped?: number; notice?: QueueNotice; ids?: string[] }) => void
 }
 
-export function DouyinProfilePickerDialog({ profileUrl, settings, onClose }: DouyinProfilePickerDialogProps) {
+export function DouyinProfilePickerDialog({ profileUrl, settings, onClose, onQueued }: DouyinProfilePickerDialogProps) {
   const [items, setItems] = useState<DouyinProfilePostRow[]>([])
   const [nextCursor, setNextCursor] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(false)
@@ -362,6 +364,7 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose }: Dou
         setError(res.error)
         return
       }
+      onQueued?.({ skipped: res.data?.skipped, notice: res.data?.notice, ids: res.data?.ids })
       onClose()
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))

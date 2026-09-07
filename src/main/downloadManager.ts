@@ -34,12 +34,19 @@ import {
   shouldWriteNote,
   writeNoteMarkdownFile,
 } from './noteMarkdown'
-import { classifyResolverError, filterPersistedHeaders, mediaTypeForCandidate, sanitizeResolverError } from './mediaResolver'
+import { classifyResolverError, mediaTypeForCandidate, sanitizeResolverError } from './mediaResolver'
+import { pickPersistedExtras } from './persistedExtras'
 import { ensurePoTokenProvider } from './poTokenServer'
 import { planQueueAdmissions } from './groupedQueueScheduler'
 import { transcodeFile } from './transcodeManager'
 import type { TranscodePresetId } from './transcodeModel'
-import { findReusableDownload, shouldRedownloadExisting, stableMediaUrl } from './mediaIdentity'
+import {
+  bulkQueueNotice,
+  decideQueueAdmission,
+  findReusableDownload,
+  queueIdentityKey,
+  type QueueNotice
+} from './mediaIdentity'
 type DownloadErrorCode = 'ENGINE_MISSING' | 'PO_TOKEN_REQUIRED' | 'AUTH_REQUIRED' | 'BROWSER_REQUIRED' | 'NETWORK_RETRYABLE' | 'STORAGE_UNAVAILABLE' | 'UNSUPPORTED' | 'DRM_PROTECTED'
 
 const MIN_DOUYIN_OUTPUT_BYTES = 512
@@ -257,6 +264,12 @@ interface AddTaskOptions {
   forceNew?: boolean
 }
 
+export interface AdmitResult {
+  task: DownloadTask
+  outcome: 'created' | 'focused' | 'requeued' | 'retried'
+  notice?: QueueNotice
+}
+
 let activeDownloads = new Map<string, { cancel: () => void; getStderr?: () => string; getDestinations?: () => string[] }>()
 /** Tasks the user removed/cancelled; in-flight runTask loops must exit without touching DB. */
 const abortedTaskIds = new Set<string>()
@@ -373,61 +386,16 @@ export function emitInfoResolveResult(data: unknown): void {
   emitToRenderer('info-resolve-result', data)
 }
 
+export function emitQueueAdmission(result: AdmitResult): void {
+  emitToRenderer('queue-admission', {
+    data: result.task,
+    outcome: result.outcome,
+    notice: result.notice
+  })
+}
+
 function serializeExtras(metadata?: Record<string, unknown>): string | null {
-  if (!metadata) return null
-  const out: Record<string, unknown> = {}
-  if (metadata.infoResolve === true) out.infoResolve = true
-  if (metadata.resolveAutoStart === true) out.resolveAutoStart = true
-  if (typeof metadata.resolveTitle === 'string' && metadata.resolveTitle.trim()) out.resolveTitle = metadata.resolveTitle.trim()
-  if (metadata.nativeYoutubePlaylist === true) out.nativeYoutubePlaylist = true
-  if (metadata.candidate && typeof metadata.candidate === 'object') {
-    const c = metadata.candidate as Record<string, unknown>
-    if (typeof c.url === 'string' && /^https?:\/\//i.test(c.url)) {
-      out.candidate = { url: c.url, formatId: typeof c.formatId === 'string' ? c.formatId : undefined, container: typeof c.container === 'string' ? c.container : undefined, protocol: typeof c.protocol === 'string' ? c.protocol : undefined, mimeType: typeof c.mimeType === 'string' ? c.mimeType : undefined }
-    }
-  }
-  if (Array.isArray(metadata.douyinImageUrls)) out.douyinImageUrls = metadata.douyinImageUrls
-  if (Array.isArray(metadata.xhsImageUrls)) out.xhsImageUrls = metadata.xhsImageUrls
-  // Persist direct-media fields so retry / app restart still routes ffmpeg-first like the original enqueue.
-  if (typeof metadata.mediaType === 'string' && metadata.mediaType.trim()) {
-    out.mediaType = metadata.mediaType.trim()
-  }
-  if (typeof metadata.referer === 'string' && metadata.referer.trim()) {
-    out.referer = metadata.referer.trim()
-  }
-  if (
-    metadata.customHeaders &&
-    typeof metadata.customHeaders === 'object' &&
-    !Array.isArray(metadata.customHeaders)
-  ) {
-    const safeHeaders = filterPersistedHeaders(metadata.customHeaders as Record<string, string>)
-    if (Object.keys(safeHeaders).length > 0) out.customHeaders = safeHeaders
-  }
-  if (metadata.douyinProfilePick === true) out.douyinProfilePick = true
-  if (typeof metadata.awemeId === 'string') out.awemeId = metadata.awemeId
-  if (typeof metadata.douyinMediaType === 'string') out.douyinMediaType = metadata.douyinMediaType
-  if (typeof metadata.douyinProfileBatchSize === 'number') {
-    out.douyinProfileBatchSize = metadata.douyinProfileBatchSize
-  }
-  if (typeof metadata.playlistTitle === 'string') out.playlistTitle = metadata.playlistTitle
-  if (typeof metadata.ytdlpId === 'string' && metadata.ytdlpId.trim()) {
-    out.ytdlpId = metadata.ytdlpId.trim()
-  }
-  if (typeof metadata.transcodePreset === 'string' && metadata.transcodePreset.trim()) {
-    out.transcodePreset = metadata.transcodePreset.trim()
-  }
-  if (typeof metadata.remoteJobId === 'string' && metadata.remoteJobId.trim()) {
-    out.remoteJobId = metadata.remoteJobId.trim()
-  }
-  if (typeof metadata.remoteOutputDir === 'string' && metadata.remoteOutputDir.trim()) {
-    out.remoteOutputDir = metadata.remoteOutputDir.trim()
-  }
-  if (typeof metadata.noteTitle === 'string') out.noteTitle = metadata.noteTitle
-  if (typeof metadata.noteAuthor === 'string') out.noteAuthor = metadata.noteAuthor
-  if (typeof metadata.noteUrl === 'string') out.noteUrl = metadata.noteUrl
-  if (typeof metadata.noteDescription === 'string') out.noteDescription = metadata.noteDescription
-  if (metadata.noteOnly === true) out.noteOnly = true
-  if (metadata.includeNote === true) out.includeNote = true
+  const out = pickPersistedExtras(metadata)
   return Object.keys(out).length ? JSON.stringify(out) : null
 }
 
@@ -801,15 +769,41 @@ function requeueMissingOutput(record: db.DownloadRecord): DownloadTask {
   return task
 }
 
-export function addTask(options: AddTaskOptions): DownloadTask {
-  if (!options.forceNew) {
-    const reusable = findReusableDownload(db.getDownloads(), options.url)
-    if (reusable) {
-      if (shouldRedownloadExisting(reusable, outputFilePresent)) return requeueMissingOutput(reusable)
-      return taskFromRecord(reusable)
+function admitExistingTask(url: string, forceNew?: boolean): AdmitResult | null {
+  if (forceNew) return null
+  const reusable = findReusableDownload(db.getDownloads(), url)
+  if (!reusable) return null
+  const decision = decideQueueAdmission({
+    existing: reusable,
+    filePresent: outputFilePresent(reusable.file_path)
+  })
+  if (decision.action === 'create') return null
+  if (decision.action === 'requeue') {
+    return { task: requeueMissingOutput(reusable), outcome: 'requeued', notice: decision.notice }
+  }
+  if (decision.action === 'retry') {
+    const retried = retryTask(reusable.id)
+    const updated = db.getDownloads().find((row) => row.id === reusable.id)
+    return {
+      task: taskFromRecord(updated ?? reusable),
+      outcome: retried ? 'retried' : 'focused',
+      notice: decision.notice
     }
   }
+  return { task: taskFromRecord(reusable), outcome: 'focused', notice: decision.notice }
+}
 
+export function addTaskAdmitted(options: AddTaskOptions): AdmitResult {
+  const admitted = admitExistingTask(options.url, options.forceNew)
+  if (admitted) return admitted
+  return { task: insertQueuedTask(options), outcome: 'created' }
+}
+
+export function addTask(options: AddTaskOptions): DownloadTask {
+  return addTaskAdmitted(options).task
+}
+
+function insertQueuedTask(options: AddTaskOptions): DownloadTask {
   const id = uuidv4()
   const outputDir = options.outputDir ?? settings.get('downloadDir')
   const quality = options.quality ?? settings.get('defaultVideoQuality')
@@ -901,6 +895,7 @@ export interface InfoResolveTaskOptions {
   metadata?: Record<string, unknown>
   referer?: string
   customHeaders?: Record<string, string>
+  forceNew?: boolean
 }
 
 export interface PromoteInfoResolveOptions {
@@ -943,8 +938,63 @@ export function isInfoResolveTask(id: string): boolean {
   return Boolean(record && isInfoResolveTaskRecord(record))
 }
 
+/** Clone a completed (or any) row into a new download, skipping adopt of the original file. */
+export function downloadAgainFromId(id: string): AdmitResult | { error: string } {
+  const record = db.getDownloads().find((candidate) => candidate.id === id)
+  if (!record) return { error: 'Download not found' }
+
+  const metadata: Record<string, unknown> = {
+    ...metadataFromRecord(record),
+    skipAdoptExisting: true
+  }
+  delete metadata.infoResolve
+  delete metadata.resolveAutoStart
+  delete metadata.resolveTitle
+  delete metadata.remoteJobId
+  delete metadata.remoteOutputDir
+
+  const mediaType = typeof metadata.mediaType === 'string' ? metadata.mediaType : undefined
+  const referer = typeof metadata.referer === 'string' ? metadata.referer : undefined
+  const customHeaders =
+    metadata.customHeaders && typeof metadata.customHeaders === 'object' && !Array.isArray(metadata.customHeaders)
+      ? metadata.customHeaders as Record<string, string>
+      : undefined
+
+  if (mediaType) {
+    return addTaskAdmitted({
+      url: record.url,
+      title: record.title,
+      format: record.format,
+      quality: record.quality,
+      thumbnail: record.thumbnail ?? undefined,
+      duration: record.duration ?? undefined,
+      mediaType,
+      referer,
+      customHeaders,
+      forceNew: true,
+      metadata
+    })
+  }
+
+  return createInfoResolveTask({
+    url: record.url,
+    title: record.title,
+    format: record.format,
+    quality: record.quality,
+    thumbnail: record.thumbnail ?? undefined,
+    duration: record.duration ?? undefined,
+    referer,
+    customHeaders,
+    forceNew: true,
+    metadata
+  })
+}
+
 /** Create the durable placeholder shown while the main-process resolver works. */
-export function createInfoResolveTask(options: InfoResolveTaskOptions): DownloadTask {
+export function createInfoResolveTask(options: InfoResolveTaskOptions): AdmitResult {
+  const admitted = admitExistingTask(options.url, options.forceNew)
+  if (admitted) return admitted
+
   const id = uuidv4()
   const now = new Date().toISOString()
   const quality = options.quality ?? settings.get('defaultVideoQuality')
@@ -994,7 +1044,7 @@ export function createInfoResolveTask(options: InfoResolveTaskOptions): Download
     error: null
   })
   emitToRenderer('new-download', task)
-  return task
+  return { task, outcome: 'created' }
 }
 
 export function markInfoResolveResolving(id: string): DownloadTask | null {
@@ -1141,8 +1191,13 @@ function buildTaskFromOptions(options: AddTaskOptions, id: string): DownloadTask
 }
 
 /** Enqueue many tasks in one DB transaction; queue runs at Settings concurrency. */
-export function addTasksBulk(optionsList: AddTaskOptions[]): { count: number; ids: string[] } {
-  if (optionsList.length === 0) return { count: 0, ids: [] }
+export function addTasksBulk(optionsList: AddTaskOptions[]): {
+  count: number
+  ids: string[]
+  skipped: number
+  notice?: QueueNotice
+} {
+  if (optionsList.length === 0) return { count: 0, ids: [], skipped: 0 }
   if (optionsList.length > MAX_BULK_TASKS) {
     throw new Error(`Too many tasks (max ${MAX_BULK_TASKS})`)
   }
@@ -1156,15 +1211,26 @@ export function addTasksBulk(optionsList: AddTaskOptions[]): { count: number; id
   const ids: string[] = []
   const acceptedOptions: AddTaskOptions[] = []
   const staleComplete: db.DownloadRecord[] = []
+  const retryRecords: db.DownloadRecord[] = []
   const seenKeys = new Set<string>()
   const existing = db.getDownloads()
+  let skipped = 0
 
   for (const options of optionsList) {
-    const key = stableMediaUrl(options.url)
-    if (key && seenKeys.has(key)) continue
+    const key = queueIdentityKey(options.url)
+    if (key && seenKeys.has(key)) {
+      skipped += 1
+      continue
+    }
     const reusable = options.forceNew ? null : findReusableDownload(existing, options.url)
     if (reusable) {
-      if (shouldRedownloadExisting(reusable, outputFilePresent)) staleComplete.push(reusable)
+      const decision = decideQueueAdmission({
+        existing: reusable,
+        filePresent: outputFilePresent(reusable.file_path)
+      })
+      if (decision.action === 'requeue') staleComplete.push(reusable)
+      else if (decision.action === 'retry') retryRecords.push(reusable)
+      else skipped += 1
       if (key) seenKeys.add(key)
       continue
     }
@@ -1209,7 +1275,9 @@ export function addTasksBulk(optionsList: AddTaskOptions[]): { count: number; id
     })
   }
 
-  if (records.length === 0 && staleComplete.length === 0) return { count: 0, ids: [] }
+  if (records.length === 0 && staleComplete.length === 0 && retryRecords.length === 0) {
+    return { count: 0, ids: [], skipped, notice: bulkQueueNotice(skipped) }
+  }
 
   if (records.length > 0) {
     db.insertDownloadsBulk(records)
@@ -1220,12 +1288,26 @@ export function addTasksBulk(optionsList: AddTaskOptions[]): { count: number; id
   }
 
   const requeued = staleComplete.map((record) => requeueMissingOutput(record))
-  worklog('bulk_enqueued', { count: tasks.length, profileBatch: isProfileBatch, requeued: requeued.length })
+  const retried = retryRecords
+    .map((record) => (retryTask(record.id) ? record.id : null))
+    .filter((id): id is string => Boolean(id))
+  worklog('bulk_enqueued', {
+    count: tasks.length,
+    profileBatch: isProfileBatch,
+    requeued: requeued.length,
+    retried: retried.length,
+    skipped
+  })
   if (tasks.length > 0) {
     emitToRenderer('download-progress', { bulkAdded: tasks.length })
   }
   processQueue()
-  return { count: tasks.length + requeued.length, ids: [...ids, ...requeued.map((task) => task.id)] }
+  return {
+    count: tasks.length + requeued.length + retried.length,
+    ids: [...ids, ...requeued.map((task) => task.id), ...retried],
+    skipped,
+    notice: bulkQueueNotice(skipped)
+  }
 }
 
 async function runTask(task: DownloadTask): Promise<void> {
@@ -1287,7 +1369,9 @@ async function runTask(task: DownloadTask): Promise<void> {
   const referer = cached?.referer || (taskMeta?.referer as string) || undefined
   const customHeaders = cached?.customHeaders || (taskMeta?.customHeaders as Record<string, string>) || undefined
 
-  if (await tryAdoptExistingDouyinOutput(task, outDir)) {
+  const skipAdoptExisting = taskMeta?.skipAdoptExisting === true
+
+  if (!skipAdoptExisting && await tryAdoptExistingDouyinOutput(task, outDir)) {
     if (stopIfAborted()) return
     releaseSlot()
     processQueue()
@@ -1436,7 +1520,7 @@ async function runTask(task: DownloadTask): Promise<void> {
     return
   }
 
-  if (!mediaType && !useNativePlaylist) {
+  if (!skipAdoptExisting && !mediaType && !useNativePlaylist) {
     if (await tryAdoptExistingYtdlpOutput(task, outDir, cookiesPath || undefined, ytdlpPath, outputExtGuess)) {
       if (stopIfAborted()) return
       releaseSlot()
@@ -1624,7 +1708,7 @@ async function runTask(task: DownloadTask): Promise<void> {
       playlistMaxDownloads: playlistMax,
       referer,
       customHeaders,
-      outputTitle: mediaType ? basename(finalPath, extname(finalPath)) : undefined,
+      outputTitle: mediaType || skipAdoptExisting ? basename(finalPath, extname(finalPath)) : undefined,
       mediaType,
       concurrentFragments: concFragments > 1 ? concFragments : undefined,
       externalDownloader: externalDl || undefined,

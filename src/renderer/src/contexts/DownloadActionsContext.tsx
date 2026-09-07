@@ -1,5 +1,5 @@
 import { createContext, useContext, useCallback, type ReactNode } from 'react'
-import type { DownloadActions } from '@/types'
+import type { Download, DownloadActions } from '@/types'
 import { useDownloads } from '@/hooks/useDownloads'
 
 const DownloadActionsContext = createContext<DownloadActions | null>(null)
@@ -16,9 +16,10 @@ interface Props {
   removeDownload: (id: string) => void
   removeDownloads: (ids: string[]) => void
   updateDownload: (id: string, updates: Record<string, unknown>) => void
+  downloadAgain: (download: Download) => void
 }
 
-export function DownloadActionsProvider({ children, refreshDownloads, removeDownload, removeDownloads, updateDownload }: Props) {
+export function DownloadActionsProvider({ children, refreshDownloads, removeDownload, removeDownloads, updateDownload, downloadAgain }: Props) {
   const cancel = useCallback(async (id: string) => {
     if (window.api) await window.api.cancelDownload(id)
     updateDownload(id, { status: 'cancelled' })
@@ -84,7 +85,7 @@ export function DownloadActionsProvider({ children, refreshDownloads, removeDown
     window.api?.openFile(path)
   }, [])
 
-  const actions: DownloadActions = { cancel, pause, retry, remove, removeWithFiles, removeMany, removeManyWithFiles, openFolder, openFile }
+  const actions: DownloadActions = { cancel, pause, retry, remove, removeWithFiles, removeMany, removeManyWithFiles, openFolder, openFile, downloadAgain }
 
   return (
     <DownloadActionsContext.Provider value={actions}>

@@ -1,10 +1,12 @@
 import { spawn } from 'child_process'
 import {
   addYtdlpCookieArgs,
+  appendYoutubeYtdlpArgs,
   getYtdlpPath,
   normalizeThumbnailUrl,
   collectPlaylistMetaFromJson,
   fetchThumbnailForPageUrl,
+  youtubeProviderOptions,
   type VideoInfo
 } from './ytdlp'
 
@@ -132,6 +134,7 @@ export async function listPlaylistEntries(
   ]
 
   addYtdlpCookieArgs(url, args, cookiesPath)
+  appendYoutubeYtdlpArgs(url, args, await youtubeProviderOptions(url))
   args.push(url)
 
   const result = await new Promise<PlaylistListResult>((resolve, reject) => {

@@ -10,8 +10,11 @@ const api = {
     metadata?: Record<string, unknown>
     referer?: string
     customHeaders?: Record<string, string>
+    forceNew?: boolean
   }) => ipcRenderer.invoke('start-info-resolve', options),
   getInfoResolveResults: () => ipcRenderer.invoke('get-info-resolve-results'),
+  downloadAgain: (id: string) => ipcRenderer.invoke('download-again', id),
+  ensureInfoResolveReady: (id: string) => ipcRenderer.invoke('ensure-info-resolve-ready', id),
   promoteInfoResolve: (options: {
     id: string
     url?: string
@@ -68,6 +71,11 @@ const api = {
     const sub = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data)
     ipcRenderer.on('new-download', sub)
     return () => ipcRenderer.removeListener('new-download', sub)
+  },
+  onQueueAdmission: (callback: (data: unknown) => void) => {
+    const sub = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data)
+    ipcRenderer.on('queue-admission', sub)
+    return () => ipcRenderer.removeListener('queue-admission', sub)
   },
   onInfoResolveResult: (callback: (data: unknown) => void) => {
     const sub = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data)

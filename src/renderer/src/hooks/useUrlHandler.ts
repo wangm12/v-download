@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import type { VideoInfo, SettingsData } from '@/types'
+import type { QueueAdmissionOutcome, QueueNotice } from '@v-download/shared'
+import type { Download, VideoInfo, SettingsData } from '@/types'
 import { extractUrlFromClipboard, isMediaUrl, isYouTubeUrl, filenameFromUrl } from '@/utils/youtube'
 import { isDouyinProfileHomeUrl } from '@/utils/douyinBulk'
 import { shouldOpenCollectionPicker } from '@/utils/collectionPicker'
@@ -19,6 +20,8 @@ type UrlMeta = {
   referer?: string
   title?: string
   headers?: Record<string, string>
+  forceNew?: boolean
+  skipAdoptExisting?: boolean
 }
 
 export type LoadingPhase = '' | 'info'
@@ -57,6 +60,32 @@ function isGalleryInfo(info: VideoInfo): boolean {
   return (info._type === 'douyin_gallery' || info._type === 'xhs_gallery') && Boolean(info.image_urls?.length)
 }
 
+export interface QueueNoticeState extends QueueNotice {
+  taskId?: string
+  filePath?: string | null
+}
+
+type AdmitResponse = {
+  data?: unknown
+  error?: string
+  outcome?: QueueAdmissionOutcome
+  notice?: QueueNotice
+}
+
+function taskFromAdmit(data: unknown): { id?: string; filePath?: string | null } {
+  if (!data || typeof data !== 'object') return {}
+  const row = data as Record<string, unknown>
+  const filePath = typeof row.filePath === 'string'
+    ? row.filePath
+    : typeof row.file_path === 'string'
+      ? row.file_path
+      : null
+  return {
+    id: typeof row.id === 'string' ? row.id : undefined,
+    filePath
+  }
+}
+
 export function useUrlHandler(settings: SettingsData) {
   const siteDefaults = useCallback((url: string) => {
     try {
@@ -71,6 +100,9 @@ export function useUrlHandler(settings: SettingsData) {
   }, [settings.siteRules])
 
   const [errorMsg, setErrorMsg] = useState('')
+  const [queueNotice, setQueueNotice] = useState<QueueNoticeState | null>(null)
+  const [focusTaskId, setFocusTaskId] = useState<string | null>(null)
+  const [focusNonce, setFocusNonce] = useState(0)
   const [showFormatDialog, setShowFormatDialog] = useState(false)
   const [showDouyinProfilePicker, setShowDouyinProfilePicker] = useState(false)
   const [douyinProfileUrl, setDouyinProfileUrl] = useState('')
@@ -255,8 +287,41 @@ export function useUrlHandler(settings: SettingsData) {
   }, [handleResolveResult])
 
   const selectReadyResolve = useCallback((id: string) => {
-    if (!openReadyResult(id)) setErrorMsg('This result is not available yet; retry the task to resolve it again')
+    if (dialogOpenRef.current) return
+    if (openReadyResult(id)) return
+    void window.api?.ensureInfoResolveReady?.(id)
   }, [openReadyResult])
+
+  const applyAdmitResponse = useCallback((response: AdmitResponse | undefined) => {
+    if (response?.error) {
+      setErrorMsg(response.error)
+      setQueueNotice(null)
+      return
+    }
+    setErrorMsg('')
+    const task = taskFromAdmit(response?.data)
+    if (task.id) {
+      setFocusTaskId(task.id)
+      setFocusNonce((value) => value + 1)
+    }
+    if (response?.notice?.message) {
+      setQueueNotice({
+        ...response.notice,
+        taskId: task.id,
+        filePath: task.filePath
+      })
+    } else {
+      setQueueNotice(null)
+    }
+    if (response?.notice?.actions.includes('select-format') && task.id) {
+      selectReadyResolve(task.id)
+    }
+  }, [selectReadyResolve])
+
+  useEffect(() => {
+    if (!window.api?.onQueueAdmission) return
+    return window.api.onQueueAdmission((payload) => applyAdmitResponse(payload))
+  }, [applyAdmitResponse])
 
   const handleUrl = useCallback(async (rawUrl: string, meta?: UrlMeta) => {
     if (!window.api) {
@@ -276,26 +341,28 @@ export function useUrlHandler(settings: SettingsData) {
       /^https?:\/\//i.test(url)
     if ((isMediaUrl(url) || fromExtension) && !isYouTubeUrl(url)) {
       const rule = siteDefaults(url)
-      await window.api.startDownload({
+      const response = await window.api.startDownload({
         url,
         title: meta?.title || filenameFromUrl(url),
         format: rule?.format === 'audio' ? 'mp3' : 'video',
         quality: meta?.quality || rule?.quality || settings.defaultVideoQuality,
         referer: meta?.referer,
         customHeaders: meta?.headers,
-        mediaType: meta?.type
+        mediaType: meta?.type,
+        forceNew: meta?.forceNew
       })
+      applyAdmitResponse(response)
       return
     }
 
-    if (isDouyinProfileHomeUrl(url)) {
+    if (!meta?.forceNew && isDouyinProfileHomeUrl(url)) {
       setDouyinProfileUrl(url)
       setShowDouyinProfilePicker(true)
       dialogOpenRef.current = true
       return
     }
 
-    if (shouldOpenCollectionPicker(url)) {
+    if (!meta?.forceNew && shouldOpenCollectionPicker(url)) {
       setCollectionPickerUrl(url)
       setShowCollectionPicker(true)
       dialogOpenRef.current = true
@@ -310,13 +377,35 @@ export function useUrlHandler(settings: SettingsData) {
       quality: meta?.quality || rule?.quality || settings.defaultVideoQuality,
       metadata: {
         resolveAutoStart: meta?.autoStart === true,
-        ...(meta?.type ? { mediaType: meta.type } : {})
+        ...(meta?.type ? { mediaType: meta.type } : {}),
+        ...(meta?.skipAdoptExisting ? { skipAdoptExisting: true } : {})
       },
       referer: meta?.referer,
-      customHeaders: meta?.headers
+      customHeaders: meta?.headers,
+      forceNew: meta?.forceNew
     })
-    if (response?.error) setErrorMsg(response.error)
-  }, [settings.defaultVideoQuality, siteDefaults])
+    applyAdmitResponse(response)
+  }, [applyAdmitResponse, settings.defaultVideoQuality, siteDefaults])
+
+  const downloadAgain = useCallback(async (download: Pick<Download, 'id'>) => {
+    if (!window.api?.downloadAgain) return
+    applyAdmitResponse(await window.api.downloadAgain(download.id))
+  }, [applyAdmitResponse])
+
+  const applyBulkNotice = useCallback((notice?: QueueNotice | null, focusId?: string) => {
+    if (focusId) {
+      setFocusTaskId(focusId)
+      setFocusNonce((value) => value + 1)
+    }
+    if (notice?.message) {
+      setErrorMsg('')
+      setQueueNotice(notice)
+      return
+    }
+    setQueueNotice(null)
+  }, [])
+
+  const clearQueueNotice = useCallback(() => setQueueNotice(null), [])
 
   const handlePaste = useCallback(async () => {
     if (!window.api) return
@@ -360,6 +449,9 @@ export function useUrlHandler(settings: SettingsData) {
     loading: false,
     loadingPhase: '' as LoadingPhase,
     errorMsg,
+    queueNotice,
+    focusTaskId,
+    focusNonce,
     showFormatDialog,
     showDouyinProfilePicker,
     douyinProfileUrl,
@@ -373,6 +465,9 @@ export function useUrlHandler(settings: SettingsData) {
     handleUrl,
     handlePaste,
     handleExternalUrl,
+    downloadAgain,
+    applyBulkNotice,
+    clearQueueNotice,
     clearPending,
     clearQueue,
     selectReadyResolve,

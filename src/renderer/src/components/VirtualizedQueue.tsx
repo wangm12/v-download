@@ -29,6 +29,8 @@ interface VirtualizedQueueProps {
   onSelectPlaylist: (id: string, modifiers?: SelectionModifiers) => void
   playlistViewStates: PlaylistViewStateMap
   onPlaylistViewStateChange: (playlistId: string, state: PlaylistViewState) => void
+  scrollToId?: string | null
+  scrollNonce?: number
 }
 
 export const VirtualizedQueue = memo(function VirtualizedQueue({
@@ -38,7 +40,9 @@ export const VirtualizedQueue = memo(function VirtualizedQueue({
   onSelectReadyResolve,
   onSelectPlaylist,
   playlistViewStates,
-  onPlaylistViewStateChange
+  onPlaylistViewStateChange,
+  scrollToId,
+  scrollNonce
 }: VirtualizedQueueProps) {
   const scrollRef = useRef<HTMLDivElement | null>(null)
   const rowObserverRef = useRef<ResizeObserver | null>(null)
@@ -131,6 +135,16 @@ export const VirtualizedQueue = memo(function VirtualizedQueue({
     }
     return result
   }, [rows])
+
+  useEffect(() => {
+    if (!scrollToId || !scrollRef.current) return
+    const row = rows.find(({ item }) => (
+      item.id === scrollToId
+      || (isPlaylist(item) && item.downloads?.some((download) => download.id === scrollToId))
+    ))
+    if (!row) return
+    scrollRef.current.scrollTo({ top: Math.max(0, row.top - 8) })
+  }, [scrollToId, scrollNonce, rows])
 
   const first = rows.length === 0 ? 0 : Math.max(0, findRowIndex(scrollTop) - OVERSCAN_ROWS)
   const last = rows.length === 0

@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { X, FolderOpen, Trash2, Play, RotateCcw, Pause, Loader2 } from 'lucide-react'
+import { X, FolderOpen, Trash2, Play, RotateCcw, Pause, Loader2, Download as DownloadAgainIcon } from 'lucide-react'
 import type { Download } from '@/types'
 import { useDownloadActions } from '@/contexts/DownloadActionsContext'
 import { ActionButton } from './ActionButton'
@@ -170,6 +170,7 @@ export const DownloadItem = memo(function DownloadItem({ download, selected = fa
             {download.file_path && (
               <ActionButton icon={FolderOpen} title={folderActionLabel} onClick={() => actions.openFolder(download.file_path!)} />
             )}
+            <ActionButton icon={DownloadAgainIcon} title="Download again" onClick={() => actions.downloadAgain(download)} />
             <ActionButton icon={Trash2} title="Remove from list" onClick={() => actions.remove(id)} />
           </>
         )}

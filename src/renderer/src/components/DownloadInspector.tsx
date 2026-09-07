@@ -8,7 +8,8 @@ import {
   Play,
   RefreshCw,
   ExternalLink,
-  LoaderCircle
+  LoaderCircle,
+  Download as DownloadAgainIcon
 } from 'lucide-react'
 import type { Download, DownloadActions } from '@/types'
 import type { DownloadErrorCode } from '@v-download/shared'
@@ -280,6 +281,10 @@ function InspectorDetailBody({
               <FolderOpen className="w-4 h-4 shrink-0" aria-hidden />
               {folderLabel}
             </button>
+            <button type="button" className={btnSecondary} onClick={() => actions.downloadAgain(download)}>
+              <DownloadAgainIcon className="w-4 h-4 shrink-0" aria-hidden />
+              Download again
+            </button>
             <div className="rounded-button border border-border bg-control p-3">
               <label htmlFor={`transcode-preset-${id}`} className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-tertiary-foreground">
                 Create converted copy
@@ -316,10 +321,16 @@ function InspectorDetailBody({
         )}
 
         {status === 'complete' && !file_path && (
-          <button type="button" className={btnDanger} onClick={() => actions.remove(id)}>
-            <Trash2 className="w-4 h-4 shrink-0" aria-hidden />
-            Remove from list
-          </button>
+          <>
+            <button type="button" className={btnSecondary} onClick={() => actions.downloadAgain(download)}>
+              <DownloadAgainIcon className="w-4 h-4 shrink-0" aria-hidden />
+              Download again
+            </button>
+            <button type="button" className={btnDanger} onClick={() => actions.remove(id)}>
+              <Trash2 className="w-4 h-4 shrink-0" aria-hidden />
+              Remove from list
+            </button>
+          </>
         )}
 
         {status === 'downloading' && (

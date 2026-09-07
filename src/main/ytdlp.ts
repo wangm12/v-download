@@ -10,6 +10,8 @@ import { resolveMediaCandidates, type ResolverCandidate } from './mediaResolver'
 import { normalizeProxyUrl } from './settingsModel'
 import { getNativeCookieFileForUrl } from './nativeAuth'
 import { hintDirectMediaUrl } from './mediaIdentity'
+import { selectPreferredEnginePath } from './engineManagerModel'
+import { ensurePoTokenProvider } from './poTokenServer'
 
 export type { DownloadProgress, DownloadProcess } from './downloadTypes'
 
@@ -159,18 +161,83 @@ export function isPlaylistUrl(url: string): boolean {
   return PLAYLIST_REGEX.test(url) || CHANNEL_REGEX.test(url)
 }
 
-export function getYtdlpPath(customPath?: string): string {
+/** Logged-in YouTube defaults to tv_downgraded, which currently returns UNPLAYABLE for many sessions. */
+export const YOUTUBE_COOKIE_PLAYER_CLIENT_ARGS = 'youtube:player_client=default,web_embedded'
+
+export function isYoutubePageReloadError(message: string): boolean {
+  return /\[youtube\].*The page needs to be reloaded/i.test(message)
+}
+
+export function appendYoutubeYtdlpArgs(
+  url: string,
+  args: string[],
+  options?: { extractorArgs?: string; pluginDir?: string }
+): void {
+  if (!isValidYouTubeUrl(url)) return
+  const extractorArgs = options?.extractorArgs
+  const pluginDir = options?.pluginDir
+  if (extractorArgs && isValidYouTubeUrl(url)) args.push('--extractor-args', extractorArgs)
+  const cookiesAttached = args.includes('--cookies') || args.includes('--cookies-from-browser')
+  if (cookiesAttached) args.push('--extractor-args', YOUTUBE_COOKIE_PLAYER_CLIENT_ARGS)
+  if (pluginDir && isValidYouTubeUrl(url)) args.push('--plugin-dirs', pluginDir)
+}
+
+const ytdlpVersionCache = new Map<string, string | null>()
+
+function bundledYtdlpPath(): string {
   const names = process.platform === 'win32' ? ['yt-dlp.exe'] : ['yt-dlp']
-  if (customPath && existsSync(customPath)) return customPath
   const roots = [process.resourcesPath, join(process.cwd(), 'resources')].filter((p): p is string => Boolean(p))
-  for (const root of roots) { const bundled = join(root, 'engines', `${process.platform}-${process.arch}`, names[0]); if (existsSync(bundled)) return bundled }
+  for (const root of roots) {
+    const bundled = join(root, 'engines', `${process.platform}-${process.arch}`, names[0])
+    if (existsSync(bundled)) return bundled
+  }
+  return ''
+}
+
+function ytdlpVersionFor(path: string): string | null {
+  if (!path) return null
+  if (ytdlpVersionCache.has(path)) return ytdlpVersionCache.get(path) ?? null
+  try {
+    const version = execFileSync(path, ['--version'], { encoding: 'utf-8', timeout: 8000 }).trim().split(/\s+/)[0] || null
+    ytdlpVersionCache.set(path, version)
+    return version
+  } catch {
+    ytdlpVersionCache.set(path, null)
+    return null
+  }
+}
+
+export function getYtdlpPath(customPath?: string): string {
+  const bundled = bundledYtdlpPath()
+  const requested = customPath && existsSync(customPath) ? customPath : ''
+  const selected = selectPreferredEnginePath({
+    requestedPath: requested,
+    requestedExists: Boolean(requested),
+    requestedVersion: requested ? ytdlpVersionFor(requested) : null,
+    bundledPath: bundled,
+    bundledExists: Boolean(bundled),
+    bundledVersion: bundled ? ytdlpVersionFor(bundled) : null
+  })
+  if (selected) return selected
   try {
     // The binary name is a fixed internal constant; use argv rather than a shell string.
-    const result = execFileSync(process.platform === 'win32' ? 'where' : 'which', ['yt-dlp'], { encoding: 'utf-8' }).trim().split(/\r?\n/)[0]
-    return result
+    return execFileSync(process.platform === 'win32' ? 'where' : 'which', ['yt-dlp'], { encoding: 'utf-8' }).trim().split(/\r?\n/)[0]
   } catch {
     return ''
   }
+}
+
+export function reconcileYtdlpPathSetting(): string {
+  const requested = settings.get('ytdlpPath')
+  const resolved = getYtdlpPath(requested)
+  if (resolved && resolved !== requested) settings.set('ytdlpPath', resolved)
+  return resolved
+}
+
+export async function youtubeProviderOptions(url: string): Promise<{ extractorArgs?: string; pluginDir?: string }> {
+  if (!isValidYouTubeUrl(url)) return {}
+  const result = await ensurePoTokenProvider()
+  return { extractorArgs: result.provider?.extractorArgs, pluginDir: result.provider?.pluginDir }
 }
 
 function isDouyinUrl(url: string): boolean {
@@ -230,6 +297,7 @@ export async function fetchThumbnailForPageUrl(
   const path = getYtdlpPath(ytdlpPath)
   const args: string[] = ['--dump-json', '--no-download', '--no-warnings', '--no-check-certificate']
   addYtdlpCookieArgs(pageUrl, args, cookiesPath)
+  appendYoutubeYtdlpArgs(pageUrl, args, await youtubeProviderOptions(pageUrl))
   appendDouyinYtdlpArgs(pageUrl, args)
   args.push(pageUrl)
 
@@ -355,7 +423,8 @@ export async function getVideoInfo(
   cookiesPath?: string,
   ytdlpPath?: string,
   signal?: AbortSignal,
-  proxyUrl?: string
+  proxyUrl?: string,
+  extras?: { omitCookies?: boolean }
 ): Promise<VideoInfo | { entries: VideoInfo[]; playlist_title?: string; playlist_channel?: string; playlist_count?: number }> {
   const path = getYtdlpPath(ytdlpPath)
   const isPlaylist = isPlaylistUrl(url)
@@ -367,7 +436,8 @@ export async function getVideoInfo(
     '--no-check-certificate'
   ]
 
-  addYtdlpCookieArgs(url, args, cookiesPath)
+  if (!extras?.omitCookies) addYtdlpCookieArgs(url, args, cookiesPath)
+  appendYoutubeYtdlpArgs(url, args, await youtubeProviderOptions(url))
   const resolvedProxy = normalizeProxyUrl(proxyUrl)
   if (resolvedProxy) args.push('--proxy', resolvedProxy)
 
@@ -421,7 +491,12 @@ export async function getVideoInfo(
     proc.on('close', (code) => {
       if (settled) return
       if (code !== 0 && code !== null) {
-        rejectOnce(new YtdlpInfoError(`yt-dlp exited with code ${code}: ${stderr || stdout}`, stdout, stderr))
+        const message = `yt-dlp exited with code ${code}: ${stderr || stdout}`
+        if (!extras?.omitCookies && isValidYouTubeUrl(url) && isYoutubePageReloadError(message)) {
+          void getVideoInfo(url, cookiesPath, ytdlpPath, signal, proxyUrl, { omitCookies: true }).then(resolveOnce, rejectOnce)
+          return
+        }
+        rejectOnce(new YtdlpInfoError(message, stdout, stderr))
         return
       }
 
@@ -763,8 +838,7 @@ export function download(
   const resolvedProxy = normalizeProxyUrl(proxyUrl)
   if (resolvedProxy) args.push('--proxy', resolvedProxy)
 
-  if (extractorArgs && isValidYouTubeUrl(url)) args.push('--extractor-args', extractorArgs)
-  if (pluginDir && isValidYouTubeUrl(url)) args.push('--plugin-dirs', pluginDir)
+  appendYoutubeYtdlpArgs(url, args, { extractorArgs, pluginDir })
 
   if (sleepInterval > 0 && !mediaType) {
     args.push('--sleep-interval', String(sleepInterval))

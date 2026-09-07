@@ -170,6 +170,21 @@ export function getPendingInfoResolveResults(): InfoResolveEvent[] {
   })
 }
 
+export function hasReadyResult(id: string): boolean {
+  const event = readyResults.get(id)
+  return Boolean(event && event.data !== undefined && !event.error)
+}
+
+export function ensureInfoResolveReady(id: string): boolean {
+  if (hasReadyResult(id)) return true
+  const task = getTask(id)
+  if (!task || !isResolverTask(task)) return false
+  if (task.status === 'ready' || task.status === 'error') {
+    downloadManager.markInfoResolveResolving(id)
+  }
+  return enqueueInfoResolve(id)
+}
+
 export function markInfoResolveReadyFromRenderer(
   id: string,
   patch: { title?: string; thumbnail?: string | null; duration?: number | null; channel?: string | null }
