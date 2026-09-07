@@ -4,13 +4,37 @@ import { randomBytes } from 'crypto'
 import { readFileSync, writeFileSync, mkdirSync, existsSync, chmodSync } from 'fs'
 import { execFileSync } from 'child_process'
 import { getQueueConcurrencyPolicy, type QueueConcurrencyPolicy } from '@v-download/shared'
-import { normalizeProxyUrl } from './settingsModel'
+import {
+  normalizeUiLanguagePreference,
+  resolveUiLanguage,
+  type AppLanguage,
+  type UiLanguagePreference
+} from '../i18n/catalog'
+import { emitUiLanguageChanged } from './localizedChrome'
+import { syncLoginItem } from './loginItem'
+import { syncTray } from './tray'
+import {
+  INTEGRATION_BOOLEAN_DEFAULTS,
+  isIntegrationBooleanKey,
+  normalizeIntegrationSettings,
+  validateSettingUpdate as validateIntegrationSettingUpdate
+} from './settingsIntegration'
+import {
+  DEFAULT_FILENAME_TEMPLATE,
+  DEFAULT_FOLDER_NAME_TEMPLATE,
+  normalizeFilenameTemplate,
+  normalizeFolderNameTemplate,
+  validateOutputTemplate
+} from './outputTemplateModel'
 
 export interface SettingsSchema {
   downloadDir: string
   concurrency: number
   showFormatDialog: boolean
   playlistSubfolder: boolean
+  filenameTemplate: string
+  folderNameTemplate: string
+  archiveByAuthor: boolean
   defaultVideoQuality: string
   defaultAudioQuality: string
   sleepInterval: number
@@ -61,6 +85,16 @@ export interface SettingsSchema {
   siteRules: SiteRule[]
   /** Optional proxy applied to yt-dlp requests. */
   proxyUrl: string
+  /** Open the app when this Mac signs in. */
+  launchAtStartup: boolean
+  /** macOS notification when a download finishes. */
+  notifyOnComplete: boolean
+  /** macOS notification when a download fails. */
+  notifyOnError: boolean
+  /** Confirm before quitting while downloads are active. */
+  warnBeforeQuit: boolean
+  /** Show the menu bar icon. */
+  showTray: boolean
   /** Set only after the first-run setup wizard has been completed. */
   onboardingCompleted: boolean
   /** Off by default. When on, main serves /v1 jobs on remoteApiBind:remoteApiPort. */
@@ -72,6 +106,8 @@ export interface SettingsSchema {
   remoteApiMcpAllowWrite: boolean
   /** Write tools require `confirm: true` in the tool arguments. */
   remoteApiMcpRequireConfirm: boolean
+  /** Renderer + main chrome language. `system` follows the OS locale. */
+  uiLanguage: UiLanguagePreference
 }
 
 export interface SiteRule {
@@ -88,6 +124,18 @@ export type DownloadConcurrencyPolicy = QueueConcurrencyPolicy
 /** Additive policy description for queue/settings consumers; legacy fields remain authoritative. */
 export function getDownloadConcurrencyPolicy(mode: DownloadSpeedMode = get('downloadSpeedMode')): DownloadConcurrencyPolicy {
   return getQueueConcurrencyPolicy(mode)
+}
+
+function systemLocale(): string {
+  try {
+    return app.getLocale()
+  } catch {
+    return ''
+  }
+}
+
+function resolveUiLanguageForChrome(): AppLanguage {
+  return resolveUiLanguage(cache?.uiLanguage, systemLocale())
 }
 
 function findBinary(name: string): string {
@@ -118,6 +166,9 @@ const defaults: SettingsSchema = {
   concurrency: 3,
   showFormatDialog: true,
   playlistSubfolder: true,
+  filenameTemplate: DEFAULT_FILENAME_TEMPLATE,
+  folderNameTemplate: DEFAULT_FOLDER_NAME_TEMPLATE,
+  archiveByAuthor: false,
   defaultVideoQuality: '1080',
   defaultAudioQuality: '320',
   sleepInterval: 3,
@@ -141,13 +192,15 @@ const defaults: SettingsSchema = {
   ytdlpExternalDownloader: '',
   siteRules: [],
   proxyUrl: '',
+  ...INTEGRATION_BOOLEAN_DEFAULTS,
   onboardingCompleted: false,
   remoteApiEnabled: false,
   remoteApiToken: '',
   remoteApiBind: '127.0.0.1',
   remoteApiPort: 18766,
   remoteApiMcpAllowWrite: false,
-  remoteApiMcpRequireConfirm: true
+  remoteApiMcpRequireConfirm: true,
+  uiLanguage: 'en'
 }
 
 let settingsPath = ''
@@ -174,6 +227,9 @@ function load(): SettingsSchema {
       onboardingCompleted: Object.prototype.hasOwnProperty.call(parsed, 'onboardingCompleted')
         ? Boolean(parsed.onboardingCompleted)
         : true
+    }
+    if (!Object.prototype.hasOwnProperty.call(parsed, 'uiLanguage')) {
+      cache.uiLanguage = 'system'
     }
   } catch {
     cache = { ...defaults }
@@ -205,7 +261,10 @@ function normalizeLoadedSettings(s: SettingsSchema): void {
   if (!Number.isFinite(bt)) bt = 5
   s.douyinBulkThreads = Math.min(32, Math.max(1, Math.floor(bt)))
   s.douyinBulkVerboseWarnings = Boolean(s.douyinBulkVerboseWarnings)
-  s.proxyUrl = normalizeProxyUrl(s.proxyUrl)
+  s.filenameTemplate = normalizeFilenameTemplate(s.filenameTemplate)
+  s.folderNameTemplate = normalizeFolderNameTemplate(s.folderNameTemplate)
+  s.archiveByAuthor = Boolean(s.archiveByAuthor)
+  normalizeIntegrationSettings(s)
   s.onboardingCompleted = Boolean(s.onboardingCompleted)
   s.remoteApiEnabled = Boolean(s.remoteApiEnabled)
   s.remoteApiToken = typeof s.remoteApiToken === 'string' && /^[A-Za-z0-9_-]{16,128}$/.test(s.remoteApiToken)
@@ -217,6 +276,7 @@ function normalizeLoadedSettings(s: SettingsSchema): void {
   s.remoteApiPort = Math.min(65535, Math.max(1024, Math.floor(remotePort)))
   s.remoteApiMcpAllowWrite = Boolean(s.remoteApiMcpAllowWrite)
   s.remoteApiMcpRequireConfirm = s.remoteApiMcpRequireConfirm !== false
+  s.uiLanguage = normalizeUiLanguagePreference(s.uiLanguage)
   s.siteRules = Array.isArray(s.siteRules) ? s.siteRules.filter((rule): rule is SiteRule => {
     return Boolean(rule && typeof rule.id === 'string' && typeof rule.domain === 'string' && rule.domain.trim() &&
       ['best', 'video', 'audio'].includes(rule.format) && typeof rule.quality === 'string' &&
@@ -291,13 +351,27 @@ export function set<K extends keyof SettingsSchema>(key: K, value: SettingsSchem
   }
   normalizeLoadedSettings(cache!)
   save()
+  if (key === 'launchAtStartup') {
+    syncLoginItem(Boolean(cache!.launchAtStartup), app.setLoginItemSettings?.bind(app))
+  }
+  if (key === 'showTray') {
+    syncTray(Boolean(cache!.showTray), { language: resolveUiLanguageForChrome() })
+  }
+  if (key === 'uiLanguage') {
+    const language = resolveUiLanguageForChrome()
+    emitUiLanguageChanged(language)
+    syncTray(Boolean(cache!.showTray), { language })
+  }
 }
 
 export function validateSettingUpdate(key: string, value: unknown): value is SettingsSchema[keyof SettingsSchema] {
   if (key === 'cookiesPath') return false
   if (typeof value === 'string' && value.length > 4096) return false
   if (['downloadDir', 'douyinBulkRunPyPath', 'douyinBulkConfigPath', 'douyinBulkOutputPath', 'ytdlpPath', 'ffmpegPath'].includes(key) && typeof value === 'string' && (value.length === 0 || /[\0\r\n]/.test(value))) return false
-  if (['showFormatDialog', 'playlistSubfolder', 'douyinUseCloakBrowser', 'turboRiskAcknowledged', 'douyinBulkVerboseWarnings', 'onboardingCompleted', 'remoteApiEnabled', 'remoteApiMcpAllowWrite', 'remoteApiMcpRequireConfirm'].includes(key)) return typeof value === 'boolean'
+  if (isIntegrationBooleanKey(key) || key === 'proxyUrl') return validateIntegrationSettingUpdate(key, value)
+  if (['showFormatDialog', 'playlistSubfolder', 'archiveByAuthor', 'douyinUseCloakBrowser', 'turboRiskAcknowledged', 'douyinBulkVerboseWarnings', 'onboardingCompleted', 'remoteApiEnabled', 'remoteApiMcpAllowWrite', 'remoteApiMcpRequireConfirm'].includes(key)) return typeof value === 'boolean'
+  if (key === 'filenameTemplate') return typeof value === 'string' && value.length <= 4096 && validateOutputTemplate(value, 'filename').ok
+  if (key === 'folderNameTemplate') return typeof value === 'string' && value.length <= 4096 && validateOutputTemplate(value, 'folder').ok
   // Accept legacy persisted/update values (including 0 and values above 3); set() normalizes concurrency to 1..3.
   if (['concurrency', 'sleepInterval', 'youtubePlaylistSleepRequests', 'youtubePlaylistMaxDownloads', 'douyinBulkThreads', 'concurrentFragments'].includes(key)) return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 100
   if (key === 'remoteApiPort') return typeof value === 'number' && Number.isFinite(value) && value >= 1024 && value <= 65535 && value !== 18765
@@ -307,8 +381,8 @@ export function validateSettingUpdate(key: string, value: unknown): value is Set
   if (['cookiesFromBrowser', 'douyinBulkRunPyPath', 'douyinBulkConfigPath', 'douyinBulkOutputPath', 'ytdlpPath', 'ffmpegPath', 'ytdlpExternalDownloader'].includes(key)) return typeof value === 'string' && !/[\0\r\n]/.test(value)
   if (key === 'downloadDir') return typeof value === 'string' && value.length > 0
   if (key === 'directMediaEngine') return value === 'auto' || value === 'ffmpeg' || value === 'ytdlp'
+  if (key === 'uiLanguage') return value === 'system' || value === 'en' || value === 'zh-CN' || value === 'zh-TW'
   if (key === 'youtubePlaylistMode') return value === 'native' || value === 'fanout'
-  if (key === 'proxyUrl') return typeof value === 'string' && (value.trim() === '' || normalizeProxyUrl(value) !== '')
   if (key === 'siteRules') return Array.isArray(value) && value.length <= 100 && value.every((rule) => {
     if (!rule || typeof rule !== 'object' || Array.isArray(rule)) return false
     const r = rule as Record<string, unknown>; const allowed = new Set(['id', 'domain', 'format', 'quality', 'enabled'])

@@ -19,12 +19,12 @@ import { cn } from '@/lib/cn'
 import { ThumbnailImage } from './ThumbnailImage'
 import { StatusPill } from './ui'
 import {
-  DOWNLOAD_DETAILS_LABEL,
   DOWNLOAD_DETAILS_RAIL_CLASS,
   getInspectorStatCells,
   revealFolderLabel
 } from './downloadInspectorPresentation'
-import { getStatusLabel, getStatusTone } from './statusPresentation'
+import { useTranslation } from 'react-i18next'
+import { getStatusTone } from './statusPresentation'
 
 type TranscodePresetId = 'mp3' | 'aac' | 'opus' | 'flac' | 'wav' | 'mp4' | 'h265' | 'vp9'
 
@@ -55,7 +55,9 @@ const DOWNLOAD_ERROR_ACTIONS: Record<DownloadErrorCode, 'retry' | 'sync-cookies'
 }
 
 function InspectorStatusPill({ status }: { status: Download['status'] }) {
-  return <StatusPill tone={getStatusTone(status)}>{getStatusLabel(status)}</StatusPill>
+  const { t } = useTranslation()
+  const key = status === 'error' ? 'status.error' : `status.${status}`
+  return <StatusPill tone={getStatusTone(status)}>{t(key)}</StatusPill>
 }
 
 interface DownloadInspectorProps {
@@ -66,6 +68,7 @@ interface DownloadInspectorProps {
 }
 
 export function DownloadInspector({ download, downloadDir, onSyncBrowserCookies, onClose }: DownloadInspectorProps) {
+  const { t } = useTranslation()
   const actions = useDownloadActions()
   const panelRef = useRef<HTMLElement>(null)
 
@@ -93,16 +96,16 @@ export function DownloadInspector({ download, downloadDir, onSyncBrowserCookies,
       ref={panelRef}
       className={asideShell}
       style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-      aria-label={DOWNLOAD_DETAILS_LABEL}
+      aria-label={t('inspector.details')}
       tabIndex={-1}
     >
       <div className="flex min-h-11 shrink-0 items-center justify-between gap-2 border-b border-border pb-3">
-        <h2 className="min-w-0 truncate text-[15px] font-semibold text-foreground">{DOWNLOAD_DETAILS_LABEL}</h2>
+        <h2 className="min-w-0 truncate text-[15px] font-semibold text-foreground">{t('inspector.details')}</h2>
         <button
           type="button"
           onClick={onClose}
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-button text-muted-foreground transition-colors hover:bg-control hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
-          aria-label="Close download details"
+          aria-label={t('inspector.close')}
         >
           <span aria-hidden className="text-xl leading-none">×</span>
         </button>
@@ -123,6 +126,7 @@ function InspectorDetailBody({
   actions: DownloadActions
   onSyncBrowserCookies?: () => void
 }) {
+  const { t } = useTranslation()
   const [showSafeDetails, setShowSafeDetails] = useState(false)
   const [showErrorDetails, setShowErrorDetails] = useState(false)
   const [transcodePreset, setTranscodePreset] = useState<TranscodePresetId>('mp4')
@@ -189,7 +193,7 @@ function InspectorDetailBody({
       <div className="grid grid-cols-3 gap-2">
         {statCells.map((cell) => (
           <div key={cell.label} className="rounded-lg bg-control px-2.5 py-2">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-tertiary-foreground">{cell.label}</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-tertiary-foreground">{cell.label === 'Duration' ? t('inspector.duration') : cell.label === 'Size' ? t('inspector.size') : cell.label === 'Format' ? t('inspector.format') : cell.label}</p>
             <p className="mt-1 text-xs font-medium text-foreground tabular-nums break-words">{cell.value}</p>
           </div>
         ))}
@@ -207,14 +211,14 @@ function InspectorDetailBody({
             {phase ? `${phase} · ` : ''}
             {Math.round(progress)}%
             {speed ? ` · ${speed}` : ''}
-            {eta && eta !== '00:00' && eta !== '0:00' ? ` · ETA ${eta}` : ''}
+            {eta && eta !== '00:00' && eta !== '0:00' ? ` · ${t('queue.eta', { eta })}` : ''}
           </p>
         </div>
       )}
 
       {(status === 'error' || status === 'interrupted' || status === 'cancelled') && error && (
         <div className="rounded-button border border-dashed border-border-strong bg-state-error-bg p-3">
-          <p className="text-xs font-medium text-foreground">Needs attention</p>
+          <p className="text-xs font-medium text-foreground">{t('inspector.needsAttention')}</p>
           {showErrorDetails ? (
             <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{error}</p>
           ) : null}
@@ -224,33 +228,33 @@ function InspectorDetailBody({
             onClick={() => setShowErrorDetails((value) => !value)}
             aria-expanded={showErrorDetails}
           >
-            {showErrorDetails ? 'Hide details' : 'Show details'}
+            {showErrorDetails ? t('inspector.hideDetails') : t('inspector.showDetails')}
           </button>
         </div>
       )}
 
       {status === 'error' && error_code && (
         <p className="text-xs text-muted-foreground" role="status">
-          {recoveryAction === 'open-settings' && 'Recovery: Open settings and configure yt-dlp.'}
-          {recoveryAction === 'sync-cookies' && 'Recovery: Sync browser cookies.'}
-          {recoveryAction === 'open-source' && 'Recovery: Open source in your browser.'}
-          {recoveryAction === 'retry' && 'Recovery: Retry the download.'}
+          {recoveryAction === 'open-settings' && t('inspector.recoverySettings')}
+          {recoveryAction === 'sync-cookies' && t('inspector.recoveryCookies')}
+          {recoveryAction === 'open-source' && t('inspector.recoverySource')}
+          {recoveryAction === 'retry' && t('inspector.recoveryRetry')}
         </p>
       )}
 
       <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-tertiary-foreground mb-1">Destination</p>
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-tertiary-foreground mb-1">{t('inspector.destination')}</p>
         <p className="text-xs text-muted-foreground break-all leading-snug">{file_path || downloadDir || '—'}</p>
       </div>
 
-      <div className="text-[10px] uppercase tracking-wider text-tertiary-foreground mb-1">Source</div>
+      <div className="text-[10px] uppercase tracking-wider text-tertiary-foreground mb-1">{t('inspector.source')}</div>
       <button
         type="button"
         className="text-left text-xs text-muted-foreground hover:text-foreground flex items-start gap-1 break-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus rounded"
         onClick={() => window.api?.openExternalUrl(url)}
       >
         <ExternalLink className="w-3.5 h-3.5 shrink-0 mt-0.5" aria-hidden />
-        <span className="underline-offset-2 hover:underline">{showSafeDetails ? url : (() => { try { return new URL(url).origin + new URL(url).pathname } catch { return 'Source page' } })()}</span>
+        <span className="underline-offset-2 hover:underline">{showSafeDetails ? url : (() => { try { return new URL(url).origin + new URL(url).pathname } catch { return t('inspector.sourcePage') } })()}</span>
       </button>
       <div className="flex flex-wrap gap-2">
         <button
@@ -259,14 +263,14 @@ function InspectorDetailBody({
           onClick={() => setShowSafeDetails((v) => !v)}
           aria-expanded={showSafeDetails}
         >
-          {showSafeDetails ? 'Hide link details' : 'Show link details'}
+          {showSafeDetails ? t('inspector.hideLink') : t('inspector.showLink')}
         </button>
         <button
           type="button"
           className="text-left text-xs font-medium text-foreground underline underline-offset-2 hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus rounded"
           onClick={() => void navigator.clipboard.writeText(url)}
         >
-          Copy source link
+          {t('inspector.copySource')}
         </button>
       </div>
 
@@ -275,7 +279,7 @@ function InspectorDetailBody({
           <>
             <button type="button" className={btnPrimary} onClick={() => actions.openFile(file_path)}>
               <File className="w-4 h-4 shrink-0" aria-hidden />
-              Open file
+              {t('inspector.openFile')}
             </button>
             <button type="button" className={btnSecondary} onClick={() => actions.openFolder(file_path)}>
               <FolderOpen className="w-4 h-4 shrink-0" aria-hidden />
@@ -283,11 +287,11 @@ function InspectorDetailBody({
             </button>
             <button type="button" className={btnSecondary} onClick={() => actions.downloadAgain(download)}>
               <DownloadAgainIcon className="w-4 h-4 shrink-0" aria-hidden />
-              Download again
+              {t('inspector.downloadAgain')}
             </button>
             <div className="rounded-button border border-border bg-control p-3">
               <label htmlFor={`transcode-preset-${id}`} className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-tertiary-foreground">
-                Create converted copy
+                {t('inspector.createConvertedCopy')}
               </label>
               <div className="flex flex-col gap-2">
                 <select
@@ -298,16 +302,16 @@ function InspectorDetailBody({
                   className="min-h-10 w-full rounded-button border border-border bg-sidebar px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
                 >
                   {TRANSCODE_OPTIONS.map((option) => (
-                    <option key={option.id} value={option.id}>{option.label}</option>
+                    <option key={option.id} value={option.id}>{t(option.id === 'mp3' ? 'inspector.extractMp3' : option.id === 'aac' ? 'inspector.extractAac' : option.id === 'opus' ? 'inspector.extractOpus' : option.id === 'flac' ? 'inspector.extractFlac' : option.id === 'wav' ? 'inspector.extractWav' : option.id === 'mp4' ? 'inspector.h264Mp4' : option.id === 'h265' ? 'inspector.h265Mp4' : 'inspector.vp9Webm')}</option>
                   ))}
                 </select>
                 <button type="button" className={btnSecondary} onClick={() => void startTranscode()} disabled={isTranscoding}>
                   {isTranscoding ? <LoaderCircle className="h-4 w-4 shrink-0 animate-spin" aria-hidden /> : null}
-                  {isTranscoding ? `Converting ${Math.round(transcodeState?.percent ?? 0)}%` : 'Convert copy'}
+                  {isTranscoding ? t('inspector.converting', { percent: Math.round(transcodeState?.percent ?? 0) }) : t('inspector.convertCopy')}
                 </button>
               </div>
               {transcodeState?.status === 'complete' && (
-                <p className="mt-2 text-xs text-foreground" role="status">Converted copy created.</p>
+                <p className="mt-2 text-xs text-foreground" role="status">{t('inspector.convertedCreated')}</p>
               )}
               {transcodeState?.status === 'error' && transcodeState.error && (
                 <p className="mt-2 text-xs leading-relaxed text-foreground" role="alert">{transcodeState.error}</p>
@@ -315,7 +319,7 @@ function InspectorDetailBody({
             </div>
             <button type="button" className={btnDanger} onClick={() => actions.remove(id)}>
               <Trash2 className="w-4 h-4 shrink-0" aria-hidden />
-              Remove from list
+              {t('inspector.removeFromList')}
             </button>
           </>
         )}
@@ -324,11 +328,11 @@ function InspectorDetailBody({
           <>
             <button type="button" className={btnSecondary} onClick={() => actions.downloadAgain(download)}>
               <DownloadAgainIcon className="w-4 h-4 shrink-0" aria-hidden />
-              Download again
+              {t('inspector.downloadAgain')}
             </button>
             <button type="button" className={btnDanger} onClick={() => actions.remove(id)}>
               <Trash2 className="w-4 h-4 shrink-0" aria-hidden />
-              Remove from list
+              {t('inspector.removeFromList')}
             </button>
           </>
         )}
@@ -337,11 +341,11 @@ function InspectorDetailBody({
           <>
             <button type="button" className={btnSecondary} onClick={() => actions.pause(id)}>
               <Pause className="w-4 h-4 shrink-0" aria-hidden />
-              Pause
+              {t('inspector.pause')}
             </button>
             <button type="button" className={btnDanger} onClick={() => actions.removeWithFiles(id)}>
               <Trash2 className="w-4 h-4 shrink-0" aria-hidden />
-              Delete with files
+              {t('inspector.deleteWithFiles')}
             </button>
           </>
         )}
@@ -350,11 +354,11 @@ function InspectorDetailBody({
           <>
             <button type="button" className={btnPrimary} onClick={() => actions.retry(id)}>
               <Play className="w-4 h-4 shrink-0" aria-hidden />
-              Resume
+              {t('inspector.resume')}
             </button>
             <button type="button" className={btnDanger} onClick={() => actions.removeWithFiles(id)}>
               <Trash2 className="w-4 h-4 shrink-0" aria-hidden />
-              Delete with files
+              {t('inspector.deleteWithFiles')}
             </button>
           </>
         )}
@@ -362,7 +366,7 @@ function InspectorDetailBody({
         {status === 'queued' && (
           <button type="button" className={btnDanger} onClick={() => actions.cancel(id)}>
             <Trash2 className="w-4 h-4 shrink-0" aria-hidden />
-            Cancel
+            {t('inspector.cancel')}
           </button>
         )}
 
@@ -370,19 +374,19 @@ function InspectorDetailBody({
           <>
             <button type="button" className={btnPrimary} onClick={() => actions.retry(id)}>
               <RotateCcw className="w-4 h-4 shrink-0" aria-hidden />
-              Retry now
+              {t('inspector.retry')}
             </button>
             {onSyncBrowserCookies && recoveryAction === 'sync-cookies' && (
               <button type="button" className={btnSecondary} onClick={onSyncBrowserCookies}>
                 <RefreshCw className="w-4 h-4 shrink-0" aria-hidden />
-                Sync browser cookies
+                {t('inspector.syncCookies')}
               </button>
             )}
-            {recoveryAction === 'open-settings' && <button type="button" aria-label="Open settings" className={btnSecondary} onClick={() => window.api?.openSettings()}>Open settings</button>}
-            {recoveryAction === 'open-source' && <button type="button" aria-label="Open source" className={btnSecondary} onClick={() => window.api?.openExternalUrl(url)}>Open source</button>}
+            {recoveryAction === 'open-settings' && <button type="button" aria-label={t('inspector.openSettings')} className={btnSecondary} onClick={() => window.api?.openSettings()}>{t('inspector.openSettings')}</button>}
+            {recoveryAction === 'open-source' && <button type="button" aria-label={t('inspector.openSource')} className={btnSecondary} onClick={() => window.api?.openExternalUrl(url)}>{t('inspector.openSource')}</button>}
             <button type="button" className={btnDanger} onClick={() => actions.remove(id)}>
               <Trash2 className="w-4 h-4 shrink-0" aria-hidden />
-              Remove
+              {t('common.remove')}
             </button>
           </>
         )}

@@ -104,6 +104,40 @@ async function main(): Promise<void> {
       aborted,
       (error: unknown) => error instanceof DOMException && error.name === 'AbortError'
     )
+
+    const originalFetch = globalThis.fetch
+    let bareFetchCalls = 0
+    globalThis.fetch = ((...args: Parameters<typeof fetch>) => {
+      bareFetchCalls++
+      return originalFetch(...args)
+    }) as typeof fetch
+    try {
+      bareFetchCalls = 0
+      const emptyProxy = await fetchWithTimeout(`${baseUrl}/ok`, {}, { timeoutMs: 1000, proxyUrl: '' })
+      assert.equal(await emptyProxy.text(), 'ok')
+      assert.ok(bareFetchCalls > 0, 'empty proxyUrl must use normal fetch')
+
+      bareFetchCalls = 0
+      const whitespaceProxy = await fetchWithTimeout(
+        `${baseUrl}/ok`,
+        {},
+        { timeoutMs: 1000, proxyUrl: '   ' }
+      )
+      assert.equal(await whitespaceProxy.text(), 'ok')
+      assert.ok(bareFetchCalls > 0, 'whitespace-only proxyUrl must use normal fetch')
+
+      bareFetchCalls = 0
+      await assert.rejects(
+        fetchWithTimeout(
+          `${baseUrl}/ok`,
+          {},
+          { timeoutMs: 2000, proxyUrl: 'http://127.0.0.1:9' }
+        )
+      )
+      assert.equal(bareFetchCalls, 0, 'non-empty proxyUrl must not call bare fetch')
+    } finally {
+      globalThis.fetch = originalFetch
+    }
   } finally {
     server.closeAllConnections?.()
     redirectTargetServer.closeAllConnections?.()

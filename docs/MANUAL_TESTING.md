@@ -60,6 +60,7 @@ Debug logging: see [DEBUG.md](./DEBUG.md) (`make dev` session log + release `wor
 - Direct `.mp4` / `.webm` or picker-sent URL
 - HLS (`.m3u8`) via overlay / sniffer
 - Queue: 2–3 concurrent; pause / resume / cancel
+- **Library** — Sidebar Library: complete a Douyin gallery, confirm **one work** and **N files**; search / type / pager; Reveal and Open use Finder; Delete asks to confirm and only removes files under the download folder. `remote-jobs/` stays hidden. No in-app player.
 
 ### Direct media engine (ffmpeg vs yt-dlp)
 
@@ -77,7 +78,7 @@ Preferences → **Downloads** → **Download speed**.
 
 1. **Balanced (default)** — After reset or fresh profile, mode reads `balanced`; applying it sets moderate concurrency, sleep, and fragments.
 2. **Turbo** — First selection opens a disclaimer modal; confirm, then settings apply (higher fragments, `sleepInterval` 0, `directMediaEngine` yt-dlp). Re-open Preferences: Turbo stays selectable without modal.
-3. **Gentle** — Low concurrency and higher sleep; useful if you hit rate limits.
+3. **Gentle** — Low concurrency and higher sleep; useful if you hit rate limits. Gentle also maps to yt-dlp `--limit-rate 2M` (2 MiB/s).
 4. **Optional external downloader** — Set `aria2c` only if installed; start one HLS job and confirm yt-dlp still completes or surfaces a clear error if the binary is missing.
 
 See [download-engines.md](./download-engines.md) for the routing matrix.
@@ -123,12 +124,13 @@ Use this matrix with [DESIGN_PLAN.md](./DESIGN_PLAN.md) and the PNGs under [`des
 | `07-active-downloads.png` | Active downloads | 2–3 | Speed, ETA, progress; pause/resume; batch / priority controls per mockup. |
 | `08-completed-detail.png` | Completed detail | 2–3 | Open file, Reveal in Finder, **copy source link**, remove; inspector or row parity with mockup. |
 | `09-error-recovery.png` | Error recovery | 3 | Plain-language failure; actions: Sync browser cookies, Open source page, Retry, Show log. |
-| `10-preferences-general.png` | Preferences — General | 3 | Preferences **in main window**; left nav + cards; General + Downloads fields present; `#/settings` deep link opens Preferences then clears hash. |
+| `10-preferences-general.png` | Preferences — General | 3 | Preferences **in main window**; left nav + cards; General + Downloads fields present; `#/settings` deep link opens Preferences then clears hash. Language card switches `en` / `zh-CN` / `zh-TW` for sidebar, queue, tray, notifications, and quit dialog. |
 | `11-preferences-browser.png` | Preferences — Browser | 3 | Browser section: extension, cookie sync, profiles; cookie sync still drives `settings-changed` / queue. |
 | `12-extension-guide.png` | Browser companion guide | 3 | Dedicated guide (install, pin, test, usage) without cluttering main prefs. |
-| `13-compact-mode.png` | Compact mode | 3 | Optional mini window: quick capture, progress, Pause all, open full app. |
+| `13-compact-mode.png` | Compact mode | 3 | Mini window (Window → Compact Window): drop/paste, NOW DOWNLOADING, Pause all, Open full app. |
 | `14-component-library.png` | Component library | ongoing | Spot-check buttons, pills, rows, borders against app; token drift audit. |
 | `15-white-mode.png` | White / light mode | 4 | Title bar **Light** or **Use device setting** with OS in light mode: shell readable; contrast acceptable (iterate on row pills if needed). |
+| — | Library (sidebar) | Phase A | File / Work views; search, type filter, sort, pager; Reveal / Open / Delete; no player; `remote-jobs/` hidden. |
 
 ## Desktop — title bar and theme (P2)
 

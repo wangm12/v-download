@@ -8,7 +8,7 @@ const DESKTOP_UA =
 
 const GALLERY_IMAGE_PARALLEL = 6
 
-export type XiaohongshuFetchOptions = { signal?: AbortSignal }
+export type XiaohongshuFetchOptions = { signal?: AbortSignal; outputBasename?: string; proxyUrl?: string }
 
 export function throwIfXhsAborted(signal?: AbortSignal): void {
   if (signal?.aborted) {
@@ -116,7 +116,7 @@ function buildXhsCookieHeader(cookiesFilePath?: string): string {
     .join('; ')
 }
 
-async function resolveShortUrl(url: string): Promise<string> {
+async function resolveShortUrl(url: string, proxyUrl?: string): Promise<string> {
   if (!isXhsShortUrl(url)) return url.trim()
   const res = await fetchWithTimeout(url.trim(), {
     method: 'GET',
@@ -126,7 +126,7 @@ async function resolveShortUrl(url: string): Promise<string> {
       Referer: 'https://www.xiaohongshu.com/',
       'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
     },
-  })
+  }, { proxyUrl })
   try {
     await res.arrayBuffer()
   } catch {
@@ -277,7 +277,11 @@ export function parseXiaohongshuNote(
   return parseGalleryFromNote(note, noteId, '', html) ?? parseTextFromNote(note, noteId, html)
 }
 
-async function fetchPageHtml(pageUrl: string, cookiesFilePath?: string): Promise<string> {
+async function fetchPageHtml(
+  pageUrl: string,
+  cookiesFilePath?: string,
+  proxyUrl?: string
+): Promise<string> {
   const cookieHeader = buildXhsCookieHeader(cookiesFilePath)
   const res = await fetchWithTimeout(pageUrl, {
     headers: {
@@ -287,7 +291,7 @@ async function fetchPageHtml(pageUrl: string, cookiesFilePath?: string): Promise
       ...(cookieHeader ? { Cookie: cookieHeader } : {}),
     },
     redirect: 'follow',
-  })
+  }, { proxyUrl })
   if (!res.ok) {
     throw new Error(`Xiaohongshu page fetch failed: ${res.status} ${res.statusText}`)
   }
@@ -296,18 +300,19 @@ async function fetchPageHtml(pageUrl: string, cookiesFilePath?: string): Promise
 
 export async function getXiaohongshuInfo(
   url: string,
-  cookiesFilePath?: string
+  cookiesFilePath?: string,
+  options?: XiaohongshuFetchOptions
 ): Promise<XiaohongshuMediaResult | null> {
   lastGetXhsInfoError = ''
   try {
-    const resolved = await resolveShortUrl(url)
+    const resolved = await resolveShortUrl(url, options?.proxyUrl)
     const noteId = extractNoteId(resolved)
     if (!noteId) {
       lastGetXhsInfoError = 'Could not parse Xiaohongshu note id from URL'
       return null
     }
 
-    const html = await fetchPageHtml(resolved, cookiesFilePath)
+    const html = await fetchPageHtml(resolved, cookiesFilePath, options?.proxyUrl)
     const state = parseInitialState(html)
     if (!state) {
       lastGetXhsInfoError = 'Xiaohongshu page did not include note data'
@@ -348,8 +353,12 @@ function extFromImageUrl(u: string): string {
   return 'jpg'
 }
 
-async function fetchWith429Backoff(url: string, init: RequestInit): Promise<Response> {
-  let res = await fetchWithTimeout(url, init, { timeoutMs: 30_000 })
+async function fetchWith429Backoff(
+  url: string,
+  init: RequestInit,
+  proxyUrl?: string
+): Promise<Response> {
+  let res = await fetchWithTimeout(url, init, { timeoutMs: 30_000, proxyUrl })
   if (res.status === 429) {
     const ra = res.headers.get('retry-after')
     let ms = 3000
@@ -358,7 +367,7 @@ async function fetchWith429Backoff(url: string, init: RequestInit): Promise<Resp
       if (Number.isFinite(sec) && sec > 0 && sec < 3600) ms = sec * 1000
     }
     await delayWithAbort(ms, init.signal)
-    res = await fetchWithTimeout(url, init, { timeoutMs: 30_000 })
+    res = await fetchWithTimeout(url, init, { timeoutMs: 30_000, proxyUrl })
   }
   return res
 }
@@ -375,7 +384,7 @@ export async function downloadXiaohongshuImageGallery(
   throwIfXhsAborted(options?.signal)
   if (imageUrls.length === 0) throw new Error('No image URLs to download')
 
-  const safeTitle = sanitizeDownloadBasename(title, 80)
+  const safeTitle = options?.outputBasename?.trim() || sanitizeDownloadBasename(title, 80)
   const subDir = join(outputDir, safeTitle)
   mkdirSync(subDir, { recursive: true })
 
@@ -408,7 +417,7 @@ export async function downloadXiaohongshuImageGallery(
         headers,
         redirect: 'follow',
         signal: options?.signal,
-      })
+      }, options?.proxyUrl)
       if (!res.ok) {
         throw new Error(`Image ${i} failed: ${res.status} ${res.statusText}`)
       }

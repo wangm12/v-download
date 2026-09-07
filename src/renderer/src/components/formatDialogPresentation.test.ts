@@ -1,4 +1,4 @@
-import { DEFAULT_INCLUDE_NOTE, INCLUDE_NOTE_CHECKBOX_LABEL, fallbackQuality, formatAccessibleDownloadLabel, getDefaultSelectedKey, getPresentationCandidates, hasOtherFormats, shouldPromptFormatDialog } from './formatDialogPresentation'
+import { ADVANCED_DISCLOSURE_LABEL, DEFAULT_INCLUDE_NOTE, INCLUDE_NOTE_CHECKBOX_LABEL, TASK_HEADERS_LABEL, TASK_PROXY_LABEL, fallbackQuality, formatAccessibleDownloadLabel, getDefaultSelectedKey, getPresentationCandidates, hasOtherFormats, shouldPromptFormatDialog } from './formatDialogPresentation'
 
 function equal(actual: unknown, expected: unknown) {
   if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error(`Expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`)
@@ -34,4 +34,7 @@ equal(shouldPromptFormatDialog({ autoStart: false }), true)
 equal(shouldPromptFormatDialog({}), true)
 equal(DEFAULT_INCLUDE_NOTE, true)
 equal(INCLUDE_NOTE_CHECKBOX_LABEL, 'Save caption as Markdown')
+equal(ADVANCED_DISCLOSURE_LABEL, 'Advanced')
+equal(TASK_PROXY_LABEL, 'Proxy for this task')
+equal(TASK_HEADERS_LABEL, 'Extra headers')
 console.log('format dialog presentation tests passed')

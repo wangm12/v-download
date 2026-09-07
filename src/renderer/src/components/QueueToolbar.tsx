@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect, useLayoutEffect } from 'react
 import { Search, X } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { extractUrlFromDataTransfer } from '@/utils/dragUrl'
+import { useTranslation } from 'react-i18next'
 import type { QueueFilter } from '@/utils/queueFilters'
 
 interface QueueToolbarProps {
@@ -17,12 +18,13 @@ interface QueueToolbarProps {
   onQueueFilter: (filter: QueueFilter) => void
 }
 
-const FILTERS: Array<{ id: QueueFilter; label: string }> = [
-  { id: 'all', label: 'All' },
-  { id: 'active', label: 'Active' },
-  { id: 'done', label: 'Done' },
-  { id: 'attention', label: 'Needs attention' }
-]
+const FILTER_IDS: QueueFilter[] = ['all', 'active', 'done', 'attention']
+const FILTER_KEYS: Record<QueueFilter, string> = {
+  all: 'queue.filterAll',
+  active: 'queue.filterActive',
+  done: 'queue.filterDone',
+  attention: 'queue.filterAttention'
+}
 
 export function QueueToolbar({
   searchQuery,
@@ -36,6 +38,7 @@ export function QueueToolbar({
   queueFilter,
   onQueueFilter
 }: QueueToolbarProps) {
+  const { t } = useTranslation()
   const [dragOver, setDragOver] = useState(false)
   const [searchExpanded, setSearchExpanded] = useState(false)
   const [toolbarRowWidth, setToolbarRowWidth] = useState(0)
@@ -124,23 +127,23 @@ export function QueueToolbar({
     >
       <div className="flex min-w-0 items-end justify-between gap-3 px-0.5">
         <div className="min-w-0">
-          <h1 className="text-[15px] font-semibold tracking-tight text-foreground">Downloads</h1>
+          <h1 className="text-[15px] font-semibold tracking-tight text-foreground">{t('queue.title')}</h1>
           <p className="mt-0.5 text-xs tabular-nums text-muted-foreground">
-            {visibleCount} {visibleCount === 1 ? 'item' : 'items'}
+            {t(visibleCount === 1 ? 'queue.itemCountOne' : 'queue.itemCount', { count: visibleCount })}
           </p>
         </div>
       </div>
 
       <div ref={toolbarRowRef} className="flex w-full min-h-[42px] items-stretch gap-2">
         <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
-          {FILTERS.map((filter) => {
-            const active = queueFilter === filter.id
+          {FILTER_IDS.map((filterId) => {
+            const active = queueFilter === filterId
             return (
               <button
-                key={filter.id}
+                key={filterId}
                 type="button"
                 aria-pressed={active}
-                onClick={() => onQueueFilter(filter.id)}
+                onClick={() => onQueueFilter(filterId)}
                 className={cn(
                   'inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-border-focus',
                   active
@@ -148,8 +151,8 @@ export function QueueToolbar({
                     : 'text-muted-foreground hover:bg-control hover:text-foreground'
                 )}
               >
-                {filter.label}
-                {filter.id === 'attention' && attentionCount > 0 ? (
+                {t(FILTER_KEYS[filterId])}
+                {filterId === 'attention' && attentionCount > 0 ? (
                   <span className="tabular-nums text-[11px]">{attentionCount}</span>
                 ) : null}
               </button>
@@ -180,7 +183,7 @@ export function QueueToolbar({
                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-border-focus',
                 'transition-colors duration-200'
               )}
-              aria-label="Search downloads"
+              aria-label={t('queue.search')}
               aria-keyshortcuts="Meta+F Control+F"
               aria-expanded={false}
             >
@@ -204,7 +207,7 @@ export function QueueToolbar({
                     collapseSearch()
                   }
                 }}
-                placeholder="Search downloads…"
+                placeholder={t('queue.searchPlaceholder')}
                 className={cn(
                   'w-full min-w-0 pl-9 pr-3 py-2 rounded-lg bg-raised ring-1 ring-inset ring-divider-subtle text-sm text-foreground',
                   'placeholder:text-tertiary-foreground',
@@ -214,7 +217,7 @@ export function QueueToolbar({
                   'focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-border-focus',
                   'transition-shadow duration-200'
                 )}
-                aria-label="Search downloads"
+                aria-label={t('queue.search')}
                 aria-expanded
               />
             </div>
@@ -232,14 +235,11 @@ export function QueueToolbar({
           dragOver ? 'border-border-strong bg-selection text-foreground' : 'border-divider-strong bg-control'
         )}
       >
-        <span className="line-clamp-2">
-          Drop a link here or press <span className="text-foreground font-medium">Cmd+V</span> to paste from the
-          clipboard
-        </span>
+        <span className="line-clamp-2">{t('queue.dropHint')}</span>
       </div>
       {selectedCount > 0 && (
         <div className="flex min-h-8 items-center justify-between gap-3 rounded-lg bg-selection px-2.5 py-1.5 text-xs ring-1 ring-inset ring-border-strong" role="status" aria-live="polite">
-          <span className="font-medium text-foreground tabular-nums">{selectedCount} selected</span>
+          <span className="font-medium text-foreground tabular-nums">{t('queue.selectedCount', { count: selectedCount })}</span>
           {onClearSelection && (
             <button
               type="button"
@@ -247,7 +247,7 @@ export function QueueToolbar({
               className="inline-flex min-h-7 items-center gap-1 rounded-md px-1.5 text-muted-foreground hover:bg-elevated hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
             >
               <X className="h-3.5 w-3.5" aria-hidden />
-              Clear selection
+              {t('queue.clearSelection')}
             </button>
           )}
         </div>

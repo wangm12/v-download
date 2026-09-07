@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { syncLanguageFromSettings } from '@/i18n'
 import type { SettingsData } from '@/types'
 
 const DEFAULT_SETTINGS: SettingsData = {
@@ -6,6 +7,9 @@ const DEFAULT_SETTINGS: SettingsData = {
   concurrency: 3,
   showFormatDialog: true,
   playlistSubfolder: true,
+  filenameTemplate: '{title} [{id}]',
+  folderNameTemplate: '{author}',
+  archiveByAuthor: false,
   defaultVideoQuality: '1080',
   defaultAudioQuality: '320',
   sleepInterval: 3,
@@ -28,13 +32,19 @@ const DEFAULT_SETTINGS: SettingsData = {
   ytdlpExternalDownloader: '',
   siteRules: [],
   proxyUrl: '',
+  launchAtStartup: false,
+  notifyOnComplete: true,
+  notifyOnError: true,
+  warnBeforeQuit: true,
+  showTray: true,
   onboardingCompleted: false,
   remoteApiEnabled: false,
   remoteApiToken: '',
   remoteApiBind: '127.0.0.1',
   remoteApiPort: 18766,
   remoteApiMcpAllowWrite: false,
-  remoteApiMcpRequireConfirm: true
+  remoteApiMcpRequireConfirm: true,
+  uiLanguage: 'en'
 }
 
 export function useSettings() {
@@ -43,8 +53,11 @@ export function useSettings() {
   const loadSettings = useCallback(() => {
     if (typeof window === 'undefined' || !window.api) return
     window.api.getSettings().then((res) => {
-      const data = (res as { data?: SettingsData })?.data ?? res
-      if (data) setSettings((prev) => ({ ...prev, ...data }))
+      const data = ((res as { data?: SettingsData }).data ?? res) as SettingsData
+      if (data) {
+        setSettings((prev) => ({ ...prev, ...data }))
+        if (data.uiLanguage) syncLanguageFromSettings(data.uiLanguage)
+      }
     })
   }, [])
 

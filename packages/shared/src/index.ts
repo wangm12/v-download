@@ -18,11 +18,6 @@ export function getQueueConcurrencyPolicy(mode: QueueSpeedMode): QueueConcurrenc
   const limit = mode === 'gentle' ? 1 : 3
   return { individualLimit: limit, collectionLimit: limit, activeCollectionLimit: limit, theoreticalMax: mode === 'gentle' ? 2 : 12 }
 }
-import type { DownloadErrorCode } from './download-errors.js'
-export const DOWNLOAD_ERROR_ACTIONS: Record<DownloadErrorCode, 'retry' | 'sync-cookies' | 'open-source' | 'open-settings'> = {
-  ENGINE_MISSING: 'open-settings', PO_TOKEN_REQUIRED: 'retry', AUTH_REQUIRED: 'sync-cookies',
-  BROWSER_REQUIRED: 'sync-cookies', NETWORK_RETRYABLE: 'retry', STORAGE_UNAVAILABLE: 'open-settings', UNSUPPORTED: 'open-source', DRM_PROTECTED: 'open-source'
-}
 
 export type AppResult<T> = { data: T; error?: never } | { data?: never; error: string }
 
@@ -69,6 +64,7 @@ export interface StartDownloadOptions {
   mediaType?: string
   referer?: string
   customHeaders?: Record<string, string>
+  proxyUrl?: string
   candidates?: MediaCandidate[]
   forceNew?: boolean
 }
@@ -81,4 +77,5 @@ export interface QueueNotice {
   tone: QueueNoticeTone
   message: string
   actions: QueueNoticeAction[]
+  vars?: Record<string, string | number>
 }

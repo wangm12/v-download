@@ -1,3 +1,5 @@
+import { translate, type AppLanguage } from '../i18n/catalog'
+
 export type MediaRole = 'main' | 'variant' | 'preview' | 'heatmap' | 'related' | 'ad' | 'unknown'
 export type PlaylistKind = 'master' | 'media' | 'unknown'
 
@@ -45,6 +47,7 @@ export interface QueueNotice {
   tone: QueueNoticeTone
   message: string
   actions: QueueNoticeAction[]
+  vars?: Record<string, string | number>
 }
 
 export interface QueueAdmissionDecision {
@@ -179,7 +182,7 @@ export function decideQueueAdmission(input: {
   if (status === 'error' || status === 'cancelled') {
     return {
       action: 'retry',
-      notice: { tone: 'neutral', message: 'Retrying that download.', actions: ['retry'] }
+      notice: { tone: 'neutral', message: 'admit.retrying', actions: ['retry'] }
     }
   }
 
@@ -189,7 +192,7 @@ export function decideQueueAdmission(input: {
         action: 'requeue',
         notice: {
           tone: 'warning',
-          message: 'The file is gone — downloading again.',
+          message: 'admit.fileGone',
           actions: []
         }
       }
@@ -198,7 +201,7 @@ export function decideQueueAdmission(input: {
       action: 'focus',
       notice: {
         tone: 'neutral',
-        message: 'Already downloaded.',
+        message: 'admit.alreadyDownloaded',
         actions: ['reveal', 'download-again']
       }
     }
@@ -209,7 +212,7 @@ export function decideQueueAdmission(input: {
       action: 'focus',
       notice: {
         tone: 'neutral',
-        message: 'Choose a format to continue.',
+        message: 'admit.chooseFormat',
         actions: ['select-format']
       }
     }
@@ -218,13 +221,13 @@ export function decideQueueAdmission(input: {
   if (status === 'resolving') {
     return {
       action: 'focus',
-      notice: { tone: 'neutral', message: 'Already resolving.', actions: [] }
+      notice: { tone: 'neutral', message: 'admit.alreadyResolving', actions: [] }
     }
   }
 
   return {
     action: 'focus',
-    notice: { tone: 'neutral', message: 'Already in your queue.', actions: [] }
+    notice: { tone: 'neutral', message: 'admit.alreadyQueued', actions: [] }
   }
 }
 
@@ -232,8 +235,21 @@ export function bulkQueueNotice(skipped: number): QueueNotice | undefined {
   if (skipped <= 0) return undefined
   return {
     tone: 'neutral',
-    message: skipped === 1 ? '1 already in your queue.' : `${skipped} already in your queue.`,
+    message: 'admit.alreadyQueuedCount',
+    vars: { count: skipped },
     actions: []
+  }
+}
+
+export function localizeQueueNotice(
+  notice: QueueNotice | undefined,
+  language: AppLanguage
+): QueueNotice | undefined {
+  if (!notice) return undefined
+  return {
+    tone: notice.tone,
+    actions: notice.actions,
+    message: translate(language, notice.message, notice.vars)
   }
 }
 

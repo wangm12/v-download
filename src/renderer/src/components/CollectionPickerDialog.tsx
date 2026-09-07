@@ -10,6 +10,7 @@ import { collectionPickerLabel } from '@/utils/collectionPicker'
 import { useDialogFocus } from '@/hooks/useDialogFocus'
 import { applySelectionClick, clearSelection, isSelectAllShortcut, selectAllInOrder } from '@/utils/selection'
 import { AnimatedList } from './reactbits/AnimatedList'
+import { useTranslation } from 'react-i18next'
 import { DialogShell } from './ui'
 
 export interface CollectionPickerDialogProps {
@@ -20,6 +21,7 @@ export interface CollectionPickerDialogProps {
 }
 
 export function CollectionPickerDialog({ sourceUrl, settings, onClose, onQueued }: CollectionPickerDialogProps) {
+  const { t } = useTranslation()
   const [list, setList] = useState<PlaylistListResult | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
@@ -34,15 +36,14 @@ export function CollectionPickerDialog({ sourceUrl, settings, onClose, onQueued 
 
   const headerTitle = useMemo(() => {
     const name = list?.playlistTitle?.trim()
-    if (name) return `${name} — pick videos`
-    return `${platformLabel} — pick videos`
-  }, [list?.playlistTitle, platformLabel])
+    return t('collection.pickVideos', { name: name || platformLabel })
+  }, [list?.playlistTitle, platformLabel, t])
 
   const countSummary = useMemo(() => {
     if (loading || items.length === 0) return ''
     const n = items.length
-    return `${n} video${n !== 1 ? 's' : ''} loaded — end of list`
-  }, [loading, items.length])
+    return t(n === 1 ? 'collection.loadedEndOne' : 'collection.loadedEnd', { count: n })
+  }, [loading, items.length, t])
 
   const loadList = useCallback(async () => {
     if (!window.api?.listPlaylistEntries) throw new Error('listPlaylistEntries is not available')
@@ -158,11 +159,11 @@ export function CollectionPickerDialog({ sourceUrl, settings, onClose, onQueued 
             <h2 id="collection-picker-title" className="text-sm font-semibold text-foreground">{headerTitle}</h2>
             <p className="text-[11px] text-muted-foreground mt-1 break-all line-clamp-2">{sourceUrl}</p>
           </div>
-          <HoverHintWrap text="Close" side="bottom">
+          <HoverHintWrap text={t('collection.close')} side="bottom">
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close"
+              aria-label={t('collection.close')}
               className="h-11 w-11 rounded-md text-muted-foreground hover:text-foreground hover:bg-control shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
             >
               <X size={18} />
@@ -174,7 +175,7 @@ export function CollectionPickerDialog({ sourceUrl, settings, onClose, onQueued 
           {loading ? (
             <div className="flex flex-col items-center justify-center py-16 gap-2 text-muted-foreground">
               <Loader2 className="animate-spin" size={28} />
-              <span className="text-sm">Loading video list…</span>
+              <span className="text-sm">{t('collection.loading')}</span>
             </div>
           ) : items.length === 0 ? (
             <>
@@ -183,7 +184,7 @@ export function CollectionPickerDialog({ sourceUrl, settings, onClose, onQueued 
                   {error}
                 </div>
               ) : null}
-              <p className="text-sm text-muted-foreground py-8 text-center">No videos found.</p>
+              <p className="text-sm text-muted-foreground py-8 text-center">{t('collection.noVideos')}</p>
             </>
           ) : (
             <>
@@ -207,14 +208,14 @@ export function CollectionPickerDialog({ sourceUrl, settings, onClose, onQueued 
                   className="inline-flex min-h-11 items-center gap-1.5 px-2.5 py-1 rounded-button bg-control text-xs font-medium hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
                 >
                   {selected.size === items.length ? <CheckSquare size={14} /> : <Square size={14} />}
-                  {selected.size === items.length ? 'Deselect all' : 'Select all'}
+                  {selected.size === items.length ? t('collection.deselectAll') : t('collection.selectAll')}
                 </button>
                 <button
                   type="button"
                   onClick={openInBrowser}
                   className="min-h-11 px-2.5 py-1 rounded-button bg-control text-xs font-medium hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
                 >
-                  Open in browser
+                  {t('collection.openBrowser')}
                 </button>
               </div>
               <div className="flex-1 min-h-0 overflow-y-auto mt-2">
@@ -270,7 +271,7 @@ export function CollectionPickerDialog({ sourceUrl, settings, onClose, onQueued 
             onClick={onClose}
             className="min-h-11 px-3 py-1.5 rounded-button bg-control text-sm text-muted-foreground hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
           >
-            Cancel
+            {t('collection.cancel')}
           </button>
           <button
             type="button"
@@ -284,7 +285,7 @@ export function CollectionPickerDialog({ sourceUrl, settings, onClose, onQueued 
             )}
           >
             <Download size={16} />
-            Add {selected.size} to queue
+            {t('collection.addToQueue', { count: selected.size })}
           </button>
         </div>
       </DialogShell>

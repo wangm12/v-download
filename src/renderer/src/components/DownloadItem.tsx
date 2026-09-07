@@ -9,6 +9,7 @@ import { ThumbnailImage } from './ThumbnailImage'
 import { StatusPill } from './ui'
 import { revealFolderLabel } from './downloadInspectorPresentation'
 import { getStatusTone } from './statusPresentation'
+import { useTranslation } from 'react-i18next'
 import type { SelectionModifiers } from '@/utils/selection'
 
 const folderActionLabel = revealFolderLabel(typeof window !== 'undefined' ? window.api?.platform : undefined)
@@ -21,6 +22,7 @@ interface DownloadItemProps {
 }
 
 export const DownloadItem = memo(function DownloadItem({ download, selected = false, onSelect, onSelectReadyResolve }: DownloadItemProps) {
+  const { t } = useTranslation()
   const actions = useDownloadActions()
   const { id, title, format, quality, status, progress, speed, eta, phase, thumbnail, duration, channel, error, url } = download
 
@@ -35,22 +37,22 @@ export const DownloadItem = memo(function DownloadItem({ download, selected = fa
   }
   const displayTitle = isResolverPlaceholder
     ? status === 'error'
-      ? `Could not resolve ${sourceLabel}`
+      ? t('queue.resolveFailed', { source: sourceLabel })
       : status === 'ready'
-        ? `${sourceLabel} is ready`
-        : `Resolving ${sourceLabel}…`
+        ? t('queue.readyNamed', { source: sourceLabel })
+        : t('queue.resolvingNamed', { source: sourceLabel })
     : title
 
   const statusContent = () => {
     switch (status) {
       case 'downloading': {
         const phaseLabel =
-          phase === 'audio' ? 'Audio' :
-          phase === 'merging' ? 'Merging' :
-          phase === 'video' ? 'Video' : ''
+          phase === 'audio' ? t('status.audio') :
+          phase === 'merging' ? t('status.merging') :
+          phase === 'video' ? t('status.video') : ''
         const leftParts: string[] = []
         if (phaseLabel) leftParts.push(phaseLabel)
-        leftParts.push(progress < 1 ? 'Starting…' : `${Math.round(progress)}%`)
+        leftParts.push(progress < 1 ? t('queue.starting') : `${Math.round(progress)}%`)
         if (download.totalSize) leftParts.push(download.totalSize)
         if (speed) leftParts.push(speed)
 
@@ -70,42 +72,42 @@ export const DownloadItem = memo(function DownloadItem({ download, selected = fa
             </div>
             <div className="flex items-center text-xs text-muted-foreground">
               <span className="tabular-nums">{leftParts.join(' · ')}</span>
-              {showEta && <span className="ml-auto tabular-nums">ETA {eta}</span>}
+              {showEta && <span className="ml-auto tabular-nums">{t('queue.eta', { eta })}</span>}
             </div>
           </div>
         )
       }
       case 'complete':
-        return <StatusPill tone={getStatusTone('complete')}>Complete</StatusPill>
+        return <StatusPill tone={getStatusTone('complete')}>{t('status.complete')}</StatusPill>
       case 'resolving':
         return (
           <StatusPill tone={getStatusTone('resolving')}>
             <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
-            Resolving…
+            {t('status.resolving')}
           </StatusPill>
         )
       case 'ready':
-        return <StatusPill tone={getStatusTone('ready')}>Ready to download</StatusPill>
+        return <StatusPill tone={getStatusTone('ready')}>{t('status.ready')}</StatusPill>
       case 'queued':
-        return <StatusPill tone={getStatusTone('queued')}>Queued</StatusPill>
+        return <StatusPill tone={getStatusTone('queued')}>{t('status.queued')}</StatusPill>
       case 'paused':
         return (
           <StatusPill tone={getStatusTone('paused')}>
-            Paused · {Math.round(progress)}%
+            {t('status.paused')} · {Math.round(progress)}%
           </StatusPill>
         )
       case 'error':
         return (
           <span title={error || 'Unknown error'} className="max-w-full min-w-0">
             <StatusPill tone={getStatusTone('error')} className="max-w-full min-w-0">
-              <span className="truncate">Failed{error ? `: ${error}` : ''}</span>
+              <span className="truncate">{t('status.error')}{error ? `: ${error}` : ''}</span>
             </StatusPill>
           </span>
         )
       case 'interrupted':
-        return <StatusPill tone={getStatusTone('interrupted')}>Interrupted</StatusPill>
+        return <StatusPill tone={getStatusTone('interrupted')}>{t('status.interrupted')}</StatusPill>
       case 'cancelled':
-        return <StatusPill tone={getStatusTone('cancelled')}>Cancelled</StatusPill>
+        return <StatusPill tone={getStatusTone('cancelled')}>{t('status.cancelled')}</StatusPill>
       default:
         return null
     }
@@ -155,14 +157,14 @@ export const DownloadItem = memo(function DownloadItem({ download, selected = fa
       <div className="flex-shrink-0 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
         {status === 'downloading' && (
           <>
-            <ActionButton icon={Pause} title="Pause" onClick={() => actions.pause(id)} />
-            <ActionButton icon={Trash2} title="Delete with files" onClick={() => actions.removeWithFiles(id)} />
+            <ActionButton icon={Pause} title={t('queue.pause')} onClick={() => actions.pause(id)} />
+            <ActionButton icon={Trash2} title={t('queue.deleteWithFiles')} onClick={() => actions.removeWithFiles(id)} />
           </>
         )}
         {status === 'paused' && (
           <>
-            <ActionButton icon={Play} title="Resume" onClick={() => actions.retry(id)} />
-            <ActionButton icon={Trash2} title="Delete with files" onClick={() => actions.removeWithFiles(id)} />
+            <ActionButton icon={Play} title={t('queue.resume')} onClick={() => actions.retry(id)} />
+            <ActionButton icon={Trash2} title={t('queue.deleteWithFiles')} onClick={() => actions.removeWithFiles(id)} />
           </>
         )}
         {status === 'complete' && (
@@ -170,15 +172,15 @@ export const DownloadItem = memo(function DownloadItem({ download, selected = fa
             {download.file_path && (
               <ActionButton icon={FolderOpen} title={folderActionLabel} onClick={() => actions.openFolder(download.file_path!)} />
             )}
-            <ActionButton icon={DownloadAgainIcon} title="Download again" onClick={() => actions.downloadAgain(download)} />
-            <ActionButton icon={Trash2} title="Remove from list" onClick={() => actions.remove(id)} />
+            <ActionButton icon={DownloadAgainIcon} title={t('queue.downloadAgain')} onClick={() => actions.downloadAgain(download)} />
+            <ActionButton icon={Trash2} title={t('queue.removeFromList')} onClick={() => actions.remove(id)} />
           </>
         )}
         {status === 'queued' && (
-          <ActionButton icon={X} title="Cancel" onClick={() => actions.cancel(id)} />
+          <ActionButton icon={X} title={t('common.cancel')} onClick={() => actions.cancel(id)} />
         )}
         {status === 'resolving' && (
-          <ActionButton icon={X} title="Cancel resolving" onClick={() => actions.cancel(id)} />
+          <ActionButton icon={X} title={t('queue.cancelResolving')} onClick={() => actions.cancel(id)} />
         )}
         {status === 'ready' && (
           <>
@@ -187,15 +189,15 @@ export const DownloadItem = memo(function DownloadItem({ download, selected = fa
               className="rounded-md bg-action px-2.5 py-1.5 text-[11px] font-semibold text-action-fg hover:bg-action-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
               onClick={() => onSelectReadyResolve?.(id)}
             >
-              Select format
+              {t('queue.selectFormat')}
             </button>
-            <ActionButton icon={Trash2} title="Remove" onClick={() => actions.remove(id)} />
+            <ActionButton icon={Trash2} title={t('common.remove')} onClick={() => actions.remove(id)} />
           </>
         )}
         {(status === 'interrupted' || status === 'error' || status === 'cancelled') && (
           <>
-            <ActionButton icon={RotateCcw} title="Retry" onClick={() => actions.retry(id)} />
-            <ActionButton icon={Trash2} title="Remove" onClick={() => actions.remove(id)} />
+            <ActionButton icon={RotateCcw} title={t('common.retry')} onClick={() => actions.retry(id)} />
+            <ActionButton icon={Trash2} title={t('common.remove')} onClick={() => actions.remove(id)} />
           </>
         )}
       </div>

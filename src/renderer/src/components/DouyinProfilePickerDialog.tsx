@@ -18,6 +18,7 @@ import { cn } from '@/lib/cn'
 import { applyProfilePickerClick, mergeProfilePosts, profilePickerStatus, selectedProfileCount } from './douyinProfilePickerState'
 import { clearSelection, isSelectAllShortcut, selectAllInOrder } from '@/utils/selection'
 import { AnimatedList } from './reactbits/AnimatedList'
+import { useTranslation } from 'react-i18next'
 import { DialogShell } from './ui'
 
 const MAX_LOAD_ALL_PAGES = 50
@@ -35,6 +36,7 @@ export interface DouyinProfilePickerDialogProps {
 }
 
 export function DouyinProfilePickerDialog({ profileUrl, settings, onClose, onQueued }: DouyinProfilePickerDialogProps) {
+  const { t } = useTranslation()
   const [items, setItems] = useState<DouyinProfilePostRow[]>([])
   const [nextCursor, setNextCursor] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(false)
@@ -158,7 +160,7 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose, onQue
     cancelRequestedRef.current = false
     setBrowserBusy(true)
     setError('')
-    setListWarning('Sending import to your logged-in Chrome tab — this can take up to two minutes for large profiles. If the profile is not open, Chrome will open it in your normal session.')
+    setListWarning(t('douyin.importSending'))
     try {
       const d = await callList(null, undefined, {
         existingAwemeIds: items.map((x) => x.awemeId),
@@ -189,12 +191,12 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose, onQue
 
   const handleOpenProfileInBrowser = async () => {
     if (!window.api?.openDouyinProfileUrl) return
-    setListWarning('Profile opened in your configured browser. Keep the tab logged in; Import from browser will collect posts from that tab.')
+    setListWarning(t('douyin.profileOpened'))
     try {
       const res = await window.api.openDouyinProfileUrl(profileUrl)
       if (!res?.ok) {
         setListWarning('')
-        setError(res?.error ?? 'Could not open profile in browser')
+        setError(res?.error ?? t('douyin.openFailed'))
       }
     } catch (e) {
       setListWarning('')
@@ -255,7 +257,7 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose, onQue
     try {
       while (more && cur && pages < MAX_LOAD_ALL_PAGES) {
         pages++
-        setLoadAllNote(`Loading page ${pages}…`)
+        setLoadAllNote(t('douyin.loadingPage', { page: pages }))
         const d = await callList(cur, undefined, {
           existingAwemeIds: Array.from(merged.keys()),
           abortKey,
@@ -269,7 +271,7 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose, onQue
         cur = d.cursor
         more = d.hasMore
         if (merged.size >= MAX_LOAD_ALL_ITEMS) {
-          capNote = `Stopped at ${MAX_LOAD_ALL_ITEMS} items (safety cap).`
+          capNote = t('douyin.stoppedItems', { count: MAX_LOAD_ALL_ITEMS })
           break
         }
         if (!more || !cur) break
@@ -277,9 +279,9 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose, onQue
         if (cancelRequestedRef.current) throw new Error('aborted')
       }
       if (pages >= MAX_LOAD_ALL_PAGES && !capNote) {
-        capNote = `Stopped at ${MAX_LOAD_ALL_PAGES} pages (safety cap).`
+        capNote = t('douyin.stoppedPages', { count: MAX_LOAD_ALL_PAGES })
       }
-      setLoadAllNote(capNote || (more && cur ? 'Partial load stopped.' : 'List complete.'))
+      setLoadAllNote(capNote || (more && cur ? t('douyin.partialStopped') : t('douyin.listCompleteNote')))
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
       const code = e && typeof e === 'object' && 'code' in e ? String((e as { code?: string }).code) : ''
@@ -308,7 +310,7 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose, onQue
     if (!loadAbortRef.current) return
     cancelRequestedRef.current = true
     loadAbortRef.current.abort()
-    setLoadAllNote('Loading cancelled.')
+    setLoadAllNote(t('douyin.loadingCancelled'))
   }
 
   const selectAll = () => {
@@ -342,6 +344,7 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose, onQue
         profileLabel.trim() ||
         rows.find((r) => r.author?.trim())?.author?.trim() ||
         'Douyin profile'
+      const archiveByAuthor = settings.archiveByAuthor === true
       const tasks = rows.map((r, i) => ({
         url: r.pageUrl,
         title: r.title.slice(0, 200),
@@ -349,9 +352,10 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose, onQue
         quality: settings.defaultVideoQuality,
         thumbnail: r.cover || undefined,
         duration: r.mediaType === 'video' ? r.durationSec ?? 0 : 0,
-        playlistId: folderName,
+        ...(archiveByAuthor
+          ? {}
+          : { playlistId: folderName, playlistTitle: folderName }),
         playlistIndex: i + 1,
-        playlistTitle: folderName,
         metadata: {
           channel: r.author,
           douyinProfilePick: true,
@@ -390,10 +394,10 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose, onQue
             </div>
             <div className="min-w-0">
               <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-tertiary-foreground">
-                Profile picker · Douyin
+                {t('douyin.eyebrow')}
               </p>
               <h2 id="douyin-profile-picker-title" className="truncate text-base font-semibold tracking-[-0.01em] text-foreground sm:text-lg">
-                {profileLabel ? `${profileLabel} — choose posts` : 'Choose posts from profile'}
+                {profileLabel ? t('douyin.choosePostsNamed', { name: profileLabel }) : t('douyin.choosePosts')}
               </h2>
               <p className="mt-1 max-w-[68ch] truncate text-xs text-muted-foreground" title={profileUrl}>
                 {profileUrl}
@@ -403,8 +407,8 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose, onQue
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close profile picker"
-            title="Close"
+            aria-label={t('douyin.close')}
+            title={t('common.close')}
             ref={closeRef}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-control hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
           >
@@ -415,17 +419,17 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose, onQue
         {!loading && items.length > 0 && (
           <div className="grid shrink-0 grid-cols-1 border-b border-divider-subtle bg-surface/60 sm:grid-cols-3 sm:divide-x sm:divide-divider-subtle">
             <div className="flex items-center justify-between gap-4 px-5 py-3.5 sm:block sm:px-6">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-tertiary-foreground">Loaded</span>
-              <span className="text-sm font-semibold tabular-nums text-foreground sm:mt-1 sm:block">{items.length} posts</span>
+              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-tertiary-foreground">{t('douyin.loaded')}</span>
+              <span className="text-sm font-semibold tabular-nums text-foreground sm:mt-1 sm:block">{t('douyin.postsCount', { count: items.length })}</span>
             </div>
             <div className="flex items-center justify-between gap-4 border-t border-divider-subtle px-5 py-3.5 sm:block sm:border-t-0 sm:px-6">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-tertiary-foreground">Selected</span>
-              <span className="text-sm font-semibold tabular-nums text-foreground sm:mt-1 sm:block">{selectedCount} of {items.length}</span>
+              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-tertiary-foreground">{t('douyin.selected')}</span>
+              <span className="text-sm font-semibold tabular-nums text-foreground sm:mt-1 sm:block">{t('douyin.selectedOf', { selected: selectedCount, total: items.length })}</span>
             </div>
             <div className="flex items-center justify-between gap-4 border-t border-divider-subtle px-5 py-3.5 sm:block sm:border-t-0 sm:px-6">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-tertiary-foreground">Availability</span>
+              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-tertiary-foreground">{t('douyin.availability')}</span>
               <span role="status" className="max-w-[24ch] truncate text-sm font-medium text-foreground sm:mt-1 sm:block" title={countSummary}>
-                {hasMore ? 'More posts available' : 'List is complete'}
+                {hasMore ? t('douyin.moreAvailable') : t('douyin.listComplete')}
               </span>
             </div>
           </div>
@@ -438,8 +442,8 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose, onQue
                 <Loader2 className="h-5 w-5 animate-spin text-foreground" aria-hidden />
               </div>
               <div className="text-center">
-                <p className="text-sm font-medium text-foreground">Loading profile posts</p>
-                <p className="mt-1 text-xs text-muted-foreground">Fetching the first page from Douyin…</p>
+                <p className="text-sm font-medium text-foreground">{t('douyin.loadingPosts')}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{t('douyin.loadingPostsHint')}</p>
               </div>
             </div>
           ) : items.length === 0 ? (
@@ -449,30 +453,30 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose, onQue
                   {error}
                 </div>
               ) : null}
-              <p className="text-sm font-medium text-foreground">No posts found</p>
-              <p className="mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">Try syncing browser cookies in Settings, then open this profile again.</p>
+              <p className="text-sm font-medium text-foreground">{t('douyin.noPosts')}</p>
+              <p className="mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">{t('douyin.noPostsHint')}</p>
             </div>
           ) : (
             <>
               <div className="flex shrink-0 flex-col gap-4 border-b border-divider-subtle pb-4 lg:flex-row lg:items-end lg:justify-between">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-foreground">Choose posts to queue</h3>
+                    <h3 className="text-sm font-semibold text-foreground">{t('douyin.chooseToQueue')}</h3>
                     <span className="rounded-full bg-control px-2 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
-                      {selectedCount} selected
+                      {t('douyin.selectedOf', { selected: selectedCount, total: items.length })}
                     </span>
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">Click to add or remove · Shift-click selects a range · Cmd/Ctrl+A selects all loaded</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{t('douyin.selectHint')}</p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2" aria-label="Selection and loading controls">
+                <div className="flex flex-wrap items-center gap-2" aria-label={t('douyin.selectionControls')}>
                   <button
                     type="button"
                     onClick={selectAll}
                     className="inline-flex min-h-10 items-center gap-2 rounded-button bg-control px-3 text-xs font-semibold text-foreground transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
                   >
                     {selectedCount === items.length ? <CheckSquare className="h-4 w-4" aria-hidden /> : <Square className="h-4 w-4" aria-hidden />}
-                    {selectedCount === items.length ? 'Deselect all' : 'Select all loaded'}
+                    {selectedCount === items.length ? t('douyin.deselectAll') : t('douyin.selectAllLoaded')}
                     <kbd className="hidden rounded bg-surface-hover px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground sm:inline">⌘A</kbd>
                   </button>
                   <button
@@ -485,7 +489,7 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose, onQue
                     )}
                   >
                     {paginationBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : null}
-                    {paginationBusy ? 'Loading…' : 'Load more'}
+                    {paginationBusy ? t('douyin.loading') : t('douyin.loadMore')}
                   </button>
                   <button
                     type="button"
@@ -497,7 +501,7 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose, onQue
                     )}
                   >
                     {loadAllBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : null}
-                    {loadAllBusy ? 'Loading all…' : 'Load all'}
+                    {loadAllBusy ? t('douyin.loadingAll') : t('douyin.loadAll')}
                   </button>
                 </div>
               </div>
@@ -521,7 +525,7 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose, onQue
                       <span>{loadAllNote}</span>
                       {loadAllBusy || browserBusy ? (
                         <button type="button" onClick={cancelActiveLoad} className="shrink-0 font-semibold text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus">
-                          Cancel
+                          {t('common.cancel')}
                         </button>
                       ) : null}
                     </div>
@@ -529,20 +533,20 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose, onQue
                 </div>
               )}
 
-              <div className="mt-4 flex min-h-0 flex-1 flex-col" aria-label="Profile posts">
+              <div className="mt-4 flex min-h-0 flex-1 flex-col" aria-label={t('douyin.profilePosts')}>
                 <div className="flex shrink-0 items-center justify-between gap-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-tertiary-foreground">
-                  <span>Posts</span>
-                  <span className="font-medium tracking-normal">{items.length} loaded</span>
+                  <span>{t('douyin.posts')}</span>
+                  <span className="font-medium tracking-normal">{t('douyin.loadedCount', { count: items.length })}</span>
                 </div>
                 <div className="min-h-0 flex-1 overflow-y-auto rounded-xl bg-background/70 p-1 ring-1 ring-inset ring-divider-subtle">
                   <AnimatedList items={items} getKey={(row) => row.awemeId} animate={items.length <= 200} className="v-divider-y">
                     {(row) => {
                       const isOn = selected.has(row.awemeId)
                       const mediaLabel = row.mediaType === 'gallery'
-                        ? `${row.imageCount ?? 0} images`
+                        ? t('douyin.images', { count: row.imageCount ?? 0 })
                         : row.durationSec != null
                           ? `${row.durationSec}s`
-                          : 'Video'
+                          : t('douyin.video')
                       return (
                         <button
                           type="button"
@@ -594,10 +598,10 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose, onQue
               <div className="mt-4 flex shrink-0 flex-col gap-3 rounded-xl bg-surface/80 px-4 py-3 ring-1 ring-inset ring-divider-subtle sm:flex-row sm:items-center sm:justify-between sm:px-5">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold tabular-nums text-foreground">
-                    {selectedCount === 0 ? 'Nothing selected yet' : `${selectedCount} post${selectedCount === 1 ? '' : 's'} ready`}
+                    {selectedCount === 0 ? t('douyin.nothingSelected') : t(selectedCount === 1 ? 'douyin.postReadyOne' : 'douyin.postsReady', { count: selectedCount })}
                   </p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    {selectedCount === 0 ? 'Select one or more posts to add them to your queue.' : 'Your selection will be added as one profile batch.'}
+                    {selectedCount === 0 ? t('douyin.selectPrompt') : t('douyin.batchHint')}
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center justify-end gap-2">
@@ -606,7 +610,7 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose, onQue
                     onClick={onClose}
                     className="min-h-10 rounded-lg px-3 text-xs font-semibold text-muted-foreground transition-colors hover:bg-control hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
                   >
-                    Cancel
+                    {t('common.cancel')}
                   </button>
                   <button
                     type="button"
@@ -620,7 +624,7 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose, onQue
                     )}
                   >
                     {queueBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <ArrowDownToLine className="h-3.5 w-3.5" aria-hidden />}
-                    {queueBusy ? 'Adding to queue…' : selectedCount === 0 ? 'Select posts' : `Add ${selectedCount} to queue`}
+                    {queueBusy ? t('douyin.adding') : selectedCount === 0 ? t('douyin.selectPosts') : t('douyin.addToQueue', { count: selectedCount })}
                   </button>
                 </div>
               </div>
@@ -631,32 +635,32 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose, onQue
         {!loading && items.length > 0 && (
           <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-divider-subtle bg-window px-5 py-3 sm:px-6">
             <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
-              <span className="truncate">Need more posts?</span>
+              <span className="truncate">{t('douyin.needMore')}</span>
               <button
                 type="button"
                 disabled={pageActionsDisabled}
                 onClick={() => void handleLoadInBrowser()}
-                title="Collect more posts from your logged-in browser tab"
+                title={t('douyin.importTitle')}
                 className={cn(
                   'inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus',
                   pageActionsDisabled ? 'cursor-not-allowed text-muted-foreground/40' : 'text-foreground hover:bg-control'
                 )}
               >
                 <Download className="h-3.5 w-3.5" aria-hidden />
-                Import from logged-in browser
+                {t('douyin.importBrowser')}
               </button>
               <button
                 type="button"
                 disabled={loading}
                 onClick={() => void handleOpenProfileInBrowser()}
-                title="Open this profile in your configured browser"
+                title={t('douyin.openTitle')}
                 className={cn(
                   'inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus',
                   loading ? 'cursor-not-allowed text-muted-foreground/40' : 'text-foreground hover:bg-control'
                 )}
               >
                 <FolderOpen className="h-3.5 w-3.5" aria-hidden />
-                Open manually
+                {t('douyin.openManually')}
               </button>
             </div>
             {loadAllBusy || browserBusy ? (
@@ -665,7 +669,7 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose, onQue
                 onClick={cancelActiveLoad}
                 className="min-h-8 rounded-md px-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-control hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
               >
-                Cancel loading
+                {t('douyin.cancelLoading')}
               </button>
             ) : null}
           </div>

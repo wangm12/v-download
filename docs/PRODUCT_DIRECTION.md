@@ -4,13 +4,12 @@
 
 V-Download will remain a Downie-style downloader as its primary product. The core promise is fast, reliable capture from pasted URLs, the Chrome extension, and Douyin workflows—not a general-purpose media center.
 
-**Shipped today:** the download queue, in-app Preferences, format/collection pickers, and extension page sniffing. There is **no** in-app Library or Sniff workspace (the shell contract tests forbid those nav entries).
+**Shipped today:** the download queue, in-app Preferences, format/collection pickers, Library (completed files on disk), output templates, tray / notifications / login item, Mini window, `en` / `zh-CN` / `zh-TW` chrome, and extension page sniffing. There is **no** in-app Sniff workspace (the shell contract tests forbid that nav entry).
 
 These remain **backlog**, not current UI:
 
-- **Library Phase A** — a completed-download home on top of existing SQLite rows and `downloadDir`, without a second media database.
 - **Sniff (in-app)** — a dedicated session UI for browser-captured resources when yt-dlp cannot resolve a page. Capture today goes through the Chrome extension and the queue.
-- **Native account login**, engine updates, onboarding, and lightweight localization reduce setup and recovery friction.
+- **Native account login polish**, engine updates, and first-run onboarding still have leftover English and setup friction.
 
 ## Why this direction
 
@@ -30,7 +29,7 @@ Keeping the focus also lets the app improve the moment users care about most: ge
 
 Reconsider a media-center pivot only if there is sustained evidence that users primarily return to browse and play an existing collection, rather than capture new media. Useful signals would include repeated Library sessions, requests for playback or metadata management, and a clear target audience for RSS or music workflows.
 
-Until those signals exist, the next investments should deepen the downloader: extension sniff quality, engine freshness, authentication recovery, format/post-processing presets, the Library Phase A backlog, and user-facing output templates.
+Until those signals exist, the next investments should deepen the downloader: extension sniff quality, engine freshness, authentication recovery, and format/post-processing presets.
 
 ## Shipped (from this backlog)
 
@@ -38,19 +37,17 @@ Until those signals exist, the next investments should deepen the downloader: ex
 |------|------------|
 | **MCP facade** — `POST /mcp` and `GET /v1/jobs` on the Remote Job API listener; writes off by default | [REMOTE_JOB_API.md](./REMOTE_JOB_API.md) |
 | **Shared resolve + note.md** — UI paste and Remote API use the same resolver; captions saved as markdown | [REMOTE_JOB_API.md](./REMOTE_JOB_API.md), [MANUAL_TESTING.md](./MANUAL_TESTING.md) |
+| **Library** — sidebar File / Work views over `downloadDir` + existing SQLite rows; Open / Reveal use the OS | [MANUAL_TESTING.md](./MANUAL_TESTING.md) |
+| **Output templates** — `{title}` / `{author}` tokens and optional author folders for yt-dlp and Douyin/XHS | Preferences → Downloads → Save files |
 
-Historical specs: [superpowers/archive/](./superpowers/archive/).
-
-## Open backlog (from better-douyin review)
+## Open backlog
 
 Public [better-douyin](https://github.com/anYuJia/better-douyin) is a Douyin-native desktop shell. Learn **library grouping, archive templates, and local AI control-surface packaging** — not their player, feed, IM, or platform connectors. Do not copy that repository's source (Non-Commercial license) into this MIT project.
 
-| Priority | Item | Spec |
-|----------|------|------|
-| 1 | **Library Phase A** — completed-file home: disk scan + existing SQLite rows; file view / work view; search, filter, page, Reveal, delete, refresh | [2026-08-31-library-phase-a-design.md](superpowers/specs/2026-08-31-library-phase-a-design.md) |
-| 2 | **Output templates** — filename / folder tokens and optional author folders, mapped to yt-dlp `-o` and existing Douyin/XHS sanitizers | [2026-08-31-output-templates-design.md](superpowers/specs/2026-08-31-output-templates-design.md) |
-| Later | **Creator watch list** — save a Douyin profile already listable today; manual “check for new posts” first; conservative caps. No new signing or hidden crawl. | — |
-| Polish | Template / Remote API field-level save feedback | — |
+| Priority | Item |
+|----------|------|
+| Later | **Creator watch list** — save a Douyin profile already listable today; manual “check for new posts” first; conservative caps. No new signing or hidden crawl. |
+| Polish | Template / Remote API field-level save feedback |
 
 Douyin hydration and parser research: [download-reliability.md](./download-reliability.md).
 
@@ -64,3 +61,4 @@ These stay out of scope even if a Douyin client implements them:
 - Replacing Electron with Tauri, or hiding engines behind an open-shell split
 - Completing or translating third-party private platform connectors, signing, or bypass logic
 - A standalone `v-download-cli` — other apps should call the running desktop app on `:18766` ([REMOTE_JOB_API.md](./REMOTE_JOB_API.md))
+- BitTorrent / magnet / DHT / seeding — this is a page-capture downloader, not a general HTTP/BT manager

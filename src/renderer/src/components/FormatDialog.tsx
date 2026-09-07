@@ -5,13 +5,38 @@ import { formatDuration, formatViews } from '@/utils/format'
 import { isDouyinProfileHomeUrl } from '@/utils/douyinBulk'
 import { HoverHintWrap } from './HoverHintWrap'
 import { ThumbnailImage } from './ThumbnailImage'
-import { DEFAULT_INCLUDE_NOTE, INCLUDE_NOTE_CHECKBOX_LABEL, fallbackQuality, formatAccessibleDownloadLabel, getDefaultSelectedKey, getPresentationCandidates, hasOtherFormats } from './formatDialogPresentation'
+import {
+  ADVANCED_DISCLOSURE_LABEL,
+  DEFAULT_INCLUDE_NOTE,
+  INCLUDE_NOTE_CHECKBOX_LABEL,
+  TASK_HEADERS_LABEL,
+  TASK_HEADERS_PLACEHOLDER,
+  TASK_PROXY_LABEL,
+  TASK_PROXY_PLACEHOLDER,
+  fallbackQuality,
+  getDefaultSelectedKey,
+  getPresentationCandidates,
+  hasOtherFormats
+} from './formatDialogPresentation'
+import {
+  applyFolderChange,
+  buildTaskOverridePayload,
+  isAllowedTaskProxyUrl
+} from './taskOverridesPresentation'
+import { useTranslation } from 'react-i18next'
+import type { TaskDownloadOverrides } from './taskOverridesPresentation'
 
 interface FormatDialogProps {
   videoInfo: VideoInfo
   settings: SettingsData
   onClose: () => void
-  onDownload: (url: string, format: string, quality: string, includeNote: boolean) => void
+  onDownload: (
+    url: string,
+    format: string,
+    quality: string,
+    includeNote: boolean,
+    overrides?: TaskDownloadOverrides
+  ) => void
   queueCount?: number
   onSkipAll?: () => void
   /** Opens Preferences → Downloads and prefills the bulk URL field (Douyin profile flows). */
@@ -31,6 +56,7 @@ export function FormatDialog({
   onOpenPreferencesForDouyinBulk,
   siteRule
 }: FormatDialogProps) {
+  const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState<TabType>(siteRule?.format === 'audio' ? 'audio' : 'video')
   const [downloadDir, setDownloadDir] = useState(settings.downloadDir)
   const [bulkNote, setBulkNote] = useState('')
@@ -38,6 +64,9 @@ export function FormatDialog({
   const [queuedKeys, setQueuedKeys] = useState<Set<string>>(new Set())
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
   const [includeNote, setIncludeNote] = useState(DEFAULT_INCLUDE_NOTE)
+  const [taskProxyUrl, setTaskProxyUrl] = useState('')
+  const [extraHeadersText, setExtraHeadersText] = useState('')
+  const [advancedOpen, setAdvancedOpen] = useState(false)
   const dialogRef = useRef<HTMLDivElement>(null)
   const openerRef = useRef<HTMLElement | null>(null)
   useEffect(() => {
@@ -69,14 +98,14 @@ export function FormatDialog({
     : getDefaultSelectedKey(activeFormats)
   const selectedFormat = activeFormats.find((item) => item.key === resolvedSelectedKey) ?? activeFormats[0]
   const formatSize = (bytes?: number, approximate = false) => {
-    if (!bytes || bytes <= 0) return 'Size unknown'
+    if (!bytes || bytes <= 0) return t('format.sizeUnknown')
     const value = bytes >= 1073741824 ? `${(bytes / 1073741824).toFixed(2)} GB` : `${(bytes / 1048576).toFixed(1)} MB`
     return `${approximate ? '≈ ' : ''}${value}`
   }
   const candidateMeta = (f: NonNullable<VideoInfo['formats']>[number], audio: boolean) => {
     const exact = f.filesize && f.filesize > 0
     const size = formatSize(exact ? f.filesize : f.filesize_approx, !exact && Boolean(f.filesize_approx))
-    return [`Source ${(f.container || f.ext || 'stream').toUpperCase()}`, audio ? `${Math.round(f.abr ?? f.bitrate ?? f.tbr ?? 0)} kbps` : (f.width && f.height ? `${f.width}×${f.height}` : f.height ? `${f.height}p` : ''), f.vcodec && f.vcodec !== 'none' ? f.vcodec : '', f.acodec && f.acodec !== 'none' ? f.acodec : '', size].filter(Boolean).join(' · ')
+    return [t('format.source', { container: (f.container || f.ext || 'stream').toUpperCase() }), audio ? `${Math.round(f.abr ?? f.bitrate ?? f.tbr ?? 0)} kbps` : (f.width && f.height ? `${f.width}×${f.height}` : f.height ? `${f.height}p` : ''), f.vcodec && f.vcodec !== 'none' ? f.vcodec : '', f.acodec && f.acodec !== 'none' ? f.acodec : '', size].filter(Boolean).join(' · ')
   }
   const isImageGallery =
     (videoInfo._type === 'douyin_gallery' || videoInfo._type === 'xhs_gallery') &&
@@ -84,7 +113,7 @@ export function FormatDialog({
   const isTextNote = videoInfo._type === 'text'
   const simpleSave = isImageGallery || isTextNote
   const galleryCount = isImageGallery ? videoInfo.image_urls!.length : 0
-  const galleryLabel = videoInfo._type === 'xhs_gallery' ? 'Xiaohongshu' : 'Douyin'
+  const galleryLabel = videoInfo._type === 'xhs_gallery' ? t('format.xiaohongshu') : t('format.douyin')
   const pageUrl = videoInfo.webpage_url || ''
   const showDouyinBulkHint = !simpleSave && isDouyinProfileHomeUrl(pageUrl)
   const bulkConfigured = Boolean(
@@ -94,16 +123,23 @@ export function FormatDialog({
   const handleChangeFolder = async () => {
     if (!window.api) return
     const folder = await window.api.selectDownloadFolder()
-    if (folder) {
-      setDownloadDir(folder)
-      await window.api.updateSettings('downloadDir', folder)
-    }
+    if (!folder) return
+    const next = applyFolderChange(downloadDir, folder)
+    setDownloadDir(next.downloadDir)
   }
+
+  const taskOverrides = (): TaskDownloadOverrides =>
+    buildTaskOverridePayload({
+      downloadDir,
+      settingsDownloadDir: settings.downloadDir,
+      proxyUrl: isAllowedTaskProxyUrl(taskProxyUrl) ? taskProxyUrl : '',
+      extraHeadersText
+    })
 
   const handleDownload = (format: string, quality: number, key: string) => {
     if (queuedKeys.has(key)) return
     const url = videoInfo.webpage_url || `https://www.youtube.com/watch?v=${videoInfo.id}`
-    onDownload(url, format, String(quality), includeNote)
+    onDownload(url, format, String(quality), includeNote, taskOverrides())
     setQueuedKeys((previous) => new Set(previous).add(key))
   }
 
@@ -119,7 +155,7 @@ export function FormatDialog({
         return
       }
       const id = result.data?.id
-      setBulkNote(id ? `Bulk job started (${id}). Open Preferences → Advanced for status.` : 'Bulk job started. Open Preferences → Advanced for status.')
+      setBulkNote(id ? t('format.bulkStartedId', { id }) : t('format.bulkStarted'))
     } catch (err) {
       setBulkNote(err instanceof Error ? err.message : String(err))
     } finally {
@@ -134,9 +170,9 @@ export function FormatDialog({
   }
 
   const tabs: { id: TabType; label: string; icon: typeof Music }[] = [
-    { id: 'audio', label: 'Audio', icon: Music },
-    { id: 'video', label: 'Video', icon: Video },
-    ...(hasOtherFormats(videoInfo.formats) ? [{ id: 'other' as const, label: 'Other', icon: File }] : [])
+    { id: 'audio', label: t('format.audio'), icon: Music },
+    { id: 'video', label: t('format.video'), icon: Video },
+    ...(hasOtherFormats(videoInfo.formats) ? [{ id: 'other' as const, label: t('format.other'), icon: File }] : [])
   ]
 
   return (
@@ -144,11 +180,11 @@ export function FormatDialog({
       <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="format-dialog-title" className="w-full max-w-[520px] max-h-[calc(100vh-24px)] bg-background rounded-panel overflow-hidden shadow-2xl ring-1 ring-inset ring-divider-strong flex flex-col outline-none">
         {/* Header */}
         <div className="bg-elevated p-5 flex gap-3 items-center relative">
-          <HoverHintWrap text="Close" side="bottom" className="absolute top-3 right-3">
+          <HoverHintWrap text={t('format.close')} side="bottom" className="absolute top-3 right-3">
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close"
+              aria-label={t('format.close')}
               className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-control transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
             >
               <X size={16} aria-hidden />
@@ -167,7 +203,7 @@ export function FormatDialog({
               {videoInfo.playlist_count
                 ? <>
                     {videoInfo.channel ? `${videoInfo.channel} · ` : ''}
-                    {videoInfo.playlist_count} videos
+                    {t('collection.loadedEnd', { count: videoInfo.playlist_count })}
                   </>
                 : <>
                     {videoInfo.channel && videoInfo.channel !== videoInfo.title ? videoInfo.channel : ''}
@@ -182,7 +218,7 @@ export function FormatDialog({
 
         {/* Tabs */}
         {!simpleSave && (
-          <div className="flex bg-surface px-5 h-10 items-center gap-0" role="tablist" aria-label="Format type">
+          <div className="flex bg-surface px-5 h-10 items-center gap-0" role="tablist" aria-label={t('format.formatType')}>
             {tabs.map((tab) => {
               const Icon = tab.icon
               const isActive = activeTab === tab.id
@@ -219,9 +255,9 @@ export function FormatDialog({
           {isTextNote ? (
             <div className="py-5 space-y-4">
               <div className="rounded-button bg-control px-4 py-3 ring-1 ring-inset ring-divider-subtle">
-                <p className="text-sm font-medium text-foreground">Text note</p>
+                <p className="text-sm font-medium text-foreground">{t('format.textNote')}</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  This post has no video or images. Check Save caption as Markdown to save the title and caption.
+                  {t('format.textNoteHint')}
                 </p>
               </div>
               <div className="flex justify-end">
@@ -232,16 +268,16 @@ export function FormatDialog({
                   className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-action text-action-fg text-xs font-semibold hover:bg-action-hover disabled:opacity-50 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
                 >
                   <Download size={13} />
-                  Save note
+                  {t('format.saveNote')}
                 </button>
               </div>
             </div>
           ) : isImageGallery ? (
             <div className="py-5 space-y-4">
               <div className="rounded-button bg-control px-4 py-3 ring-1 ring-inset ring-divider-subtle">
-                <p className="text-sm font-medium text-foreground">{galleryLabel} image gallery</p>
+                <p className="text-sm font-medium text-foreground">{t('format.gallery', { site: galleryLabel })}</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  This post contains {galleryCount} image{galleryCount === 1 ? '' : 's'} and will be saved as numbered files.
+                  {t(galleryCount === 1 ? 'format.galleryCountOne' : 'format.galleryCount', { count: galleryCount })}
                 </p>
               </div>
               <div className="flex justify-end">
@@ -251,24 +287,24 @@ export function FormatDialog({
                   className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-action text-action-fg text-xs font-semibold hover:bg-action-hover transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
                 >
                   <Download size={13} />
-                  Download images
+                  {t('format.downloadImages')}
                 </button>
               </div>
             </div>
           ) : (
             <>
               <div className="flex items-center h-9 px-3">
-                <span className="w-[160px] text-xs font-semibold text-muted-foreground">Quality</span>
-                <span className="flex-1 text-xs font-semibold text-muted-foreground">Details</span>
+                <span className="w-[160px] text-xs font-semibold text-muted-foreground">{t('format.quality')}</span>
+                <span className="flex-1 text-xs font-semibold text-muted-foreground">{t('format.details')}</span>
               </div>
               <div className="h-px bg-divider-subtle" />
 
               {activeTab === 'other' ? (
                 <div className="flex items-center justify-center h-24 text-muted-foreground text-sm">
-                  No other formats available
+                  {t('format.other')}
                 </div>
               ) : (
-                <div role="radiogroup" aria-label="Output format">
+                <div role="radiogroup" aria-label={t('format.outputFormat')}>
                 {activeFormats.map((fmt, index) => {
                   const selected = fmt.key === resolvedSelectedKey
                   const audio = activeTab === 'audio'
@@ -278,7 +314,10 @@ export function FormatDialog({
                         type="button"
                         role="radio"
                         aria-checked={selected}
-                        aria-label={formatAccessibleDownloadLabel(fmt, audio ? 'MP3' : 'MP4')}
+                        aria-label={t('format.downloadAria', {
+                          quality: audio ? `${fmt.quality} kbps` : `${fmt.quality}p`,
+                          container: audio ? 'MP3' : 'MP4'
+                        })}
                         onClick={() => setSelectedKey(fmt.key)}
                         className={`flex w-full flex-wrap items-center gap-2 min-h-11 px-3 py-2 text-left rounded-md ${
                           selected ? 'bg-selection ring-1 ring-inset ring-border-strong' : 'hover:bg-control'
@@ -293,14 +332,14 @@ export function FormatDialog({
                           {selected ? <span className="h-2 w-2 rounded-full bg-foreground" /> : null}
                         </span>
                         <span className="min-w-0 flex-1 text-[13px] font-medium text-foreground">
-                          <span className="block">{audio ? `${fmt.quality} kbps · MP3` : `${fmt.quality}p · MP4`}</span>
+                          <span className="block">{t(audio ? 'format.qualityAudio' : 'format.qualityVideo', { quality: fmt.quality })}</span>
                           <span className="block text-xs text-subtle-foreground">
-                            {fmt.kind === 'audio' || fmt.kind === 'video' ? candidateMeta(fmt, audio) : 'Best available'}
+                            {fmt.kind === 'audio' || fmt.kind === 'video' ? candidateMeta(fmt, audio) : t('format.bestAvailable')}
                           </span>
                         </span>
                         {fmt.recommended ? (
-                          <span className="text-[10px] font-semibold uppercase tracking-wide text-foreground" aria-label="Recommended format">
-                            Recommended
+                          <span className="text-[10px] font-semibold uppercase tracking-wide text-foreground" aria-label={t('format.recommended')}>
+                            {t('format.recommended')}
                           </span>
                         ) : null}
                       </button>
@@ -320,16 +359,16 @@ export function FormatDialog({
             onChange={(event) => setIncludeNote(event.target.checked)}
             className="h-3.5 w-3.5 rounded border-border-strong"
           />
-          <span className="text-xs text-foreground">{INCLUDE_NOTE_CHECKBOX_LABEL}</span>
+          <span className="text-xs text-foreground">{t('format.includeNote')}</span>
         </label>
 
         {/* Footer */}
         <div className="shrink-0 border-t border-divider-subtle bg-elevated px-5 pt-4 pb-5 flex flex-col gap-3">
           {showDouyinBulkHint && (
             <div className="border-b border-border pb-3 space-y-2">
-              <p className="text-xs font-medium text-foreground">Douyin profile URL</p>
+              <p className="text-xs font-medium text-foreground">{t('format.douyinProfile')}</p>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                This page looks like a creator profile. Use the external douyin-downloader for multi-post bulk; single-post queue download uses Download selected below.
+                {t('format.douyinProfileHint')}
               </p>
               <div className="flex flex-wrap gap-2">
                 {bulkConfigured ? (
@@ -339,7 +378,7 @@ export function FormatDialog({
                     onClick={() => void handleStartDouyinBulkFromDialog()}
                     className="px-3 py-1.5 rounded-lg border border-border bg-raised text-xs font-medium text-foreground hover:bg-control disabled:opacity-50"
                   >
-                    {bulkBusy ? 'Starting…' : 'Bulk download profile'}
+                    {bulkBusy ? t('format.bulkStarting') : t('format.bulkStart')}
                   </button>
                 ) : null}
                 {onOpenPreferencesForDouyinBulk ? (
@@ -348,7 +387,7 @@ export function FormatDialog({
                     onClick={handleOpenBulkPreferences}
                     className="px-3 py-1.5 rounded-lg border border-border bg-raised text-xs font-medium text-foreground hover:bg-control"
                   >
-                    {bulkConfigured ? 'Open download settings' : 'Configure in download settings'}
+                    {bulkConfigured ? t('format.openDownloadSettings') : t('format.configureBulk')}
                   </button>
                 ) : null}
               </div>
@@ -365,7 +404,7 @@ export function FormatDialog({
                   onClick={handleChangeFolder}
                   className="text-xs font-medium text-foreground hover:underline flex-shrink-0"
                 >
-                  Change
+                  {t('format.change')}
                 </button>
               </div>
               <button
@@ -375,7 +414,7 @@ export function FormatDialog({
                 className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-action text-action-fg text-xs font-semibold hover:bg-action-hover disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
               >
                 <Download size={13} />
-                <span aria-live="polite">{selectedFormat && queuedKeys.has(selectedFormat.key) ? 'Added' : 'Download selected'}</span>
+                <span aria-live="polite">{selectedFormat && queuedKeys.has(selectedFormat.key) ? t('format.added') : t('format.downloadSelected')}</span>
               </button>
             </div>
           ) : (
@@ -387,21 +426,60 @@ export function FormatDialog({
                 onClick={handleChangeFolder}
                 className="text-xs font-medium text-foreground hover:underline flex-shrink-0"
               >
-                Change
+                {t('format.change')}
               </button>
             </div>
           )}
+          <details
+            className="rounded-lg bg-control/60 ring-1 ring-inset ring-divider-subtle"
+            open={advancedOpen}
+            onToggle={(event) => setAdvancedOpen((event.currentTarget as HTMLDetailsElement).open)}
+          >
+            <summary className="cursor-pointer select-none px-3 py-2 text-xs font-semibold text-foreground">
+              {t('format.advanced')}
+            </summary>
+            <div className="space-y-3 border-t border-divider-subtle px-3 py-3">
+              <label className="block space-y-1">
+                <span className="text-xs font-medium text-foreground">{t('format.taskProxy')}</span>
+                <input
+                  type="url"
+                  value={taskProxyUrl}
+                  onChange={(event) => setTaskProxyUrl(event.target.value)}
+                  placeholder={TASK_PROXY_PLACEHOLDER}
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="min-h-11 w-full rounded-lg bg-raised px-3 text-[13px] text-foreground ring-1 ring-inset ring-divider-subtle outline-none placeholder:text-tertiary-foreground focus:ring-2 focus:ring-border-focus"
+                />
+                {taskProxyUrl.trim() && !isAllowedTaskProxyUrl(taskProxyUrl) ? (
+                  <span className="block text-[11px] text-error">{t('format.proxyInvalid')}</span>
+                ) : (
+                  <span className="block text-[11px] text-muted-foreground">{t('format.proxyEmptyHint')}</span>
+                )}
+              </label>
+              <label className="block space-y-1">
+                <span className="text-xs font-medium text-foreground">{t('format.taskHeaders')}</span>
+                <textarea
+                  value={extraHeadersText}
+                  onChange={(event) => setExtraHeadersText(event.target.value)}
+                  placeholder={TASK_HEADERS_PLACEHOLDER}
+                  rows={3}
+                  spellCheck={false}
+                  className="w-full rounded-lg bg-raised px-3 py-2 text-[13px] text-foreground ring-1 ring-inset ring-divider-subtle outline-none placeholder:text-tertiary-foreground focus:ring-2 focus:ring-border-focus"
+                />
+              </label>
+            </div>
+          </details>
           {queueCount > 0 && (
             <div className="flex items-center justify-between">
               <span className="text-[13px] font-medium text-foreground">
-                +{queueCount} more video{queueCount > 1 ? 's' : ''} queued
+                {t(queueCount === 1 ? 'format.moreQueued' : 'format.moreQueuedPlural', { count: queueCount })}
               </span>
               {onSkipAll && (
                 <button
                   onClick={onSkipAll}
                   className="text-[13px] font-medium text-muted-foreground hover:text-foreground hover:underline"
                 >
-                  Skip All
+                  {t('format.skipAll')}
                 </button>
               )}
             </div>

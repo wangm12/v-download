@@ -12,6 +12,8 @@ import { LOCAL_SERVER_PORT } from '../localServer'
 import { beginDouyinProfileExtensionRequest } from '../douyinProfileExtension'
 import { openUrlInConfiguredBrowser } from '../openUrlInBrowser'
 import { getTranscodePreset, type TranscodePresetId } from '../transcodeModel'
+import { localizeQueueNotice } from '../mediaIdentity'
+import { getUiLanguage } from '../uiLanguage'
 
 const profileListAbortControllers = new Map<string, AbortController>()
 
@@ -66,7 +68,7 @@ export function registerDownloadHandlers(): void {
           return {
             data: task,
             outcome: admitted.outcome,
-            notice: { tone: 'neutral', message: 'Already resolving.', actions: [] }
+            notice: localizeQueueNotice({ tone: 'neutral', message: 'admit.alreadyResolving', actions: [] }, getUiLanguage())
           }
         }
       }
@@ -110,6 +112,8 @@ export function registerDownloadHandlers(): void {
     mediaType?: string
     referer?: string
     customHeaders?: Record<string, string>
+    outputDir?: string
+    proxyUrl?: string
   }) => {
     try {
       if (!payload || typeof payload.id !== 'string' || typeof payload.format !== 'string') {
@@ -195,6 +199,7 @@ export function registerDownloadHandlers(): void {
     mediaType?: string
     referer?: string
     customHeaders?: Record<string, string>
+    proxyUrl?: string
     candidates?: Array<Record<string, unknown>>
     forceNew?: boolean
   }) => {

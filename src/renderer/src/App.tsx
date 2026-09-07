@@ -8,6 +8,8 @@ import { CollectionPickerDialog } from '@/components/CollectionPickerDialog'
 import { ClearDialog } from '@/components/ClearDialog'
 import { DeleteSelectionDialog } from '@/components/DeleteSelectionDialog'
 import { PreferencesPanel } from '@/components/PreferencesPanel'
+import { LibraryView } from '@/components/LibraryView'
+import { CompactView } from '@/components/CompactView'
 import { OnboardingWizard } from '@/components/OnboardingWizard'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { DownloadActionsProvider } from '@/contexts/DownloadActionsContext'
@@ -52,9 +54,17 @@ import { useThrottledValue } from '@/hooks/useThrottledValue'
 import { useThemePreference } from '@/hooks/useThemePreference'
 import { cn } from '@/lib/cn'
 import type { PrefSection } from '@/preferencesNav'
+import { useTranslation } from 'react-i18next'
 import { EmptyState, StatusBlock } from '@/components/ui'
 
 export default function App() {
+  if (typeof window !== 'undefined' && window.location.hash === '#/compact') {
+    return (
+      <ErrorBoundary>
+        <CompactView />
+      </ErrorBoundary>
+    )
+  }
   return (
     <ErrorBoundary>
       <MainApp />
@@ -62,7 +72,7 @@ export default function App() {
   )
 }
 
-type MainView = 'downloads' | 'preferences'
+type MainView = 'downloads' | 'library' | 'preferences'
 
 function readSettingsHash(): MainView {
   return window.location.hash === '#/settings' ? 'preferences' : 'downloads'
@@ -76,6 +86,7 @@ function normalizeSettingsHash(): void {
 
 const LS_LEFT_SIDEBAR = 'v-download:ui:left-sidebar-collapsed'
 const LS_RIGHT_INSPECTOR = 'v-download:ui:right-inspector-collapsed'
+const SESSION_INTERRUPTED_DISMISS_KEY = 'v-download:session-interrupted-dismissed'
 const RESUMABLE_STATUSES = new Set(['paused', 'interrupted', 'error', 'queued'])
 function readCollapsedFromStorage(key: string): boolean {
   try {
@@ -104,7 +115,28 @@ type CookieSyncBanner =
       detail?: string
     }
 
+function sessionInterruptedDismissToken(ids: string[]): string {
+  return ids.join('\0')
+}
+
+function wasSessionInterruptedDismissed(ids: string[]): boolean {
+  try {
+    return sessionStorage.getItem(SESSION_INTERRUPTED_DISMISS_KEY) === sessionInterruptedDismissToken(ids)
+  } catch {
+    return false
+  }
+}
+
+function persistSessionInterruptedDismiss(ids: string[]): void {
+  try {
+    sessionStorage.setItem(SESSION_INTERRUPTED_DISMISS_KEY, sessionInterruptedDismissToken(ids))
+  } catch {
+    /* ignore quota / private-mode */
+  }
+}
+
 function MainApp() {
+  const { t } = useTranslation()
   const [mainView, setMainView] = useState<MainView>(readSettingsHash)
   const [prefSection, setPrefSection] = useState<PrefSection>('general')
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(() =>
@@ -152,6 +184,7 @@ function MainApp() {
   const [showClearDialog, setShowClearDialog] = useState(false)
   const [pendingDeleteIds, setPendingDeleteIds] = useState<string[] | null>(null)
   const [cookieSyncBanner, setCookieSyncBanner] = useState<CookieSyncBanner>(null)
+  const [sessionInterrupted, setSessionInterrupted] = useState<{ count: number; ids: string[] } | null>(null)
   const cookieSyncWaitRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const cookieSyncDismissRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const cookieSyncSessionRef = useRef(false)
@@ -279,13 +312,13 @@ function MainApp() {
       clearCookieSyncTimers()
       setCookieSyncBanner({
         kind: 'ok',
-        title: 'Cookies saved',
-        detail: `Chrome sent ${data.count} cookie entries. You can retry your download now.`
+        title: t('banner.cookiesSaved'),
+        detail: t('banner.cookiesSavedDetail', { count: data.count })
       })
       scheduleBannerDismiss(6000)
     })
     return unsub
-  }, [loadSettings, clearCookieSyncTimers, scheduleBannerDismiss])
+  }, [loadSettings, clearCookieSyncTimers, scheduleBannerDismiss, t])
 
   const handleBrowserCookieSync = useCallback(async () => {
     if (!window.api?.requestBrowserCookieSync || cookieSyncInFlightRef.current) return
@@ -294,8 +327,8 @@ function MainApp() {
     cookieSyncSessionRef.current = true
     setCookieSyncBanner({
       kind: 'progress',
-      title: 'Syncing cookies…',
-      detail: 'Opening your browser and contacting the V-Download extension.'
+      title: t('banner.syncing'),
+      detail: t('banner.syncingDetail')
     })
 
     try {
@@ -306,11 +339,10 @@ function MainApp() {
       }
       setCookieSyncBanner({
         kind: 'wait',
-        title: 'Waiting for Chrome',
+        title: t('banner.waitingChrome'),
         detail: res.openedBrowser
-          ? 'Switch to the new tab — it should show “Saved” when finished. If the tab opened in a browser that is not Chrome, copy http://127.0.0.1:18765/cookie-sync-landing into Chrome. Keep V-Download running (we wait up to ~2 min for the extension’s background sync).'
-          : res.message ||
-            'Open http://127.0.0.1:18765/cookie-sync-landing in Chrome with the V-Download extension, or leave Chrome open — background sync can take up to about 2 minutes.'
+          ? t('banner.waitingChromeOpened')
+          : res.message || t('banner.waitingChromeManual')
       })
       cookieSyncWaitRef.current = window.setTimeout(() => {
         cookieSyncWaitRef.current = null
@@ -319,9 +351,8 @@ function MainApp() {
         cookieSyncInFlightRef.current = false
         setCookieSyncBanner({
           kind: 'warn',
-          title: 'Still no cookies from Chrome',
-          detail:
-            'Open http://127.0.0.1:18765/cookie-sync-landing in Chrome (with the V-Download extension). If your default browser is not Chrome, the first tab may be the wrong app. Then browse the site you need (e.g. Douyin) and click Sync cookies again.'
+          title: t('banner.stillNoCookies'),
+          detail: t('banner.stillNoCookiesDetail')
         })
       }, 125000)
     } catch (err) {
@@ -330,11 +361,11 @@ function MainApp() {
       clearCookieSyncTimers()
       setCookieSyncBanner({
         kind: 'warn',
-        title: 'Could not start sync',
+        title: t('banner.couldNotStart'),
         detail: err instanceof Error ? err.message : String(err)
       })
     }
-  }, [clearCookieSyncTimers])
+  }, [clearCookieSyncTimers, t])
 
   const cookieSyncBusy =
     cookieSyncBanner?.kind === 'progress' || cookieSyncBanner?.kind === 'wait'
@@ -352,8 +383,19 @@ function MainApp() {
   }, [handleExternalUrl])
 
   const handleDownload = useCallback(
-    async (_url: string, format: string, quality: string, includeNote = true) => {
+    async (
+      _url: string,
+      format: string,
+      quality: string,
+      includeNote = true,
+      overrides?: { outputDir?: string; proxyUrl?: string; customHeaders?: Record<string, string> }
+    ) => {
       if (!window.api) return
+      const taskFields = {
+        ...(overrides?.outputDir ? { outputDir: overrides.outputDir } : {}),
+        ...(overrides?.proxyUrl ? { proxyUrl: overrides.proxyUrl } : {}),
+        ...(overrides?.customHeaders ? { customHeaders: overrides.customHeaders } : {})
+      }
 
       let consumeResolver = true
       try {
@@ -372,6 +414,7 @@ function MainApp() {
             quality,
             thumbnail: pendingVideoInfo.thumbnail,
             duration: pendingVideoInfo.duration,
+            ...taskFields,
             metadata: withIncludeNote(
               isGallery
                 ? { [imageMetaKey]: imgs, channel: pendingVideoInfo.channel ?? '', ...noteMeta }
@@ -399,6 +442,7 @@ function MainApp() {
               thumbnail: pendingEntries[0]?.thumbnail,
               duration: pendingEntries[0]?.duration ?? 0,
               playlistId: playlistTitle,
+              ...taskFields,
               metadata: withIncludeNote({
                 nativeYoutubePlaylist: true,
                 channel: pendingEntries[0]?.channel ?? ''
@@ -418,6 +462,7 @@ function MainApp() {
                 playlistId: playlistTitle,
                 playlistIndex: i,
                 playlistTitle,
+                ...taskFields,
                 metadata: entry.id ? { ytdlpId: entry.id } : undefined
               })
             }
@@ -439,6 +484,7 @@ function MainApp() {
             quality,
             thumbnail: pendingVideoInfo?.thumbnail,
             duration: pendingVideoInfo?.duration,
+            ...taskFields,
             metadata: withIncludeNote(
               isGallery
                 ? {
@@ -483,6 +529,17 @@ function MainApp() {
       refreshDownloads()
     }
   }, [refreshDownloads])
+
+  const dismissSessionInterruptedBanner = useCallback((ids: string[]) => {
+    persistSessionInterruptedDismiss(ids)
+    setSessionInterrupted(null)
+  }, [])
+
+  const handleResumeSessionInterrupted = useCallback(async () => {
+    const ids = sessionInterrupted?.ids ?? []
+    await handleResumeAll()
+    dismissSessionInterruptedBanner(ids)
+  }, [dismissSessionInterruptedBanner, handleResumeAll, sessionInterrupted])
 
   const handlePauseAll = useCallback(async () => {
     if (window.api) {
@@ -678,7 +735,10 @@ function MainApp() {
     return { completeCount, hasResumable, hasActive, totalSpeedBytes }
   }, [downloads])
   const { completeCount, hasResumable, hasActive, totalSpeedBytes } = queueSummary
-  const statusText = `${downloads.length} Download${downloads.length !== 1 ? 's' : ''} · ${completeCount} Complete`
+  const statusText = t(downloads.length === 1 ? 'bottomBar.statusOne' : 'bottomBar.status', {
+    downloads: downloads.length,
+    complete: completeCount
+  })
   const rawTotalSpeed = totalSpeedBytes > 0 ? formatSpeed(totalSpeedBytes) : null
   const totalSpeed = useThrottledValue(rawTotalSpeed, 2000)
 
@@ -700,6 +760,39 @@ function MainApp() {
     setFocusedId(focusTaskId)
   }, [focusTaskId, focusNonce])
 
+  useEffect(() => {
+    if (!window.api?.onSessionInterrupted) return
+    const unsub = window.api.onSessionInterrupted((payload) => {
+      if (payload.count === 0) return
+      if (wasSessionInterruptedDismissed(payload.ids)) return
+      setSessionInterrupted(payload)
+    })
+    return unsub
+  }, [])
+
+  useEffect(() => {
+    if (!window.api?.onFocusDownload) return
+    const unsub = window.api.onFocusDownload((payload) => {
+      const id = typeof payload?.id === 'string' ? payload.id.trim() : ''
+      if (!id) return
+      setMainView('downloads')
+      const playlist = groupedRef.current.find((item) => (
+        'downloads' in item && item.downloads?.some((download) => download.id === id)
+      ))
+      if (playlist && 'downloads' in playlist) {
+        setPlaylistViewStates((previous) => ({
+          ...previous,
+          [playlist.id]: { expanded: true, showAll: true }
+        }))
+      }
+      setSelectedIds(new Set([id]))
+      setSelectionAnchorId(id)
+      setFocusedId(id)
+      setRightInspectorCollapsed(false)
+    })
+    return unsub
+  }, [])
+
   const onDropUrl = useCallback(
     (url: string) => {
       void handleExternalUrl(url)
@@ -708,6 +801,7 @@ function MainApp() {
   )
 
   const preferencesMode = mainView === 'preferences'
+  const libraryMode = mainView === 'library'
   const trafficInset = typeof window !== 'undefined' && window.api?.platform === 'darwin'
 
   return (
@@ -720,9 +814,9 @@ function MainApp() {
     >
       <div className="flex h-screen min-h-0 min-w-0 w-full flex-col bg-background text-foreground">
         <TitleBar
-          title={preferencesMode ? 'Preferences' : 'V-Download'}
+          title={preferencesMode ? t('prefs.heading') : libraryMode ? t('nav.library') : 'V-Download'}
           trafficInset={trafficInset}
-          showInspectorToggle={!preferencesMode}
+          showInspectorToggle={!preferencesMode && !libraryMode}
           inspectorAvailable={selectedIds.size === 1 && Boolean(selectedDownload)}
           inspectorCollapsed={rightInspectorCollapsed}
           onToggleInspector={() => setRightInspectorCollapsed((c) => !c)}
@@ -757,12 +851,12 @@ function MainApp() {
                 <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{cookieSyncBanner.detail}</p>
               )}
             </div>
-            <HoverHintWrap text="Dismiss cookie sync message" side="bottom">
+            <HoverHintWrap text={t('queue.cookieDismiss')} side="bottom">
               <button
                 type="button"
                 className="shrink-0 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-control transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
                 onClick={dismissCookieSyncBanner}
-                aria-label="Dismiss cookie sync message"
+                aria-label={t('queue.cookieDismiss')}
               >
                 <X className="w-4 h-4" aria-hidden />
               </button>
@@ -777,6 +871,7 @@ function MainApp() {
             mainView={mainView}
             prefSection={prefSection}
             onSelectQueue={() => setMainView('downloads')}
+            onSelectLibrary={() => setMainView('library')}
             onSelectPrefSection={(id) => {
               setMainView('preferences')
               setPrefSection(id)
@@ -784,7 +879,13 @@ function MainApp() {
           />
 
           {preferencesMode ? (
-            <PreferencesPanel section={prefSection} />
+            <PreferencesPanel
+              section={prefSection}
+              themePreference={themePreference}
+              onThemePreference={setThemePreference}
+            />
+          ) : libraryMode ? (
+            <LibraryView />
           ) : (
             <div className="relative flex min-h-0 min-w-0 flex-1 flex-row overflow-hidden">
               <div
@@ -793,6 +894,36 @@ function MainApp() {
                   selectedIds.size === 1 && selectedDownload && !rightInspectorCollapsed && 'border-r border-border'
                 )}
               >
+                {sessionInterrupted && sessionInterrupted.count > 0 && (
+                  <div
+                    className="flex-shrink-0 flex items-start gap-3 px-4 py-3 border-b border-divider-subtle bg-state-warning-bg"
+                    style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+                    role="status"
+                  >
+                    <Info className="w-5 h-5 shrink-0 mt-0.5 text-foreground" aria-hidden />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground">
+                        {t('queue.interrupted', { count: sessionInterrupted.count })}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <button
+                        type="button"
+                        className="min-h-8 rounded-button bg-action px-3 text-xs font-medium text-action-fg hover:bg-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+                        onClick={() => void handleResumeSessionInterrupted()}
+                      >
+                        {t('queue.resumeAll')}
+                      </button>
+                      <button
+                        type="button"
+                        className="min-h-8 rounded-button px-3 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+                        onClick={() => dismissSessionInterruptedBanner(sessionInterrupted.ids)}
+                      >
+                        {t('queue.dismiss')}
+                      </button>
+                    </div>
+                  </div>
+                )}
                 <QueueToolbar
                   searchQuery={searchQuery}
                   onSearchQuery={setSearchQuery}
@@ -821,7 +952,7 @@ function MainApp() {
                             className="shrink-0 font-medium text-foreground underline underline-offset-2"
                             onClick={() => void window.api?.openFileLocation(queueNotice.filePath!)}
                           >
-                            Show in folder
+                            {t('queue.showInFolder')}
                           </button>
                         ) : null}
                         {queueNotice.actions.includes('download-again') && queueNotice.taskId ? (
@@ -833,14 +964,14 @@ function MainApp() {
                               if (row) void downloadAgain(row)
                             }}
                           >
-                            Download again
+                            {t('queue.downloadAgain')}
                           </button>
                         ) : null}
                         <button
                           type="button"
                           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
                           onClick={clearQueueNotice}
-                          aria-label="Dismiss"
+                          aria-label={t('common.dismiss')}
                         >
                           <X className="h-3.5 w-3.5" />
                         </button>
@@ -856,36 +987,36 @@ function MainApp() {
                   {emptyKind === 'ready' ? (
                     <EmptyState
                       className="flex-1"
-                      title="Your queue is ready"
-                      description="Paste a URL with Cmd+V, drop a link here, or use the browser companion for logged-in pages."
+                      title={t('queue.emptyReadyTitle')}
+                      description={t('queue.emptyReadyDescription')}
                     />
                   ) : emptyKind === 'noSearchMatches' ? (
                     <EmptyState
                       className="flex-1"
-                      title={`No downloads match “${searchQuery.trim()}”`}
-                      description="Try another title, URL, or clear the search to see the full queue."
+                      title={t('queue.emptySearchTitle', { query: searchQuery.trim() })}
+                      description={t('queue.emptySearchDescription')}
                       action={
                         <button
                           type="button"
                           onClick={() => setSearchQuery('')}
                           className="min-h-10 rounded-button bg-action px-4 text-sm font-medium text-action-fg hover:bg-action-hover"
                         >
-                          Clear search
+                          {t('queue.clearSearch')}
                         </button>
                       }
                     />
                   ) : emptyKind === 'noFilterMatches' ? (
                     <EmptyState
                       className="flex-1"
-                      title="No items in this view"
-                      description="This filter has no matching downloads right now."
+                      title={t('queue.emptyFilterTitle')}
+                      description={t('queue.emptyFilterDescription')}
                       action={
                         <button
                           type="button"
                           onClick={() => setQueueFilter('all')}
                           className="min-h-10 rounded-button bg-action px-4 text-sm font-medium text-action-fg hover:bg-action-hover"
                         >
-                          Show all
+                          {t('queue.showAll')}
                         </button>
                       }
                     />

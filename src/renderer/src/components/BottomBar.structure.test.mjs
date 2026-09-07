@@ -9,7 +9,7 @@ if (/onSettings|Settings|settings/i.test(source)) {
   throw new Error('BottomBar must not expose a duplicate Settings control')
 }
 
-for (const label of ['Start all downloads', 'Pause all downloads', 'Clear downloads', 'Sync cookies']) {
+for (const label of ["t('queue.startAll')", "t('queue.pauseAll')", "t('queue.clearDownloads')", "t('queue.syncCookies')"]) {
   if (!source.includes(label)) throw new Error(`BottomBar is missing queue/cookie label: ${label}`)
 }
 

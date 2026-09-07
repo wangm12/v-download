@@ -8,7 +8,7 @@ Shared layer between the **Electron app** (`src/main`, preload, renderer) and th
 |--------|-----------|---------|
 | `buildNetscapeCookieFile`, `toNetscapeLine`, `ChromeSyncedCookie` | `localServer`, `nativeAuth` | Netscape cookie file from extension / login JSON |
 | `COOKIE_SYNC_DOMAINS` | Generated extension script, `securityValidation` | One list of synced cookie domains |
-| `DownloadErrorCode`, `DownloadRecoveryAction`, `DOWNLOAD_ERROR_ACTIONS` | Renderer inspector, shared type contracts | Recovery mapping for failed downloads |
+| `DownloadErrorCode`, `DownloadRecoveryAction` | Renderer inspector, shared type contracts | Recovery mapping for failed downloads |
 | `getQueueConcurrencyPolicy`, `QueueSpeedMode` | Settings, grouped queue, Preferences | Balanced / Turbo / Gentle task caps |
 | `MediaCandidate`, `StartDownloadOptions`, `AppResult` | Preload + media resolver | Download start / resolve IPC shapes |
 

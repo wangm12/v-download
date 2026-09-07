@@ -7,6 +7,7 @@ import { shouldOpenCollectionPicker } from '@/utils/collectionPicker'
 import { normalizeThumbnailUrl } from '@/utils/thumbnail'
 import { noteMetadataFromVideoInfo, withIncludeNote } from '@/utils/noteMetadata'
 import { shouldPromptFormatDialog } from '@/components/formatDialogPresentation'
+import { useTranslation } from 'react-i18next'
 
 interface PendingPlaylistMeta {
   title?: string
@@ -87,6 +88,7 @@ function taskFromAdmit(data: unknown): { id?: string; filePath?: string | null }
 }
 
 export function useUrlHandler(settings: SettingsData) {
+  const { t } = useTranslation()
   const siteDefaults = useCallback((url: string) => {
     try {
       const hostname = new URL(url).hostname.toLowerCase()
@@ -325,7 +327,7 @@ export function useUrlHandler(settings: SettingsData) {
 
   const handleUrl = useCallback(async (rawUrl: string, meta?: UrlMeta) => {
     if (!window.api) {
-      setErrorMsg('App API not available')
+      setErrorMsg(t('url.apiUnavailable'))
       return
     }
     const url = rawUrl.trim()
@@ -385,7 +387,7 @@ export function useUrlHandler(settings: SettingsData) {
       forceNew: meta?.forceNew
     })
     applyAdmitResponse(response)
-  }, [applyAdmitResponse, settings.defaultVideoQuality, siteDefaults])
+  }, [applyAdmitResponse, settings.defaultVideoQuality, siteDefaults, t])
 
   const downloadAgain = useCallback(async (download: Pick<Download, 'id'>) => {
     if (!window.api?.downloadAgain) return
@@ -412,11 +414,11 @@ export function useUrlHandler(settings: SettingsData) {
     const text = await window.api.readClipboard()
     const url = extractUrlFromClipboard(text)
     if (!url) {
-      if (text.trim()) setErrorMsg('No http(s) link found in clipboard')
+      if (text.trim()) setErrorMsg(t('url.noLinkInClipboard'))
       return
     }
     await handleUrl(url)
-  }, [handleUrl])
+  }, [handleUrl, t])
 
   const handleExternalUrl = useCallback(async (rawUrl: string) => {
     let url = rawUrl

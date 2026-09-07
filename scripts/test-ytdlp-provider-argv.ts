@@ -3,7 +3,8 @@ import { readFile } from 'node:fs/promises'
 import {
   YOUTUBE_COOKIE_PLAYER_CLIENT_ARGS,
   appendYoutubeYtdlpArgs,
-  isYoutubePageReloadError
+  isYoutubePageReloadError,
+  resolveYtdlpOutputFilename
 } from '../src/main/ytdlp'
 
 async function main(): Promise<void> {
@@ -46,6 +47,29 @@ assert.equal(
   true
 )
 assert.equal(isYoutubePageReloadError('HTTP Error 404: Not Found'), false)
+
+assert.equal((source.match(/'-o'/g) ?? []).length, 1, 'download argv must contain exactly one -o')
+assert.match(source, /resolveYtdlpOutputFilename\(/)
+assert.equal(
+  resolveYtdlpOutputFilename({ filenameTemplate: '{title} [{id}]' }),
+  '%(title).200B [%(id)s].%(ext)s'
+)
+assert.equal(
+  resolveYtdlpOutputFilename({
+    filenameTemplate: '{title} [{id}]',
+    isPlaylist: true,
+    playlistTitle: 'Uploads'
+  }),
+  '%(playlist_index)03d - %(title).200B [%(id)s].%(ext)s'
+)
+assert.equal(
+  resolveYtdlpOutputFilename({ outputTitle: 'Clip/Name' }),
+  'Clip-Name.%(ext)s'
+)
+assert.equal(
+  resolveYtdlpOutputFilename({ filenameTemplate: '{author}/{title} [{id}]' }),
+  '%(uploader)s/%(title).200B [%(id)s].%(ext)s'
+)
 
 console.log('yt-dlp provider argv wiring assertions passed')
 }

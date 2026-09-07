@@ -1,5 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { StartDownloadOptions } from '@v-download/shared'
+import { parseSessionInterrupted } from './sessionInterrupted'
+
+let lastSessionInterrupted: { count: number; ids: string[] } | null = null
+ipcRenderer.on('session-interrupted', (_event, payload: unknown) => {
+  const parsed = parseSessionInterrupted(payload)
+  if (parsed) lastSessionInterrupted = parsed
+})
 
 const api = {
   startInfoResolve: (options: {
@@ -27,6 +34,8 @@ const api = {
     mediaType?: string
     referer?: string
     customHeaders?: Record<string, string>
+    outputDir?: string
+    proxyUrl?: string
   }) => ipcRenderer.invoke('promote-info-resolve', options),
   markInfoResolveReady: (options: { id: string; title?: string; thumbnail?: string | null; duration?: number | null }) =>
     ipcRenderer.invoke('mark-info-resolve-ready', options),
@@ -47,9 +56,30 @@ const api = {
   getDownloads: () => ipcRenderer.invoke('get-downloads'),
   resumeAll: () => ipcRenderer.invoke('resume-all'),
   pauseAll: () => ipcRenderer.invoke('pause-all'),
+  showMainWindow: () => ipcRenderer.invoke('show-main-window'),
   clearDownloads: (mode: string) => ipcRenderer.invoke('clear-downloads', mode),
   openFileLocation: (path: string) => ipcRenderer.invoke('open-file-location', path),
   openFile: (path: string) => ipcRenderer.invoke('open-file', path),
+  listLibraryFiles: (query: {
+    offset?: number
+    limit?: number
+    query?: string
+    mediaType?: 'all' | 'video' | 'image' | 'audio'
+    sortBy?: 'date' | 'size'
+    sortDir?: 'desc' | 'asc'
+    forceRefresh?: boolean
+  }) => ipcRenderer.invoke('library-list-files', query),
+  listLibraryWorks: (query: {
+    offset?: number
+    limit?: number
+    query?: string
+    mediaType?: 'all' | 'video' | 'image' | 'audio'
+    sortBy?: 'date' | 'size'
+    sortDir?: 'desc' | 'asc'
+    forceRefresh?: boolean
+  }) => ipcRenderer.invoke('library-list-works', query),
+  deleteLibraryPaths: (paths: string[], recordIds?: string[]) =>
+    ipcRenderer.invoke('library-delete-paths', { paths, recordIds }),
   getSettings: () => ipcRenderer.invoke('get-settings'),
   updateSettings: (key: string, value: unknown) => ipcRenderer.invoke('update-settings', key, value),
   getRemoteMcpLogs: (limit?: number) => ipcRenderer.invoke('get-remote-mcp-logs', limit),
@@ -123,6 +153,25 @@ const api = {
     const sub = (_event: Electron.IpcRendererEvent, url: string) => callback(url)
     ipcRenderer.on('ytdl-url', sub)
     return () => ipcRenderer.removeListener('ytdl-url', sub)
+  },
+  onFocusDownload: (callback: (payload: { id: string }) => void) => {
+    const sub = (_event: Electron.IpcRendererEvent, payload: { id: string }) => callback(payload)
+    ipcRenderer.on('focus-download', sub)
+    return () => ipcRenderer.removeListener('focus-download', sub)
+  },
+  onSessionInterrupted: (callback: (payload: { count: number; ids: string[] }) => void) => {
+    const sub = (_event: Electron.IpcRendererEvent, payload: unknown) => {
+      const parsed = parseSessionInterrupted(payload)
+      if (!parsed) return
+      lastSessionInterrupted = parsed
+      callback(parsed)
+    }
+    ipcRenderer.on('session-interrupted', sub)
+    if (lastSessionInterrupted) {
+      const snapshot = lastSessionInterrupted
+      queueMicrotask(() => callback(snapshot))
+    }
+    return () => ipcRenderer.removeListener('session-interrupted', sub)
   },
   douyinProfileListPosts: (
     profileUrl: string,

@@ -72,6 +72,9 @@ export interface SettingsData {
   concurrency: number
   showFormatDialog: boolean
   playlistSubfolder: boolean
+  filenameTemplate?: string
+  folderNameTemplate?: string
+  archiveByAuthor?: boolean
   defaultVideoQuality: string
   defaultAudioQuality: string
   sleepInterval: number
@@ -107,6 +110,11 @@ export interface SettingsData {
   ytdlpExternalDownloader?: string
   siteRules?: SiteRule[]
   proxyUrl?: string
+  launchAtStartup?: boolean
+  notifyOnComplete?: boolean
+  notifyOnError?: boolean
+  warnBeforeQuit?: boolean
+  showTray?: boolean
   onboardingCompleted?: boolean
   remoteApiEnabled?: boolean
   remoteApiToken?: string
@@ -114,6 +122,7 @@ export interface SettingsData {
   remoteApiPort?: number
   remoteApiMcpAllowWrite?: boolean
   remoteApiMcpRequireConfirm?: boolean
+  uiLanguage?: 'system' | 'en' | 'zh-CN' | 'zh-TW'
 }
 
 export interface SiteRule {
@@ -212,6 +221,52 @@ export interface DouyinBulkJobStatus {
   startedAt: string
   endedAt?: string
   stderrTail: string
+}
+
+export type LibraryMediaKind = 'video' | 'image' | 'audio' | 'other'
+export type LibraryMediaFilter = 'all' | 'video' | 'image' | 'audio'
+export type LibrarySortField = 'date' | 'size'
+export type LibrarySortDir = 'desc' | 'asc'
+
+export interface LibraryFileItem {
+  id: string
+  path: string | null
+  fileName: string
+  title: string
+  channel: string | null
+  mediaKind: LibraryMediaKind
+  size: number
+  mtimeMs: number
+  missing: boolean
+  thumbnail: string | null
+  downloadId: string | null
+  workKey: string
+}
+
+export interface LibraryWorkItem {
+  key: string
+  title: string
+  channel: string | null
+  cover: string | null
+  items: LibraryFileItem[]
+  size: number
+  mtimeMs: number
+  missing: boolean
+}
+
+export interface LibraryListQuery {
+  offset?: number
+  limit?: number
+  query?: string
+  mediaType?: LibraryMediaFilter
+  sortBy?: LibrarySortField
+  sortDir?: LibrarySortDir
+  forceRefresh?: boolean
+}
+
+export interface LibraryPage<T> {
+  items: T[]
+  total: number
 }
 
 export interface DownloadActions {

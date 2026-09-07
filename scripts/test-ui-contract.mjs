@@ -151,10 +151,16 @@ assert.ok(
   appShell.indexOf('<BottomBar') < appShell.indexOf('<DownloadInspector'),
   'BottomBar must live in the downloads column, not as a window-wide footer that lifts the sidebar'
 )
-assert.doesNotMatch(sidebar, /onSelectLibrary|nav\.library/, 'Library workspace entry must be removed')
-assert.doesNotMatch(appShell, /LibraryView|openLibrary|'library'/, 'Library view must be removed from the app shell')
+assert.match(sidebar, /onSelectLibrary/, 'Library workspace entry must exist')
+assert.match(appShell, /LibraryView/, 'Library view must exist in the app shell')
+assert.match(appShell, /['"]library['"]/, 'library must be a main view')
+assert.match(sidebar, /nav\.library/, 'Library label must use nav.library')
 assert.doesNotMatch(sidebar, /onSelectSniff|nav\.sniff/, 'Sniff workspace entry must be removed')
 assert.doesNotMatch(appShell, /SniffPanel|openSniff|'sniff'/, 'In-app Sniff view must be removed; capture goes through the Chrome extension')
+assert.match(appShell, /#\/compact/, 'compact utility window uses the #/compact hash')
+assert.match(appShell, /CompactView/, 'compact utility view must exist')
+assert.doesNotMatch(sidebar, /onSelectCompact|Compact Window|nav\.compact/, 'Compact is a utility window, not a sidebar nav')
+assert.doesNotMatch(appShell, /clipboard\.read|setInterval\([^\)]*clipboard/, 'compact must not poll the clipboard')
 
 const formatDialog = read('src/renderer/src/components/FormatDialog.tsx')
 const formatFooter = formatDialog.match(/\{\/\* Footer \*\/\}\s*<div className="([^"]+)"/)
@@ -162,7 +168,7 @@ assert.ok(formatFooter, 'format dialog footer className must be present')
 assert.match(formatFooter[1], /\bshrink-0\b/, 'format dialog footer must be shrink-0 so flex + overflow-hidden cannot clip the action row')
 assert.match(formatFooter[1], /\bpb-5\b/, 'format dialog footer must own pb-5; last-child pb-3 equals rounded-panel and looks flush under overflow-hidden')
 assert.doesNotMatch(formatFooter[1], /^bg-elevated px-5$/, 'format dialog footer must not use horizontal-only padding')
-const noteCheckbox = formatDialog.match(/<label className="[^"]*\bpb-5\b[^"]*">[\s\S]*?INCLUDE_NOTE_CHECKBOX_LABEL/)
+const noteCheckbox = formatDialog.match(/<label className="[^"]*\bpb-5\b[^"]*">[\s\S]*?(INCLUDE_NOTE_CHECKBOX_LABEL|t\('format\.includeNote'\))/)
 assert.ok(noteCheckbox, 'note checkbox must have pb-5 so there is a gap before the footer')
 assert.ok(
   formatDialog.indexOf(noteCheckbox[0]) < formatDialog.indexOf('{/* Footer */}'),

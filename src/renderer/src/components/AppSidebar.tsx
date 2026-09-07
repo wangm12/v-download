@@ -6,6 +6,7 @@ import {
   Download,
   LayoutGrid,
   SlidersHorizontal,
+  Library,
   ListOrdered,
   PanelLeftClose,
   PanelLeftOpen
@@ -18,7 +19,7 @@ import { HoverHintWrap } from './HoverHintWrap'
 
 const APP_ICON_SRC = `${import.meta.env.BASE_URL}app-icon.png`
 
-export type AppMainView = 'downloads' | 'preferences'
+export type AppMainView = 'downloads' | 'library' | 'preferences'
 
 interface AppSidebarProps {
   collapsed: boolean
@@ -26,10 +27,11 @@ interface AppSidebarProps {
   mainView: AppMainView
   prefSection: PrefSection
   onSelectQueue: () => void
+  onSelectLibrary: () => void
   onSelectPrefSection: (id: PrefSection) => void
 }
 
-function prefPrimaryIcon(id: (typeof PREF_SECTION_PRIMARY)[number]['id']): LucideIcon {
+function prefPrimaryIcon(id: (typeof PREF_SECTION_PRIMARY)[number]): LucideIcon {
   switch (id) {
     case 'general':
       return Settings
@@ -113,13 +115,17 @@ export function AppSidebar({
   mainView,
   prefSection,
   onSelectQueue,
+  onSelectLibrary,
   onSelectPrefSection
 }: AppSidebarProps) {
   const { t } = useTranslation()
   const queueActive = mainView === 'downloads'
+  const libraryActive = mainView === 'library'
   const viewSubtitle = queueActive
     ? t('nav.downloads')
-    : t('nav.applicationSettings')
+    : libraryActive
+      ? t('nav.library')
+      : t('nav.applicationSettings')
 
   return (
     <aside
@@ -140,13 +146,13 @@ export function AppSidebar({
             draggable={false}
             role="presentation"
           />
-          <HoverHintWrap text={collapsed ? 'Expand navigation' : 'Collapse navigation'} side="right">
+          <HoverHintWrap text={collapsed ? t('nav.expand') : t('nav.collapse')} side="right">
             <button
               type="button"
               onClick={onToggleCollapsed}
               className={toggleIconBtn}
               aria-expanded={!collapsed}
-              aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
+              aria-label={collapsed ? t('nav.expand') : t('nav.collapse')}
             >
               <PanelLeftOpen className={panelIconClass} strokeWidth={1.65} aria-hidden />
             </button>
@@ -168,13 +174,13 @@ export function AppSidebar({
               {viewSubtitle}
             </p>
           </div>
-          <HoverHintWrap text="Collapse navigation" side="bottom">
+          <HoverHintWrap text={t('nav.collapse')} side="bottom">
             <button
               type="button"
               onClick={onToggleCollapsed}
               className={toggleIconBtn}
               aria-expanded={!collapsed}
-              aria-label="Collapse navigation"
+              aria-label={t('nav.collapse')}
             >
               <PanelLeftClose className={panelIconClass} strokeWidth={1.65} aria-hidden />
             </button>
@@ -184,7 +190,7 @@ export function AppSidebar({
 
       {!collapsed ? (
         <div className="flex min-h-0 flex-1 flex-col gap-4 animate-panel-fade-in-from-left motion-reduce:animate-none">
-          <nav className="flex flex-col flex-1 min-h-0 gap-3" aria-label="Home">
+          <nav className="flex flex-col flex-1 min-h-0 gap-3" aria-label={t('nav.home')}>
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-wider text-tertiary-foreground px-2 mb-1">
                 {t('nav.workspace')}
@@ -192,6 +198,9 @@ export function AppSidebar({
               <div className="flex flex-col gap-0.5">
                 <NavRow active={queueActive} onClick={onSelectQueue} icon={ListOrdered}>
                   {t('nav.downloads')}
+                </NavRow>
+                <NavRow active={libraryActive} onClick={onSelectLibrary} icon={Library}>
+                  {t('nav.library')}
                 </NavRow>
               </div>
             </div>
@@ -202,16 +211,16 @@ export function AppSidebar({
               </p>
               <div className="flex flex-col gap-0.5">
                 {PREF_SECTION_PRIMARY.map((item) => {
-                  const Icon = prefPrimaryIcon(item.id)
-                  const active = mainView === 'preferences' && prefSection === item.id
+                  const Icon = prefPrimaryIcon(item)
+                  const active = mainView === 'preferences' && prefSection === item
                   return (
                     <NavRow
-                      key={item.id}
+                      key={item}
                       active={active}
-                      onClick={() => onSelectPrefSection(item.id)}
+                      onClick={() => onSelectPrefSection(item)}
                       icon={Icon}
                     >
-                      {item.label}
+                      {t(`nav.${item}`)}
                     </NavRow>
                   )
                 })}
@@ -219,11 +228,11 @@ export function AppSidebar({
             </div>
             <div className="mt-auto shrink-0">
               <NavRow
-                active={mainView === 'preferences' && prefSection === PREF_SECTION_ADVANCED.id}
-                onClick={() => onSelectPrefSection(PREF_SECTION_ADVANCED.id)}
+                active={mainView === 'preferences' && prefSection === PREF_SECTION_ADVANCED}
+                onClick={() => onSelectPrefSection(PREF_SECTION_ADVANCED)}
                 icon={SlidersHorizontal}
               >
-                {PREF_SECTION_ADVANCED.label}
+                {t('nav.advanced')}
               </NavRow>
             </div>
           </nav>
@@ -232,7 +241,7 @@ export function AppSidebar({
         <div className="flex min-h-0 flex-1 flex-col gap-2 animate-panel-fade-in motion-reduce:animate-none">
           <nav
             className="flex flex-1 min-h-0 flex-col items-center gap-1 overflow-y-auto overflow-x-hidden py-1"
-            aria-label="Home"
+            aria-label={t('nav.home')}
           >
             <IconNavButton
               active={queueActive}
@@ -240,26 +249,32 @@ export function AppSidebar({
               icon={ListOrdered}
               label={t('nav.downloads')}
             />
+            <IconNavButton
+              active={libraryActive}
+              onClick={onSelectLibrary}
+              icon={Library}
+              label={t('nav.library')}
+            />
             <div className="my-1 h-px w-7 shrink-0 bg-border" aria-hidden />
             {PREF_SECTION_PRIMARY.map((item) => {
-              const Icon = prefPrimaryIcon(item.id)
-              const active = mainView === 'preferences' && prefSection === item.id
+              const Icon = prefPrimaryIcon(item)
+              const active = mainView === 'preferences' && prefSection === item
               return (
                 <IconNavButton
-                  key={item.id}
+                  key={item}
                   active={active}
-                  onClick={() => onSelectPrefSection(item.id)}
+                  onClick={() => onSelectPrefSection(item)}
                   icon={Icon}
-                  label={item.label}
+                  label={t(`nav.${item}`)}
                 />
               )
             })}
             <div className="mt-auto shrink-0">
               <IconNavButton
-                active={mainView === 'preferences' && prefSection === PREF_SECTION_ADVANCED.id}
-                onClick={() => onSelectPrefSection(PREF_SECTION_ADVANCED.id)}
+                active={mainView === 'preferences' && prefSection === PREF_SECTION_ADVANCED}
+                onClick={() => onSelectPrefSection(PREF_SECTION_ADVANCED)}
                 icon={SlidersHorizontal}
-                label={PREF_SECTION_ADVANCED.label}
+                label={t('nav.advanced')}
               />
             </div>
           </nav>

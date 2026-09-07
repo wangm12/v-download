@@ -1,5 +1,5 @@
 import { createWriteStream, mkdirSync, writeFileSync } from 'fs'
-import { join, resolve } from 'path'
+import { dirname, join, resolve } from 'path'
 import { pipeline } from 'stream/promises'
 import { Readable } from 'stream'
 import { sanitizeDownloadBasename } from './sanitizeDownloadBasename'
@@ -43,7 +43,7 @@ function sleep(ms: number): Promise<void> {
 const MOBILE_UA = DOUYIN_MOBILE_UA
 const DESKTOP_UA = DOUYIN_DESKTOP_UA
 
-export type DouyinFetchOptions = { signal?: AbortSignal }
+export type DouyinFetchOptions = { signal?: AbortSignal; outputBasename?: string; proxyUrl?: string }
 
 export function throwIfDouyinAborted(signal?: AbortSignal): void {
   if (signal?.aborted) {
@@ -99,17 +99,24 @@ export function isDouyinUrl(url: string): boolean {
   return /douyin\.com/i.test(url)
 }
 
-async function resolveShortUrl(url: string, signal?: AbortSignal): Promise<string> {
-  const res = await fetchWithTimeout(url, {
-    method: 'GET',
-    redirect: 'follow',
-    signal,
-    headers: {
-      'User-Agent': MOBILE_UA,
-      Referer: 'https://www.douyin.com/',
-      'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+async function resolveShortUrl(
+  url: string,
+  options?: { signal?: AbortSignal; proxyUrl?: string }
+): Promise<string> {
+  const res = await fetchWithTimeout(
+    url,
+    {
+      method: 'GET',
+      redirect: 'follow',
+      signal: options?.signal,
+      headers: {
+        'User-Agent': MOBILE_UA,
+        Referer: 'https://www.douyin.com/',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+      },
     },
-  })
+    { proxyUrl: options?.proxyUrl }
+  )
   try {
     await res.arrayBuffer()
   } catch {
@@ -129,7 +136,7 @@ async function fetchDouyinHtml(
   pageUrl: string,
   cookiesFilePath: string | undefined,
   uaMode: FetchUaMode,
-  options?: { signal?: AbortSignal; timeoutMs?: number }
+  options?: { signal?: AbortSignal; timeoutMs?: number; proxyUrl?: string }
 ): Promise<string> {
   return fetchDouyinPageHtml(pageUrl, cookiesFilePath, uaMode, options)
 }
@@ -756,7 +763,7 @@ function parseAwemeDetailBody(bodyText: string, awemeId: string): Record<string,
 async function fetchAwemeDetailItem(
   awemeId: string,
   cookiesFilePath?: string,
-  options?: { viaHydrateSession?: boolean; signal?: AbortSignal }
+  options?: { viaHydrateSession?: boolean; signal?: AbortSignal; proxyUrl?: string }
 ): Promise<Record<string, unknown> | null> {
   throwIfDouyinAborted(options?.signal)
 
@@ -788,7 +795,7 @@ async function fetchAwemeDetailItem(
           headers,
           redirect: 'follow',
           signal: options?.signal,
-        })
+        }, { proxyUrl: options?.proxyUrl })
         status = res.status
         bodyText = await res.text()
         if (!res.ok) {
@@ -890,6 +897,7 @@ export async function getDouyinInfoForProfilePick(
     const item = await fetchAwemeDetailItem(id, cookiesFilePath, {
       viaHydrateSession: viaSession,
       signal: options?.signal,
+      proxyUrl: options?.proxyUrl,
     })
     if (!item) continue
     const result = mediaResultFromAwemeItem(item, id, preferGallery)
@@ -908,10 +916,14 @@ async function tryEnrichFromAwemeDetailApi(
   info: DouyinVideoInfo,
   cookiesFilePath?: string,
   viaHydrateSession = false,
-  signal?: AbortSignal
+  options?: { signal?: AbortSignal; proxyUrl?: string }
 ): Promise<DouyinVideoInfo | null> {
   try {
-    const item = await fetchAwemeDetailItem(info.id, cookiesFilePath, { viaHydrateSession, signal })
+    const item = await fetchAwemeDetailItem(info.id, cookiesFilePath, {
+      viaHydrateSession,
+      signal: options?.signal,
+      proxyUrl: options?.proxyUrl,
+    })
     if (!item) return null
     const refreshed = buildDouyinInfoFromItem(item, info.id)
     const fresh = [refreshed.videoUrl, ...(refreshed.videoUrlFallbacks ?? [])].filter(Boolean)
@@ -941,7 +953,7 @@ export async function enrichDouyinVideoPlayUrls(
   const existing = [info.videoUrl, ...(info.videoUrlFallbacks ?? [])].filter(Boolean)
   if (hasDouyinCdnPlayUrl(existing)) return info
 
-  const fromApi = await tryEnrichFromAwemeDetailApi(info, cookiesFilePath, false, options?.signal)
+  const fromApi = await tryEnrichFromAwemeDetailApi(info, cookiesFilePath, false, options)
   throwIfDouyinAborted(options?.signal)
   if (fromApi) return fromApi
 
@@ -982,7 +994,7 @@ export async function enrichDouyinVideoPlayUrls(
     }
   }
 
-  const fromSessionApi = await tryEnrichFromAwemeDetailApi(info, cookiesFilePath, true, options?.signal)
+  const fromSessionApi = await tryEnrichFromAwemeDetailApi(info, cookiesFilePath, true, options)
   throwIfDouyinAborted(options?.signal)
   if (fromSessionApi) return fromSessionApi
 
@@ -1053,7 +1065,10 @@ export async function getDouyinInfo(
         extensionFailure
       )
     }
-    const resolved = await resolveShortUrl(url, options?.signal)
+    const resolved = await resolveShortUrl(url, {
+      signal: options?.signal,
+      proxyUrl: options?.proxyUrl,
+    })
     throwIfDouyinAborted(options?.signal)
     console.log(`[douyin] Resolved host=${safeHost(resolved)}`)
 
@@ -1098,6 +1113,7 @@ export async function getDouyinInfo(
           let html = await fetchDouyinHtml(pageUrl, cookiesFilePath, uaMode, {
             signal: options?.signal,
             timeoutMs: DOUYIN_PAGE_FETCH_TIMEOUT_MS,
+            proxyUrl: options?.proxyUrl,
           })
           if (isDouyinAntiBotShell(html)) {
             if (/^https:\/\/www\.douyin\.com\/video\//i.test(pageUrl)) {
@@ -1331,10 +1347,9 @@ export async function downloadDouyinVideo(
   options?: DouyinFetchOptions
 ): Promise<string> {
   throwIfDouyinAborted(options?.signal)
-  mkdirSync(outputDir, { recursive: true })
-
-  const safeTitle = sanitizeDownloadBasename(title, 100)
+  const safeTitle = options?.outputBasename?.trim() || sanitizeDownloadBasename(title, 100)
   const outputPath = join(outputDir, `${safeTitle}.mp4`)
+  mkdirSync(dirname(outputPath), { recursive: true })
 
   console.log(`[douyin] Downloading to: ${outputPath}`)
 
@@ -1361,7 +1376,7 @@ export async function downloadDouyinVideo(
         headers: await buildDouyinMediaDownloadHeaders(cookiesFilePath, ua),
         redirect: 'follow',
         signal: options?.signal,
-      })
+      }, options?.proxyUrl)
       if (!res.ok || !res.body) {
         lastErr = `Download failed: ${res.status} ${res.statusText}`
         if (res.status === 403 || res.status === 401) continue
@@ -1412,8 +1427,12 @@ export function extFromImageUrl(u: string, contentType = ''): string {
 
 const GALLERY_IMAGE_PARALLEL = 6
 
-async function fetchWith429Backoff(url: string, init: RequestInit): Promise<Response> {
-  let res = await fetchWithTimeout(url, init, { timeoutMs: 30_000 })
+async function fetchWith429Backoff(
+  url: string,
+  init: RequestInit,
+  proxyUrl?: string
+): Promise<Response> {
+  let res = await fetchWithTimeout(url, init, { timeoutMs: 30_000, proxyUrl })
   if (res.status === 429) {
     const ra = res.headers.get('retry-after')
     let ms = 3000
@@ -1422,7 +1441,7 @@ async function fetchWith429Backoff(url: string, init: RequestInit): Promise<Resp
       if (Number.isFinite(sec) && sec > 0 && sec < 3600) ms = sec * 1000
     }
     await delayWithAbort(ms, init.signal)
-    res = await fetchWithTimeout(url, init, { timeoutMs: 30_000 })
+    res = await fetchWithTimeout(url, init, { timeoutMs: 30_000, proxyUrl })
   }
   return res
 }
@@ -1439,7 +1458,7 @@ export async function downloadDouyinImageGallery(
   throwIfDouyinAborted(options?.signal)
   if (imageUrls.length === 0) throw new Error('No image URLs to download')
 
-  const safeTitle = sanitizeDownloadBasename(title, 80)
+  const safeTitle = options?.outputBasename?.trim() || sanitizeDownloadBasename(title, 80)
   const subDir = join(outputDir, safeTitle)
   mkdirSync(subDir, { recursive: true })
 
@@ -1474,7 +1493,7 @@ export async function downloadDouyinImageGallery(
         headers,
         redirect: 'follow',
         signal: options?.signal,
-      })
+      }, options?.proxyUrl)
       if (!res.ok) {
         throw new Error(`Media ${i} failed: ${res.status} ${res.statusText}`)
       }

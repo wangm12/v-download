@@ -40,6 +40,8 @@ interface WindowApi {
     mediaType?: string
     referer?: string
     customHeaders?: Record<string, string>
+    outputDir?: string
+    proxyUrl?: string
   }) => Promise<{ data?: unknown; error?: string }>
   markInfoResolveReady: (options: { id: string; title?: string; thumbnail?: string | null; duration?: number | null }) => Promise<{ ok: boolean; error?: string }>
   listPlaylistEntries: (url: string) => Promise<{ data?: unknown; error?: string }>
@@ -58,9 +60,34 @@ interface WindowApi {
   getDownloads: () => Promise<{ data: unknown[] }>
   resumeAll: () => Promise<{ ok: boolean }>
   pauseAll: () => Promise<{ ok: boolean }>
+  showMainWindow?: () => Promise<{ ok: boolean }>
   clearDownloads: (mode: 'all' | 'completed') => Promise<{ ok: boolean }>
   openFileLocation: (path: string) => Promise<{ ok?: boolean; error?: string }>
   openFile: (path: string) => Promise<{ ok?: boolean; error?: string }>
+  listLibraryFiles: (query: {
+    offset?: number
+    limit?: number
+    query?: string
+    mediaType?: 'all' | 'video' | 'image' | 'audio'
+    sortBy?: 'date' | 'size'
+    sortDir?: 'desc' | 'asc'
+    forceRefresh?: boolean
+  }) => Promise<{ data?: { items: unknown[]; total: number }; error?: string }>
+  listLibraryWorks: (query: {
+    offset?: number
+    limit?: number
+    query?: string
+    mediaType?: 'all' | 'video' | 'image' | 'audio'
+    sortBy?: 'date' | 'size'
+    sortDir?: 'desc' | 'asc'
+    forceRefresh?: boolean
+  }) => Promise<{ data?: { items: unknown[]; total: number }; error?: string }>
+  deleteLibraryPaths: (paths: string[], recordIds?: string[]) => Promise<{
+    ok?: boolean
+    deleted?: number
+    removed?: number
+    error?: string
+  }>
   getSettings: () => Promise<{ data: unknown }>
   updateSettings: (key: string, value: unknown) => Promise<{ ok: boolean; error?: string }>
   getRemoteMcpLogs: (limit?: number) => Promise<{ data: Array<{
@@ -83,6 +110,8 @@ interface WindowApi {
   onQueueAdmission: (callback: (data: { data?: unknown; outcome?: QueueAdmissionOutcome; notice?: QueueNotice }) => void) => () => void
   onInfoResolveResult: (callback: (data: { id: string; url: string; autoStart: boolean; format?: string; quality?: string; requestedTitle?: string; data?: unknown; error?: string }) => void) => () => void
   onYtdlUrl: (callback: (url: string) => void) => () => void
+  onFocusDownload: (callback: (payload: { id: string }) => void) => () => void
+  onSessionInterrupted: (callback: (payload: { count: number; ids: string[] }) => void) => () => void
   onSettingsChanged: (callback: () => void) => () => void
   onCookiesSynced: (callback: (data: { count: number }) => void) => () => void
   startDouyinBulk: (url: string) => Promise<{ data?: { id: string }; error?: string }>

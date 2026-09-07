@@ -1,6 +1,7 @@
 import { Play, Pause, Trash2, ArrowDown, RefreshCw, Loader2 } from 'lucide-react'
 import { HoverHintWrap } from './HoverHintWrap'
 import type { CSSProperties } from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/cn'
 
 interface BottomBarProps {
@@ -30,14 +31,15 @@ export function BottomBar({
   syncCookiesPhase = null,
   onClear,
 }: BottomBarProps) {
+  const { t } = useTranslation()
   const syncTitle =
     syncCookiesPhase === 'opening'
-      ? 'Opening browser…'
+      ? t('queue.syncOpening')
       : syncCookiesPhase === 'waiting'
-        ? 'Waiting for Chrome — finish the sync tab or leave Chrome open'
-        : 'Sync cookies from Chrome (all supported sites)'
+        ? t('queue.syncWaiting')
+        : t('queue.syncCookies')
   const syncShortLabel =
-    syncCookiesPhase === 'opening' ? 'Opening…' : syncCookiesPhase === 'waiting' ? 'Waiting…' : null
+    syncCookiesPhase === 'opening' ? t('queue.syncOpeningShort') : syncCookiesPhase === 'waiting' ? t('queue.syncWaitingShort') : null
 
   const iconButton = (enabled: boolean) =>
     cn(
@@ -53,45 +55,45 @@ export function BottomBar({
       style={{ WebkitAppRegion: 'no-drag' } as CSSProperties}
     >
       <div className="flex items-center gap-1">
-        <HoverHintWrap text="Start all downloads">
+        <HoverHintWrap text={t('queue.startAll')}>
           <button
             type="button"
             onClick={onResumeAll}
             className={iconButton(hasResumable)}
-            aria-label="Start all downloads"
+            aria-label={t('queue.startAll')}
             disabled={!hasResumable}
           >
             <span className="inline-flex items-center gap-1.5">
               <Play className="w-4 h-4" aria-hidden />
-              {hasResumable ? <span className="text-xs font-medium">Resume</span> : null}
+              {hasResumable ? <span className="text-xs font-medium">{t('queue.resume')}</span> : null}
             </span>
           </button>
         </HoverHintWrap>
-        <HoverHintWrap text="Pause all downloads">
+        <HoverHintWrap text={t('queue.pauseAll')}>
           <button
             type="button"
             onClick={onPauseAll}
             className={iconButton(hasActive)}
-            aria-label="Pause all downloads"
+            aria-label={t('queue.pauseAll')}
             disabled={!hasActive}
           >
             <span className="inline-flex items-center gap-1.5">
               <Pause className="w-4 h-4" aria-hidden />
-              {hasActive ? <span className="text-xs font-medium">Pause</span> : null}
+              {hasActive ? <span className="text-xs font-medium">{t('queue.pause')}</span> : null}
             </span>
           </button>
         </HoverHintWrap>
-        <HoverHintWrap text="Clear downloads">
+        <HoverHintWrap text={t('queue.clearDownloads')}>
           <button
             type="button"
             onClick={onClear}
             disabled={!hasDownloads}
             className={iconButton(hasDownloads)}
-            aria-label="Clear downloads"
+            aria-label={t('queue.clearDownloads')}
           >
             <span className="inline-flex items-center gap-1.5">
               <Trash2 className="w-4 h-4" aria-hidden />
-              {hasDownloads ? <span className="text-xs font-medium">Clear</span> : null}
+              {hasDownloads ? <span className="text-xs font-medium">{t('queue.clear')}</span> : null}
             </span>
           </button>
         </HoverHintWrap>

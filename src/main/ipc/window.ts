@@ -116,6 +116,15 @@ export function registerWindowHandlers(ctx: WindowContext): void {
     return undefined
   })
 
+  ipcMain.handle('show-main-window', async () => {
+    const mainWindow = ctx.getMainWindow()
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.show()
+      mainWindow.focus()
+    }
+    return { ok: true }
+  })
+
   ipcMain.handle('open-settings', async () => {
     const mainWindow = ctx.getMainWindow()
     if (mainWindow && !mainWindow.isDestroyed()) {

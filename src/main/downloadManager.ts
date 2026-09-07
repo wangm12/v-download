@@ -26,7 +26,14 @@ import { basename, dirname, extname, join } from 'path'
 import { existsSync } from 'fs'
 import { stat, readdir, unlink, rm, rename } from 'fs/promises'
 import { statfs } from 'fs/promises'
-import { sanitizeDownloadBasename } from './sanitizeDownloadBasename'
+import {
+  composeDownloadOutputDir,
+  renderConcreteBasename,
+  resolveWriterOutputName,
+  siteLabelFromUrl
+} from './outputTemplateModel'
+import { extrasFromTaskOverrides, isRemoteJobTask, resolveTaskDownloadOverrides } from './taskOverrides'
+import { ytdlpLimitRateArgs } from './ytdlpLimitRate'
 import {
   hasNoteBody,
   noteFieldsFromMetadata,
@@ -38,15 +45,18 @@ import { classifyResolverError, mediaTypeForCandidate, sanitizeResolverError } f
 import { pickPersistedExtras } from './persistedExtras'
 import { ensurePoTokenProvider } from './poTokenServer'
 import { planQueueAdmissions } from './groupedQueueScheduler'
+import { planSessionRecover } from './sessionRecover'
 import { transcodeFile } from './transcodeManager'
 import type { TranscodePresetId } from './transcodeModel'
 import {
   bulkQueueNotice,
   decideQueueAdmission,
   findReusableDownload,
+  localizeQueueNotice,
   queueIdentityKey,
   type QueueNotice
 } from './mediaIdentity'
+import { getUiLanguage } from './uiLanguage'
 type DownloadErrorCode = 'ENGINE_MISSING' | 'PO_TOKEN_REQUIRED' | 'AUTH_REQUIRED' | 'BROWSER_REQUIRED' | 'NETWORK_RETRYABLE' | 'STORAGE_UNAVAILABLE' | 'UNSUPPORTED' | 'DRM_PROTECTED'
 
 const MIN_DOUYIN_OUTPUT_BYTES = 512
@@ -164,13 +174,83 @@ async function tryAdoptExistingYtdlpOutput(
   return true
 }
 
+function templateValuesForTask(task: { id: string; url: string; title: string; metadata?: Record<string, unknown> }): {
+  title: string
+  id: string
+  author: string
+  site: string
+} {
+  const meta = task.metadata ?? {}
+  const awemeId = typeof meta.awemeId === 'string' ? meta.awemeId.trim() : ''
+  const ytdlpId = typeof meta.ytdlpId === 'string' ? meta.ytdlpId.trim() : ''
+  const author = typeof meta.channel === 'string' ? meta.channel : ''
+  return {
+    title: task.title,
+    id: awemeId || ytdlpId || task.id,
+    author,
+    site: siteLabelFromUrl(task.url)
+  }
+}
+
+function resolveTaskNetworkOverrides(task: DownloadTask, remoteOutputDir = '') {
+  const taskMeta = (task.metadata ?? {}) as Record<string, unknown>
+  const taskHeaders =
+    taskMeta.customHeaders && typeof taskMeta.customHeaders === 'object' && !Array.isArray(taskMeta.customHeaders)
+      ? (taskMeta.customHeaders as Record<string, string>)
+      : undefined
+  return resolveTaskDownloadOverrides({
+    remoteJobId: typeof taskMeta.remoteJobId === 'string' ? taskMeta.remoteJobId : '',
+    remoteOutputDir,
+    taskOutputDir: typeof taskMeta.outputDir === 'string' ? taskMeta.outputDir : '',
+    taskProxyUrl: typeof taskMeta.proxyUrl === 'string' ? taskMeta.proxyUrl : '',
+    taskHeaders,
+    settingsDownloadDir: settings.get('downloadDir'),
+    settingsProxyUrl: settings.get('proxyUrl')
+  })
+}
+
+function resolveTaskOutputDir(task: DownloadTask, remoteOutputDir = ''): string {
+  const taskMeta = task.metadata as Record<string, unknown> | undefined
+  const playlistSubfolder = settings.get('playlistSubfolder')
+  const archiveByAuthor = settings.get('archiveByAuthor')
+  const isProfilePick = taskMeta?.douyinProfilePick === true
+  const sanitizedPlaylistId = task.playlistId?.replace(/[/\\?*:|"<>]/g, '-') ?? null
+  const resolved = resolveTaskNetworkOverrides(task, remoteOutputDir)
+  return composeDownloadOutputDir({
+    downloadDir: isRemoteJobTask(taskMeta) ? settings.get('downloadDir') : resolved.outputDir,
+    archiveByAuthor,
+    folderNameTemplate: settings.get('folderNameTemplate'),
+    playlistSubfolder,
+    playlistFolder: sanitizedPlaylistId,
+    remoteOutputDir: remoteOutputDir || null,
+    skipPlaylistFolder: Boolean(isProfilePick && archiveByAuthor),
+    values: templateValuesForTask(task)
+  })
+}
+
+function writerOutputNameForTask(task: { id: string; url: string; title: string; metadata?: Record<string, unknown> }, ext: string): string {
+  const values = templateValuesForTask(task)
+  return resolveWriterOutputName({
+    filenameTemplate: settings.get('filenameTemplate'),
+    title: values.title,
+    id: values.id,
+    author: values.author,
+    site: values.site,
+    ext
+  })
+}
+
+function writerBasenameForTask(task: { id: string; url: string; title: string; metadata?: Record<string, unknown> }): string {
+  return renderConcreteBasename(settings.get('filenameTemplate'), templateValuesForTask(task))
+}
+
 async function tryAdoptExistingDouyinOutput(task: DownloadTask, outDir: string): Promise<boolean> {
   if (!isDouyinUrl(task.url)) return false
   const taskMeta = task.metadata as Record<string, unknown> | undefined
   const imageUrls = taskMeta?.douyinImageUrls as string[] | undefined
   if (imageUrls && imageUrls.length > 0) return false
 
-  const outputPath = join(outDir, `${sanitizeDownloadBasename(task.title, 100)}.mp4`)
+  const outputPath = join(outDir, writerOutputNameForTask(task, 'mp4'))
   try {
     const st = await stat(outputPath)
     if (isTaskAborted(task.id)) return false
@@ -259,6 +339,7 @@ interface AddTaskOptions {
   mediaType?: string
   referer?: string
   customHeaders?: Record<string, string>
+  proxyUrl?: string
   candidate?: Record<string, unknown>
   /** Skip URL reuse so a remote API job cannot attach to (or cancel) a desktop task. */
   forceNew?: boolean
@@ -377,8 +458,8 @@ function setTaskError(task: DownloadTask, message: string, code?: DownloadErrorC
 }
 
 function emitToRenderer(channel: string, data: unknown): void {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send(channel, data)
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!win.isDestroyed()) win.webContents.send(channel, data)
   }
 }
 
@@ -386,11 +467,15 @@ export function emitInfoResolveResult(data: unknown): void {
   emitToRenderer('info-resolve-result', data)
 }
 
+function localizedNotice(notice?: QueueNotice): QueueNotice | undefined {
+  return localizeQueueNotice(notice, getUiLanguage())
+}
+
 export function emitQueueAdmission(result: AdmitResult): void {
   emitToRenderer('queue-admission', {
     data: result.task,
     outcome: result.outcome,
-    notice: result.notice
+    notice: localizedNotice(result.notice)
   })
 }
 
@@ -606,7 +691,11 @@ async function runDouyinDirectDownload(
     console.log(
       `[runTask] Douyin direct${options?.profilePick ? ' (profile pick)' : ''} id=${task.id.slice(0, 8)}`
     )
-    const fetchOpts = { signal: getTaskAbortSignal(task.id) }
+    const fetchOpts = {
+      signal: getTaskAbortSignal(task.id),
+      outputBasename: writerBasenameForTask(task),
+      proxyUrl: resolveTaskNetworkOverrides(task, typeof task.metadata?.remoteOutputDir === 'string' ? task.metadata.remoteOutputDir : '').proxyUrl
+    }
     const taskMeta = task.metadata as Record<string, unknown> | undefined
     const profileAwemeId =
       options?.profilePick && typeof taskMeta?.awemeId === 'string' ? taskMeta.awemeId.trim() : ''
@@ -779,7 +868,7 @@ function admitExistingTask(url: string, forceNew?: boolean): AdmitResult | null 
   })
   if (decision.action === 'create') return null
   if (decision.action === 'requeue') {
-    return { task: requeueMissingOutput(reusable), outcome: 'requeued', notice: decision.notice }
+    return { task: requeueMissingOutput(reusable), outcome: 'requeued', notice: localizedNotice(decision.notice) }
   }
   if (decision.action === 'retry') {
     const retried = retryTask(reusable.id)
@@ -787,10 +876,10 @@ function admitExistingTask(url: string, forceNew?: boolean): AdmitResult | null 
     return {
       task: taskFromRecord(updated ?? reusable),
       outcome: retried ? 'retried' : 'focused',
-      notice: decision.notice
+      notice: localizedNotice(decision.notice)
     }
   }
-  return { task: taskFromRecord(reusable), outcome: 'focused', notice: decision.notice }
+  return { task: taskFromRecord(reusable), outcome: 'focused', notice: localizedNotice(decision.notice) }
 }
 
 export function addTaskAdmitted(options: AddTaskOptions): AdmitResult {
@@ -805,7 +894,6 @@ export function addTask(options: AddTaskOptions): DownloadTask {
 
 function insertQueuedTask(options: AddTaskOptions): DownloadTask {
   const id = uuidv4()
-  const outputDir = options.outputDir ?? settings.get('downloadDir')
   const quality = options.quality ?? settings.get('defaultVideoQuality')
 
   const mergedMetadata: Record<string, unknown> = {
@@ -813,7 +901,12 @@ function insertQueuedTask(options: AddTaskOptions): DownloadTask {
     ...(options.mediaType ? { mediaType: options.mediaType } : {}),
     ...(options.referer ? { referer: options.referer } : {}),
     ...(options.customHeaders ? { customHeaders: options.customHeaders } : {}),
-    ...(options.candidate ? { candidate: options.candidate } : {})
+    ...(options.candidate ? { candidate: options.candidate } : {}),
+    ...extrasFromTaskOverrides({
+      outputDir: options.outputDir,
+      proxyUrl: options.proxyUrl,
+      customHeaders: options.customHeaders
+    })
   }
 
   const task: DownloadTask = {
@@ -903,12 +996,14 @@ export interface PromoteInfoResolveOptions {
   title?: string
   format: string
   quality?: string
+  outputDir?: string
   thumbnail?: string
   duration?: number
   metadata?: Record<string, unknown>
   mediaType?: string
   referer?: string
   customHeaders?: Record<string, string>
+  proxyUrl?: string
 }
 
 function metadataFromRecord(record: db.DownloadRecord): Record<string, unknown> {
@@ -959,6 +1054,8 @@ export function downloadAgainFromId(id: string): AdmitResult | { error: string }
     metadata.customHeaders && typeof metadata.customHeaders === 'object' && !Array.isArray(metadata.customHeaders)
       ? metadata.customHeaders as Record<string, string>
       : undefined
+  const outputDir = typeof metadata.outputDir === 'string' ? metadata.outputDir : undefined
+  const proxyUrl = typeof metadata.proxyUrl === 'string' ? metadata.proxyUrl : undefined
 
   if (mediaType) {
     return addTaskAdmitted({
@@ -971,6 +1068,8 @@ export function downloadAgainFromId(id: string): AdmitResult | { error: string }
       mediaType,
       referer,
       customHeaders,
+      outputDir,
+      proxyUrl,
       forceNew: true,
       metadata
     })
@@ -1105,7 +1204,12 @@ export function promoteInfoResolveTask(id: string, options: PromoteInfoResolveOp
     ...(options.metadata ?? {}),
     ...(options.mediaType ? { mediaType: options.mediaType } : {}),
     ...(options.referer ? { referer: options.referer } : {}),
-    ...(options.customHeaders ? { customHeaders: options.customHeaders } : {})
+    ...(options.customHeaders ? { customHeaders: options.customHeaders } : {}),
+    ...extrasFromTaskOverrides({
+      outputDir: options.outputDir,
+      proxyUrl: options.proxyUrl,
+      customHeaders: options.customHeaders
+    })
   }
   delete metadata.infoResolve
   delete metadata.resolveAutoStart
@@ -1168,6 +1272,11 @@ function buildTaskFromOptions(options: AddTaskOptions, id: string): DownloadTask
     ...(options.referer ? { referer: options.referer } : {}),
     ...(options.customHeaders ? { customHeaders: options.customHeaders } : {}),
     ...(options.playlistTitle ? { playlistTitle: options.playlistTitle } : {}),
+    ...extrasFromTaskOverrides({
+      outputDir: options.outputDir,
+      proxyUrl: options.proxyUrl,
+      customHeaders: options.customHeaders
+    })
   }
   const now = new Date().toISOString()
   return {
@@ -1276,7 +1385,7 @@ export function addTasksBulk(optionsList: AddTaskOptions[]): {
   }
 
   if (records.length === 0 && staleComplete.length === 0 && retryRecords.length === 0) {
-    return { count: 0, ids: [], skipped, notice: bulkQueueNotice(skipped) }
+    return { count: 0, ids: [], skipped, notice: localizedNotice(bulkQueueNotice(skipped)) }
   }
 
   if (records.length > 0) {
@@ -1306,7 +1415,7 @@ export function addTasksBulk(optionsList: AddTaskOptions[]): {
     count: tasks.length + requeued.length + retried.length,
     ids: [...ids, ...requeued.map((task) => task.id), ...retried],
     skipped,
-    notice: bulkQueueNotice(skipped)
+    notice: localizedNotice(bulkQueueNotice(skipped))
   }
 }
 
@@ -1349,25 +1458,27 @@ async function runTask(task: DownloadTask): Promise<void> {
   const cookiesPath = settings.getCookiesPath()
   const sleepInterval = settings.get('sleepInterval')
   const ytdlpPath = settings.get('ytdlpPath')
-  const playlistSubfolder = settings.get('playlistSubfolder')
   const taskMeta = task.metadata as Record<string, unknown> | undefined
 
   const qualityNum = parseInt(task.quality, 10) || 1080
-  const isPlaylist = task.playlistId != null
-  const sanitizedPlaylistId = task.playlistId?.replace(/[/\\?*:|"<>]/g, '-')
   const remoteOutputDir = typeof taskMeta?.remoteOutputDir === 'string' ? taskMeta.remoteOutputDir.trim() : ''
-  const outputDir = remoteOutputDir || settings.get('downloadDir')
-  const outDir = remoteOutputDir
-    ? remoteOutputDir
-    : playlistSubfolder && isPlaylist && sanitizedPlaylistId
-      ? join(outputDir, sanitizedPlaylistId)
-      : outputDir
+  const outDir = resolveTaskOutputDir(task, remoteOutputDir)
   const cached = taskExtraMeta.get(task.id)
   const candidate = (taskMeta?.candidate && typeof taskMeta.candidate === 'object' ? taskMeta.candidate : null) as { url?: string; type?: string; protocol?: 'http' | 'https' | 'hls' | 'dash' | 'file' | 'unknown'; container?: string; mimeType?: string } | null
   const effectiveUrl = candidate?.url || task.url
   const mediaType = cached?.mediaType || (candidate ? mediaTypeForCandidate(candidate) : '') || (taskMeta?.mediaType as string) || undefined
   const referer = cached?.referer || (taskMeta?.referer as string) || undefined
-  const customHeaders = cached?.customHeaders || (taskMeta?.customHeaders as Record<string, string>) || undefined
+  const resolvedNetwork = resolveTaskDownloadOverrides({
+    remoteJobId: typeof taskMeta?.remoteJobId === 'string' ? taskMeta.remoteJobId : '',
+    remoteOutputDir,
+    taskOutputDir: typeof taskMeta?.outputDir === 'string' ? taskMeta.outputDir : '',
+    taskProxyUrl: typeof taskMeta?.proxyUrl === 'string' ? taskMeta.proxyUrl : '',
+    taskHeaders: cached?.customHeaders || (taskMeta?.customHeaders as Record<string, string> | undefined),
+    settingsDownloadDir: settings.get('downloadDir'),
+    settingsProxyUrl: settings.get('proxyUrl')
+  })
+  const customHeaders = resolvedNetwork.customHeaders
+  const taskProxyUrl = resolvedNetwork.proxyUrl
 
   const skipAdoptExisting = taskMeta?.skipAdoptExisting === true
 
@@ -1381,7 +1492,11 @@ async function runTask(task: DownloadTask): Promise<void> {
 
   const douyinImageUrls = taskMeta?.douyinImageUrls as string[] | undefined
   const xhsImageUrls = taskMeta?.xhsImageUrls as string[] | undefined
-  const galleryFetchOpts = { signal: getTaskAbortSignal(task.id) }
+  const galleryFetchOpts = {
+    signal: getTaskAbortSignal(task.id),
+    outputBasename: writerBasenameForTask(task),
+    proxyUrl: taskProxyUrl
+  }
   const galleryImageUrls = douyinImageUrls?.length ? douyinImageUrls : xhsImageUrls
   const galleryDownloader = douyinImageUrls?.length
     ? downloadDouyinImageGallery
@@ -1509,8 +1624,7 @@ async function runTask(task: DownloadTask): Promise<void> {
       : mediaType === 'jpeg'
         ? 'jpg'
         : 'mp4'
-  const sanitizedTitle = task.title.replace(/[/\\?*:|"<>]/g, '-')
-  const expectedPath = join(outDir, `${sanitizedTitle}.${outputExtGuess}`)
+  const expectedPath = join(outDir, writerOutputNameForTask(task, outputExtGuess))
   const finalPath = await chooseSafeOutputPath(expectedPath)
   if (!(await hasWorkingDiskSpace(outDir))) {
     task.progress = 0
@@ -1551,6 +1665,7 @@ async function runTask(task: DownloadTask): Promise<void> {
       format: task.format,
       referer,
       customHeaders,
+      proxyUrl: taskProxyUrl,
       durationSec: task.duration
     })
     workerCancel = fdp.cancel
@@ -1715,7 +1830,9 @@ async function runTask(task: DownloadTask): Promise<void> {
       retrySleeps,
       extractorArgs: poToken.provider?.extractorArgs,
       pluginDir: poToken.provider?.pluginDir,
-      proxyUrl: settings.get('proxyUrl') || undefined
+      proxyUrl: taskProxyUrl,
+      filenameTemplate: settings.get('filenameTemplate'),
+      limitRate: ytdlpLimitRateArgs(speedMode)[1]
     },
     ytdlpPath
   )
@@ -1868,10 +1985,10 @@ async function runTask(task: DownloadTask): Promise<void> {
           : mediaType === 'jpeg'
             ? 'jpg'
             : 'mp4'
-      const sanitizedTitle = task.title.replace(/[/\\?*:|"<>]/g, '-')
-      const expectedPath = join(outDir, `${sanitizedTitle}.${outputExtGuess}`)
+      const expectedName = writerOutputNameForTask(task, outputExtGuess)
+      const expectedPath = join(outDir, expectedName)
       const expectedPathAlt =
-        mediaType === 'jpeg' ? join(outDir, `${sanitizedTitle}.jpeg`) : null
+        mediaType === 'jpeg' ? join(outDir, writerOutputNameForTask(task, 'jpeg')) : null
 
       const MIN_OUTPUT_BYTES = MIN_YTDLP_OUTPUT_BYTES
       const ytdlpOutput = dp.getOutput?.() ?? dp.getStderr()
@@ -2180,16 +2297,25 @@ async function deleteTaskFilesForRecord(
   record: db.DownloadRecord,
   capturedDests: string[] = []
 ): Promise<void> {
-  const baseOutputDir = settings.get('downloadDir')
-  const playlistSubfolder = settings.get('playlistSubfolder')
-  const isPlaylist = record.playlist_id != null
-  const sanitizedPlaylistId = record.playlist_id?.replace(/[/\\?*:|"<>]/g, '-')
+  const extras = metadataFromRecord(record)
   const filesToDelete: string[] = []
   const dirsToDelete: string[] = []
 
-  let searchDir = (playlistSubfolder && isPlaylist && sanitizedPlaylistId)
-    ? join(baseOutputDir, sanitizedPlaylistId)
-    : baseOutputDir
+  let searchDir = composeDownloadOutputDir({
+    downloadDir: settings.get('downloadDir'),
+    archiveByAuthor: settings.get('archiveByAuthor'),
+    folderNameTemplate: settings.get('folderNameTemplate'),
+    playlistSubfolder: settings.get('playlistSubfolder'),
+    playlistFolder: record.playlist_id?.replace(/[/\\?*:|"<>]/g, '-') ?? null,
+    remoteOutputDir: typeof extras.remoteOutputDir === 'string' ? extras.remoteOutputDir : null,
+    skipPlaylistFolder: extras.douyinProfilePick === true && settings.get('archiveByAuthor'),
+    values: templateValuesForTask({
+      id: record.id,
+      url: record.url,
+      title: record.title,
+      metadata: extras
+    })
+  })
 
   if (record.file_path) {
     try {
@@ -2208,9 +2334,19 @@ async function deleteTaskFilesForRecord(
 
   const ext = record.format === 'audio' || record.format === 'mp3' ? 'mp3' : 'mp4'
   const sanitizedTitle = record.title.replace(/[/\\?*:|"<>]/g, '-')
+  const templatedBase = writerBasenameForTask({
+    id: record.id,
+    url: record.url,
+    title: record.title,
+    metadata: extras
+  })
 
   const knownBases = new Set<string>()
   knownBases.add(sanitizedTitle)
+  if (templatedBase) {
+    knownBases.add(templatedBase)
+    knownBases.add(basename(templatedBase))
+  }
 
   for (const dest of capturedDests) {
     filesToDelete.push(dest)
@@ -2409,15 +2545,15 @@ export function resumeAll(): void {
   }
 }
 
-export function loadFromDbAndRecover(): void {
+export function loadFromDbAndRecover(): { recoveredIds: string[] } {
   const all = db.getDownloads()
   const statusCounts: Record<string, number> = {}
   for (const r of all) statusCounts[r.status] = (statusCounts[r.status] ?? 0) + 1
   console.log(`[recover] total=${all.length} statuses=${JSON.stringify(statusCounts)}`)
-  for (const r of all) {
-    if (r.status === 'downloading') {
-      db.updateDownload(r.id, { status: 'interrupted', error: 'App was closed during download' })
-    }
+  const { recoveredIds } = planSessionRecover(all)
+  for (const id of recoveredIds) {
+    db.updateDownload(id, { status: 'interrupted', error: 'App was closed during download' })
   }
   processQueue()
+  return { recoveredIds }
 }

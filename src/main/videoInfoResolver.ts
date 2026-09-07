@@ -177,9 +177,13 @@ export async function resolveVideoInfo(url: string, signal?: AbortSignal): Promi
       }
     }
 
+    const infoProxyUrl = settings.get('proxyUrl') || undefined
     let douyinHint: Awaited<ReturnType<typeof getDouyinInfo>> = null
     if (douyinUrl) {
-      douyinHint = await getDouyinInfo(url, cookiesPath || undefined, { signal: resolveSignal })
+      douyinHint = await getDouyinInfo(url, cookiesPath || undefined, {
+        signal: resolveSignal,
+        proxyUrl: infoProxyUrl,
+      })
       throwIfAborted(resolveSignal)
       const douyinError = getLastDouyinInfoError()
       if (isDouyinPostUnavailableError(douyinError)) return { error: douyinError }
@@ -189,7 +193,9 @@ export async function resolveVideoInfo(url: string, signal?: AbortSignal): Promi
 
     let xhsHint: Awaited<ReturnType<typeof getXiaohongshuInfo>> = null
     if (xhsUrl) {
-      xhsHint = await getXiaohongshuInfo(url, cookiesPath || undefined)
+      xhsHint = await getXiaohongshuInfo(url, cookiesPath || undefined, {
+        proxyUrl: infoProxyUrl,
+      })
       throwIfAborted(resolveSignal)
       if (xhsHint && (isXiaohongshuGallery(xhsHint) || isXiaohongshuText(xhsHint))) {
         return { data: toXhsData(url, xhsHint) }
@@ -215,13 +221,18 @@ export async function resolveVideoInfo(url: string, signal?: AbortSignal): Promi
         if (text) return { data: text }
       }
       if (douyinUrl) {
-        const douyin = douyinHint ?? await getDouyinInfo(url, cookiesPath || undefined, { signal: resolveSignal })
+        const douyin = douyinHint ?? await getDouyinInfo(url, cookiesPath || undefined, {
+          signal: resolveSignal,
+          proxyUrl: infoProxyUrl,
+        })
         if (douyin) return { data: toDouyinData(url, douyin) }
         const hint = getLastDouyinInfoError()
         if (hint) return { error: `${msg} | ${hint}` }
       }
       if (xhsUrl) {
-        const xhs = xhsHint ?? (await getXiaohongshuInfo(url, cookiesPath || undefined))
+        const xhs = xhsHint ?? (await getXiaohongshuInfo(url, cookiesPath || undefined, {
+          proxyUrl: infoProxyUrl,
+        }))
         if (xhs && (isXiaohongshuGallery(xhs) || isXiaohongshuText(xhs))) return { data: toXhsData(url, xhs) }
         return { error: formatXhsResolveError(msg, getLastXhsInfoError()) }
       }

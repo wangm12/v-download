@@ -48,6 +48,12 @@ export function pickPersistedExtras(metadata?: Record<string, unknown>): Record<
   if (typeof metadata.remoteOutputDir === 'string' && metadata.remoteOutputDir.trim()) {
     out.remoteOutputDir = metadata.remoteOutputDir.trim()
   }
+  if (typeof metadata.outputDir === 'string' && metadata.outputDir.trim()) {
+    out.outputDir = metadata.outputDir.trim()
+  }
+  if (typeof metadata.proxyUrl === 'string' && metadata.proxyUrl.trim()) {
+    out.proxyUrl = metadata.proxyUrl.trim()
+  }
   if (typeof metadata.noteTitle === 'string') out.noteTitle = metadata.noteTitle
   if (typeof metadata.noteAuthor === 'string') out.noteAuthor = metadata.noteAuthor
   if (typeof metadata.noteUrl === 'string') out.noteUrl = metadata.noteUrl

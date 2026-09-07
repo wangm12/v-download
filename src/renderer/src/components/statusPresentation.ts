@@ -25,23 +25,23 @@ export function getStatusTone(status: DownloadStatus): StatusTone {
 export function getStatusLabel(status: DownloadStatus): string {
   switch (status) {
     case 'complete':
-      return 'Complete'
+      return 'status.complete'
     case 'downloading':
-      return 'Downloading'
+      return 'status.downloading'
     case 'resolving':
-      return 'Resolving…'
+      return 'status.resolving'
     case 'ready':
-      return 'Ready to download'
+      return 'status.ready'
     case 'queued':
-      return 'Queued'
+      return 'status.queued'
     case 'paused':
-      return 'Paused'
+      return 'status.paused'
     case 'error':
-      return 'Failed'
+      return 'status.error'
     case 'interrupted':
-      return 'Interrupted'
+      return 'status.interrupted'
     case 'cancelled':
-      return 'Cancelled'
+      return 'status.cancelled'
     default:
       return status
   }
@@ -51,9 +51,9 @@ export function getCollectionStatus(input: {
   hasErrors: boolean
   remainingCount: number
   hasActiveItems: boolean
-}): { label: 'Needs attention' | 'Complete' | 'In progress' | 'Queued'; tone: StatusTone } {
-  if (input.hasErrors) return { label: 'Needs attention', tone: 'warning' }
-  if (input.remainingCount === 0) return { label: 'Complete', tone: 'success' }
-  if (input.hasActiveItems) return { label: 'In progress', tone: 'accent' }
-  return { label: 'Queued', tone: 'neutral' }
+}): { label: 'status.needsAttention' | 'status.complete' | 'status.inProgress' | 'status.queued'; tone: StatusTone } {
+  if (input.hasErrors) return { label: 'status.needsAttention', tone: 'warning' }
+  if (input.remainingCount === 0) return { label: 'status.complete', tone: 'success' }
+  if (input.hasActiveItems) return { label: 'status.inProgress', tone: 'accent' }
+  return { label: 'status.queued', tone: 'neutral' }
 }

@@ -5,22 +5,33 @@ import { cn } from '@/lib/cn'
 import { Stepper } from './Stepper'
 import { HoverHintWrap } from './HoverHintWrap'
 import type { PrefSection } from '@/preferencesNav'
-import { PREF_SECTION_HEADER } from '@/preferencesNav'
 import type { DouyinBulkJobStatus, EngineStatus, NativeAuthAccountStatus, NativeAuthEvent, NativeAuthSite, SettingsData, SiteRule } from '@/types'
 import { DOUYIN_BULK_URL_PREFILL_SESSION_KEY } from '@/utils/douyinBulk'
 import {
   GENERAL_SECTION_CLASS,
+  LANGUAGE_PREFERENCE_VALUES,
+  OUTPUT_FILENAME_TOKENS,
+  OUTPUT_FOLDER_TOKENS,
   PREFERENCES_WORKSPACE_CLASS,
-  canPersistSiteRule
+  THEME_PREFERENCE_VALUES,
+  canPersistSiteRule,
+  languageSelectValue,
+  outputTemplateError,
+  previewOutputPath,
+  themeSelectValue,
+  type OutputTemplateError
 } from './preferencesPanelPresentation'
 import { DOWNLOAD_SPEED_MODES, getDownloadSpeedPresentation, getEffectiveIndividualLimit } from './preferencesPanelPresentation'
-import { changeAppLanguage, type AppLanguage } from '@/i18n'
+import { changeAppLanguage, type UiLanguagePreference } from '@/i18n'
+import type { ThemePreference } from '@/hooks/useThemePreference'
 
 const VIDEO_QUALITIES = ['2160', '1080', '720', '360', '240', '144']
 const AUDIO_QUALITIES = ['320', '256', '128']
 
 export interface PreferencesPanelProps {
   section: PrefSection
+  themePreference: ThemePreference
+  onThemePreference: (value: ThemePreference) => void
 }
 
 function PrefCard({
@@ -121,8 +132,8 @@ function SettingsDisclosure({
 const controlClass = 'min-h-10 rounded-lg bg-raised px-3 py-2 text-[13px] text-foreground ring-1 ring-inset ring-divider-subtle outline-none transition-colors focus:ring-2 focus:ring-border-focus'
 const secondaryButtonClass = 'inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-elevated px-3.5 py-2 text-[13px] font-medium text-foreground ring-1 ring-inset ring-divider-subtle transition-colors hover:bg-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:cursor-wait disabled:opacity-50'
 
-export function PreferencesPanel({ section }: PreferencesPanelProps) {
-  const { t, i18n } = useTranslation()
+export function PreferencesPanel({ section, themePreference, onThemePreference }: PreferencesPanelProps) {
+  const { t } = useTranslation()
   const [cookieSyncNote, setCookieSyncNote] = useState('')
   const [cookieSyncBusy, setCookieSyncBusy] = useState(false)
   const [extensionPath, setExtensionPath] = useState<string | null>(null)
@@ -141,6 +152,9 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
     concurrency: 3,
     showFormatDialog: true,
     playlistSubfolder: true,
+    filenameTemplate: '{title} [{id}]',
+    folderNameTemplate: '{author}',
+    archiveByAuthor: false,
     defaultVideoQuality: '1080',
     defaultAudioQuality: '320',
     sleepInterval: 3,
@@ -164,14 +178,24 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
     ytdlpExternalDownloader: '',
     siteRules: [],
     proxyUrl: '',
+    launchAtStartup: false,
+    notifyOnComplete: true,
+    notifyOnError: true,
+    warnBeforeQuit: true,
+    showTray: true,
     onboardingCompleted: false,
     remoteApiEnabled: false,
     remoteApiToken: '',
     remoteApiBind: '127.0.0.1',
     remoteApiPort: 18766,
     remoteApiMcpAllowWrite: false,
-    remoteApiMcpRequireConfirm: true
+    remoteApiMcpRequireConfirm: true,
+    uiLanguage: 'en'
   })
+  const [filenameDraft, setFilenameDraft] = useState<string | null>(null)
+  const [folderDraft, setFolderDraft] = useState<string | null>(null)
+  const [filenameError, setFilenameError] = useState<OutputTemplateError | null>(null)
+  const [folderError, setFolderError] = useState<OutputTemplateError | null>(null)
   const [bulkUrl, setBulkUrl] = useState('')
   const [bulkJobId, setBulkJobId] = useState('')
   const [bulkJob, setBulkJob] = useState<DouyinBulkJobStatus | null>(null)
@@ -217,7 +241,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [turboModalOpen])
 
-  const header = PREF_SECTION_HEADER[section]
+  const header = { title: t(`prefs.header.${section}Title`), subtitle: t(`prefs.header.${section}Subtitle`) }
 
   useEffect(() => {
     if (!window.api) return
@@ -289,9 +313,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
       if (v) {
         sessionStorage.removeItem(DOUYIN_BULK_URL_PREFILL_SESSION_KEY)
         setBulkUrl(v)
-        setBulkJobNote(
-          'Profile URL prefilled. Ensure run.py, config.yml, and `mode` / `number` in config match upstream docs, then Start bulk.'
-        )
+        setBulkJobNote(t('prefs.expert.prefilled'))
       }
     } catch {
       /* ignore */
@@ -314,7 +336,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
         cookieSyncWaitTimerRef.current = null
       }
       setCookieSyncBusy(false)
-      setCookieSyncNote(`Cookies saved (${data.count} entries). You can retry your download now.`)
+      setCookieSyncNote(t('banner.cookiesSavedDetail', { count: data.count }))
       window.setTimeout(() => setCookieSyncNote(''), 6000)
       window.api?.getSettings().then((res) => {
         const d = (res as { data?: SettingsData })?.data ?? res
@@ -376,6 +398,29 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
     if (window.api) await window.api.updateSettings(key, value)
   }, [])
 
+  const filenameValue = filenameDraft ?? settings.filenameTemplate ?? '{title} [{id}]'
+  const folderValue = folderDraft ?? settings.folderNameTemplate ?? '{author}'
+  const archiveByAuthor = settings.archiveByAuthor === true
+
+  const persistTemplate = useCallback((key: 'filenameTemplate' | 'folderNameTemplate', value: string) => {
+    const kind = key === 'filenameTemplate' ? 'filename' : 'folder'
+    const error = outputTemplateError(value, kind)
+    if (key === 'filenameTemplate') {
+      setFilenameDraft(value)
+      setFilenameError(error)
+    } else {
+      setFolderDraft(value)
+      setFolderError(error)
+    }
+    if (error) return
+    void onUpdate(key, value)
+  }, [onUpdate])
+
+  const insertTemplateToken = useCallback((key: 'filenameTemplate' | 'folderNameTemplate', token: string) => {
+    const current = key === 'filenameTemplate' ? filenameValue : folderValue
+    persistTemplate(key, `${current}${token}`)
+  }, [filenameValue, folderValue, persistTemplate])
+
   const refreshSettingsFromMain = useCallback(async () => {
     if (!window.api) return
     const res = await window.api.getSettings()
@@ -428,7 +473,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
           ...current.filter((account) => account.site !== event.site),
           event.account
         ])
-        setCookieSyncNote(`${event.site} account connected. Cookies are stored in the macOS Keychain.`)
+        setCookieSyncNote(t('prefs.inAppLogin.accountConnected', { site: event.site }))
       } else if (event.type === 'error') {
         setCookieSyncNote(event.message)
       }
@@ -439,18 +484,18 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
   const handleInstallExtension = async () => {
     if (!window.api?.installChromeExtension || extensionInstallBusy || cookieSyncBusy) return
     setExtensionInstallBusy(true)
-    setCookieSyncNote('Opening the extension folder and Chrome Extensions page…')
+    setCookieSyncNote(t('prefs.chromeCookie.openingFolder'))
     try {
       const res = await window.api.installChromeExtension()
       if (res.ok) {
         if (res.path) setExtensionPath(res.path)
         setCookieSyncNote(
           res.path
-            ? `In Chrome: turn on Developer mode → Load unpacked → select the folder shown in Finder.`
-            : 'Follow the steps in Chrome to load the unpacked extension.'
+            ? t('prefs.chromeCookie.loadUnpacked')
+            : t('prefs.chromeCookie.followSteps')
         )
       } else {
-        setCookieSyncNote(res.error || 'Could not find the extension folder.')
+        setCookieSyncNote(res.error || t('prefs.chromeCookie.folderMissing'))
       }
     } catch (err) {
       setCookieSyncNote(err instanceof Error ? err.message : String(err))
@@ -462,10 +507,10 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
   const handleStartNativeAuth = async () => {
     if (!window.api?.startNativeAuth || nativeAuthBusy) return
     setNativeAuthBusy(true)
-    setCookieSyncNote(`Opening ${nativeAuthSite} login in a private V-Download browser window…`)
+    setCookieSyncNote(t('prefs.inAppLogin.opening', { site: nativeAuthSite }))
     try {
       const result = await window.api.startNativeAuth(nativeAuthSite)
-      if (!result.ok) setCookieSyncNote(result.error || 'Could not open native login.')
+      if (!result.ok) setCookieSyncNote(result.error || t('prefs.inAppLogin.openFailed'))
     } catch (err) {
       setCookieSyncNote(err instanceof Error ? err.message : String(err))
     } finally {
@@ -480,9 +525,9 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
       const result = await window.api.clearNativeAuth(site)
       if (result.ok) {
         setNativeAccounts((current) => current.filter((account) => account.site !== site))
-        setCookieSyncNote(`${site} account disconnected.`)
+        setCookieSyncNote(t('prefs.inAppLogin.disconnected', { site }))
       } else {
-        setCookieSyncNote(result.error || 'Could not disconnect the account.')
+        setCookieSyncNote(result.error || t('prefs.inAppLogin.disconnectFailed'))
       }
     } finally {
       setNativeAuthBusy(false)
@@ -497,23 +542,20 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
     }
     awaitingCookiePushRef.current = true
     setCookieSyncBusy(true)
-    setCookieSyncNote('Opening your browser — you will see progress here when cookies arrive.')
+    setCookieSyncNote(t('banner.syncingDetail'))
 
     try {
       const res = await window.api.requestBrowserCookieSync()
       setCookieSyncNote(
         res.openedBrowser
-          ? 'Waiting for Chrome: use the new tab and wait for “Saved”. If it opened in Safari or another browser, paste http://127.0.0.1:18765/cookie-sync-landing into Chrome. Background sync can take up to ~2 minutes — keep this window open.'
-          : res.message ||
-            'Open http://127.0.0.1:18765/cookie-sync-landing in Chrome with the V-Download extension.'
+          ? t('banner.waitingChromeOpened')
+          : res.message || t('banner.waitingChromeManual')
       )
       cookieSyncWaitTimerRef.current = window.setTimeout(() => {
         cookieSyncWaitTimerRef.current = null
         awaitingCookiePushRef.current = false
         setCookieSyncBusy(false)
-        setCookieSyncNote(
-          'Still waiting. Open the sync URL in Chrome with the extension (not Safari). Visit the site you need, then click Sync cookies again.'
-        )
+        setCookieSyncNote(t('prefs.chromeCookie.stillWaiting'))
       }, 125000)
     } catch (err) {
       awaitingCookiePushRef.current = false
@@ -556,7 +598,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
         return
       }
       if (!id) {
-        setBulkJobNote('Bulk job did not return a job id.')
+        setBulkJobNote(t('prefs.expert.noJobId'))
         return
       }
 
@@ -567,7 +609,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
         startedAt: new Date().toISOString(),
         stderrTail: ''
       })
-      setBulkJobNote('Douyin bulk job started. Status updates every 1.2s.')
+      setBulkJobNote(t('prefs.expert.started'))
     } catch (err) {
       setBulkJobNote(err instanceof Error ? err.message : String(err))
     } finally {
@@ -587,11 +629,11 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
         return
       }
       if (!result.ok) {
-        setBulkJobNote('Cancel request was not accepted for this job.')
+        setBulkJobNote(t('prefs.expert.cancelRejected'))
         return
       }
       setBulkJob((prev) => (prev ? { ...prev, state: 'cancelled', endedAt: new Date().toISOString() } : prev))
-      setBulkJobNote('Cancel request sent.')
+      setBulkJobNote(t('prefs.expert.cancelSent'))
     } catch (err) {
       setBulkJobNote(err instanceof Error ? err.message : String(err))
     } finally {
@@ -606,7 +648,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
         <div className="mx-auto w-full max-w-[760px] min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-tertiary-foreground">Preferences</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-tertiary-foreground">{t('prefs.heading')}</p>
           <h1 className="mt-1 text-lg font-semibold tracking-tight text-foreground">{header.title}</h1>
           <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted-foreground">{header.subtitle}</p>
         </div>
@@ -618,35 +660,93 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
       >
         {section === 'general' && (
           <div className={PREFERENCES_WORKSPACE_CLASS}>
-            <PrefCard title={t('language.label')} subtitle={t('language.description')} className={GENERAL_SECTION_CLASS}>
-              <FieldBlock label={t('language.label')}>
+            <PrefCard title={t('prefs.language.label')} subtitle={t('prefs.language.description')} className={GENERAL_SECTION_CLASS}>
+              <FieldBlock label={t('prefs.language.label')}>
                 <select
-                  value={i18n.language === 'zh-CN' || i18n.language === 'zh-TW' ? i18n.language : 'en'}
-                  onChange={(event) => void changeAppLanguage(event.target.value as AppLanguage)}
+                  value={languageSelectValue(settings.uiLanguage)}
+                  onChange={(event) => {
+                    const next = event.target.value as UiLanguagePreference
+                    setSettings((prev) => ({ ...prev, uiLanguage: next }))
+                    void changeAppLanguage(next)
+                  }}
                   className={controlClass}
                 >
-                  <option value="en">{t('language.english')}</option>
-                  <option value="zh-CN">{t('language.simplifiedChinese')}</option>
-                  <option value="zh-TW">{t('language.traditionalChinese')}</option>
+                  {LANGUAGE_PREFERENCE_VALUES.map((value) => (
+                    <option key={value} value={value}>
+                      {value === 'system'
+                        ? t('language.system')
+                        : value === 'zh-CN'
+                          ? t('language.simplifiedChinese')
+                          : value === 'zh-TW'
+                            ? t('language.traditionalChinese')
+                            : t('language.english')}
+                    </option>
+                  ))}
+                </select>
+              </FieldBlock>
+            </PrefCard>
+            <PrefCard title={t('prefs.theme.label')} subtitle={t('prefs.theme.description')} className={GENERAL_SECTION_CLASS}>
+              <FieldBlock label={t('prefs.theme.label')}>
+                <select
+                  value={themeSelectValue(themePreference)}
+                  onChange={(event) => onThemePreference(event.target.value as ThemePreference)}
+                  className={controlClass}
+                >
+                  {THEME_PREFERENCE_VALUES.map((value) => (
+                    <option key={value} value={value}>
+                      {value === 'device' ? t('theme.system') : value === 'light' ? t('theme.light') : t('theme.dark')}
+                    </option>
+                  ))}
                 </select>
               </FieldBlock>
             </PrefCard>
             <PrefCard
-              title="Download behavior"
-              subtitle="Set the choices that shape every download."
+              title={t('prefs.downloadBehavior.title')}
+              subtitle={t('prefs.downloadBehavior.subtitle')}
               className={GENERAL_SECTION_CLASS}
             >
               <ToggleRow
-                label="Ask before downloading"
-                description="Show the format picker instead of starting immediately."
+                label={t('prefs.downloadBehavior.askBefore')}
+                description={t('prefs.downloadBehavior.askBeforeDesc')}
                 checked={settings.showFormatDialog}
                 onChange={(v) => onUpdate('showFormatDialog', v)}
               />
               <ToggleRow
-                label="Organize playlist downloads"
-                description="Create a folder for each playlist or channel."
+                label={t('prefs.downloadBehavior.organizePlaylist')}
+                description={t('prefs.downloadBehavior.organizePlaylistDesc')}
                 checked={settings.playlistSubfolder}
                 onChange={(v) => onUpdate('playlistSubfolder', v)}
+              />
+            </PrefCard>
+            <PrefCard
+              title={t('prefs.startup.title')}
+              subtitle={t('prefs.startup.subtitle')}
+              className={GENERAL_SECTION_CLASS}
+            >
+              <ToggleRow
+                label={t('prefs.startup.launchAtLogin')}
+                checked={settings.launchAtStartup === true}
+                onChange={(v) => onUpdate('launchAtStartup', v)}
+              />
+              <ToggleRow
+                label={t('prefs.startup.notifyComplete')}
+                checked={settings.notifyOnComplete !== false}
+                onChange={(v) => onUpdate('notifyOnComplete', v)}
+              />
+              <ToggleRow
+                label={t('prefs.startup.notifyError')}
+                checked={settings.notifyOnError !== false}
+                onChange={(v) => onUpdate('notifyOnError', v)}
+              />
+              <ToggleRow
+                label={t('prefs.startup.warnQuit')}
+                checked={settings.warnBeforeQuit !== false}
+                onChange={(v) => onUpdate('warnBeforeQuit', v)}
+              />
+              <ToggleRow
+                label={t('prefs.startup.showTray')}
+                checked={settings.showTray !== false}
+                onChange={(v) => onUpdate('showTray', v)}
               />
             </PrefCard>
           </div>
@@ -655,10 +755,10 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
         {section === 'downloads' && (
           <div className={PREFERENCES_WORKSPACE_CLASS}>
             <PrefCard
-              title="Save files"
-              subtitle="Choose the folder used for completed downloads."
+              title={t('prefs.saveFiles.title')}
+              subtitle={t('prefs.saveFiles.subtitle')}
             >
-              <FieldBlock label="Download folder">
+              <FieldBlock label={t('prefs.saveFiles.downloadFolder')}>
                 <div className="flex gap-2">
                   <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg bg-raised border border-border min-w-0">
                     <Folder className="w-4 h-4 text-muted-foreground shrink-0" aria-hidden />
@@ -669,23 +769,111 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                     onClick={handleBrowse}
                     className="min-h-11 px-4 py-2 rounded-lg bg-elevated border border-border text-sm font-medium text-foreground hover:bg-control transition-colors shrink-0"
                   >
-                    Browse
+                    {t('prefs.saveFiles.browse')}
                   </button>
                 </div>
               </FieldBlock>
+              <FieldBlock
+                label={t('prefs.saveFiles.proxyUrl')}
+                description={t('prefs.saveFiles.proxyUrlDesc')}
+              >
+                <input
+                  type="text"
+                  value={settings.proxyUrl ?? ''}
+                  onChange={(e) => onUpdate('proxyUrl', e.target.value)}
+                  placeholder="http://127.0.0.1:8080"
+                  className="w-full max-w-md px-3 py-2 rounded-lg bg-raised border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-border-focus"
+                />
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  {t('prefs.saveFiles.credentialsRejected')} {t('prefs.saveFiles.credentialsHint')}
+                </p>
+              </FieldBlock>
+              <FieldBlock
+                label={t('prefs.saveFiles.filename')}
+                description={t('prefs.saveFiles.filenameDesc')}
+              >
+                <input
+                  type="text"
+                  value={filenameValue}
+                  onChange={(e) => persistTemplate('filenameTemplate', e.target.value)}
+                  className="w-full max-w-md px-3 py-2 rounded-lg bg-raised border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-border-focus"
+                  aria-invalid={Boolean(filenameError)}
+                />
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {OUTPUT_FILENAME_TOKENS.map((token) => (
+                    <button
+                      key={token}
+                      type="button"
+                      onClick={() => insertTemplateToken('filenameTemplate', token)}
+                      className="rounded-full bg-elevated px-2.5 py-1 text-xs font-medium text-foreground ring-1 ring-inset ring-divider-subtle hover:bg-control"
+                    >
+                      {token}
+                    </button>
+                  ))}
+                </div>
+                {filenameError ? <p className="text-xs text-red-400">{t(filenameError.key, filenameError.vars)}</p> : null}
+              </FieldBlock>
+              <ToggleRow
+                label={t('prefs.saveFiles.archiveByAuthor')}
+                description={t('prefs.saveFiles.archiveByAuthorDesc')}
+                checked={archiveByAuthor}
+                onChange={(v) => onUpdate('archiveByAuthor', v)}
+              />
+              <FieldBlock
+                label={t('prefs.saveFiles.authorFolder')}
+                description={t('prefs.saveFiles.authorFolderDesc')}
+              >
+                <input
+                  type="text"
+                  value={folderValue}
+                  onChange={(e) => persistTemplate('folderNameTemplate', e.target.value)}
+                  disabled={!archiveByAuthor}
+                  className="w-full max-w-md px-3 py-2 rounded-lg bg-raised border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-border-focus disabled:opacity-50"
+                  aria-invalid={Boolean(folderError)}
+                />
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {OUTPUT_FOLDER_TOKENS.map((token) => (
+                    <button
+                      key={token}
+                      type="button"
+                      onClick={() => insertTemplateToken('folderNameTemplate', token)}
+                      disabled={!archiveByAuthor}
+                      className="rounded-full bg-elevated px-2.5 py-1 text-xs font-medium text-foreground ring-1 ring-inset ring-divider-subtle hover:bg-control disabled:opacity-50"
+                    >
+                      {token}
+                    </button>
+                  ))}
+                </div>
+                {folderError ? <p className="text-xs text-red-400">{t(folderError.key, folderError.vars)}</p> : null}
+              </FieldBlock>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                {t('prefs.saveFiles.preview', {
+                  path: (() => {
+                    const fileErr = outputTemplateError(filenameValue, 'filename')
+                    if (fileErr) return t(fileErr.key, fileErr.vars)
+                    const folderErr = outputTemplateError(folderValue, 'folder')
+                    if (folderErr) return t(folderErr.key, folderErr.vars)
+                    return previewOutputPath({
+                      downloadDir: settings.downloadDir || '~/Downloads',
+                      filenameTemplate: filenameValue,
+                      folderNameTemplate: folderValue,
+                      archiveByAuthor
+                    })
+                  })()
+                })}
+              </p>
             </PrefCard>
 
             <PrefCard
-              title="Download speed"
-              subtitle="Balanced is recommended. Choose Gentle for stricter sites or Turbo for faster starts."
+              title={t('prefs.speed.title')}
+              subtitle={t('prefs.speed.subtitle')}
             >
               <FieldBlock
-                label="Preset"
-                description="Balanced is a good default."
+                label={t('prefs.speed.preset')}
+                description={t('prefs.speed.presetDesc')}
               >
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3" role="group" aria-label="Download speed mode">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3" role="group" aria-label={t('prefs.speed.mode')}>
                   {DOWNLOAD_SPEED_MODES.map((mode) => {
-                    const presentation = getDownloadSpeedPresentation(mode)
                     const selected = (settings.downloadSpeedMode ?? 'balanced') === mode
                     return (
                     <button
@@ -700,36 +888,40 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                     >
                       <span className="flex items-center gap-2">
                         {selected ? <Check className="h-4 w-4 shrink-0" aria-hidden /> : <span className="h-4 w-4 shrink-0" aria-hidden />}
-                        <span>{presentation.label}{selected ? ' · Selected' : ''}</span>
+                        <span>{t(`prefs.speed.${mode}`)}{selected ? ` · ${t('prefs.speed.selected')}` : ''}</span>
                       </span>
                     </button>
                     )
                   })}
                 </div>
                 <p className="text-xs leading-relaxed text-muted-foreground" aria-live="polite">
-                  {getDownloadSpeedPresentation(settings.downloadSpeedMode ?? 'balanced').shortDescription}
+                  {t(`prefs.speed.${settings.downloadSpeedMode ?? 'balanced'}Short`)}
                 </p>
               </FieldBlock>
             </PrefCard>
 
             <SettingsDisclosure
-              title="Queue behavior"
-              subtitle="How many downloads start at once, and how long to wait between them."
+              title={t('prefs.queueBehavior.title')}
+              subtitle={t('prefs.queueBehavior.subtitle')}
               className="order-3"
             >
             <PrefCard
-              title="Queue"
-              subtitle="Balance speed with system and network reliability. A short delay between starts helps with rate limits."
+              title={t('prefs.queueBehavior.queueTitle')}
+              subtitle={t('prefs.queueBehavior.queueSubtitle')}
             >
               <FieldBlock
-                label="Individual-video pool limit"
-                description={`Allows up to ${getEffectiveIndividualLimit(settings.downloadSpeedMode ?? 'balanced', settings.concurrency)} individual-video tasks. Collections use their own ${getDownloadSpeedPresentation(settings.downloadSpeedMode ?? 'balanced').policy.collectionLimit}-task and ${getDownloadSpeedPresentation(settings.downloadSpeedMode ?? 'balanced').policy.activeCollectionLimit}-collection caps.`}
+                label={t('prefs.queueBehavior.individualLimit')}
+                description={t('prefs.queueBehavior.individualLimitDesc', {
+                  individual: getEffectiveIndividualLimit(settings.downloadSpeedMode ?? 'balanced', settings.concurrency),
+                  collection: getDownloadSpeedPresentation(settings.downloadSpeedMode ?? 'balanced').policy.collectionLimit,
+                  active: getDownloadSpeedPresentation(settings.downloadSpeedMode ?? 'balanced').policy.activeCollectionLimit
+                })}
               >
                 <Stepper value={getEffectiveIndividualLimit(settings.downloadSpeedMode ?? 'balanced', settings.concurrency)} min={1} max={3} onChange={(v) => onUpdate('concurrency', v)} />
               </FieldBlock>
               <FieldBlock
-                label="Delay between download starts"
-                description="Maps to yt-dlp --sleep-interval for normal page URLs (not extension direct-media tasks). Minimum wait before each download operation."
+                label={t('prefs.queueBehavior.delayStarts')}
+                description={t('prefs.queueBehavior.delayStartsDesc')}
               >
                 <Stepper
                   value={settings.sleepInterval}
@@ -739,22 +931,22 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                   onChange={(v) => onUpdate('sleepInterval', v)}
                 />
               </FieldBlock>
-              <p className="text-xs text-muted-foreground leading-relaxed border-t border-border pt-3">Failed and interrupted items expose Retry in the queue and inspector. Pause and cancel remain available while a task is active.</p>
+              <p className="text-xs text-muted-foreground leading-relaxed border-t border-border pt-3">{t('prefs.queueBehavior.retryNote')}</p>
             </PrefCard>
             </SettingsDisclosure>
 
             <SettingsDisclosure
-              title="Network / engine"
-              subtitle="Fragment concurrency, direct-media engine, and optional external downloader."
+              title={t('prefs.network.title')}
+              subtitle={t('prefs.network.subtitle')}
               className="order-4"
             >
             <PrefCard
-              title="Direct media (extension)"
-              subtitle="URLs with a detected media type (HLS, MP4, …). Auto uses yt-dlp first for HLS (.m3u8) for faster parallel fragments; other types still try ffmpeg first with yt-dlp fallback."
+              title={t('prefs.network.directTitle')}
+              subtitle={t('prefs.network.directSubtitle')}
             >
               <FieldBlock
-                label="Direct media engine"
-                description="Applies to CDN URLs sent by the Chrome extension, not full watch pages (those stay on yt-dlp)."
+                label={t('prefs.network.engine')}
+                description={t('prefs.network.engineDesc')}
               >
                 <select
                   value={settings.directMediaEngine ?? 'auto'}
@@ -763,14 +955,14 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                   }
                   className="w-full max-w-md px-3 py-2 rounded-lg bg-raised border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-border-focus"
                 >
-                  <option value="auto">Auto — HLS via yt-dlp first; other CDN URLs ffmpeg first</option>
-                  <option value="ffmpeg">ffmpeg only</option>
-                  <option value="ytdlp">yt-dlp only</option>
+                  <option value="auto">{t('prefs.network.engineAuto')}</option>
+                  <option value="ffmpeg">{t('prefs.network.engineFfmpeg')}</option>
+                  <option value="ytdlp">{t('prefs.network.engineYtdlp')}</option>
                 </select>
               </FieldBlock>
               <FieldBlock
-                label="Concurrent fragments (yt-dlp)"
-                description="Passed as --concurrent-fragments for fragmented streams (HLS, DASH, ISM) on all yt-dlp downloads when set above 1. Higher values can be faster but may trigger rate limits."
+                label={t('prefs.network.fragments')}
+                description={t('prefs.network.fragmentsDesc')}
               >
                 <Stepper
                   value={settings.concurrentFragments ?? 5}
@@ -780,8 +972,8 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                 />
               </FieldBlock>
               <FieldBlock
-                label="External downloader (optional)"
-                description="yt-dlp --downloader, e.g. aria2c (must be installed and on PATH). Leave empty for the built-in downloader."
+                label={t('prefs.network.externalDl')}
+                description={t('prefs.network.externalDlDesc')}
               >
                 <input
                   type="text"
@@ -795,27 +987,27 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
             </SettingsDisclosure>
 
             <SettingsDisclosure
-              title="Playlists"
-              subtitle="How channel and list URLs are queued."
+              title={t('prefs.playlists.title')}
+              subtitle={t('prefs.playlists.subtitle')}
               className="order-5"
             >
             <PrefCard
-              title="YouTube playlists"
-              subtitle="Channel and list URLs can be one yt-dlp job (fewer tasks, stable ordering) or many parallel tasks (legacy)."
+              title={t('prefs.playlists.youtubeTitle')}
+              subtitle={t('prefs.playlists.youtubeSubtitle')}
             >
-              <FieldBlock label="Playlist mode" description="Native mode uses the original list/channel URL with yt-dlp’s playlist options. Fan-out queues one task per video.">
+              <FieldBlock label={t('prefs.playlists.mode')} description={t('prefs.playlists.modeDesc')}>
                 <select
                   value={settings.youtubePlaylistMode ?? 'native'}
                   onChange={(e) => onUpdate('youtubePlaylistMode', e.target.value)}
                   className="w-full max-w-md px-3 py-2 rounded-lg bg-raised border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-border-focus"
                 >
-                  <option value="native">Single yt-dlp job (recommended)</option>
-                  <option value="fanout">One task per video</option>
+                  <option value="native">{t('prefs.playlists.native')}</option>
+                  <option value="fanout">{t('prefs.playlists.fanout')}</option>
                 </select>
               </FieldBlock>
               <FieldBlock
-                label="Sleep between playlist requests"
-                description="Maps to yt-dlp --sleep-requests for native playlist downloads (seconds)."
+                label={t('prefs.playlists.sleep')}
+                description={t('prefs.playlists.sleepDesc')}
               >
                 <Stepper
                   value={settings.youtubePlaylistSleepRequests ?? 0}
@@ -826,8 +1018,8 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                 />
               </FieldBlock>
               <FieldBlock
-                label="Max videos per native playlist"
-                description="0 = no limit. Passed as --max-downloads for native playlist mode."
+                label={t('prefs.playlists.max')}
+                description={t('prefs.playlists.maxDesc')}
               >
                 <Stepper
                   value={settings.youtubePlaylistMaxDownloads ?? 0}
@@ -840,13 +1032,13 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
             </SettingsDisclosure>
 
             <PrefCard
-              title="Default format"
-              subtitle="Used when the format picker is turned off."
+              title={t('prefs.defaultFormat.title')}
+              subtitle={t('prefs.defaultFormat.subtitle')}
               className="order-2"
             >
               <FieldBlock
-                label="Video quality"
-                description="Higher quality uses more storage and bandwidth."
+                label={t('prefs.defaultFormat.videoQuality')}
+                description={t('prefs.defaultFormat.videoQualityDesc')}
               >
                 <select
                   value={settings.defaultVideoQuality}
@@ -860,7 +1052,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                   ))}
                 </select>
               </FieldBlock>
-              <FieldBlock label="Audio quality" description="Bitrate used for audio-only downloads.">
+              <FieldBlock label={t('prefs.defaultFormat.audioQuality')} description={t('prefs.defaultFormat.audioQualityDesc')}>
                 <select
                   value={settings.defaultAudioQuality}
                   onChange={(e) => onUpdate('defaultAudioQuality', e.target.value)}
@@ -879,7 +1071,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
 
         {section === 'browser' && (
           <div className={PREFERENCES_WORKSPACE_CLASS}>
-            <PrefCard title="Chrome cookie sync" subtitle="Use the Chrome extension to detect media and sync login cookies from your browser.">
+            <PrefCard title={t('prefs.chromeCookie.title')} subtitle={t('prefs.chromeCookie.subtitle')}>
               {(cookieSyncBusy || extensionInstallBusy || cookieSyncNote) && (
                 <div
                   className={cn(
@@ -895,12 +1087,12 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                   )}
                   <p className="text-sm text-foreground leading-relaxed flex-1 min-w-0">{cookieSyncNote}</p>
                   {!cookieSyncBusy && !extensionInstallBusy && cookieSyncNote && (
-                    <HoverHintWrap text="Dismiss message" side="bottom">
+                    <HoverHintWrap text={t('prefs.chromeCookie.dismiss')} side="bottom">
                       <button
                         type="button"
                         onClick={() => setCookieSyncNote('')}
                         className="shrink-0 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-control transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
-                        aria-label="Dismiss message"
+                        aria-label={t('prefs.chromeCookie.dismiss')}
                       >
                         <X className="w-4 h-4" aria-hidden />
                       </button>
@@ -911,12 +1103,12 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
 
               <div className="space-y-3">
                 <div>
-                  <p className="text-sm text-foreground">Chrome extension</p>
+                  <p className="text-sm text-foreground">{t('prefs.chromeCookie.extension')}</p>
                   <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                    {settings.cookiesPath ? 'Cookies synced and ready.' : extensionPath ? 'Extension folder ready.' : 'Extension is ready to load in Chrome.'}
+                    {settings.cookiesPath ? t('prefs.chromeCookie.cookiesReady') : extensionPath ? t('prefs.chromeCookie.extensionReady') : t('prefs.chromeCookie.extensionToLoad')}
                   </p>
                   <p className="text-xs text-muted-foreground/90 mt-1.5 leading-relaxed">
-                    Cookies stay on this computer and are used for authenticated downloads.
+                    {t('prefs.chromeCookie.cookiesLocal')}
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch">
@@ -930,7 +1122,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                         ? 'cursor-wait'
                         : ''
                     )}
-                    title="Open extension folder and Chrome Extensions for Load unpacked"
+                    title={t('prefs.chromeCookie.openFolder')}
                     aria-busy={extensionInstallBusy}
                   >
                     {extensionInstallBusy ? (
@@ -938,7 +1130,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                     ) : (
                       <Puzzle className="h-3.5 w-3.5 shrink-0" aria-hidden />
                     )}
-                    {extensionInstallBusy ? 'Opening…' : 'Install extension'}
+                    {extensionInstallBusy ? t('prefs.chromeCookie.opening') : t('prefs.chromeCookie.installExtension')}
                   </button>
                   <button
                     type="button"
@@ -950,7 +1142,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                         ? 'cursor-wait'
                         : ''
                     )}
-                    title="Push fresh cookies from Chrome into V-Download"
+                    title={t('prefs.chromeCookie.pushCookies')}
                     aria-busy={cookieSyncBusy}
                   >
                     {cookieSyncBusy ? (
@@ -958,14 +1150,14 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                     ) : (
                       <RefreshCw className="h-3.5 w-3.5 shrink-0" aria-hidden />
                     )}
-                    {cookieSyncBusy ? 'Syncing…' : 'Sync browser cookies'}
+                    {cookieSyncBusy ? t('prefs.chromeCookie.syncing') : t('prefs.chromeCookie.syncBrowserCookies')}
                   </button>
                 </div>
               </div>
 
               <SettingRow
-                label="Browser profile"
-                description="Used when Douyin or TikTok needs your logged-in browser session."
+                label={t('prefs.chromeCookie.browserProfile')}
+                description={t('prefs.chromeCookie.browserProfileDesc')}
               >
                 <select
                   value={settings.cookiesFromBrowser ?? 'chrome'}
@@ -983,28 +1175,28 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                 </select>
               </SettingRow>
 
-              <SettingsDisclosure title="If Douyin pages fail" subtitle="Optional recovery mode for difficult pages.">
+              <SettingsDisclosure title={t('prefs.chromeCookie.ifDouyinFails')} subtitle={t('prefs.chromeCookie.ifDouyinFailsDesc')}>
                 <ToggleRow
-                  label="Use CloakBrowser"
-                  description="Downloads a separate patched browser on first use."
+                  label={t('prefs.chromeCookie.cloak')}
+                  description={t('prefs.chromeCookie.cloakDesc')}
                   checked={settings.douyinUseCloakBrowser === true}
                   onChange={(v) => onUpdate('douyinUseCloakBrowser', v)}
                 />
                 <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-                  See the{' '}
+                  {t('prefs.chromeCookie.binaryLicense')}{' '}
                   <a href="https://github.com/CloakHQ/cloakbrowser/blob/main/BINARY-LICENSE.md" className="text-foreground underline underline-offset-2 hover:no-underline">
-                    binary license terms
-                  </a>{' '}before enabling it.
+                    binary license
+                  </a>.
                 </p>
               </SettingsDisclosure>
             </PrefCard>
-            <PrefCard title="In-app account login" subtitle="Sign in inside a separate V-Download browser window. Cookies are saved in the macOS Keychain and stay local.">
+            <PrefCard title={t('prefs.inAppLogin.title')} subtitle={t('prefs.inAppLogin.subtitle')}>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <select
                   value={nativeAuthSite}
                   onChange={(event) => setNativeAuthSite(event.target.value as NativeAuthSite)}
                   className={cn(controlClass, 'w-full sm:max-w-[220px]')}
-                  aria-label="Account site"
+                  aria-label={t('prefs.inAppLogin.accountSite')}
                 >
                   <option value="douyin">Douyin</option>
                   <option value="youtube">YouTube</option>
@@ -1020,7 +1212,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                   className={cn(secondaryButtonClass, 'sm:flex-initial')}
                 >
                   {nativeAuthBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <Globe className="h-3.5 w-3.5" aria-hidden />}
-                  Open login window
+                  {t('prefs.inAppLogin.openLogin')}
                 </button>
               </div>
               <div className="space-y-2">
@@ -1028,16 +1220,16 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                   <div key={account.site} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-raised px-3 py-2.5">
                     <div className="min-w-0">
                       <p className="text-xs font-medium text-foreground">{account.site}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">{account.cookieCount} cookies · {account.lastSyncedAt ? new Date(account.lastSyncedAt).toLocaleString() : 'saved'}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{t('prefs.inAppLogin.cookiesMeta', { count: account.cookieCount, when: account.lastSyncedAt ? new Date(account.lastSyncedAt).toLocaleString() : t('prefs.inAppLogin.saved') })}</p>
                     </div>
                     <button type="button" onClick={() => void handleClearNativeAuth(account.site)} disabled={nativeAuthBusy} className="min-h-8 rounded-md px-2.5 text-xs font-medium text-muted-foreground hover:bg-control hover:text-foreground disabled:opacity-50">
-                      Disconnect
+                      {t('prefs.inAppLogin.disconnect')}
                     </button>
                   </div>
                 ))}
                 {nativeAccounts.every((account) => !account.connected) && (
                   <p className="rounded-lg bg-raised/45 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
-                    No native account sessions connected. Chrome cookie sync remains available above.
+                    {t('prefs.inAppLogin.noSessions')}
                   </p>
                 )}
               </div>
@@ -1047,7 +1239,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
 
         {section === 'sites' && (
           <div className={PREFERENCES_WORKSPACE_CLASS}>
-            <PrefCard title="Per-site rules" subtitle="Override the default format for a specific website. Changes save immediately.">
+            <PrefCard title={t('prefs.siteRules.title')} subtitle={t('prefs.siteRules.subtitle')}>
               <SiteRulesEditor settings={settings} onUpdate={onUpdate} />
             </PrefCard>
           </div>
@@ -1055,16 +1247,16 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
 
         {section === 'advanced' && (
           <div className={PREFERENCES_WORKSPACE_CLASS}>
-            <PrefCard title="System" subtitle="Only open these details when troubleshooting.">
-              <SettingRow label="App version" description="Installed V-Download version.">
+            <PrefCard title={t('prefs.system.title')} subtitle={t('prefs.system.subtitle')}>
+              <SettingRow label={t('prefs.system.appVersion')} description={t('prefs.system.appVersionDesc')}>
                 <span className="text-[13px] tabular-nums text-muted-foreground">{appVersion ?? '—'}</span>
               </SettingRow>
               <div className="space-y-3 border-t border-divider-subtle pt-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-[13px] font-medium text-foreground">Download engines</p>
+                    <p className="text-[13px] font-medium text-foreground">{t('prefs.system.engines')}</p>
                     <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                      Check signed metadata for yt-dlp and the bundled FFmpeg release without changing your system installation.
+                      {t('prefs.system.enginesDesc')}
                     </p>
                   </div>
                   <button
@@ -1074,7 +1266,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                     className={cn(secondaryButtonClass, 'shrink-0')}
                   >
                     {engineBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <RefreshCw className="h-3.5 w-3.5" aria-hidden />}
-                    {engineBusy ? 'Checking…' : 'Check for updates'}
+                    {engineBusy ? t('prefs.system.checking') : t('prefs.system.checkUpdates')}
                   </button>
                 </div>
                 <div className="space-y-2">
@@ -1084,7 +1276,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                         <div className="min-w-0">
                           <p className="text-[13px] font-medium text-foreground">{engine.name}</p>
                           <p className="mt-0.5 truncate text-xs text-muted-foreground" title={engine.path || undefined}>
-                            {engine.version ? `Version ${engine.version}` : 'Not available'} · {engine.source}
+                            {engine.version ? t('prefs.system.version', { version: engine.version }) : t('prefs.system.notAvailable')} · {engine.source}
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
@@ -1096,7 +1288,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                                 ? 'bg-selection text-foreground'
                                 : 'bg-state-complete-bg text-foreground'
                           )}>
-                            {engine.source === 'missing' ? 'Missing' : engine.updateState === 'available' ? `Update ${engine.latestVersion}` : engine.version ? 'Ready' : 'Unavailable'}
+                            {engine.source === 'missing' ? t('prefs.system.missing') : engine.updateState === 'available' ? `${t('prefs.system.update')} ${engine.latestVersion}` : engine.version ? t('prefs.system.ready') : t('prefs.system.unavailable')}
                           </span>
                           {engine.canUpdate && (
                             <button
@@ -1106,7 +1298,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                               className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-action px-2.5 text-xs font-semibold text-action-fg hover:bg-action-hover disabled:cursor-wait disabled:opacity-50"
                             >
                               <Download className="h-3 w-3" aria-hidden />
-                              Update
+                              {t('prefs.system.update')}
                             </button>
                           )}
                         </div>
@@ -1119,7 +1311,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                 </div>
                 {engineNote && <p className="text-xs leading-relaxed text-muted-foreground">{engineNote}</p>}
               </div>
-              <SettingsDisclosure title="Engine paths" subtitle="Read-only paths used by yt-dlp and ffmpeg.">
+              <SettingsDisclosure title={t('prefs.system.enginePaths')} subtitle={t('prefs.system.enginePathsDesc')}>
                 <div className="space-y-4">
                   <FieldBlock label="yt-dlp">
                     <input type="text" value={settings.ytdlpPath ?? ''} readOnly className={cn(controlClass, 'w-full text-muted-foreground')} />
@@ -1131,8 +1323,8 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
               </SettingsDisclosure>
             </PrefCard>
             <PrefCard
-              title="Expert tools"
-              subtitle="Creator/profile bulk via external jiji262/douyin-downloader. Align `-p` with your app download folder using the fields below; `mode`, `number`, and cookies stay in config.yml per upstream README."
+              title={t('prefs.expert.title')}
+              subtitle={t('prefs.expert.subtitle')}
             >
               <div className="text-xs text-muted-foreground leading-relaxed">
                 <a
@@ -1141,11 +1333,11 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                   rel="noreferrer"
                   className="text-foreground underline font-medium hover:no-underline"
                 >
-                  Open upstream README (minimal config)
+                  {t('prefs.expert.upstreamReadme')}
                 </a>
                 <span className="text-muted-foreground"> — link, mode, number.post, browser_fallback, cookies.</span>
               </div>
-              <FieldBlock label="Path to run.py" description="Absolute path to douyin-downloader run.py.">
+              <FieldBlock label={t('prefs.expert.runPy')} description={t('prefs.expert.runPyDesc')}>
                 <input
                   type="text"
                   value={settings.douyinBulkRunPyPath ?? ''}
@@ -1154,7 +1346,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                   className="w-full max-w-md px-3 py-2 rounded-lg bg-raised border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-border-focus"
                 />
               </FieldBlock>
-              <FieldBlock label="Path to config.yml" description="Config file passed as -c to run.py.">
+              <FieldBlock label={t('prefs.expert.configYml')} description={t('prefs.expert.configYmlDesc')}>
                 <input
                   type="text"
                   value={settings.douyinBulkConfigPath ?? ''}
@@ -1164,15 +1356,15 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                 />
               </FieldBlock>
               <FieldBlock
-                label="Bulk output directory (-p)"
-                description="Passed to run.py as -p / --path. Empty uses the same folder as Default download directory above."
+                label={t('prefs.expert.bulkOutput')}
+                description={t('prefs.expert.bulkOutputDesc')}
               >
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                   <input
                     type="text"
                     value={settings.douyinBulkOutputPath ?? ''}
                     onChange={(e) => onUpdate('douyinBulkOutputPath', e.target.value)}
-                    placeholder="(use default download directory)"
+                    placeholder={t('prefs.expert.useDefaultDir')}
                     className="w-full max-w-md px-3 py-2 rounded-lg bg-raised border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-border-focus"
                   />
                   <button
@@ -1181,13 +1373,13 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                     className="inline-flex min-h-11 items-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-elevated text-xs font-medium text-foreground hover:bg-control"
                   >
                     <Folder size={14} aria-hidden />
-                    Choose folder
+                    {t('prefs.expert.chooseFolder')}
                   </button>
                 </div>
               </FieldBlock>
               <FieldBlock
-                label="Downloader threads (-t)"
-                description="Maps to douyin-downloader --thread (parallel work inside the Python tool; separate from app queue concurrency)."
+                label={t('prefs.expert.threads')}
+                description={t('prefs.expert.threadsDesc')}
               >
                 <Stepper
                   value={settings.douyinBulkThreads ?? 5}
@@ -1197,8 +1389,8 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                 />
               </FieldBlock>
               <FieldBlock
-                label="Verbose CLI warnings"
-                description="Adds --show-warnings so stderr may include more detail for troubleshooting (see job log below)."
+                label={t('prefs.expert.verbose')}
+                description={t('prefs.expert.verboseDesc')}
               >
                 <label className="flex items-center gap-2 cursor-pointer text-sm text-foreground">
                   <input
@@ -1207,12 +1399,12 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                     onChange={(e) => onUpdate('douyinBulkVerboseWarnings', e.target.checked)}
                     className="rounded border-border"
                   />
-                  Enable
+                  {t('common.enable')}
                 </label>
               </FieldBlock>
               <FieldBlock
-                label="Bulk source URL"
-                description="Paste a Douyin creator/profile URL and start a cancellable bulk job."
+                label={t('prefs.expert.bulkUrl')}
+                description={t('prefs.expert.bulkUrlDesc')}
               >
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <input
@@ -1234,7 +1426,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                           : 'border-border bg-elevated text-foreground hover:bg-control'
                       )}
                     >
-                      {bulkJobBusy ? 'Working…' : 'Start bulk'}
+                      {bulkJobBusy ? t('prefs.expert.working') : t('prefs.expert.startBulk')}
                     </button>
                     <button
                       type="button"
@@ -1247,7 +1439,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                           : 'border-border bg-elevated text-foreground hover:bg-control'
                       )}
                     >
-                      Cancel
+                      {t('common.cancel')}
                     </button>
                   </div>
                 </div>
@@ -1257,11 +1449,11 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                   {bulkJob && (
                     <>
                       <p className="text-xs text-foreground">
-                        Job <code>{bulkJob.id}</code> - <span className="capitalize">{bulkJob.state}</span>
+                        {t('prefs.expert.job')} <code>{bulkJob.id}</code> - <span>{t(`prefs.expert.jobState.${bulkJob.state}`)}</span>
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Started: {new Date(bulkJob.startedAt).toLocaleString()}
-                        {bulkJob.endedAt ? `  Ended: ${new Date(bulkJob.endedAt).toLocaleString()}` : ''}
+                        {t('prefs.expert.startedLabel')} {new Date(bulkJob.startedAt).toLocaleString()}
+                        {bulkJob.endedAt ? `  ${t('prefs.expert.endedLabel')} ${new Date(bulkJob.endedAt).toLocaleString()}` : ''}
                       </p>
                       {bulkJob.stderrTail ? (
                         <pre className="text-xs leading-relaxed text-muted-foreground whitespace-pre-wrap break-words border border-border rounded-md p-2 max-h-32 overflow-y-auto">
@@ -1274,10 +1466,10 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                 </div>
               )}
             </PrefCard>
-            <PrefCard title="Remote Job API" subtitle="Let other apps on this machine or your network enqueue downloads while V-Download is running. The Chrome extension still uses localhost:18765.">
+            <PrefCard title={t('prefs.remote.title')} subtitle={t('prefs.remote.subtitle')}>
               <ToggleRow
-                label="Enable Remote API"
-                description="Serves /v1/jobs. Off by default. Token is stored in app settings (mode 0600)."
+                label={t('prefs.remote.enable')}
+                description={t('prefs.remote.enableDesc')}
                 checked={settings.remoteApiEnabled === true}
                 onChange={(v) => {
                   void (async () => {
@@ -1286,7 +1478,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                   })()
                 }}
               />
-              <FieldBlock label="Bearer token" description="Send as Authorization: Bearer … on every /v1 request.">
+              <FieldBlock label={t('prefs.remote.token')} description={t('prefs.remote.tokenDesc')}>
                 <div className="flex flex-wrap items-center gap-2">
                   <input
                     type="text"
@@ -1307,7 +1499,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                     }}
                   >
                     {remoteTokenCopied ? <Check className="h-3.5 w-3.5" aria-hidden /> : <Copy className="h-3.5 w-3.5" aria-hidden />}
-                    {remoteTokenCopied ? 'Copied' : 'Copy'}
+                    {remoteTokenCopied ? t('common.copied') : t('common.copy')}
                   </button>
                   <button
                     type="button"
@@ -1319,22 +1511,22 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                       })()
                     }}
                   >
-                    Regenerate
+                    {t('prefs.remote.regenerate')}
                   </button>
                 </div>
               </FieldBlock>
               <div className="grid gap-4 sm:grid-cols-2">
-                <FieldBlock label="Bind">
+                <FieldBlock label={t('prefs.remote.bind')}>
                   <select
                     value={settings.remoteApiBind ?? '127.0.0.1'}
                     onChange={(event) => void onUpdate('remoteApiBind', event.target.value === '0.0.0.0' ? '0.0.0.0' : '127.0.0.1')}
                     className={cn(controlClass, 'w-full')}
                   >
-                    <option value="127.0.0.1">127.0.0.1 (this Mac only)</option>
-                    <option value="0.0.0.0">0.0.0.0 (LAN / Tailscale)</option>
+                    <option value="127.0.0.1">{t('prefs.remote.thisMac')}</option>
+                    <option value="0.0.0.0">{t('prefs.remote.lan')}</option>
                   </select>
                 </FieldBlock>
-                <FieldBlock label="Port">
+                <FieldBlock label={t('prefs.remote.port')}>
                   <input
                     type="number"
                     min={1024}
@@ -1352,8 +1544,8 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                 {`curl -H "Authorization: Bearer ${settings.remoteApiToken || 'YOUR_TOKEN'}" -d '{"url":"https://example.com/watch?v=1"}' http://${(settings.remoteApiBind === '0.0.0.0' ? '<host>' : '127.0.0.1')}:${settings.remoteApiPort ?? 18766}/v1/jobs`}
               </p>
               <FieldBlock
-                label="MCP (Claude / Codex)"
-                description="Same listener and Bearer token. POST /mcp. Write tools stay off until you enable them."
+                label={t('prefs.remote.mcp')}
+                description={t('prefs.remote.mcpDesc')}
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <button
@@ -1371,27 +1563,27 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                     }}
                   >
                     {mcpConfigCopied ? <Check className="h-3.5 w-3.5" aria-hidden /> : <Copy className="h-3.5 w-3.5" aria-hidden />}
-                    {mcpConfigCopied ? 'Copied' : 'Copy MCP config'}
+                    {mcpConfigCopied ? t('common.copied') : t('prefs.remote.copyMcp')}
                   </button>
                 </div>
               </FieldBlock>
               <ToggleRow
-                label="Allow MCP write tools"
-                description="Lets agents enqueue or cancel jobs. Keep off unless you trust the local client."
+                label={t('prefs.remote.allowWrite')}
+                description={t('prefs.remote.allowWriteDesc')}
                 checked={settings.remoteApiMcpAllowWrite === true}
                 onChange={(v) => void onUpdate('remoteApiMcpAllowWrite', v)}
               />
               <ToggleRow
-                label="Require confirm on writes"
-                description="Write tools must pass confirm: true. Recommended."
+                label={t('prefs.remote.requireConfirm')}
+                description={t('prefs.remote.requireConfirmDesc')}
                 checked={settings.remoteApiMcpRequireConfirm !== false}
                 onChange={(v) => void onUpdate('remoteApiMcpRequireConfirm', v)}
               />
               {settings.remoteApiEnabled ? (
                 <div className="space-y-1.5">
-                  <p className="text-[11px] font-medium text-muted-foreground">Recent MCP calls</p>
+                  <p className="text-[11px] font-medium text-muted-foreground">{t('prefs.remote.recentMcp')}</p>
                   {mcpLogs.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">No agent calls yet.</p>
+                    <p className="text-xs text-muted-foreground">{t('prefs.remote.noMcp')}</p>
                   ) : (
                     <ul className="max-h-36 space-y-1 overflow-y-auto rounded-md border border-border p-2 text-[11px] leading-relaxed text-muted-foreground">
                       {mcpLogs.map((entry) => (
@@ -1417,13 +1609,10 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
         >
           <div ref={turboDialogRef} tabIndex={-1} className="w-full max-w-md rounded-panel bg-surface p-5 shadow-xl space-y-3 outline-none ring-1 ring-inset ring-divider-strong">
             <h2 id="turbo-modal-title" className="text-sm font-semibold text-foreground">
-              Enable Turbo mode?
+              {t('prefs.speed.turboTitle')}
             </h2>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Turbo keeps the same 12-task queue cap, but removes the start delay, uses 16 fragment downloads, and uses
-              the yt-dlp direct-media path. It is faster, but some hosts may
-              respond with HTTP 429 (Too Many Requests) or throttle your connection. You can switch back to Balanced
-              anytime.
+              {t('prefs.speed.turboBody')}
             </p>
             <div className="flex justify-end gap-2 pt-2">
               <button
@@ -1431,14 +1620,14 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
                 onClick={() => setTurboModalOpen(false)}
                 className="px-4 py-2 rounded-lg border border-border bg-elevated text-sm font-medium text-foreground hover:bg-control transition-colors"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="button"
                 onClick={() => void confirmTurboMode()}
                 className="px-4 py-2 rounded-lg border border-border-strong bg-control text-sm font-medium text-foreground hover:opacity-95 transition-opacity"
               >
-                Enable Turbo
+                {t('prefs.speed.enableTurbo')}
               </button>
             </div>
           </div>
@@ -1449,6 +1638,7 @@ export function PreferencesPanel({ section }: PreferencesPanelProps) {
 }
 
 function SiteRulesEditor({ settings, onUpdate }: { settings: SettingsData; onUpdate: (key: string, value: unknown) => Promise<void> }) {
+  const { t } = useTranslation()
   const persisted = settings.siteRules ?? []
   const [drafts, setDrafts] = useState<SiteRule[]>([])
   const rows = [...persisted, ...drafts]
@@ -1491,7 +1681,7 @@ function SiteRulesEditor({ settings, onUpdate }: { settings: SettingsData; onUpd
           {rows.map((rule, index) => (
             <div key={rule.id} className="rounded-lg bg-raised/45 p-3 ring-1 ring-inset ring-divider-subtle">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto] sm:items-end">
-                <FieldBlock label="Website">
+                <FieldBlock label={t('prefs.siteRules.website')}>
                   <input
                     aria-label={`Site rule ${index + 1} domain`}
                     value={rule.domain}
@@ -1500,19 +1690,19 @@ function SiteRulesEditor({ settings, onUpdate }: { settings: SettingsData; onUpd
                     className={cn(controlClass, 'w-full')}
                   />
                 </FieldBlock>
-                <FieldBlock label="Download as">
+                <FieldBlock label={t('prefs.siteRules.downloadAs')}>
                   <select
                     aria-label={`Site rule ${index + 1} output type`}
                     value={rule.format}
                     onChange={(e) => updateRow(rule.id, { format: e.target.value as SiteRule['format'] })}
                     className={controlClass}
                   >
-                    <option value="best">Best</option>
-                    <option value="video">Video</option>
-                    <option value="audio">Audio</option>
+                    <option value="best">{t('prefs.siteRules.best')}</option>
+                    <option value="video">{t('prefs.siteRules.video')}</option>
+                    <option value="audio">{t('prefs.siteRules.audio')}</option>
                   </select>
                 </FieldBlock>
-                <FieldBlock label={rule.format === 'audio' ? 'kbps' : 'Quality'}>
+                <FieldBlock label={rule.format === 'audio' ? t('prefs.siteRules.kbps') : t('prefs.siteRules.quality')}>
                   <input
                     aria-label={`Site rule ${index + 1} quality`}
                     inputMode="numeric"
@@ -1533,7 +1723,7 @@ function SiteRulesEditor({ settings, onUpdate }: { settings: SettingsData; onUpd
                       onChange={(e) => updateRow(rule.id, { enabled: e.target.checked })}
                       className="h-4 w-4 accent-[rgb(var(--color-accent))]"
                     />
-                    Active
+                    {t('prefs.siteRules.active')}
                   </label>
                   <button
                     type="button"
@@ -1542,7 +1732,7 @@ function SiteRulesEditor({ settings, onUpdate }: { settings: SettingsData; onUpd
                     className="inline-flex min-h-10 items-center justify-center rounded-lg px-2.5 text-[13px] text-muted-foreground transition-colors hover:bg-control hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
                   >
                     <X className="h-4 w-4" aria-hidden />
-                    <span className="sr-only">Remove</span>
+                    <span className="sr-only">{t('prefs.siteRules.remove')}</span>
                   </button>
                 </div>
               </div>
@@ -1551,11 +1741,11 @@ function SiteRulesEditor({ settings, onUpdate }: { settings: SettingsData; onUpd
         </div>
       ) : (
         <div className="rounded-lg bg-raised/35 px-4 py-4 text-xs leading-relaxed text-muted-foreground ring-1 ring-inset ring-divider-subtle">
-          No site-specific rules. Downloads use the defaults from Downloads.
+          {t('prefs.siteRules.empty')}
         </div>
       )}
       <button type="button" onClick={add} className={secondaryButtonClass}>
-        Add site rule
+        {t('prefs.siteRules.add')}
       </button>
     </div>
   )
@@ -1572,6 +1762,7 @@ function ToggleRow({
   checked: boolean
   onChange: (v: boolean) => void
 }) {
+  const { t } = useTranslation()
   return (
     <div className="v-settings-row flex min-h-11 items-center justify-between gap-6 py-2 first:pt-0 last:pb-0">
       <div className="min-w-0">
@@ -1583,7 +1774,7 @@ function ToggleRow({
         onClick={() => onChange(!checked)}
         className="flex h-10 w-12 shrink-0 items-center justify-center rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus max-sm:self-end"
         aria-pressed={checked}
-        aria-label={`${label}: ${checked ? 'On' : 'Off'}`}
+        aria-label={`${label}: ${checked ? t('common.on') : t('common.off')}`}
       >
         <span className={cn('flex h-6 w-11 items-center rounded-full transition-colors', checked ? 'bg-action' : 'bg-border')}>
           <span

@@ -3,6 +3,7 @@ import {
   bulkQueueNotice,
   classifyMediaRole,
   decideQueueAdmission,
+  localizeQueueNotice,
   displayTitleFor,
   findReusableDownload,
   hintDirectMediaUrl,
@@ -163,17 +164,28 @@ assert.equal(decideQueueAdmission({}).action, 'create')
 assert.equal(decideQueueAdmission({ existing: { status: 'resolving' } }).action, 'focus')
 assert.equal(decideQueueAdmission({ existing: { status: 'ready' } }).notice?.actions.includes('select-format'), true)
 assert.equal(decideQueueAdmission({ existing: { status: 'downloading' } }).action, 'focus')
-assert.equal(decideQueueAdmission({ existing: { status: 'queued' } }).notice?.message, 'Already in your queue.')
+assert.equal(decideQueueAdmission({ existing: { status: 'queued' } }).notice?.message, 'admit.alreadyQueued')
 assert.deepEqual(
   decideQueueAdmission({ existing: { status: 'complete', file_path: '/tmp/keep.mp4' }, filePresent: true }),
   {
     action: 'focus',
     notice: {
       tone: 'neutral',
-      message: 'Already downloaded.',
+      message: 'admit.alreadyDownloaded',
       actions: ['reveal', 'download-again']
     }
   }
+)
+assert.equal(
+  localizeQueueNotice(decideQueueAdmission({ existing: { status: 'queued' } }).notice, 'en')?.message,
+  'Already in your queue.'
+)
+assert.equal(
+  localizeQueueNotice(
+    decideQueueAdmission({ existing: { status: 'complete', file_path: '/tmp/keep.mp4' }, filePresent: true }).notice,
+    'en'
+  )?.message,
+  'Already downloaded.'
 )
 assert.equal(
   decideQueueAdmission({ existing: { status: 'complete', file_path: '/tmp/gone.mp4' }, filePresent: false }).action,
@@ -182,8 +194,9 @@ assert.equal(
 assert.equal(decideQueueAdmission({ existing: { status: 'error' } }).action, 'retry')
 assert.equal(decideQueueAdmission({ existing: { status: 'cancelled' } }).action, 'retry')
 assert.equal(bulkQueueNotice(0), undefined)
-assert.equal(bulkQueueNotice(1)?.message, '1 already in your queue.')
-assert.equal(bulkQueueNotice(3)?.message, '3 already in your queue.')
+assert.equal(bulkQueueNotice(1)?.message, 'admit.alreadyQueuedCount')
+assert.equal(localizeQueueNotice(bulkQueueNotice(1), 'en')?.message, '1 already in your queue.')
+assert.equal(localizeQueueNotice(bulkQueueNotice(3), 'en')?.message, '3 already in your queue.')
 assert.equal(
   shouldRedownloadExisting({ status: 'complete', file_path: '/tmp/gone.mp4' }, () => false),
   true,

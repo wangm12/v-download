@@ -17,6 +17,7 @@ export type DouyinFetchUaMode = 'mobile' | 'desktop'
 export interface DouyinPageFetchOptions {
   signal?: AbortSignal
   timeoutMs?: number
+  proxyUrl?: string
 }
 
 export function parseCookieMapFromNetscapeFile(cookiePath: string): Record<string, string> {
@@ -112,7 +113,7 @@ export async function fetchDouyinPageHtml(
   const res = await fetchWithTimeout(
     pageUrl,
     { headers, redirect: 'follow', signal: options?.signal },
-    { timeoutMs: options?.timeoutMs }
+    { timeoutMs: options?.timeoutMs, proxyUrl: options?.proxyUrl }
   )
   if (!res.ok) throw new Error(`Page fetch failed: ${res.status}`)
   return res.text()

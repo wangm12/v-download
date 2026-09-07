@@ -1,4 +1,4 @@
-import { app, BrowserWindow, protocol, Menu, screen, shell } from 'electron'
+import { app, BrowserWindow, dialog, Notification, protocol, Menu, Tray, nativeImage, screen, shell } from 'electron'
 import { join } from 'path'
 import { optimizer, is } from '@electron-toolkit/utils'
 import * as database from './database'
@@ -19,15 +19,29 @@ import { initializeUpdater } from './updater'
 import { registerUpdaterHandlers } from './ipc/updater'
 import { registerEngineHandlers } from './ipc/engines'
 import { registerNativeAuthHandlers } from './ipc/nativeAuth'
+import { registerLibraryHandlers } from './ipc/library'
 import { initializeNativeAuth, stopNativeAuthWindows } from './nativeAuth'
+import { runAppCommand } from './appCommands'
 import { APP_HELP_URL, APP_REPO_URL, buildApplicationMenuTemplate } from './appMenu'
+import { syncLoginItem } from './loginItem'
+import { quitDialogCopy, shouldWarnBeforeQuit } from './quitGuard'
+import { configureTray, syncTray } from './tray'
+import { osNotificationCopy, parseTaskDeepLink, shouldNotifyOs } from './taskNotify'
+import { onUiLanguageChanged } from './localizedChrome'
+import { getUiLanguage } from './uiLanguage'
+import { closeCompactWindow, showCompactWindow } from './compactWindowHost'
 
 app.setName('V-Download')
 
 let mainWindow: BrowserWindow | null = null
 let pendingYtdlUrl: string[] = []
+let pendingSessionInterrupted: { count: number; ids: string[] } | null = null
 let pendingMediaRequests = new Map<string, DownloadRequest>()
 let isQuitting = false
+let quitConfirmed = false
+let quitPromptOpen = false
+const lastTerminalNotify = new Map<string, string>()
+const activeOsNotifications = new Map<string, Notification>()
 
 const DEEP_LINK_SCHEMES = new Set(['ytdl:', 'vdownload:'])
 
@@ -150,10 +164,16 @@ function createWindow(): void {
   })
 
   mainWindow.webContents.on('did-finish-load', () => {
+    sendSessionInterrupted()
     if (!pendingYtdlUrl.length || !mainWindow || mainWindow.isDestroyed()) return
     const pending = pendingYtdlUrl.splice(0)
     for (const url of pending) {
-      if (isWakeDeepLink(url)) {
+      const taskId = parseTaskDeepLink(url)
+      if (taskId) {
+        mainWindow.show()
+        mainWindow.focus()
+        mainWindow.webContents.send('focus-download', { id: taskId })
+      } else if (isWakeDeepLink(url)) {
         mainWindow.show()
         mainWindow.focus()
       } else {
@@ -176,10 +196,74 @@ function handleDownloadRequest(request: DownloadRequest): DownloadDispatchResult
   return { ok: true, accepted: true }
 }
 
+function isMainWindowFocused(): boolean {
+  return Boolean(
+    mainWindow &&
+    !mainWindow.isDestroyed() &&
+    mainWindow.isVisible() &&
+    mainWindow.isFocused()
+  )
+}
+
+function focusTask(id: string): void {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.show()
+    mainWindow.focus()
+    if (mainWindow.webContents.isLoading()) {
+      pendingYtdlUrl.push(`vdownload://task/${id}`)
+      return
+    }
+    mainWindow.webContents.send('focus-download', { id })
+    return
+  }
+  pendingYtdlUrl.push(`vdownload://task/${id}`)
+  if (app.isReady()) createWindow()
+}
+
+function attachOsTaskNotifications(): void {
+  downloadManager.addDownloadListener((task) => {
+    if (task.status !== 'complete' && task.status !== 'error') {
+      lastTerminalNotify.delete(task.id)
+      return
+    }
+    if (lastTerminalNotify.get(task.id) === task.status) return
+    lastTerminalNotify.set(task.id, task.status)
+    if (
+      !shouldNotifyOs({
+        status: task.status,
+        notifyOnComplete: settings.get('notifyOnComplete'),
+        notifyOnError: settings.get('notifyOnError'),
+        windowFocused: isMainWindowFocused()
+      })
+    ) {
+      return
+    }
+    if (!Notification.isSupported()) return
+    const copy = osNotificationCopy(task.status, task.title || '', getUiLanguage())
+    const notification = new Notification({
+      title: copy.title,
+      body: copy.body
+    })
+    notification.on('click', () => focusTask(task.id))
+    notification.on('close', () => {
+      if (activeOsNotifications.get(task.id) === notification) {
+        activeOsNotifications.delete(task.id)
+      }
+    })
+    activeOsNotifications.set(task.id, notification)
+    notification.show()
+  })
+}
+
 function handleYtdlUrl(url: string): void {
   // The macOS app can stay resident after its window closes. Keep the
   // localhost bridge available for extension requests in that state.
   if (app.isReady()) startLocalServer()
+  const taskId = parseTaskDeepLink(url)
+  if (taskId) {
+    focusTask(taskId)
+    return
+  }
   if (isWakeDeepLink(url)) {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.show()
@@ -204,6 +288,24 @@ function handleYtdlUrl(url: string): void {
   }
 }
 
+function sendSessionInterrupted(): void {
+  if (!pendingSessionInterrupted || !mainWindow || mainWindow.isDestroyed()) return
+  mainWindow.webContents.send('session-interrupted', pendingSessionInterrupted)
+}
+
+function showOrCreateWindow(): void {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.show()
+    mainWindow.focus()
+    return
+  }
+  createWindow()
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.show()
+    mainWindow.focus()
+  }
+}
+
 function setupIpcHandlers(): void {
   registerDownloadHandlers()
   registerSettingsHandlers()
@@ -213,6 +315,7 @@ function setupIpcHandlers(): void {
   registerUpdaterHandlers()
   registerEngineHandlers()
   registerNativeAuthHandlers()
+  registerLibraryHandlers()
 }
 
 app.whenReady().then(() => {
@@ -225,31 +328,78 @@ app.whenReady().then(() => {
     mainWindow.focus()
     mainWindow.webContents.send(channel)
   }
-
-  Menu.setApplicationMenu(
-    Menu.buildFromTemplate(
-      buildApplicationMenuTemplate(app.name, {
-        openSettings: () => sendToRenderer('open-preferences'),
-        openUrls: () => sendToRenderer('open-urls'),
-        clearDownloads: () => sendToRenderer('open-clear-downloads'),
-        findDownloads: () => sendToRenderer('focus-download-search'),
-        refreshDownloads: () => sendToRenderer('refresh-downloads'),
-        openHelp: () => {
-          void shell.openExternal(APP_HELP_URL)
-        },
-        openRepository: () => {
-          void shell.openExternal(APP_REPO_URL)
-        }
+  const commandActions = {
+    sendToRenderer,
+    pauseAll: () => downloadManager.pauseAll(),
+    resumeAll: () => downloadManager.resumeAll(),
+    openCompactWindow: () => {
+      showCompactWindow({
+        preloadPath: join(__dirname, '../preload/index.js'),
+        iconPath: join(__dirname, '../../resources/icon.png'),
+        devServerUrl: is.dev && VITE_DEV_SERVER_URL ? VITE_DEV_SERVER_URL : null
       })
+    },
+    quit: () => app.quit()
+  }
+
+  configureTray({
+    createTray: (iconPath) => {
+      const icon = nativeImage.createFromPath(iconPath)
+      const instance = new Tray(icon.isEmpty() ? iconPath : icon)
+      return {
+        setToolTip: (text) => instance.setToolTip(text),
+        setContextMenu: (menu) => instance.setContextMenu(menu),
+        on: (event, listener) => {
+          if (event === 'click') instance.on('click', listener)
+        },
+        destroy: () => instance.destroy(),
+        popUpContextMenu: () => instance.popUpContextMenu()
+      }
+    },
+    buildMenu: (template) => Menu.buildFromTemplate(template),
+    showWindow: showOrCreateWindow,
+    runCommand: (id) => runAppCommand(id, commandActions)
+  })
+  const applyApplicationMenu = (): void => {
+    Menu.setApplicationMenu(
+      Menu.buildFromTemplate(
+        buildApplicationMenuTemplate(app.name, {
+          openSettings: () => runAppCommand('preferences', commandActions),
+          openUrls: () => runAppCommand('open-urls', commandActions),
+          clearDownloads: () => runAppCommand('clear-finished', commandActions),
+          findDownloads: () => runAppCommand('find-downloads', commandActions),
+          refreshDownloads: () => runAppCommand('refresh-downloads', commandActions),
+          pauseAll: () => runAppCommand('pause-all', commandActions),
+          resumeAll: () => runAppCommand('resume-all', commandActions),
+          openCompactWindow: () => runAppCommand('compact-window', commandActions),
+          openHelp: () => {
+            void shell.openExternal(APP_HELP_URL)
+          },
+          openRepository: () => {
+            void shell.openExternal(APP_REPO_URL)
+          }
+        }, getUiLanguage())
+      )
     )
-  )
+  }
+
+  syncTray(settings.get('showTray'), { language: getUiLanguage() })
+  applyApplicationMenu()
+  onUiLanguageChanged(() => {
+    applyApplicationMenu()
+    syncTray(settings.get('showTray'), { language: getUiLanguage() })
+  })
 
   dockProgress.init()
+  syncLoginItem(settings.get('launchAtStartup'), app.setLoginItemSettings?.bind(app))
 
   database.initDB()
   initializeNativeAuth()
   reconcileYtdlpPathSetting()
-  downloadManager.loadFromDbAndRecover()
+  const { recoveredIds } = downloadManager.loadFromDbAndRecover()
+  pendingSessionInterrupted =
+    recoveredIds.length > 0 ? { count: recoveredIds.length, ids: recoveredIds } : null
+  attachOsTaskNotifications()
   initializeInfoResolutionManager()
   initializePoTokenServer()
   setDownloadHandler((request) => handleDownloadRequest(request))
@@ -332,12 +482,48 @@ app.on('second-instance', (_event, commandLine) => {
 })
 
 app.on('before-quit', (event) => {
-  if (!isQuitting) {
+  if (isQuitting) return
+
+  if (
+    !quitConfirmed &&
+    shouldWarnBeforeQuit({
+      warnBeforeQuit: settings.get('warnBeforeQuit'),
+      statuses: downloadManager.getAll().map((task) => task.status)
+    })
+  ) {
     event.preventDefault()
-    stopNativeAuthWindows()
-    stopRemoteApiServer()
-    void stopPoTokenServer().finally(() => app.quit())
+    if (quitPromptOpen) return
+    quitPromptOpen = true
+    const copy = quitDialogCopy(getUiLanguage())
+    const options = {
+      type: 'warning' as const,
+      title: copy.title,
+      message: copy.message,
+      buttons: [...copy.buttons],
+      defaultId: 0,
+      cancelId: 0
+    }
+    const parent =
+      mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible() ? mainWindow : undefined
+    const prompt = parent ? dialog.showMessageBox(parent, options) : dialog.showMessageBox(options)
+    void prompt
+      .then((result) => {
+        if (result.response === 1) {
+          quitConfirmed = true
+          app.quit()
+        }
+      })
+      .finally(() => {
+        quitPromptOpen = false
+      })
+    return
   }
+
+  event.preventDefault()
+  closeCompactWindow()
+  stopNativeAuthWindows()
+  stopRemoteApiServer()
+  void stopPoTokenServer().finally(() => app.quit())
   isQuitting = true
 })
 

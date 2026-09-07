@@ -2,7 +2,7 @@ import { spawn, ChildProcess } from 'child_process'
 import { randomBytes } from 'crypto'
 import { mkdirSync, existsSync } from 'fs'
 import { readFile, unlink } from 'fs/promises'
-import { join } from 'path'
+import { dirname, join } from 'path'
 import { tmpdir } from 'os'
 import * as settings from './settings'
 import type { DownloadProcess, DownloadProgress } from './downloadTypes'
@@ -147,6 +147,7 @@ export interface FfmpegDirectDownloadOptions {
   format: string
   referer?: string
   customHeaders?: Record<string, string>
+  proxyUrl?: string
   /** Known duration in seconds (for percent / ETA). */
   durationSec?: number | null
   onProgress?: (progress: DownloadProgress) => void
@@ -165,6 +166,7 @@ export function downloadDirectMediaWithFfmpeg(options: FfmpegDirectDownloadOptio
     format,
     referer,
     customHeaders,
+    proxyUrl,
     durationSec,
     onProgress: progressCb
   } = options
@@ -190,6 +192,11 @@ export function downloadDirectMediaWithFfmpeg(options: FfmpegDirectDownloadOptio
 
   if (isHls) {
     args.push('-protocol_whitelist', 'file,http,https,tcp,tls,crypto,udp')
+  }
+
+  const resolvedProxy = (proxyUrl ?? '').trim()
+  if (resolvedProxy) {
+    args.push('-http_proxy', resolvedProxy)
   }
 
   args.push(
@@ -219,6 +226,7 @@ export function downloadDirectMediaWithFfmpeg(options: FfmpegDirectDownloadOptio
   }
 
   args.push('-max_muxing_queue_size', '4096', outputPath)
+  mkdirSync(dirname(outputPath), { recursive: true })
 
   const proc = spawn(ffmpegPath, args, {
     stdio: ['ignore', 'pipe', 'pipe'],

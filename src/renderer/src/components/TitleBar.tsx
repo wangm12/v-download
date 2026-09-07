@@ -2,6 +2,7 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { Check, Monitor, Moon, PanelRightClose, PanelRightOpen, Sun } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import type { ThemePreference } from '@/hooks/useThemePreference'
+import { useTranslation } from 'react-i18next'
 import { HoverHintWrap } from './HoverHintWrap'
 
 const titleBarIconBtn =
@@ -39,6 +40,7 @@ export function TitleBar({
   onThemePreference,
   resolvedTheme
 }: TitleBarProps) {
+  const { t } = useTranslation()
   return (
     <header
       className="relative flex h-[52px] shrink-0 items-stretch border-b border-border bg-window"
@@ -61,7 +63,7 @@ export function TitleBar({
       >
         {showInspectorToggle && inspectorAvailable && onToggleInspector && (
           <HoverHintWrap
-            text={inspectorCollapsed ? 'Show download details' : 'Hide download details'}
+            text={inspectorCollapsed ? t('inspector.showInspector') : t('inspector.hideInspector')}
             side="bottom"
           >
             <button
@@ -69,7 +71,7 @@ export function TitleBar({
               onClick={onToggleInspector}
               className={titleBarIconBtn}
               aria-expanded={!inspectorCollapsed}
-              aria-label={inspectorCollapsed ? 'Show download details' : 'Hide download details'}
+              aria-label={inspectorCollapsed ? t('inspector.showInspector') : t('inspector.hideInspector')}
             >
               {inspectorCollapsed ? (
                 <PanelRightOpen className={panelGlyph} strokeWidth={1.65} aria-hidden />
@@ -99,6 +101,7 @@ function ThemeMenuButton({
   onChange: (v: ThemePreference) => void
   resolvedTheme: 'dark' | 'light'
 }) {
+  const { t } = useTranslation()
   const TriggerIcon =
     preference === 'device'
       ? resolvedTheme === 'light'
@@ -111,8 +114,8 @@ function ThemeMenuButton({
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
-        <button type="button" className={cn(titleBarIconBtn, 'relative')} aria-label="Theme menu">
-          <HoverHintWrap text="Appearance" side="bottom" className="flex size-full items-center justify-center">
+        <button type="button" className={cn(titleBarIconBtn, 'relative')} aria-label={t('theme.themeMenu')}>
+          <HoverHintWrap text={t('theme.appearance')} side="bottom" className="flex size-full items-center justify-center">
             <TriggerIcon className={panelGlyph} strokeWidth={1.65} aria-hidden />
           </HoverHintWrap>
         </button>
@@ -120,22 +123,22 @@ function ThemeMenuButton({
       <DropdownMenu.Portal>
         <DropdownMenu.Content className={menuContentClass} side="bottom" align="end" sideOffset={6}>
           <DropdownMenu.Label className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-tertiary-foreground">
-            Appearance
+            {t('theme.appearance')}
           </DropdownMenu.Label>
+          <DropdownMenu.Item className={menuItemClass} onSelect={() => onChange('device')}>
+            <Monitor className="h-4 w-4 shrink-0" aria-hidden />
+            <span className="flex-1">{t('theme.system')}</span>
+            {preference === 'device' ? <Check className="h-4 w-4 shrink-0 text-foreground" aria-hidden /> : null}
+          </DropdownMenu.Item>
           <DropdownMenu.Item className={menuItemClass} onSelect={() => onChange('dark')}>
             <Moon className="h-4 w-4 shrink-0" aria-hidden />
-            <span className="flex-1">Dark</span>
+            <span className="flex-1">{t('theme.dark')}</span>
             {preference === 'dark' ? <Check className="h-4 w-4 shrink-0 text-foreground" aria-hidden /> : null}
           </DropdownMenu.Item>
           <DropdownMenu.Item className={menuItemClass} onSelect={() => onChange('light')}>
             <Sun className="h-4 w-4 shrink-0" aria-hidden />
-            <span className="flex-1">Light</span>
+            <span className="flex-1">{t('theme.light')}</span>
             {preference === 'light' ? <Check className="h-4 w-4 shrink-0 text-foreground" aria-hidden /> : null}
-          </DropdownMenu.Item>
-          <DropdownMenu.Item className={menuItemClass} onSelect={() => onChange('device')}>
-            <Monitor className="h-4 w-4 shrink-0" aria-hidden />
-            <span className="flex-1">Use device setting</span>
-            {preference === 'device' ? <Check className="h-4 w-4 shrink-0 text-foreground" aria-hidden /> : null}
           </DropdownMenu.Item>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>

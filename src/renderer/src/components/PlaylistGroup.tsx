@@ -1,4 +1,5 @@
 import { memo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   ChevronDown,
   ChevronRight,
@@ -47,6 +48,7 @@ export const PlaylistGroup = memo(function PlaylistGroup({
   viewState,
   onViewStateChange
 }: PlaylistGroupProps) {
+  const { t } = useTranslation()
   const actions = useDownloadActions()
   const downloads = playlist.downloads ?? []
   const expanded = viewState.expanded
@@ -75,7 +77,7 @@ export const PlaylistGroup = memo(function PlaylistGroup({
   const showPauseAll = hasActiveItems
   const showResumeAll = !hasActiveItems && resumableItems.length > 0
   const isProfileGroup = playlist.type === 'Douyin profile'
-  const countLabel = isProfileGroup ? 'posts' : 'videos'
+  const countLabel = isProfileGroup ? t('queue.posts') : t('queue.videos')
 
   const downloadingItems = downloads.filter((d) => d.status === 'downloading')
   const aggregateSpeedBytes = downloadingItems.reduce(
@@ -110,7 +112,7 @@ export const PlaylistGroup = memo(function PlaylistGroup({
     remainingCount,
     hasActiveItems
   })
-  const isComplete = collectionStatus.label === 'Complete'
+  const isComplete = collectionStatus.label === 'status.complete'
 
   return (
     <>
@@ -146,7 +148,7 @@ export const PlaylistGroup = memo(function PlaylistGroup({
               type="button"
               aria-expanded={expanded}
               aria-controls={`playlist-items-${playlist.id}`}
-              aria-label={`${expanded ? 'Collapse' : 'Expand'} ${playlist.title}`}
+              aria-label={t(expanded ? 'queue.collapseNamed' : 'queue.expandNamed', { title: playlist.title })}
               onClick={() => {
                 const next = !expanded
                 updateViewState({ expanded: next, ...(next ? {} : { showAll: false }) })
@@ -170,7 +172,7 @@ export const PlaylistGroup = memo(function PlaylistGroup({
               role="button"
               tabIndex={0}
               aria-pressed={selected}
-              aria-label={`${selected ? 'Selected' : 'Select'} ${playlist.title}; ${downloads.length} downloads`}
+              aria-label={t(selected ? 'queue.selectedNamed' : 'queue.selectNamed', { title: playlist.title, count: downloads.length })}
               onClick={(event) => {
                 event.stopPropagation()
                 onSelectPlaylist(playlist.id, event)
@@ -186,12 +188,12 @@ export const PlaylistGroup = memo(function PlaylistGroup({
                 {playlist.title}
               </p>
               <p className="text-xs text-muted-foreground">
-                {playlist.type} · {playlist.total_count} {countLabel}
+                {isProfileGroup ? t('queue.profileType') : t('queue.playlistType')} · {playlist.total_count} {countLabel}
                 {playlist.output_dir ? ` · ${playlist.output_dir}` : ''}
               </p>
               <div
                 className="mt-2 flex items-center gap-2"
-                aria-label={`${representativeDownloads.length} preview thumbnails`}
+                aria-label={t('queue.previewThumbnails', { count: representativeDownloads.length })}
               >
                 {representativeDownloads.map((d) => (
                   <ThumbnailImage
@@ -210,9 +212,9 @@ export const PlaylistGroup = memo(function PlaylistGroup({
                 )}
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                <span>{playlist.completed_count} completed</span>
-                <span>{remainingCount} remaining</span>
-                <StatusPill tone={collectionStatus.tone}>{collectionStatus.label}</StatusPill>
+                <span>{t('queue.completedCount', { count: playlist.completed_count })}</span>
+                <span>{t('queue.remainingCount', { count: remainingCount })}</span>
+                <StatusPill tone={collectionStatus.tone}>{t(collectionStatus.label)}</StatusPill>
               </div>
             </div>
             <div className="order-last flex basis-full min-w-0 items-center gap-2 pt-2 sm:order-none sm:basis-auto sm:min-w-[8rem] sm:pt-1">
@@ -230,12 +232,12 @@ export const PlaylistGroup = memo(function PlaylistGroup({
                   {speedLabel ? (
                     <span className="text-foreground/80">{speedLabel}</span>
                   ) : null}
-                  {etaLabel ? <span>ETA {etaLabel}</span> : null}
+                  {etaLabel ? <span>{t('queue.eta', { eta: etaLabel })}</span> : null}
                 </div>
               </div>
               {showResumeAll && (
                 <HoverHintWrap
-                  text="Resume all"
+                  text={t('queue.resumeAll')}
                   side="bottom"
                   className="[&>button]:h-11 [&>button]:w-11 [&>button]:p-0"
                 >
@@ -246,7 +248,7 @@ export const PlaylistGroup = memo(function PlaylistGroup({
                       resumableItems.forEach((d) => actions.retry(d.id))
                     }}
                     className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-control transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
-                    aria-label="Resume all"
+                    aria-label={t('queue.resumeAll')}
                   >
                     <Play className="w-4 h-4" aria-hidden />
                   </button>
@@ -254,7 +256,7 @@ export const PlaylistGroup = memo(function PlaylistGroup({
               )}
               {showPauseAll && (
                 <HoverHintWrap
-                  text="Pause all"
+                  text={t('queue.pauseAllShort')}
                   side="bottom"
                   className="[&>button]:h-11 [&>button]:w-11 [&>button]:p-0"
                 >
@@ -270,14 +272,14 @@ export const PlaylistGroup = memo(function PlaylistGroup({
                         .forEach((d) => actions.pause(d.id))
                     }}
                     className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-control transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
-                    aria-label="Pause all"
+                    aria-label={t('queue.pauseAllShort')}
                   >
                     <Pause className="w-4 h-4" aria-hidden />
                   </button>
                 </HoverHintWrap>
               )}
               <HoverHintWrap
-                text="Remove playlist"
+                text={t('queue.removePlaylist')}
                 side="bottom"
                 className="[&>button]:h-11 [&>button]:w-11 [&>button]:p-0"
               >
@@ -288,7 +290,7 @@ export const PlaylistGroup = memo(function PlaylistGroup({
                     setDeleteDialogOpen(true)
                   }}
                   className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-control transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
-                  aria-label="Remove playlist"
+                  aria-label={t('queue.removePlaylist')}
                 >
                   <Trash2 className="w-4 h-4" aria-hidden />
                 </button>
@@ -303,7 +305,7 @@ export const PlaylistGroup = memo(function PlaylistGroup({
                 }}
                 className="order-last h-11 basis-full rounded-md border border-border px-3 text-xs text-muted-foreground hover:bg-control hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-border-focus sm:order-none sm:basis-auto"
               >
-                {expanded ? 'Hide items' : 'Show items'}
+                {expanded ? t('queue.hideItems') : t('queue.showItems')}
               </button>
             )}
           </div>
@@ -313,14 +315,14 @@ export const PlaylistGroup = memo(function PlaylistGroup({
           <div
             id={`playlist-items-${playlist.id}`}
             className="bg-background border-t border-border/50"
-            aria-label={`${playlist.title} items`}
+            aria-label={t('queue.itemsNamed', { title: playlist.title })}
           >
             {showAll && downloads.length > INNER_VIRTUALIZATION_THRESHOLD ? (
               <VirtualizedPlaylistItems
                 downloads={downloads}
                 selectedIds={selectedIds}
                 onSelectDownload={onSelectDownload}
-                ariaLabel={`${playlist.title} items`}
+                ariaLabel={t('queue.itemsNamed', { title: playlist.title })}
               />
             ) : (
               visibleDownloads.map((d, idx) => (
@@ -339,7 +341,7 @@ export const PlaylistGroup = memo(function PlaylistGroup({
                 onClick={() => updateViewState({ showAll: true })}
                 className="w-full h-11 flex items-center pl-14 pr-4 text-xs text-muted-foreground hover:text-foreground hover:bg-control transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
               >
-                ... and {moreCount} more videos
+                {t('queue.moreVideos', { count: moreCount })}
               </button>
             )}
           </div>

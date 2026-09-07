@@ -1,7 +1,10 @@
+import { ProxyAgent, fetch as undiciFetch } from 'undici'
+
 const DEFAULT_TIMEOUT_MS = 15_000
 const DEFAULT_MAX_REDIRECTS = 3
 
 const REDIRECT_STATUS = new Set([301, 302, 303, 307, 308])
+const proxyDispatchers = new Map<string, ProxyAgent>()
 
 export type HttpRequestErrorCode = 'invalid-url' | 'timeout' | 'redirect'
 
@@ -18,6 +21,7 @@ export class HttpRequestError extends Error {
 export interface FetchWithTimeoutOptions {
   timeoutMs?: number
   maxRedirects?: number
+  proxyUrl?: string
 }
 
 export function delayWithAbort(ms: number, signal?: AbortSignal | null): Promise<void> {
@@ -34,6 +38,36 @@ export function delayWithAbort(ms: number, signal?: AbortSignal | null): Promise
     }
     signal?.addEventListener('abort', onAbort, { once: true })
   })
+}
+
+function dispatcherForProxy(proxyUrl: string): ProxyAgent {
+  const existing = proxyDispatchers.get(proxyUrl)
+  if (existing) return existing
+  const dispatcher = new ProxyAgent(proxyUrl)
+  proxyDispatchers.set(proxyUrl, dispatcher)
+  return dispatcher
+}
+
+async function fetchWithOptionalProxy(
+  url: URL,
+  init: RequestInit,
+  proxyUrl?: string
+): Promise<Response> {
+  const resolved = typeof proxyUrl === 'string' ? proxyUrl.trim() : ''
+  if (!resolved) return fetch(url, init)
+  try {
+    const dispatcher = dispatcherForProxy(resolved)
+    return (await undiciFetch(url, {
+      ...init,
+      dispatcher,
+    } as NonNullable<Parameters<typeof undiciFetch>[1]>)) as unknown as Response
+  } catch (error) {
+    console.warn(
+      `[http] proxied fetch failed via ${resolved}:`,
+      error instanceof Error ? error.message : error
+    )
+    throw error
+  }
 }
 
 function parseHttpUrl(input: string | URL): URL {
@@ -99,7 +133,7 @@ export async function fetchWithTimeout(
         headers.delete('proxy-authorization')
         headers.delete('referer')
       }
-      const response = await fetch(currentUrl, { ...requestInit, headers })
+      const response = await fetchWithOptionalProxy(currentUrl, { ...requestInit, headers }, options.proxyUrl)
       if (!REDIRECT_STATUS.has(response.status)) return response
 
       const location = response.headers.get('location')

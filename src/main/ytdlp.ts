@@ -10,6 +10,7 @@ import { resolveMediaCandidates, type ResolverCandidate } from './mediaResolver'
 import { normalizeProxyUrl } from './settingsModel'
 import { getNativeCookieFileForUrl } from './nativeAuth'
 import { hintDirectMediaUrl } from './mediaIdentity'
+import { DEFAULT_FILENAME_TEMPLATE, renderYtdlpFilenameTemplate } from './outputTemplateModel'
 import { selectPreferredEnginePath } from './engineManagerModel'
 import { ensurePoTokenProvider } from './poTokenServer'
 
@@ -123,7 +124,28 @@ export interface DownloadOptions {
   pluginDir?: string
   /** Optional proxy URL applied to yt-dlp network requests. */
   proxyUrl?: string
+  /** Chip-token filename template; rendered to a single relative `-o`. */
+  filenameTemplate?: string
+  /** Gentle preset: yt-dlp `--limit-rate` (e.g. `2M`). */
+  limitRate?: string
   onProgress?: (progress: DownloadProgress) => void
+}
+
+export function resolveYtdlpOutputFilename(options: {
+  filenameTemplate?: string
+  isPlaylist?: boolean
+  playlistTitle?: string
+  outputTitle?: string
+}): string {
+  const filenameTemplate = options.filenameTemplate?.trim() || DEFAULT_FILENAME_TEMPLATE
+  if (options.isPlaylist && options.playlistTitle) {
+    return `%(playlist_index)03d - ${renderYtdlpFilenameTemplate(filenameTemplate)}`
+  }
+  if (options.outputTitle) {
+    const sanitized = options.outputTitle.replace(/[/\\?*:|"<>]/g, '-')
+    return `${sanitized}.%(ext)s`
+  }
+  return renderYtdlpFilenameTemplate(filenameTemplate)
 }
 
 const YOUTUBE_REGEX = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be|music\.youtube\.com)\/.+/
@@ -782,22 +804,20 @@ export function download(
     extractorArgs,
     pluginDir,
     proxyUrl,
+    filenameTemplate,
+    limitRate,
     onProgress: progressCb
   } = options
 
   let onProgress: (progress: DownloadProgress) => void = progressCb ?? (() => {})
 
   // Relative -o is required: yt-dlp ignores --paths temp when -o is absolute (fragments land in outputDir).
-  let outputFilenameTemplate: string
-  if (isPlaylist && playlistTitle) {
-    outputFilenameTemplate = '%(playlist_index)03d - %(title)s.%(ext)s'
-  } else if (outputTitle) {
-    const sanitized = outputTitle.replace(/[/\\?*:|"<>]/g, '-')
-    outputFilenameTemplate = `${sanitized}.%(ext)s`
-  } else {
-    // [%(id)s] avoids collisions when different videos share the same title (common on X/Twitter).
-    outputFilenameTemplate = '%(title).200B [%(id)s].%(ext)s'
-  }
+  const outputFilenameTemplate = resolveYtdlpOutputFilename({
+    filenameTemplate: filenameTemplate || settings.get('filenameTemplate'),
+    isPlaylist,
+    playlistTitle,
+    outputTitle
+  })
 
   /** Direct CDN / sniffed URLs from the browser extension — not multi-format player pages. */
   const isDirectMedia = Boolean(mediaType)
@@ -863,6 +883,10 @@ export function download(
   const extDl = externalDownloader?.trim()
   if (extDl) {
     args.push('--downloader', extDl)
+  }
+
+  if (limitRate) {
+    args.push('--limit-rate', limitRate)
   }
 
   if (retrySleeps && retrySleeps.length > 0) {

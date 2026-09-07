@@ -1,4 +1,5 @@
 import { AlertTriangle, FileX, Trash2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useDialogFocus } from '@/hooks/useDialogFocus'
 
 interface PlaylistDeleteDialogProps {
@@ -16,6 +17,7 @@ export function PlaylistDeleteDialog({
   onRemoveListOnly,
   onRemoveWithFiles
 }: PlaylistDeleteDialogProps) {
+  const { t } = useTranslation()
   const dialogRef = useDialogFocus<HTMLDivElement>(onClose)
   const handleListOnly = () => {
     onRemoveListOnly()
@@ -47,14 +49,14 @@ export function PlaylistDeleteDialog({
           <div className="w-12 h-12 rounded-full bg-state-error-bg text-foreground flex items-center justify-center mb-4">
             <AlertTriangle className="w-6 h-6" />
           </div>
-          <h2 id="playlist-delete-dialog-title" className="text-lg font-semibold text-foreground mb-2">Remove playlist</h2>
+          <h2 id="playlist-delete-dialog-title" className="text-lg font-semibold text-foreground mb-2">{t('playlist.deleteTitle')}</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
             <span className="text-foreground font-medium">{playlistTitle}</span>
             {' · '}
-            {videoCount} video{videoCount !== 1 ? 's' : ''}
+            {t(videoCount === 1 ? 'playlist.deleteCountOne' : 'playlist.deleteCount', { count: videoCount })}
           </p>
           <p id="playlist-delete-dialog-description" className="text-xs text-muted-foreground mt-3">
-            Choose whether to keep downloaded files on disk or delete them as well.
+            {t('playlist.deleteBody')}
           </p>
         </div>
 
@@ -65,7 +67,7 @@ export function PlaylistDeleteDialog({
             className="w-full min-h-11 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-action text-action-fg font-medium hover:bg-action-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
           >
             <FileX className="w-4 h-4" />
-            Remove from list only
+            {t('playlist.removeListOnly')}
           </button>
           <button
             type="button"
@@ -73,14 +75,14 @@ export function PlaylistDeleteDialog({
             className="w-full min-h-11 flex items-center justify-center gap-2 py-2.5 rounded-button border border-dashed border-border-strong bg-control text-foreground font-medium hover:bg-surface-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
           >
             <Trash2 className="w-4 h-4" />
-            Delete files and remove
+            {t('playlist.deleteFilesAndRemove')}
           </button>
           <button
             type="button"
             onClick={onClose}
             className="w-full min-h-11 py-2.5 rounded-lg bg-control text-foreground font-medium hover:bg-state-active-bg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
           >
-            Cancel
+            {t('common.cancel')}
           </button>
         </div>
       </div>

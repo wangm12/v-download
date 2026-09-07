@@ -1,4 +1,18 @@
 import type { MenuItemConstructorOptions } from 'electron'
+import { translate, type AppLanguage } from '../i18n/catalog'
+import { getAppCommand, type AppCommandId } from './appCommands'
+
+const COMMAND_I18N: Record<AppCommandId, string> = {
+  'open-urls': 'menu.openUrls',
+  preferences: 'menu.preferences',
+  'find-downloads': 'menu.findDownloads',
+  'refresh-downloads': 'menu.refreshDownloads',
+  'pause-all': 'menu.pauseAll',
+  'resume-all': 'menu.resumeAll',
+  'clear-finished': 'menu.clearFinished',
+  'compact-window': 'menu.compactWindow',
+  quit: 'menu.quit'
+}
 
 export const APP_HELP_URL = 'https://github.com/wangm12/v-download#readme'
 export const APP_REPO_URL = 'https://github.com/wangm12/v-download'
@@ -9,13 +23,33 @@ export interface AppMenuHandlers {
   clearDownloads: () => void
   findDownloads: () => void
   refreshDownloads: () => void
+  pauseAll: () => void
+  resumeAll: () => void
+  openCompactWindow: () => void
   openHelp: () => void
   openRepository: () => void
 }
 
+function catalogMenuItem(
+  id: AppCommandId,
+  language: AppLanguage,
+  click?: () => void
+): MenuItemConstructorOptions {
+  const command = getAppCommand(id)
+  if (command.kind === 'role' && command.role) {
+    return { role: command.role }
+  }
+  return {
+    label: translate(language, COMMAND_I18N[id]),
+    accelerator: command.accelerator,
+    click
+  }
+}
+
 export function buildApplicationMenuTemplate(
   appName: string,
-  handlers: AppMenuHandlers
+  handlers: AppMenuHandlers,
+  language: AppLanguage = 'en'
 ): MenuItemConstructorOptions[] {
   return [
     {
@@ -23,11 +57,7 @@ export function buildApplicationMenuTemplate(
       submenu: [
         { role: 'about' },
         { type: 'separator' },
-        {
-          label: 'Settings…',
-          accelerator: 'CmdOrCtrl+,',
-          click: () => handlers.openSettings()
-        },
+        catalogMenuItem('preferences', language, () => handlers.openSettings()),
         { type: 'separator' },
         { role: 'services' },
         { type: 'separator' },
@@ -35,26 +65,22 @@ export function buildApplicationMenuTemplate(
         { role: 'hideOthers' },
         { role: 'unhide' },
         { type: 'separator' },
-        { role: 'quit' }
+        catalogMenuItem('quit', language)
       ]
     },
     {
-      label: 'File',
+      label: translate(language, 'menu.file'),
       submenu: [
-        {
-          label: 'Open URLs…',
-          accelerator: 'CmdOrCtrl+O',
-          click: () => handlers.openUrls()
-        },
+        catalogMenuItem('open-urls', language, () => handlers.openUrls()),
         { type: 'separator' },
-        {
-          label: 'Clear Finished Downloads',
-          click: () => handlers.clearDownloads()
-        }
+        catalogMenuItem('pause-all', language, () => handlers.pauseAll()),
+        catalogMenuItem('resume-all', language, () => handlers.resumeAll()),
+        { type: 'separator' },
+        catalogMenuItem('clear-finished', language, () => handlers.clearDownloads())
       ]
     },
     {
-      label: 'Edit',
+      label: translate(language, 'menu.edit'),
       submenu: [
         { role: 'undo' },
         { role: 'redo' },
@@ -64,28 +90,22 @@ export function buildApplicationMenuTemplate(
         { role: 'paste' },
         { role: 'selectAll' },
         { type: 'separator' },
-        {
-          label: 'Find Downloads',
-          accelerator: 'CmdOrCtrl+F',
-          click: () => handlers.findDownloads()
-        }
+        catalogMenuItem('find-downloads', language, () => handlers.findDownloads())
       ]
     },
     {
-      label: 'View',
+      label: translate(language, 'menu.view'),
       submenu: [
-        {
-          label: 'Refresh Downloads',
-          accelerator: 'CmdOrCtrl+R',
-          click: () => handlers.refreshDownloads()
-        }
+        catalogMenuItem('refresh-downloads', language, () => handlers.refreshDownloads())
       ]
     },
     {
-      label: 'Window',
+      label: translate(language, 'menu.window'),
       submenu: [
         { role: 'minimize' },
         { role: 'zoom' },
+        { type: 'separator' },
+        catalogMenuItem('compact-window', language, () => handlers.openCompactWindow()),
         { type: 'separator' },
         { role: 'front' },
         { type: 'separator' },
@@ -93,15 +113,15 @@ export function buildApplicationMenuTemplate(
       ]
     },
     {
-      label: 'Help',
+      label: translate(language, 'menu.help'),
       submenu: [
         {
-          label: 'V-Download Help',
+          label: translate(language, 'menu.helpPage'),
           click: () => handlers.openHelp()
         },
         { type: 'separator' },
         {
-          label: 'GitHub Repository',
+          label: translate(language, 'menu.githubRepo'),
           click: () => handlers.openRepository()
         }
       ]

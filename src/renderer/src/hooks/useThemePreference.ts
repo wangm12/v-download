@@ -7,6 +7,7 @@ const LS_THEME = 'v-download:ui:theme-preference'
 function readStoredPreference(): ThemePreference {
   try {
     const v = localStorage.getItem(LS_THEME)
+    if (v === 'system') return 'device'
     if (v === 'dark' || v === 'light' || v === 'device') return v
   } catch {
     /* ignore */

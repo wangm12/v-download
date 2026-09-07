@@ -1,3 +1,4 @@
+import { translate } from '../../../i18n/catalog'
 import type { VideoInfo } from '@/types'
 
 export type PresentationKind = 'video' | 'audio' | 'other'
@@ -61,7 +62,8 @@ export function getPresentationCandidates(
 }
 
 export function formatAccessibleDownloadLabel(candidate: Pick<PresentationCandidate, 'kind' | 'quality'>, container: string) {
-  return `Download ${candidate.kind === 'audio' ? `${candidate.quality} kbps` : `${candidate.quality}p`} ${container}`
+  const quality = candidate.kind === 'audio' ? `${candidate.quality} kbps` : `${candidate.quality}p`
+  return translate('en', 'format.downloadAria', { quality, container })
 }
 
 export function getDefaultSelectedKey(candidates: Array<Pick<PresentationCandidate, 'key' | 'recommended'>>): string | null {
@@ -70,6 +72,11 @@ export function getDefaultSelectedKey(candidates: Array<Pick<PresentationCandida
 
 export const INCLUDE_NOTE_CHECKBOX_LABEL = 'Save caption as Markdown'
 export const DEFAULT_INCLUDE_NOTE = true
+export const ADVANCED_DISCLOSURE_LABEL = 'Advanced'
+export const TASK_PROXY_LABEL = 'Proxy for this task'
+export const TASK_HEADERS_LABEL = 'Extra headers'
+export const TASK_PROXY_PLACEHOLDER = 'http://127.0.0.1:8080'
+export const TASK_HEADERS_PLACEHOLDER = 'Referer: https://example.com\nUser-Agent: V-Download'
 
 export function shouldPromptFormatDialog(options: { autoStart?: boolean }): boolean {
   return options.autoStart !== true

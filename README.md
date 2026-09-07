@@ -21,7 +21,9 @@
 
 - Paste a link with `Cmd+V`, or click the [Chrome extension](extension/)
 - Queue with live progress, pause, retry, and playlists
+- Library for completed files on disk (Open and Reveal use the OS)
 - Sync cookies from Chrome only when you ask
+- English, 简体中文, and 繁體中文
 - Dark / Light appearance
 
 ## Install
@@ -60,6 +62,10 @@ npm test
 Load `extension/` unpacked and reload it after changes. After editing cookie-sync domains in `packages/shared`, run `npm run sync:extension-constants`.
 
 See [docs/README.md](docs/README.md) for engines, Douyin recovery, packaging, privacy, and the product backlog.
+
+## Read next
+
+- [Library](docs/MANUAL_TESTING.md) — completed / on-disk files in the sidebar (File and Work views). No in-app player; Open and Reveal use the OS.
 
 ## License
 
