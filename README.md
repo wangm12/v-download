@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="README-CN.md">中文文档</a>
+  <strong>English</strong> | <a href="README.zh-CN.md">简体中文</a>
 </p>
 
 <p align="center">
@@ -10,29 +10,34 @@
 
 <p align="center">
   <strong>Fast, lightweight desktop video & audio downloader for macOS and Linux.</strong><br>
-  Built on Electron, React, SQLite, yt-dlp, and FFmpeg.
+  Built with Electron, React, TypeScript, SQLite, yt-dlp, and FFmpeg.
 </p>
 
 <p align="center">
   <a href="https://github.com/wangm12/v-download/releases/tag/nightly"><img src="https://img.shields.io/badge/release-nightly-blue.svg?style=flat-square" alt="Nightly Build" /></a>
   <a href="https://github.com/wangm12/v-download/releases"><img src="https://img.shields.io/github/v/release/wangm12/v-download?style=flat-square" alt="GitHub Release" /></a>
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Ubuntu%20Linux-lightgrey?style=flat-square" alt="Platforms" />
+  <img src="https://img.shields.io/badge/tests-passing-brightgreen?style=flat-square" alt="Tests" />
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License" />
+</p>
+
+<p align="center">
+  <img src="design/v-download-v1/exports/png/01-main-queue-dashboard.png" alt="V-Download Dashboard" width="760" />
 </p>
 
 ---
 
 ## Overview
 
-**V-Download** is an open-source, Downie-style desktop media downloader for macOS and Linux. It pairs the raw extraction power and broad site support of `yt-dlp` and `FFmpeg` with a clean, native desktop interface, lightning-fast keystroke capture, and line-speed streaming throughput.
+**V-Download** is an open-source, Downie-style desktop media downloader for macOS and Linux. It pairs the extraction power and site compatibility of `yt-dlp` and `FFmpeg` with a clean, responsive desktop interface, instant keyboard capture, and line-speed streaming throughput.
 
-Whether downloading an 8K HDR YouTube video, extracting Douyin Live Photos (motion photos) and albums, or ripping audio into lossless FLAC, V-Download runs locally without subscriptions, cloud accounts, or tracking.
+Whether downloading an 8K HDR YouTube video, extracting Douyin Live Photos (motion photos) and albums, or ripping audio into lossless FLAC, V-Download runs completely locally without subscriptions, cloud accounts, or tracking.
 
 ---
 
 ## Key Features
 
-- **Instant Keystroke Capture**: Copy any media link and press **Cmd+V** (or **Ctrl+V** on Linux) to parse and download. No manual URL bar pasting required.
+- **Instant Keystroke Capture**: Copy any media URL and press **Cmd+V** (or **Ctrl+V** on Linux) to parse and download immediately. No manual URL bar pasting required.
 - **Universal Site Support**: Downloads video and audio from YouTube (up to 8K 60fps HDR), Douyin / TikTok, Xiaohongshu, Bilibili, and 1,000+ sites supported by yt-dlp.
 - **Douyin Live Photos & Gallery Extraction**: Full-fidelity extraction of Douyin image albums, including high-res stills and individual motion video clips.
 - **Queue Scheduler & Concurrency Control**: Configurable concurrency (1–10 parallel downloads), pause/resume, FIFO ordering, automatic retry on transient failures, and duplicate protection.
@@ -82,7 +87,21 @@ Prebuilt installers for macOS and Linux are automatically compiled on every push
     chmod +x V-Download-*.AppImage && ./V-Download-*.AppImage
     ```
 
-### 2. Build From Source
+---
+
+## Keyboard Shortcuts
+
+| Shortcut (macOS) | Shortcut (Linux) | Action |
+|---|---|---|
+| **⌘V** | **Ctrl+V** | Parse URL from clipboard and start download |
+| **⌘,** | **Ctrl+,** | Open Preferences / Settings |
+| **⌘W** | **Ctrl+W** | Close window (runs in system tray) |
+| **⌘Q** | **Ctrl+Q** | Quit application |
+
+---
+
+## Build From Source
+
 ```sh
 # Clone repository
 git clone https://github.com/wangm12/v-download.git

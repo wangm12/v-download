@@ -54,6 +54,7 @@ win:
   target:
     - nsis
 linux:
+  maintainer: V-Download Contributors <support@v-download.app>
   icon: resources/icon.png
   category: Utility
   synopsis: Downie-style video downloader for YouTube, Douyin, and any website
