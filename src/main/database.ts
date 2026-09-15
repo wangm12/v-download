@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3'
 import { app } from 'electron'
-import { join } from 'path'
+import { mkdirSync } from 'node:fs'
+import { dirname, join } from 'path'
 import { migrateDatabase } from './databaseMigrations'
 
 let db: Database.Database | null = null
@@ -32,6 +33,12 @@ export interface DownloadRecord {
 
 export function initDB(): void {
   if (db) return
+
+  try {
+    mkdirSync(dirname(DB_PATH), { recursive: true })
+  } catch {
+    /* ignore if already exists */
+  }
 
   db = new Database(DB_PATH)
 

@@ -1,12 +1,12 @@
 import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
+  Bot,
   Globe,
   Settings,
   Download,
   LayoutGrid,
   SlidersHorizontal,
-  Library,
   ListOrdered,
   PanelLeftClose,
   PanelLeftOpen
@@ -14,12 +14,12 @@ import {
 import { cn } from '@/lib/cn'
 import { useTranslation } from 'react-i18next'
 import type { PrefSection } from '@/preferencesNav'
-import { PREF_SECTION_ADVANCED, PREF_SECTION_PRIMARY } from '@/preferencesNav'
+import { PREF_SECTION_ADVANCED, PREF_SECTION_MCP, PREF_SECTION_PRIMARY } from '@/preferencesNav'
 import { HoverHintWrap } from './HoverHintWrap'
 
 const APP_ICON_SRC = `${import.meta.env.BASE_URL}app-icon.png`
 
-export type AppMainView = 'downloads' | 'library' | 'preferences'
+export type AppMainView = 'downloads' | 'preferences'
 
 interface AppSidebarProps {
   collapsed: boolean
@@ -27,7 +27,6 @@ interface AppSidebarProps {
   mainView: AppMainView
   prefSection: PrefSection
   onSelectQueue: () => void
-  onSelectLibrary: () => void
   onSelectPrefSection: (id: PrefSection) => void
 }
 
@@ -49,65 +48,71 @@ function NavRow({
   active,
   onClick,
   children,
-  icon: Icon
+  icon: Icon,
+  collapsed,
+  hint
 }: {
   active: boolean
   onClick: () => void
   children: ReactNode
   icon: LucideIcon
+  collapsed: boolean
+  hint: string
 }) {
-  return (
+  const button = (
     <button
       type="button"
       onClick={onClick}
+      aria-label={collapsed ? hint : undefined}
+      aria-current={active ? 'page' : undefined}
       className={cn(
-        'inline-flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-border-focus',
+        'inline-flex items-center rounded-lg text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-border-focus',
+        collapsed ? 'mx-auto h-9 w-9 shrink-0 justify-center p-0' : 'w-full gap-2 px-2 py-1.5',
         active
           ? 'bg-action text-action-fg font-medium'
           : 'text-muted-foreground hover:bg-control hover:text-foreground'
       )}
     >
-      <Icon className="w-4 h-4 shrink-0" aria-hidden />
-      {children}
-    </button>
-  )
-}
-
-function IconNavButton({
-  active,
-  onClick,
-  icon: Icon,
-  label
-}: {
-  active: boolean
-  onClick: () => void
-  icon: LucideIcon
-  label: string
-}) {
-  return (
-    <HoverHintWrap text={label} side="right">
-      <button
-        type="button"
-        onClick={onClick}
-        aria-label={label}
-        aria-current={active ? 'page' : undefined}
+      <Icon className="h-4 w-4 shrink-0" aria-hidden />
+      <span
         className={cn(
-          'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-[transform,colors] duration-200 ease-out hover:scale-[1.04] active:scale-[0.96] motion-reduce:hover:scale-100 motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus',
-          active
-            ? 'bg-action text-action-fg'
-            : 'text-muted-foreground hover:bg-control hover:text-foreground'
+          'min-w-0 truncate transition-[opacity,width] duration-panel ease-panel motion-reduce:transition-none',
+          collapsed ? 'w-0 opacity-0' : 'flex-1 opacity-100'
         )}
       >
-        <Icon className="h-4 w-4" aria-hidden />
-      </button>
-    </HoverHintWrap>
+        {children}
+      </span>
+    </button>
   )
+
+  if (collapsed) {
+    return (
+      <HoverHintWrap text={hint} side="right">
+        {button}
+      </HoverHintWrap>
+    )
+  }
+  return button
 }
 
-const panelIconClass = 'h-[18px] w-[18px] shrink-0 text-foreground/80 transition-[color,transform] duration-200 ease-out group-hover:text-foreground'
+const panelIconClass =
+  'h-[18px] w-[18px] shrink-0 text-foreground/80 transition-[color,transform] duration-200 ease-out group-hover:text-foreground'
 
 const toggleIconBtn =
   'group flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-raised/50 text-muted-foreground ring-1 ring-inset ring-divider-subtle transition-[background-color,box-shadow,transform] duration-panel ease-panel hover:bg-surface-hover hover:text-foreground hover:ring-border-strong active:scale-[0.96] motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus'
+
+function SectionLabel({ collapsed, children }: { collapsed: boolean; children: ReactNode }) {
+  return (
+    <p
+      className={cn(
+        'overflow-hidden px-2 text-[10px] font-semibold uppercase tracking-wider text-tertiary-foreground transition-[opacity,max-height,margin] duration-panel ease-panel motion-reduce:transition-none',
+        collapsed ? 'mb-0 max-h-0 opacity-0' : 'mb-1 max-h-8 opacity-100'
+      )}
+    >
+      {children}
+    </p>
+  )
+}
 
 export function AppSidebar({
   collapsed,
@@ -115,171 +120,125 @@ export function AppSidebar({
   mainView,
   prefSection,
   onSelectQueue,
-  onSelectLibrary,
   onSelectPrefSection
 }: AppSidebarProps) {
   const { t } = useTranslation()
   const queueActive = mainView === 'downloads'
-  const libraryActive = mainView === 'library'
-  const viewSubtitle = queueActive
-    ? t('nav.downloads')
-    : libraryActive
-      ? t('nav.library')
-      : t('nav.applicationSettings')
+  const viewSubtitle = queueActive ? t('nav.downloads') : t('nav.applicationSettings')
+  const toggleLabel = collapsed ? t('nav.expand') : t('nav.collapse')
 
   return (
     <aside
       className={cn(
-        'flex min-h-0 shrink-0 flex-col self-stretch border-r border-border bg-sidebar py-4 overflow-x-hidden transition-[width,padding,gap] duration-panel ease-panel motion-reduce:transition-none',
-        collapsed ? 'w-14 px-1.5 gap-2' : 'w-[244px] px-3 gap-4'
+        'flex min-h-0 shrink-0 flex-col self-stretch border-r border-border bg-sidebar px-1.5 py-4 [contain:layout] motion-reduce:transition-none',
+        'overflow-x-hidden transition-[width] duration-panel ease-panel',
+        collapsed ? 'w-14' : 'w-[244px]'
       )}
       style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
     >
-      {collapsed ? (
-        <div className="flex shrink-0 flex-col items-center gap-2">
-          <img
-            src={APP_ICON_SRC}
-            alt=""
-            width={40}
-            height={40}
-            className="h-10 w-10 shrink-0 object-contain"
-            draggable={false}
-            role="presentation"
-          />
-          <HoverHintWrap text={collapsed ? t('nav.expand') : t('nav.collapse')} side="right">
-            <button
-              type="button"
-              onClick={onToggleCollapsed}
-              className={toggleIconBtn}
-              aria-expanded={!collapsed}
-              aria-label={collapsed ? t('nav.expand') : t('nav.collapse')}
-            >
-              <PanelLeftOpen className={panelIconClass} strokeWidth={1.65} aria-hidden />
-            </button>
-          </HoverHintWrap>
+      <div
+        className={cn(
+          'flex shrink-0 gap-2',
+          collapsed ? 'flex-col items-center' : 'flex-row items-center px-1'
+        )}
+      >
+        <img
+          src={APP_ICON_SRC}
+          alt=""
+          width={40}
+          height={40}
+          className="h-10 w-10 shrink-0 object-contain"
+          draggable={false}
+          role="presentation"
+        />
+        <div
+          className={cn(
+            'min-w-0 overflow-hidden transition-[opacity,max-width,flex] duration-panel ease-panel motion-reduce:transition-none',
+            collapsed ? 'max-w-0 flex-[0] opacity-0' : 'max-w-[10rem] flex-1 opacity-100'
+          )}
+        >
+          <p className="truncate text-sm font-semibold leading-tight tracking-tight text-foreground">V-Download</p>
+          <p className="mt-0.5 truncate text-[11px] leading-snug text-muted-foreground">{viewSubtitle}</p>
         </div>
-      ) : (
-        <div className="flex w-full shrink-0 items-center gap-2 px-1">
-          <img
-            src={APP_ICON_SRC}
-            alt=""
-            width={40}
-            height={40}
-            className="h-10 w-10 shrink-0 object-contain"
-            draggable={false}
-          />
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold leading-tight text-foreground tracking-tight">V-Download</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
-              {viewSubtitle}
-            </p>
-          </div>
-          <HoverHintWrap text={t('nav.collapse')} side="bottom">
-            <button
-              type="button"
-              onClick={onToggleCollapsed}
-              className={toggleIconBtn}
-              aria-expanded={!collapsed}
-              aria-label={t('nav.collapse')}
-            >
-              <PanelLeftClose className={panelIconClass} strokeWidth={1.65} aria-hidden />
-            </button>
-          </HoverHintWrap>
-        </div>
-      )}
+        <button
+          type="button"
+          onClick={onToggleCollapsed}
+          className={toggleIconBtn}
+          aria-expanded={!collapsed}
+          aria-label={toggleLabel}
+        >
+          {collapsed ? (
+            <PanelLeftOpen className={panelIconClass} strokeWidth={1.65} aria-hidden />
+          ) : (
+            <PanelLeftClose className={panelIconClass} strokeWidth={1.65} aria-hidden />
+          )}
+        </button>
+      </div>
 
-      {!collapsed ? (
-        <div className="flex min-h-0 flex-1 flex-col gap-4 animate-panel-fade-in-from-left motion-reduce:animate-none">
-          <nav className="flex flex-col flex-1 min-h-0 gap-3" aria-label={t('nav.home')}>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-tertiary-foreground px-2 mb-1">
-                {t('nav.workspace')}
-              </p>
-              <div className="flex flex-col gap-0.5">
-                <NavRow active={queueActive} onClick={onSelectQueue} icon={ListOrdered}>
-                  {t('nav.downloads')}
-                </NavRow>
-                <NavRow active={libraryActive} onClick={onSelectLibrary} icon={Library}>
-                  {t('nav.library')}
-                </NavRow>
-              </div>
-            </div>
-
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-tertiary-foreground px-2 mb-1">
-                {t('nav.preferences')}
-              </p>
-              <div className="flex flex-col gap-0.5">
-                {PREF_SECTION_PRIMARY.map((item) => {
-                  const Icon = prefPrimaryIcon(item)
-                  const active = mainView === 'preferences' && prefSection === item
-                  return (
-                    <NavRow
-                      key={item}
-                      active={active}
-                      onClick={() => onSelectPrefSection(item)}
-                      icon={Icon}
-                    >
-                      {t(`nav.${item}`)}
-                    </NavRow>
-                  )
-                })}
-              </div>
-            </div>
-            <div className="mt-auto shrink-0">
-              <NavRow
-                active={mainView === 'preferences' && prefSection === PREF_SECTION_ADVANCED}
-                onClick={() => onSelectPrefSection(PREF_SECTION_ADVANCED)}
-                icon={SlidersHorizontal}
-              >
-                {t('nav.advanced')}
-              </NavRow>
-            </div>
-          </nav>
-        </div>
-      ) : (
-        <div className="flex min-h-0 flex-1 flex-col gap-2 animate-panel-fade-in motion-reduce:animate-none">
-          <nav
-            className="flex flex-1 min-h-0 flex-col items-center gap-1 overflow-y-auto overflow-x-hidden py-1"
-            aria-label={t('nav.home')}
-          >
-            <IconNavButton
+      <nav
+        className={cn(
+          'mt-4 flex min-h-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto',
+          collapsed && 'items-center'
+        )}
+        aria-label={t('nav.home')}
+      >
+        <div>
+          <SectionLabel collapsed={collapsed}>{t('nav.workspace')}</SectionLabel>
+          <div className="flex flex-col gap-0.5">
+            <NavRow
+              collapsed={collapsed}
+              hint={t('nav.downloads')}
               active={queueActive}
               onClick={onSelectQueue}
               icon={ListOrdered}
-              label={t('nav.downloads')}
-            />
-            <IconNavButton
-              active={libraryActive}
-              onClick={onSelectLibrary}
-              icon={Library}
-              label={t('nav.library')}
-            />
-            <div className="my-1 h-px w-7 shrink-0 bg-border" aria-hidden />
+            >
+              {t('nav.downloads')}
+            </NavRow>
+          </div>
+        </div>
+
+        <div>
+          <SectionLabel collapsed={collapsed}>{t('nav.preferences')}</SectionLabel>
+          <div className="flex flex-col gap-0.5">
             {PREF_SECTION_PRIMARY.map((item) => {
               const Icon = prefPrimaryIcon(item)
               const active = mainView === 'preferences' && prefSection === item
               return (
-                <IconNavButton
+                <NavRow
                   key={item}
+                  collapsed={collapsed}
+                  hint={t(`nav.${item}`)}
                   active={active}
                   onClick={() => onSelectPrefSection(item)}
                   icon={Icon}
-                  label={t(`nav.${item}`)}
-                />
+                >
+                  {t(`nav.${item}`)}
+                </NavRow>
               )
             })}
-            <div className="mt-auto shrink-0">
-              <IconNavButton
-                active={mainView === 'preferences' && prefSection === PREF_SECTION_ADVANCED}
-                onClick={() => onSelectPrefSection(PREF_SECTION_ADVANCED)}
-                icon={SlidersHorizontal}
-                label={t('nav.advanced')}
-              />
-            </div>
-          </nav>
+          </div>
         </div>
-      )}
+        <div className="mt-auto shrink-0 flex flex-col gap-0.5">
+          <NavRow
+            collapsed={collapsed}
+            hint={t('nav.mcp')}
+            active={mainView === 'preferences' && prefSection === PREF_SECTION_MCP}
+            onClick={() => onSelectPrefSection(PREF_SECTION_MCP)}
+            icon={Bot}
+          >
+            {t('nav.mcp')}
+          </NavRow>
+          <NavRow
+            collapsed={collapsed}
+            hint={t('nav.advanced')}
+            active={mainView === 'preferences' && prefSection === PREF_SECTION_ADVANCED}
+            onClick={() => onSelectPrefSection(PREF_SECTION_ADVANCED)}
+            icon={SlidersHorizontal}
+          >
+            {t('nav.advanced')}
+          </NavRow>
+        </div>
+      </nav>
     </aside>
   )
 }

@@ -54,7 +54,7 @@ export function siblingTaskIds(taskIds: string[], failedId: string): string[] {
 
 /**
  * Only files/dirs under this job's output folder are owned.
- * The library root is never owned, even if a task's file_path points at it.
+ * The download-folder root is never owned, even if a task's file_path points at it.
  */
 export function collectOwnedPaths(options: {
   downloadDir: string

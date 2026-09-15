@@ -1,9 +1,7 @@
 import type {
   CSSProperties,
   ForwardedRef,
-  MouseEvent,
   MutableRefObject,
-  PointerEvent as ReactPointerEvent,
   ReactElement
 } from 'react'
 import {
@@ -18,8 +16,6 @@ import {
 import { createPortal } from 'react-dom'
 import { cn } from '@/lib/cn'
 
-const SHOW_DELAY_MS = 200
-const LEAVE_DELAY_MS = 80
 const GAP_PX = 8
 const VIEW_PAD = 8
 
@@ -109,78 +105,20 @@ function computeTipStyle(
   }
 }
 
-/**
- * Hover hint portaled to `document.body` with `position: fixed`.
- * Delayed leave avoids pointer leave/re-enter glitches; doc capture closes stray open state.
- */
+/** Hover/focus hint portaled to `document.body` with `position: fixed` (no show/hide delay). */
 export const HoverHintWrap = forwardRef<HTMLSpanElement, HoverHintWrapProps>(function HoverHintWrap(
   { text, side = 'top', className, children },
   forwardedRef
 ) {
   const anchorRef = useRef<HTMLSpanElement>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
-  const showTimerRef = useRef<ReturnType<typeof globalThis.setTimeout> | null>(null)
-  const leaveTimerRef = useRef<ReturnType<typeof globalThis.setTimeout> | null>(null)
-  const lastPointerRef = useRef({ x: 0, y: 0 })
 
   const [open, setOpen] = useState(false)
   const [tipStyle, setTipStyle] = useState<CSSProperties>(TIP_HIDDEN)
 
-  const clearShowTimer = useCallback(() => {
-    if (showTimerRef.current != null) {
-      globalThis.clearTimeout(showTimerRef.current)
-      showTimerRef.current = null
-    }
-  }, [])
-
-  const clearLeaveTimer = useCallback(() => {
-    if (leaveTimerRef.current != null) {
-      globalThis.clearTimeout(leaveTimerRef.current)
-      leaveTimerRef.current = null
-    }
-  }, [])
-
   const close = useCallback(() => {
-    clearShowTimer()
-    clearLeaveTimer()
     setOpen(false)
-  }, [clearLeaveTimer, clearShowTimer])
-
-  const primeAndScheduleOpen = useCallback(
-    (e: ReactPointerEvent<HTMLSpanElement> | MouseEvent<HTMLSpanElement>) => {
-      lastPointerRef.current = { x: e.clientX, y: e.clientY }
-      clearLeaveTimer()
-      clearShowTimer()
-      showTimerRef.current = globalThis.setTimeout(() => {
-        showTimerRef.current = null
-        setOpen(true)
-      }, SHOW_DELAY_MS)
-    },
-    [clearLeaveTimer, clearShowTimer]
-  )
-
-  const scheduleClose = useCallback(() => {
-    clearShowTimer()
-    clearLeaveTimer()
-    leaveTimerRef.current = globalThis.setTimeout(() => {
-      leaveTimerRef.current = null
-      const anchor = anchorRef.current
-      if (!anchor) {
-        setOpen(false)
-        return
-      }
-      const { x, y } = lastPointerRef.current
-      const r = anchor.getBoundingClientRect()
-      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return
-      setOpen(false)
-    }, LEAVE_DELAY_MS)
-  }, [clearLeaveTimer, clearShowTimer])
-
-  const openNow = useCallback(() => {
-    clearShowTimer()
-    clearLeaveTimer()
-    setOpen(true)
-  }, [clearLeaveTimer, clearShowTimer])
+  }, [])
 
   const syncPosition = useCallback(() => {
     const anchor = anchorRef.current
@@ -210,14 +148,6 @@ export const HoverHintWrap = forwardRef<HTMLSpanElement, HoverHintWrapProps>(fun
       globalThis.window.removeEventListener('resize', onScrollOrResize)
     }
   }, [open, syncPosition])
-
-  useEffect(() => {
-    const track = (e: globalThis.PointerEvent) => {
-      lastPointerRef.current = { x: e.clientX, y: e.clientY }
-    }
-    globalThis.window.addEventListener('pointermove', track, { passive: true })
-    return () => globalThis.window.removeEventListener('pointermove', track)
-  }, [])
 
   useEffect(() => {
     if (!open) return
@@ -260,11 +190,9 @@ export const HoverHintWrap = forwardRef<HTMLSpanElement, HoverHintWrapProps>(fun
         setForwardedRef(forwardedRef, el)
       }}
       className={cn('relative inline-flex', className)}
-      onPointerEnter={primeAndScheduleOpen}
-      onPointerLeave={scheduleClose}
-      onMouseEnter={primeAndScheduleOpen}
-      onMouseLeave={scheduleClose}
-      onFocusCapture={openNow}
+      onPointerEnter={() => setOpen(true)}
+      onPointerLeave={() => setOpen(false)}
+      onFocusCapture={() => setOpen(true)}
       onBlurCapture={(e) => {
         const rt = e.relatedTarget as Node | null
         globalThis.queueMicrotask(() => {

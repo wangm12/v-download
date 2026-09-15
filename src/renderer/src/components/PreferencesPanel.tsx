@@ -8,6 +8,11 @@ import type { PrefSection } from '@/preferencesNav'
 import type { DouyinBulkJobStatus, EngineStatus, NativeAuthAccountStatus, NativeAuthEvent, NativeAuthSite, SettingsData, SiteRule } from '@/types'
 import { DOUYIN_BULK_URL_PREFILL_SESSION_KEY } from '@/utils/douyinBulk'
 import {
+  AGENT_SKILL_FILENAME,
+  AGENT_SKILL_MARKDOWN,
+  triggerTextDownload
+} from './agentSkillPresentation'
+import {
   GENERAL_SECTION_CLASS,
   LANGUAGE_PREFERENCE_VALUES,
   OUTPUT_FILENAME_TOKENS,
@@ -32,6 +37,26 @@ export interface PreferencesPanelProps {
   section: PrefSection
   themePreference: ThemePreference
   onThemePreference: (value: ThemePreference) => void
+}
+
+function PrefSectionPane({
+  id,
+  section,
+  mounted,
+  children
+}: {
+  id: PrefSection
+  section: PrefSection
+  mounted: boolean
+  children: ReactNode
+}) {
+  if (!mounted) return null
+  const active = section === id
+  return (
+    <div className={cn(!active && 'hidden')} aria-hidden={!active}>
+      {children}
+    </div>
+  )
 }
 
 function PrefCard({
@@ -65,7 +90,7 @@ function FieldBlock({
 }: {
   label: string
   description?: string
-  children: ReactNode
+  children?: ReactNode
 }) {
   return (
     <div className="space-y-1.5">
@@ -134,6 +159,7 @@ const secondaryButtonClass = 'inline-flex min-h-10 items-center justify-center g
 
 export function PreferencesPanel({ section, themePreference, onThemePreference }: PreferencesPanelProps) {
   const { t } = useTranslation()
+  const [mountedSections, setMountedSections] = useState<Set<PrefSection>>(() => new Set([section]))
   const [cookieSyncNote, setCookieSyncNote] = useState('')
   const [cookieSyncBusy, setCookieSyncBusy] = useState(false)
   const [extensionPath, setExtensionPath] = useState<string | null>(null)
@@ -205,6 +231,7 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
   const turboDialogRef = useRef<HTMLDivElement>(null)
   const [remoteTokenCopied, setRemoteTokenCopied] = useState(false)
   const [mcpConfigCopied, setMcpConfigCopied] = useState(false)
+  const [skillCopied, setSkillCopied] = useState(false)
   const [mcpLogs, setMcpLogs] = useState<Array<{
     timestamp: string
     tool: string
@@ -216,7 +243,7 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
   }>>([])
 
   useEffect(() => {
-    if (section !== 'advanced' || !settings.remoteApiEnabled) return
+    if (section !== 'mcp' || !settings.remoteApiEnabled) return
     let cancelled = false
     const pull = () => {
       void window.api?.getRemoteMcpLogs?.(20).then((result) => {
@@ -242,6 +269,15 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
   }, [turboModalOpen])
 
   const header = { title: t(`prefs.header.${section}Title`), subtitle: t(`prefs.header.${section}Subtitle`) }
+
+  useEffect(() => {
+    setMountedSections((prev) => {
+      if (prev.has(section)) return prev
+      const next = new Set(prev)
+      next.add(section)
+      return next
+    })
+  }, [section])
 
   useEffect(() => {
     if (!window.api) return
@@ -658,7 +694,7 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
         className="flex-1 min-h-0 overflow-y-auto bg-background px-4 py-5 sm:px-6 sm:py-6"
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
-        {section === 'general' && (
+        <PrefSectionPane id="general" section={section} mounted={mountedSections.has('general')}>
           <div className={PREFERENCES_WORKSPACE_CLASS}>
             <PrefCard title={t('prefs.language.label')} subtitle={t('prefs.language.description')} className={GENERAL_SECTION_CLASS}>
               <FieldBlock label={t('prefs.language.label')}>
@@ -750,9 +786,9 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
               />
             </PrefCard>
           </div>
-        )}
+        </PrefSectionPane>
 
-        {section === 'downloads' && (
+        <PrefSectionPane id="downloads" section={section} mounted={mountedSections.has('downloads')}>
           <div className={PREFERENCES_WORKSPACE_CLASS}>
             <PrefCard
               title={t('prefs.saveFiles.title')}
@@ -1067,9 +1103,9 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
               </FieldBlock>
             </PrefCard>
           </div>
-        )}
+        </PrefSectionPane>
 
-        {section === 'browser' && (
+        <PrefSectionPane id="browser" section={section} mounted={mountedSections.has('browser')}>
           <div className={PREFERENCES_WORKSPACE_CLASS}>
             <PrefCard title={t('prefs.chromeCookie.title')} subtitle={t('prefs.chromeCookie.subtitle')}>
               {(cookieSyncBusy || extensionInstallBusy || cookieSyncNote) && (
@@ -1235,17 +1271,17 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
               </div>
             </PrefCard>
           </div>
-        )}
+        </PrefSectionPane>
 
-        {section === 'sites' && (
+        <PrefSectionPane id="sites" section={section} mounted={mountedSections.has('sites')}>
           <div className={PREFERENCES_WORKSPACE_CLASS}>
             <PrefCard title={t('prefs.siteRules.title')} subtitle={t('prefs.siteRules.subtitle')}>
               <SiteRulesEditor settings={settings} onUpdate={onUpdate} />
             </PrefCard>
           </div>
-        )}
+        </PrefSectionPane>
 
-        {section === 'advanced' && (
+        <PrefSectionPane id="advanced" section={section} mounted={mountedSections.has('advanced')}>
           <div className={PREFERENCES_WORKSPACE_CLASS}>
             <PrefCard title={t('prefs.system.title')} subtitle={t('prefs.system.subtitle')}>
               <SettingRow label={t('prefs.system.appVersion')} description={t('prefs.system.appVersionDesc')}>
@@ -1466,6 +1502,11 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
                 </div>
               )}
             </PrefCard>
+          </div>
+        </PrefSectionPane>
+
+        <PrefSectionPane id="mcp" section={section} mounted={mountedSections.has('mcp')}>
+          <div className={PREFERENCES_WORKSPACE_CLASS}>
             <PrefCard title={t('prefs.remote.title')} subtitle={t('prefs.remote.subtitle')}>
               <ToggleRow
                 label={t('prefs.remote.enable')}
@@ -1555,7 +1596,14 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
                     onClick={() => {
                       const host = settings.remoteApiBind === '0.0.0.0' ? '127.0.0.1' : (settings.remoteApiBind || '127.0.0.1')
                       const port = settings.remoteApiPort ?? 18766
-                      const text = `URL: http://${host}:${port}/mcp\nHeader: Authorization: Bearer ${settings.remoteApiToken}`
+                      const text = JSON.stringify({
+                        mcpServers: {
+                          'v-download': {
+                            url: `http://${host}:${port}/mcp`,
+                            headers: { Authorization: `Bearer ${settings.remoteApiToken}` }
+                          }
+                        }
+                      }, null, 2)
                       void navigator.clipboard.writeText(text).then(() => {
                         setMcpConfigCopied(true)
                         window.setTimeout(() => setMcpConfigCopied(false), 1500)
@@ -1596,8 +1644,33 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
                 </div>
               ) : null}
             </PrefCard>
+            <PrefCard title={t('prefs.remote.skill')} subtitle={t('prefs.remote.skillDesc')}>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  className={secondaryButtonClass}
+                  onClick={() => {
+                    void navigator.clipboard.writeText(AGENT_SKILL_MARKDOWN).then(() => {
+                      setSkillCopied(true)
+                      window.setTimeout(() => setSkillCopied(false), 1500)
+                    })
+                  }}
+                >
+                  {skillCopied ? <Check className="h-3.5 w-3.5" aria-hidden /> : <Copy className="h-3.5 w-3.5" aria-hidden />}
+                  {skillCopied ? t('common.copied') : t('prefs.remote.copySkill')}
+                </button>
+                <button
+                  type="button"
+                  className={secondaryButtonClass}
+                  onClick={() => triggerTextDownload(AGENT_SKILL_FILENAME, AGENT_SKILL_MARKDOWN)}
+                >
+                  <Download className="h-3.5 w-3.5" aria-hidden />
+                  {t('prefs.remote.downloadSkill')}
+                </button>
+              </div>
+            </PrefCard>
           </div>
-        )}
+        </PrefSectionPane>
       </div>
 
       {turboModalOpen ? (

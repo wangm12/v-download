@@ -23,7 +23,7 @@ export function initializePoTokenServer(): void { initialized = true }
 
 function providerPath(): string {
   if (process.env.V_DOWNLOAD_PO_TOKEN_PROVIDER) return process.env.V_DOWNLOAD_PO_TOKEN_PROVIDER
-  const relative = join('engines', 'po-token', `darwin-${process.arch}`, process.platform === 'win32' ? 'bgutil-provider.exe' : 'bgutil-provider')
+  const relative = join('engines', 'po-token', `${process.platform}-${process.arch}`, process.platform === 'win32' ? 'bgutil-provider.exe' : 'bgutil-provider')
   const roots = [process.resourcesPath, join(process.cwd(), 'resources')].filter((root): root is string => Boolean(root))
   return roots.map((root) => join(root, relative)).find((candidate) => existsSync(candidate)) ?? join(roots[0] ?? join(process.cwd(), 'resources'), relative)
 }
@@ -32,7 +32,7 @@ function pluginDir(): string {
   if (process.env.V_DOWNLOAD_PO_TOKEN_PLUGIN_DIR) {
     return existsSync(process.env.V_DOWNLOAD_PO_TOKEN_PLUGIN_DIR) ? process.env.V_DOWNLOAD_PO_TOKEN_PLUGIN_DIR : ''
   }
-  const relative = join('engines', 'po-token', `darwin-${process.arch}`, 'yt_dlp_plugins')
+  const relative = join('engines', 'po-token', `${process.platform}-${process.arch}`, 'yt_dlp_plugins')
   const roots = [process.resourcesPath, join(process.cwd(), 'resources')].filter((root): root is string => Boolean(root))
   return roots.map((root) => join(root, relative)).find((candidate) => existsSync(candidate)) ?? ''
 }

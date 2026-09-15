@@ -21,7 +21,7 @@
 
 - `Cmd+V` 粘贴链接，或用 [Chrome 扩展](extension/) 发送
 - 下载队列：进度、暂停、重试、播放列表
-- 侧边栏媒体库：已完成的本地文件（用系统打开 / 在访达中显示）
+- 已完成的文件用系统打开 / 在访达中显示
 - 只有你点同步时，才从 Chrome 取 Cookie
 - 英文 / 简体中文 / 繁體中文
 - 深色 / 浅色外观
@@ -49,7 +49,7 @@ npm run build:mac
 2. 在 Chrome 里加载 `extension/`（`chrome://extensions` → 开发者模式 → 加载已解压的扩展程序），即可从网页把视频发给应用。
 3. 若 Chrome 询问用哪个应用打开链接，选 **V-Download**，不要选 `node_modules` 里的 Electron。
 
-`Cmd+,` 打开偏好设置。其它程序可以通过可选的 [Remote Job API](docs/REMOTE_JOB_API.md) 走同一条队列。
+`Cmd+,` 打开偏好设置。Agent 可以从侧栏 **MCP** 通过可选的 [Remote Job API](docs/REMOTE_JOB_API.md) 走同一条队列（`POST /mcp`，Cursor 服务器名 `v-download`）。
 
 ## 开发
 

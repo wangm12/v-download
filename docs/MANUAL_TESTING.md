@@ -60,7 +60,7 @@ Debug logging: see [DEBUG.md](./DEBUG.md) (`make dev` session log + release `wor
 - Direct `.mp4` / `.webm` or picker-sent URL
 - HLS (`.m3u8`) via overlay / sniffer
 - Queue: 2–3 concurrent; pause / resume / cancel
-- **Library** — Sidebar Library: complete a Douyin gallery, confirm **one work** and **N files**; search / type / pager; Reveal and Open use Finder; Delete asks to confirm and only removes files under the download folder. `remote-jobs/` stays hidden. No in-app player.
+- Completed gallery: Open / Reveal from the queue or inspector use Finder. No in-app player or Library workspace.
 
 ### Direct media engine (ffmpeg vs yt-dlp)
 
@@ -92,9 +92,9 @@ See [download-engines.md](./download-engines.md) for the routing matrix.
 
 Full contract: [REMOTE_JOB_API.md](./REMOTE_JOB_API.md).
 
-- Preferences → Advanced → enable Remote API (default off, `127.0.0.1:18766`).
+- Preferences sidebar → **MCP** → enable Remote API (default off, `127.0.0.1:18766`).
 - `POST /v1/jobs` with Bearer token and `{ "url": "…" }` returns 202; poll `GET /v1/jobs/:id` or list with `GET /v1/jobs`. Default is media only (no caption Markdown). `{ "url": "…", "include_note": true }` writes `note.md` / a sidecar `.md`.
-- Copy MCP config; `POST /mcp` `tools/list` works with the same token. Write tools stay off until enabled; enqueue requires `confirm: true` when that toggle is on. `enqueue_job` accepts the same optional `include_note` field (default false).
+- Copy MCP config; copy or download `SKILL.md` from the MCP tab. `POST /mcp` `tools/list` works with the same token. Write tools stay off until enabled; enqueue requires `confirm: true` when that toggle is on. `enqueue_job` accepts the same optional `include_note` field (default false).
 - Enqueue a Xiaohongshu image short link (`xhslink.cn`) via `POST /v1/jobs`; the job should complete as a gallery folder, not fail with yt-dlp `No video formats found`. Without `include_note` the folder has images only; with `"include_note": true` it also has `note.md`. A text-only post without `include_note` should error `no_media`.
 - Extension pairing on **18765** still refuses non-localhost clients.
 
@@ -130,7 +130,6 @@ Use this matrix with [DESIGN_PLAN.md](./DESIGN_PLAN.md) and the PNGs under [`des
 | `13-compact-mode.png` | Compact mode | 3 | Mini window (Window → Compact Window): drop/paste, NOW DOWNLOADING, Pause all, Open full app. |
 | `14-component-library.png` | Component library | ongoing | Spot-check buttons, pills, rows, borders against app; token drift audit. |
 | `15-white-mode.png` | White / light mode | 4 | Title bar **Light** or **Use device setting** with OS in light mode: shell readable; contrast acceptable (iterate on row pills if needed). |
-| — | Library (sidebar) | Phase A | File / Work views; search, type filter, sort, pager; Reveal / Open / Delete; no player; `remote-jobs/` hidden. |
 
 ## Desktop — title bar and theme (P2)
 

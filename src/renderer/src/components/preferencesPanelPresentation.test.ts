@@ -41,7 +41,8 @@ expect(PREFERENCES_SECTION_TITLES.includes('Chrome cookie sync'), 'Chrome cookie
 expect(PREFERENCES_SECTION_TITLES.includes('In-app account login'), 'In-app account login card is missing')
 expect(PREFERENCES_SECTION_TITLES.includes('Expert tools'), 'Expert tools section is missing')
 expect(PREFERENCES_SECTION_TITLES.includes('Remote Job API'), 'Remote Job API section is missing')
-expect(PREFERENCES_SECTION_TITLES.length === 16, 'unexpected Preferences section count')
+expect(PREFERENCES_SECTION_TITLES.includes('Agent skill'), 'Agent skill section is missing')
+expect(PREFERENCES_SECTION_TITLES.length === 17, 'unexpected Preferences section count')
 expect(LANGUAGE_PREFERENCE_VALUES[0] === 'system', 'Language System must be first')
 expect(THEME_PREFERENCE_VALUES[0] === 'device', 'Theme System must be first')
 expect(languageSelectValue('system') === 'system', 'Language select must keep System')
@@ -71,6 +72,14 @@ expect(componentSource.includes("t('prefs.startup.title')"), 'General must inclu
 expect(componentSource.includes('http://127.0.0.1:8080'), 'Downloads proxy must use the onboarding placeholder')
 expect(componentSource.includes("t('prefs.saveFiles.credentialsRejected')"), 'Downloads proxy must use the onboarding credentials copy')
 expect(componentSource.includes("t('prefs.expert.title')"), 'Douyin bulk must live under Expert tools')
+expect(componentSource.includes('id="mcp"'), 'MCP must be its own Preferences pane')
+expect(componentSource.includes("t('prefs.remote.copySkill')"), 'MCP pane must let users copy the skill')
+expect(componentSource.includes("t('prefs.remote.downloadSkill')"), 'MCP pane must let users download the skill')
+expect(
+  componentSource.indexOf('id="advanced"') < componentSource.indexOf('id="mcp"')
+    && componentSource.indexOf('id="mcp"') < componentSource.indexOf("t('prefs.remote.title')"),
+  'Remote Job API must live under the MCP pane, not Advanced'
+)
 expect(componentSource.includes("t('prefs.chromeCookie.title')"), 'Browser must split Chrome cookie sync')
 expect(componentSource.includes("t('prefs.inAppLogin.title')"), 'Browser must split in-app account login')
 expect(componentSource.includes('filenameTemplate'), 'Save files must persist filenameTemplate')

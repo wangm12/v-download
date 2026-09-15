@@ -17,7 +17,7 @@ The API is **off by default**. V-Download must stay running while you use it.
 
 ## Enable
 
-1. Open V-Download → sidebar **Preferences** → **Advanced** → **Remote Job API**.
+1. Open V-Download → sidebar **MCP** → **Remote Job API**.
 2. Turn **Enable Remote API** on. A Bearer token is generated if none exists.
 3. Leave **Bind** on `127.0.0.1 (this Mac only)` unless another machine on your LAN / Tailscale must reach the app.
 4. Keep **Port** at `18766` unless it conflicts. Port `18765` is reserved and rejected.
@@ -161,7 +161,9 @@ List Remote Job API jobs. Newest `updatedAt` first. Auth required. Does **not** 
 
 ### `POST /mcp`
 
-JSON-RPC 2.0 MCP endpoint for Claude Code / Codex / similar agents. Same Bearer token as `/v1`. `GET /mcp` returns `405`.
+JSON-RPC 2.0 MCP endpoint for Claude Code / Codex / Cursor / similar agents. Same Bearer token as `/v1`. `GET /mcp` returns `405`.
+
+Copy or download `SKILL.md` from the same MCP tab for Cursor / Claude / Codex. This repo also registers a Cursor MCP server named `v-download` (`.cursor/mcp.json` → `scripts/v-download-mcp-stdio.mjs`). The stdio bridge reads the local app token and proxies to `POST /mcp`.
 
 Methods: `initialize`, `ping`, `tools/list`, `tools/call`, `notifications/initialized`.
 
@@ -174,9 +176,9 @@ Methods: `initialize`, `ping`, `tools/list`, `tools/call`, `notifications/initia
 | `enqueue_job` | write | `POST /v1/jobs` |
 | `cancel_job` | write | `POST /v1/jobs/:id/cancel` |
 
-Write tools are **off** until Preferences → Advanced → **Allow MCP write tools**. When **Require confirm on writes** is on (default), pass `"confirm": true` in the tool arguments. `enqueue_job` accepts the same optional `"include_note"` boolean as `POST /v1/jobs` (default `false`).
+Write tools are **off** until sidebar **MCP** → **Allow MCP write tools**. When **Require confirm on writes** is on (default), pass `"confirm": true` in the tool arguments. `enqueue_job` accepts the same optional `"include_note"` boolean as `POST /v1/jobs` (default `false`).
 
-Copy the client config block from that same preferences card (`URL` + `Authorization: Bearer …`).
+Copy the client config JSON from that same MCP card (`mcpServers.v-download` with `url` + `Authorization`). In this repo, Cursor already loads `.cursor/mcp.json` (stdio bridge, no token in git).
 
 `GET /v1/mcp/logs?limit=50` (auth) returns a redacted in-memory call log. Tokens, cookies, and URL query strings are not stored.
 
@@ -429,7 +431,7 @@ Files are written under:
 {downloadDir}/remote-jobs/{jobId}/
 ```
 
-Default `downloadDir` is `~/Downloads`. Only files under that job folder are exposed through `/file`, `/files/:name`, and `/archive`. The rest of the library is not readable via this API.
+Default `downloadDir` is `~/Downloads`. Only files under that job folder are exposed through `/file`, `/files/:name`, and `/archive`. The rest of the download folder is not readable via this API.
 
 ### Retries
 
@@ -546,7 +548,7 @@ Suggested poll interval: **1s**. Jobs stay in the desktop queue; deleting the ro
 - Treat the Bearer token like a password. Anyone who has it can enqueue downloads and read job files.
 - Prefer `127.0.0.1`. `0.0.0.0` has no TLS and no per-client ACL — the token is the only gate.
 - File names are constrained; path traversal (`../`, encoded slashes) is rejected.
-- Artifact paths must sit under `{downloadDir}/remote-jobs/{id}`. The rest of the download library is not served.
+- Artifact paths must sit under `{downloadDir}/remote-jobs/{id}`. The rest of the download folder is not served.
 - This API never receives browser cookies from the caller. Logged-in sites need cookie sync / native auth **in the app** first.
 
 ---

@@ -10,8 +10,12 @@ import {
 import i18n, { changeAppLanguage } from '../src/renderer/src/i18n'
 
 const REQUIRED_SAMPLE_KEYS = [
-  'nav.library',
   'nav.downloads',
+  'nav.mcp',
+  'prefs.header.mcpTitle',
+  'prefs.remote.skill',
+  'prefs.remote.copySkill',
+  'prefs.remote.downloadSkill',
   'queue.title',
   'queue.pauseAll',
   'queue.completedCount',
@@ -82,10 +86,7 @@ async function main(): Promise<void> {
 
   assert.ok(!enKeys.set.has('nav.sniff'), 'nav.sniff must stay absent')
   assert.equal(i18n.t('nav.sniff'), 'nav.sniff')
-
-  assert.equal(translate('en', 'nav.library'), 'Library')
-  assert.equal(translate('zh-CN', 'nav.library'), '媒体库')
-  assert.equal(translate('zh-TW', 'nav.library'), '媒體庫')
+  assert.ok(!enKeys.set.has('nav.library'), 'nav.library must stay absent')
 
   assert.match(translate('en', 'prefs.language.description'), /app|interface|menu|notification/i)
   assert.doesNotMatch(translate('en', 'prefs.language.description'), /navigation only|main navigation/i)
@@ -105,14 +106,11 @@ async function main(): Promise<void> {
   assert.equal(resolveUiLanguage('zh-CN', 'en-GB'), 'zh-CN')
 
   assert.equal(i18n.t('nav.downloads'), 'Downloads')
-  assert.equal(i18n.t('nav.library'), 'Library')
   await changeAppLanguage('zh-CN')
   assert.equal(i18n.t('nav.downloads'), '下载')
-  assert.equal(i18n.t('nav.library'), '媒体库')
   assert.equal(i18n.t('queue.title'), translate('zh-CN', 'queue.title'))
   await changeAppLanguage('zh-TW')
   assert.equal(i18n.t('nav.downloads'), '下載')
-  assert.equal(i18n.t('nav.library'), '媒體庫')
   await changeAppLanguage('en')
   assert.equal(i18n.t('nav.downloads'), 'Downloads')
   await changeAppLanguage('system')

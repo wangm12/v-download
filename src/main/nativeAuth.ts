@@ -1,7 +1,7 @@
-import { app, BrowserWindow, session } from 'electron'
+import { app, BrowserWindow, safeStorage, session } from 'electron'
 import { execFileSync } from 'node:child_process'
-import { chmodSync, existsSync, mkdirSync, unlinkSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { chmodSync, existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import { buildNetscapeCookieFile } from '@v-download/shared'
 import {
   cookieDomainMatchesHost,
@@ -46,50 +46,109 @@ function serviceName(site: NativeAuthSite): string {
   return `v-download.native-auth.${site}`
 }
 
-function keychainAvailable(): boolean {
-  return process.platform === 'darwin'
+function authDataPath(site: NativeAuthSite): string {
+  return join(app.getPath('userData'), 'native-auth', `${site}.dat`)
 }
 
 function readKeychain(site: NativeAuthSite): StoredAuth | null {
-  if (!keychainAvailable()) return null
   if (keychainCache.has(site)) return keychainCache.get(site) ?? null
-  try {
-    const raw = execFileSync(
-      '/usr/bin/security',
-      ['find-generic-password', '-a', KEYCHAIN_ACCOUNT, '-s', serviceName(site), '-w'],
-      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }
-    ).trim()
-    const parsed = JSON.parse(raw) as Record<string, unknown>
-    const cookies = Array.isArray(parsed.cookies)
-      ? parsed.cookies.map(sanitizeNativeCookie).filter((cookie): cookie is NativeCookie => cookie !== null)
-      : []
-    const lastSyncedAt = typeof parsed.lastSyncedAt === 'string' ? parsed.lastSyncedAt : ''
-    const stored = lastSyncedAt ? { cookies, lastSyncedAt } : null
-    keychainCache.set(site, stored)
-    return stored
-  } catch {
-    keychainCache.set(site, null)
-    return null
+
+  const file = authDataPath(site)
+  if (existsSync(file)) {
+    try {
+      const buffer = readFileSync(file)
+      let raw: string
+      if (safeStorage.isEncryptionAvailable()) {
+        try {
+          raw = safeStorage.decryptString(buffer)
+        } catch {
+          raw = buffer.toString('utf8')
+        }
+      } else {
+        raw = buffer.toString('utf8')
+      }
+      const parsed = JSON.parse(raw) as Record<string, unknown>
+      const cookies = Array.isArray(parsed.cookies)
+        ? parsed.cookies.map(sanitizeNativeCookie).filter((cookie): cookie is NativeCookie => cookie !== null)
+        : []
+      const lastSyncedAt = typeof parsed.lastSyncedAt === 'string' ? parsed.lastSyncedAt : ''
+      const stored = lastSyncedAt ? { cookies, lastSyncedAt } : null
+      keychainCache.set(site, stored)
+      return stored
+    } catch {
+      /* ignore parse error */
+    }
   }
+
+  // Backward compatibility on macOS: read from keychain and migrate
+  if (process.platform === 'darwin') {
+    try {
+      const raw = execFileSync(
+        '/usr/bin/security',
+        ['find-generic-password', '-a', KEYCHAIN_ACCOUNT, '-s', serviceName(site), '-w'],
+        { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }
+      ).trim()
+      const parsed = JSON.parse(raw) as Record<string, unknown>
+      const cookies = Array.isArray(parsed.cookies)
+        ? parsed.cookies.map(sanitizeNativeCookie).filter((cookie): cookie is NativeCookie => cookie !== null)
+        : []
+      const lastSyncedAt = typeof parsed.lastSyncedAt === 'string' ? parsed.lastSyncedAt : ''
+      const stored = lastSyncedAt ? { cookies, lastSyncedAt } : null
+      keychainCache.set(site, stored)
+      if (stored) {
+        try {
+          writeKeychain(site, cookies)
+        } catch {
+          /* ignore migration error */
+        }
+      }
+      return stored
+    } catch {
+      keychainCache.set(site, null)
+      return null
+    }
+  }
+
+  keychainCache.set(site, null)
+  return null
 }
 
 function writeKeychain(site: NativeAuthSite, cookies: NativeCookie[]): StoredAuth {
-  if (!keychainAvailable()) throw new Error('Native account login is currently supported on macOS only.')
   const stored: StoredAuth = { cookies, lastSyncedAt: new Date().toISOString() }
-  execFileSync(
-    '/usr/bin/security',
-    [
-      'add-generic-password',
-      '-a',
-      KEYCHAIN_ACCOUNT,
-      '-s',
-      serviceName(site),
-      '-w',
-      JSON.stringify(stored),
-      '-U'
-    ],
-    { stdio: ['ignore', 'ignore', 'pipe'] }
-  )
+  const json = JSON.stringify(stored)
+  const file = authDataPath(site)
+  const dir = dirname(file)
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true, mode: 0o700 })
+
+  if (safeStorage.isEncryptionAvailable()) {
+    const encrypted = safeStorage.encryptString(json)
+    writeFileSync(file, encrypted, { mode: 0o600 })
+  } else {
+    writeFileSync(file, Buffer.from(json, 'utf8'), { mode: 0o600 })
+  }
+  chmodSync(file, 0o600)
+
+  if (process.platform === 'darwin') {
+    try {
+      execFileSync(
+        '/usr/bin/security',
+        [
+          'add-generic-password',
+          '-a',
+          KEYCHAIN_ACCOUNT,
+          '-s',
+          serviceName(site),
+          '-w',
+          json,
+          '-U'
+        ],
+        { stdio: ['ignore', 'ignore', 'pipe'] }
+      )
+    } catch {
+      /* ignore */
+    }
+  }
+
   keychainCache.set(site, stored)
   return stored
 }
@@ -151,7 +210,6 @@ export function initializeNativeAuth(): void {
 }
 
 export function beginNativeAuth(site: NativeAuthSite, emit: (event: NativeAuthEvent) => void): { ok: boolean; error?: string } {
-  if (!keychainAvailable()) return { ok: false, error: 'Native account login is currently supported on macOS only.' }
   const existing = activeWindows.get(site)
   if (existing && !existing.window.isDestroyed()) {
     existing.window.show()
@@ -217,15 +275,22 @@ export function beginNativeAuth(site: NativeAuthSite, emit: (event: NativeAuthEv
 }
 
 export function clearNativeAuth(site: NativeAuthSite): { ok: boolean; error?: string } {
-  if (!keychainAvailable()) return { ok: false, error: 'Native account login is currently supported on macOS only.' }
+  const file = authDataPath(site)
   try {
-    execFileSync(
-      '/usr/bin/security',
-      ['delete-generic-password', '-a', KEYCHAIN_ACCOUNT, '-s', serviceName(site)],
-      { stdio: ['ignore', 'ignore', 'ignore'] }
-    )
+    if (existsSync(file)) unlinkSync(file)
   } catch {
-    /* The item may already be absent. */
+    /* ignore */
+  }
+  if (process.platform === 'darwin') {
+    try {
+      execFileSync(
+        '/usr/bin/security',
+        ['delete-generic-password', '-a', KEYCHAIN_ACCOUNT, '-s', serviceName(site)],
+        { stdio: ['ignore', 'ignore', 'ignore'] }
+      )
+    } catch {
+      /* The item may already be absent. */
+    }
   }
   keychainCache.set(site, null)
   deleteCookieFile(site)

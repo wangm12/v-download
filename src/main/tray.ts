@@ -27,7 +27,12 @@ export interface TrayPlatform {
   platform?: NodeJS.Platform
 }
 
-const TRAY_ICON_PATH = join(__dirname, '../../resources/icon.png')
+export function trayIconPath(platform: NodeJS.Platform = process.platform): string {
+  if (platform === 'darwin') {
+    return join(__dirname, '../../resources/trayTemplate.png')
+  }
+  return join(__dirname, '../../resources/icon.png')
+}
 
 let platformApi: TrayPlatform | null = null
 let tray: TrayHandle | null = null
@@ -79,7 +84,7 @@ export function syncTray(show: boolean, options?: { language?: AppLanguage }): v
     return
   }
 
-  tray = platformApi.createTray(TRAY_ICON_PATH)
+  tray = platformApi.createTray(trayIconPath(platformApi.platform ?? process.platform))
   tray.setToolTip('V-Download')
   tray.setContextMenu(platformApi.buildMenu(template))
   const platform = platformApi.platform ?? process.platform

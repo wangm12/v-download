@@ -60,26 +60,6 @@ const api = {
   clearDownloads: (mode: string) => ipcRenderer.invoke('clear-downloads', mode),
   openFileLocation: (path: string) => ipcRenderer.invoke('open-file-location', path),
   openFile: (path: string) => ipcRenderer.invoke('open-file', path),
-  listLibraryFiles: (query: {
-    offset?: number
-    limit?: number
-    query?: string
-    mediaType?: 'all' | 'video' | 'image' | 'audio'
-    sortBy?: 'date' | 'size'
-    sortDir?: 'desc' | 'asc'
-    forceRefresh?: boolean
-  }) => ipcRenderer.invoke('library-list-files', query),
-  listLibraryWorks: (query: {
-    offset?: number
-    limit?: number
-    query?: string
-    mediaType?: 'all' | 'video' | 'image' | 'audio'
-    sortBy?: 'date' | 'size'
-    sortDir?: 'desc' | 'asc'
-    forceRefresh?: boolean
-  }) => ipcRenderer.invoke('library-list-works', query),
-  deleteLibraryPaths: (paths: string[], recordIds?: string[]) =>
-    ipcRenderer.invoke('library-delete-paths', { paths, recordIds }),
   getSettings: () => ipcRenderer.invoke('get-settings'),
   updateSettings: (key: string, value: unknown) => ipcRenderer.invoke('update-settings', key, value),
   getRemoteMcpLogs: (limit?: number) => ipcRenderer.invoke('get-remote-mcp-logs', limit),
@@ -233,6 +213,15 @@ const api = {
     const sub = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data)
     ipcRenderer.on('update-status', sub)
     return () => ipcRenderer.removeListener('update-status', sub)
+  },
+  minimizeWindow: () => ipcRenderer.invoke('minimize-window'),
+  maximizeWindow: () => ipcRenderer.invoke('maximize-window'),
+  closeWindow: () => ipcRenderer.invoke('close-window'),
+  isWindowMaximized: () => ipcRenderer.invoke('is-window-maximized'),
+  onWindowMaximizeChanged: (callback: (maximized: boolean) => void) => {
+    const sub = (_event: Electron.IpcRendererEvent, maximized: boolean) => callback(maximized)
+    ipcRenderer.on('window-maximize-changed', sub)
+    return () => ipcRenderer.removeListener('window-maximize-changed', sub)
   },
   platform: process.platform
 }

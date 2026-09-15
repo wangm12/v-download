@@ -48,13 +48,23 @@ protocols:
       # Browser extension cold-start uses vdownload://wake so macOS does not hand
       # ytdl:// to a stray node_modules Electron.app from local dev runs.
       - vdownload
-# Win/Linux stanzas are unused. Shipping is macOS-only (`npm run build:mac*`).
+# Shipping targets: macOS (`npm run build:mac*`), Linux (`npm run build:linux*`).
 win:
   icon: resources/icon.png
   target:
     - nsis
 linux:
   icon: resources/icon.png
+  category: Utility
+  synopsis: Downie-style video downloader for YouTube, Douyin, and any website
+  description: A video downloader powered by yt-dlp
   target:
     - AppImage
     - deb
+  desktop:
+    Name: V-Download
+    Comment: Downie-style video downloader
+    Keywords: download;video;youtube;douyin;
+    StartupWMClass: v-download
+    MimeType: x-scheme-handler/ytdl;x-scheme-handler/vdownload;
+

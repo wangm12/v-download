@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import type { Menu, MenuItemConstructorOptions } from 'electron'
 import { runAppCommand } from '../src/main/appCommands.ts'
 import { shouldWarnBeforeQuit } from '../src/main/quitGuard.ts'
-import { buildTrayMenuTemplate, configureTray, syncTray } from '../src/main/tray.ts'
+import { buildTrayMenuTemplate, configureTray, syncTray, trayIconPath } from '../src/main/tray.ts'
 
 function labelsOf(items: MenuItemConstructorOptions[]): string[] {
   return items
@@ -145,7 +145,7 @@ configureTray({
 
 syncTray(true)
 assert.equal(created.length, 1)
-assert.match(created[0].iconPath, /resources\/icon\.png$/)
+assert.match(created[0].iconPath, new RegExp(`resources/${trayIconPath(process.platform).split('/').pop()!.replace('.', '\\.')}$`))
 assert.equal(created[0].tooltip, 'V-Download')
 syncTray(true)
 assert.equal(created.length, 1, 'already-visible tray must not be constructed twice')

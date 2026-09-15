@@ -64,30 +64,6 @@ interface WindowApi {
   clearDownloads: (mode: 'all' | 'completed') => Promise<{ ok: boolean }>
   openFileLocation: (path: string) => Promise<{ ok?: boolean; error?: string }>
   openFile: (path: string) => Promise<{ ok?: boolean; error?: string }>
-  listLibraryFiles: (query: {
-    offset?: number
-    limit?: number
-    query?: string
-    mediaType?: 'all' | 'video' | 'image' | 'audio'
-    sortBy?: 'date' | 'size'
-    sortDir?: 'desc' | 'asc'
-    forceRefresh?: boolean
-  }) => Promise<{ data?: { items: unknown[]; total: number }; error?: string }>
-  listLibraryWorks: (query: {
-    offset?: number
-    limit?: number
-    query?: string
-    mediaType?: 'all' | 'video' | 'image' | 'audio'
-    sortBy?: 'date' | 'size'
-    sortDir?: 'desc' | 'asc'
-    forceRefresh?: boolean
-  }) => Promise<{ data?: { items: unknown[]; total: number }; error?: string }>
-  deleteLibraryPaths: (paths: string[], recordIds?: string[]) => Promise<{
-    ok?: boolean
-    deleted?: number
-    removed?: number
-    error?: string
-  }>
   getSettings: () => Promise<{ data: unknown }>
   updateSettings: (key: string, value: unknown) => Promise<{ ok: boolean; error?: string }>
   getRemoteMcpLogs: (limit?: number) => Promise<{ data: Array<{
@@ -177,6 +153,11 @@ interface WindowApi {
   startNativeAuth?: (site: string) => Promise<{ ok: boolean; error?: string }>
   clearNativeAuth?: (site: string) => Promise<{ ok: boolean; error?: string }>
   onNativeAuthEvent?: (callback: (data: NativeAuthEvent) => void) => () => void
+  minimizeWindow?: () => Promise<boolean>
+  maximizeWindow?: () => Promise<boolean>
+  closeWindow?: () => Promise<boolean>
+  isWindowMaximized?: () => Promise<boolean>
+  onWindowMaximizeChanged?: (callback: (maximized: boolean) => void) => () => void
   platform: string
 }
 

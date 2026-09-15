@@ -1,4 +1,4 @@
-.PHONY: install dev build mac mac-arm64 mac-x64 clean lint ext commit push release verify-release help
+.PHONY: install dev build mac mac-arm64 mac-x64 linux linux-arm64 deb appimage clean lint ext commit push release verify-release help
 
 help:
 	@echo "V-Download (desktop — repo root)"
@@ -6,10 +6,12 @@ help:
 	@echo "  make dev       node scripts/dev.mjs (Electron native preflight + electron-vite dev + host ABI restore; verbose env + tee logs/dev-latest.log)"
 	@echo "  make build     electron-vite build"
 	@echo "  make mac       build + electron-builder --mac"
-	@echo "  make clean     rm out/, dist/, vite cache"
+	@echo "  make deb       build Linux .deb (npm run build:linux:deb)"
+	@echo "  make linux     build Linux .deb + .AppImage (npm run build:linux)"
+	@echo "  make clean     rm out/, dist/, vite cache, .release-staging"
 	@echo "  make ext       reminder to reload Chrome extension"
 	@echo "  make test      npm test"
-	@echo "  make release   macOS DMG/zip (npm run build:mac)"
+	@echo "  make release   Build release packages (auto-detects macOS vs Linux)"
 	@echo "  make verify-release  fail-closed packaging/signing/engine/update checks"
 
 install:
@@ -37,8 +39,20 @@ mac-arm64:
 mac-x64:
 	npm run build:mac:x64
 
+linux:
+	npm run build:linux
+
+linux-arm64:
+	npm run build:linux:arm64
+
+deb:
+	npm run build:linux:deb
+
+appimage:
+	npm run build:linux:appimage
+
 clean:
-	rm -rf out dist node_modules/.cache
+	rm -rf out dist node_modules/.cache .release-staging
 	rm -f logs/*.log
 
 typecheck:
@@ -64,8 +78,13 @@ commit:
 push:
 	git push origin main
 
-# Package macOS installers (build-mac-release already compiles)
-release: mac
+# Package installers: auto-detects host OS (macOS -> dmg/zip; Linux -> deb/AppImage)
+release:
+ifeq ($(shell uname -s),Darwin)
+	npm run build:mac
+else
+	npm run build:linux
+endif
 
 verify-release:
 	npm run verify:release

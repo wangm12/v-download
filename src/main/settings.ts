@@ -3,6 +3,7 @@ import { join } from 'path'
 import { randomBytes } from 'crypto'
 import { readFileSync, writeFileSync, mkdirSync, existsSync, chmodSync } from 'fs'
 import { execFileSync } from 'child_process'
+import { homedir } from 'os'
 import { getQueueConcurrencyPolicy, type QueueConcurrencyPolicy } from '@v-download/shared'
 import {
   normalizeUiLanguagePreference,
@@ -143,7 +144,7 @@ function findBinary(name: string): string {
   if (existsSync(packaged)) return packaged
   const platformPaths: Record<string, string[]> = {
     darwin: [`/opt/homebrew/bin/${name}`, `/usr/local/bin/${name}`],
-    linux: [`/usr/bin/${name}`, `/usr/local/bin/${name}`, `/snap/bin/${name}`],
+    linux: [`/usr/bin/${name}`, `/usr/local/bin/${name}`, `/snap/bin/${name}`, `/bin/${name}`, join(homedir(), '.local', 'bin', name)],
     win32: [`C:\\ProgramData\\chocolatey\\bin\\${name}.exe`]
   }
 

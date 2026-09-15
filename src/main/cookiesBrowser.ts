@@ -58,19 +58,42 @@ export function mapBrowserToMacExecutable(browser: string): string | undefined {
 
 function resolveLinuxExecutable(browser: string): string | undefined {
   const home = homedir()
+  const snapBin = '/snap/bin'
+  const firstExisting = (candidates: string[]): string => candidates.find((c) => existsSync(c)) ?? candidates[0]!
+
   switch (browser) {
     case 'chrome':
-      return '/usr/bin/google-chrome'
+      return firstExisting([
+        '/usr/bin/google-chrome',
+        '/usr/bin/google-chrome-stable',
+        join(snapBin, 'google-chrome')
+      ])
     case 'chromium':
-      return '/usr/bin/chromium-browser'
+      return firstExisting([
+        '/usr/bin/chromium-browser',
+        '/usr/bin/chromium',
+        join(snapBin, 'chromium')
+      ])
     case 'brave':
-      return '/usr/bin/brave-browser'
+      return firstExisting([
+        '/usr/bin/brave-browser',
+        join(snapBin, 'brave')
+      ])
     case 'edge':
-      return '/usr/bin/microsoft-edge'
+      return firstExisting([
+        '/usr/bin/microsoft-edge',
+        join(snapBin, 'microsoft-edge')
+      ])
     case 'opera':
-      return '/usr/bin/opera'
+      return firstExisting([
+        '/usr/bin/opera',
+        join(snapBin, 'opera')
+      ])
     case 'vivaldi':
-      return '/usr/bin/vivaldi'
+      return firstExisting([
+        '/usr/bin/vivaldi',
+        join(snapBin, 'vivaldi')
+      ])
     default:
       return join(home, '.local', 'share', 'applications', `${browser}.desktop`)
   }
@@ -148,5 +171,11 @@ export function mapBrowserToOpenApp(browser: string): string | null {
 /** Windows executable for configured browser (best-effort). */
 export function mapBrowserToWinExecutable(browser: string): string | undefined {
   const p = resolveWinExecutable(browser.trim().toLowerCase())
+  return p && existsSync(p) ? p : undefined
+}
+
+/** Linux executable for configured browser (best-effort). */
+export function mapBrowserToLinuxExecutable(browser: string): string | undefined {
+  const p = resolveLinuxExecutable(browser.trim().toLowerCase())
   return p && existsSync(p) ? p : undefined
 }

@@ -21,7 +21,7 @@
 
 - Paste a link with `Cmd+V`, or click the [Chrome extension](extension/)
 - Queue with live progress, pause, retry, and playlists
-- Library for completed files on disk (Open and Reveal use the OS)
+- Open / Reveal completed files with the OS
 - Sync cookies from Chrome only when you ask
 - English, 简体中文, and 繁體中文
 - Dark / Light appearance
@@ -49,7 +49,7 @@ The app lands in `dist/`.
 2. Load the `extension/` folder in Chrome (`chrome://extensions` → Developer mode → Load unpacked) to send pages and videos to the app.
 3. If Chrome asks which app should open the link, choose **V-Download** — not `Electron` from `node_modules`.
 
-`Cmd+,` opens Preferences. Other apps can enqueue the same queue via the optional [Remote Job API](docs/REMOTE_JOB_API.md).
+`Cmd+,` opens Preferences. Agents can enqueue the same queue from the sidebar **MCP** section via the optional [Remote Job API](docs/REMOTE_JOB_API.md) (`POST /mcp`, Cursor server `v-download`).
 
 ## Develop
 
@@ -62,10 +62,6 @@ npm test
 Load `extension/` unpacked and reload it after changes. After editing cookie-sync domains in `packages/shared`, run `npm run sync:extension-constants`.
 
 See [docs/README.md](docs/README.md) for engines, Douyin recovery, packaging, privacy, and the product backlog.
-
-## Read next
-
-- [Library](docs/MANUAL_TESTING.md) — completed / on-disk files in the sidebar (File and Work views). No in-app player; Open and Reveal use the OS.
 
 ## License
 

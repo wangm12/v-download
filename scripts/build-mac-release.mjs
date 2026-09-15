@@ -1,6 +1,6 @@
 import { cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
-import { existsSync, readFileSync as readSync } from 'node:fs'
-import { join, resolve, basename } from 'node:path'
+import { existsSync, readFileSync as readSync, rmSync } from 'node:fs'
+import { join, resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
 
 const root = resolve(new URL('..', import.meta.url).pathname)
@@ -18,11 +18,40 @@ async function safeRemoveManagedStage() {
   if (!existsSync(marker)) throw new Error(`refusing to remove unmarked staging directory: ${staging}`)
   await rm(staging, { recursive: true, force: true })
 }
-async function stage() {
-  if (existsSync(lock)) throw new Error(`another macOS release build is using ${lock}`)
+function pidIsAlive(pid) {
+  if (!Number.isInteger(pid) || pid <= 0) return false
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch {
+    return false
+  }
+}
+
+function releaseLockSync() {
+  if (!lockOwned) return
+  try {
+    if (existsSync(marker)) rmSync(staging, { recursive: true, force: true })
+  } catch {
+    /* still drop the lock so a killed build cannot block the next one */
+  }
+  try { rmSync(lock, { force: true }) } catch { /* ignore */ }
+  lockOwned = false
+}
+
+async function acquireStagingLock() {
+  if (existsSync(lock)) {
+    const pid = Number(readSync(lock, 'utf8').trim())
+    if (pidIsAlive(pid)) throw new Error(`another macOS release build is using ${lock}`)
+    await rm(lock, { force: true })
+  }
   await mkdir(stagingRoot, { recursive: true })
   await writeFile(lock, `${process.pid}\n`, { flag: 'wx' })
   lockOwned = true
+}
+
+async function stage() {
+  await acquireStagingLock()
   try {
     await safeRemoveManagedStage()
     await mkdir(stagedEngines, { recursive: true })
@@ -91,6 +120,12 @@ function envForElectronBuilder() {
 }
 let lockOwned = false
 let nativeBuildMayHaveChanged = false
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  process.on(signal, () => {
+    releaseLockSync()
+    process.exit(signal === 'SIGINT' ? 130 : 1)
+  })
+}
 try {
   run(process.execPath, ['scripts/prepare-release.mjs'], { ...process.env, RELEASE_ARCH: arch })
   await stage()

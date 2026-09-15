@@ -2,6 +2,7 @@ import { shell } from 'electron'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 import {
+  mapBrowserToLinuxExecutable,
   mapBrowserToMacExecutable,
   mapBrowserToOpenApp,
   mapBrowserToWinExecutable,
@@ -50,6 +51,15 @@ export async function openUrlInConfiguredBrowser(
 
     if (process.platform === 'win32') {
       const exe = mapBrowserToWinExecutable(browser)
+      if (exe) {
+        const args = options.background ? ['--new-background-tab', url] : [url]
+        await execFileAsync(exe, args)
+        return { ok: true, openedIn: browser }
+      }
+    }
+
+    if (process.platform === 'linux') {
+      const exe = mapBrowserToLinuxExecutable(browser)
       if (exe) {
         const args = options.background ? ['--new-background-tab', url] : [url]
         await execFileAsync(exe, args)

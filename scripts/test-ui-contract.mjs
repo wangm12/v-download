@@ -121,8 +121,18 @@ for (const path of extensionFiles) {
 const sidebar = read('src/renderer/src/components/AppSidebar.tsx')
 assert.match(
   sidebar,
-  /mt-auto[\s\S]{0,400}PREF_SECTION_ADVANCED/,
+  /mt-auto[\s\S]{0,800}PREF_SECTION_MCP/,
+  'MCP must sit in an mt-auto slot as its own sidebar section'
+)
+assert.match(
+  sidebar,
+  /mt-auto[\s\S]{0,800}PREF_SECTION_ADVANCED/,
   'Advanced must sit in an mt-auto slot so it pins to the bottom of the sidebar'
+)
+assert.match(
+  sidebar,
+  /PREF_SECTION_MCP[\s\S]{0,400}PREF_SECTION_ADVANCED/,
+  'MCP must be its own nav row above Advanced'
 )
 assert.doesNotMatch(
   sidebar,
@@ -151,10 +161,8 @@ assert.ok(
   appShell.indexOf('<BottomBar') < appShell.indexOf('<DownloadInspector'),
   'BottomBar must live in the downloads column, not as a window-wide footer that lifts the sidebar'
 )
-assert.match(sidebar, /onSelectLibrary/, 'Library workspace entry must exist')
-assert.match(appShell, /LibraryView/, 'Library view must exist in the app shell')
-assert.match(appShell, /['"]library['"]/, 'library must be a main view')
-assert.match(sidebar, /nav\.library/, 'Library label must use nav.library')
+assert.doesNotMatch(sidebar, /onSelectLibrary|nav\.library/, 'Library workspace entry must be removed')
+assert.doesNotMatch(appShell, /LibraryView|['"]library['"]/, 'In-app Library view must be removed')
 assert.doesNotMatch(sidebar, /onSelectSniff|nav\.sniff/, 'Sniff workspace entry must be removed')
 assert.doesNotMatch(appShell, /SniffPanel|openSniff|'sniff'/, 'In-app Sniff view must be removed; capture goes through the Chrome extension')
 assert.match(appShell, /#\/compact/, 'compact utility window uses the #/compact hash')

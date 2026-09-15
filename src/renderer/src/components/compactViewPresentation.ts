@@ -2,17 +2,11 @@ import type { Download } from '@/types'
 
 export const COMPACT_HASH = '#/compact'
 export const COMPACT_WINDOW_TITLE = 'V-Download Mini'
-export const COMPACT_PAUSE_ALL_LABEL = 'Pause all'
-export const COMPACT_OPEN_FULL_LABEL = 'Open full app'
 
 const ACTIVE_STATUSES = new Set(['downloading', 'queued', 'resolving'])
 
 export function isCompactHash(hash: string): boolean {
   return hash === COMPACT_HASH
-}
-
-export function isCompactSidebarNav(): false {
-  return false
 }
 
 export function compactActiveDownloads<T extends Pick<Download, 'status'>>(downloads: T[]): T[] {

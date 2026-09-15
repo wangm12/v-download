@@ -5,6 +5,7 @@
 import { spawn } from 'child_process'
 import { existsSync, readFileSync, statSync } from 'fs'
 import { dirname, join } from 'path'
+import { tmpdir } from 'os'
 import { fileURLToPath } from 'url'
 import { buildCookieHeaderFromNetscapeFile, parseCookieMapFromNetscapeFile } from './douyinParseUtils'
 import { resolvedCookiesBrowser } from './cookiesBrowser'
@@ -173,6 +174,70 @@ async function spawnExtractScript(browser: string): Promise<PlaywrightCookie[]> 
   })
 }
 
+async function extractCookiesViaYtdlpCli(browser: string): Promise<PlaywrightCookie[]> {
+  const ytdlpPath = getYtdlpPath(settings.get('ytdlpPath'))
+  if (!ytdlpPath || !existsSync(ytdlpPath)) return []
+
+  const tempCookieFile = join(tmpdir(), `vdl-cookies-${Date.now()}-${Math.random().toString(36).slice(2)}.txt`)
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const proc = spawn(
+        ytdlpPath,
+        ['--cookies-from-browser', browser, '--cookies', tempCookieFile, '--skip-download', 'https://www.douyin.com'],
+        { stdio: ['ignore', 'ignore', 'pipe'] }
+      )
+      let stderr = ''
+      proc.stderr?.on('data', (d: Buffer) => {
+        stderr += d.toString()
+      })
+      proc.on('error', reject)
+      proc.on('close', (code) => {
+        if (code === 0 && existsSync(tempCookieFile)) {
+          resolve()
+        } else {
+          reject(new Error(`yt-dlp cookie export failed (${code}): ${stderr.slice(-200)}`))
+        }
+      })
+    })
+
+    if (existsSync(tempCookieFile)) {
+      const content = readFileSync(tempCookieFile, 'utf-8')
+      const cookies: RawExtractedCookie[] = []
+      for (const line of content.split('\n')) {
+        const trimmed = line.trim()
+        if (!trimmed || trimmed.startsWith('#')) continue
+        const parts = trimmed.split('\t')
+        if (parts.length >= 7) {
+          cookies.push({
+            domain: parts[0],
+            path: parts[2],
+            secure: parts[3] === 'TRUE',
+            expires: Number(parts[4]) || -1,
+            name: parts[5],
+            value: parts[6] ?? '',
+          })
+        }
+      }
+      const filtered = filterDouyinCookies(cookies)
+      if (filtered.length > 0) {
+        console.log(`[browserCookies] yt-dlp CLI extracted ${filtered.length} Douyin cookies (browser=${browser})`)
+      }
+      return filtered
+    }
+  } catch (err) {
+    console.log(`[browserCookies] ytdlp CLI cookie export failed: ${err instanceof Error ? err.message : String(err)}`)
+  } finally {
+    try {
+      if (existsSync(tempCookieFile)) {
+        await (await import('node:fs/promises')).unlink(tempCookieFile)
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  return []
+}
+
 /** Poll cookies.txt mtime after extension sync (best-effort). */
 export async function waitForNetscapeCookieRefresh(
   cookiesFilePath: string | undefined,
@@ -197,7 +262,10 @@ export async function readDouyinCookiesFromBrowser(
   cookiesFilePath?: string
 ): Promise<PlaywrightCookie[]> {
   const browser = resolvedCookiesBrowser()
-  const live = await spawnExtractScript(browser)
+  let live = await spawnExtractScript(browser)
+  if (live.length === 0) {
+    live = await extractCookiesViaYtdlpCli(browser)
+  }
   if (live.length > 0) return live
 
   const path = cookiesFilePath?.trim() || settings.getCookiesPath()
@@ -240,7 +308,10 @@ export async function resolveDouyinCookieContext(cookiesFilePath?: string): Prom
   }
 
   const browser = resolvedCookiesBrowser()
-  const live = await spawnExtractScript(browser)
+  let live = await spawnExtractScript(browser)
+  if (live.length === 0) {
+    live = await extractCookiesViaYtdlpCli(browser)
+  }
   let ctx: DouyinCookieContext
   if (live.length > 0) {
     const map = cookiesToMap(live)

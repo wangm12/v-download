@@ -39,7 +39,7 @@ assert.equal(normalizePythonFramework(fw).changed, false)
 rmSync(fixture, { recursive: true, force: true })
 
 const realFw = join(root, 'resources/engines/darwin-arm64/_internal/Python.framework')
-if (existsSync(join(realFw, 'Python'))) {
+if (process.platform === 'darwin' && existsSync(join(realFw, 'Python'))) {
   const live = mkdtempSync(join(tmpdir(), 'vdl-python-fw-live-'))
   const copy = join(live, 'Python.framework')
   cpSync(realFw, copy, { recursive: true })

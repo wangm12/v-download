@@ -122,9 +122,23 @@ async function fetchJson(url: string): Promise<any> {
 
 function descriptorFromGithubRelease(release: any): EngineDescriptor | null {
   const version = String(release?.tag_name ?? '').replace(/^v/i, '').trim()
-  const asset = (Array.isArray(release?.assets) ? release.assets : []).find(
-    (item: RemoteAsset) => item.name === 'yt-dlp_macos.zip' || item.name === 'yt-dlp_macos'
-  ) as RemoteAsset | undefined
+  const assets = (Array.isArray(release?.assets) ? release.assets : []) as RemoteAsset[]
+
+  let asset: RemoteAsset | undefined
+  let archiveMember: string | undefined
+
+  if (process.platform === 'darwin') {
+    asset = assets.find((item) => item.name === 'yt-dlp_macos.zip' || item.name === 'yt-dlp_macos')
+    archiveMember = asset?.name?.endsWith('.zip') ? 'yt-dlp_macos' : undefined
+  } else if (process.platform === 'win32') {
+    asset = assets.find((item) => item.name === 'yt-dlp.exe')
+    archiveMember = undefined
+  } else {
+    const linuxTarget = process.arch === 'arm64' ? 'yt-dlp_linux_aarch64' : 'yt-dlp_linux'
+    asset = assets.find((item) => item.name === linuxTarget) ?? assets.find((item) => item.name === 'yt-dlp')
+    archiveMember = undefined
+  }
+
   const url = asset?.browser_download_url
   const sha256 = parseAssetDigest(asset?.digest)
   if (!version || !validHttpsUrl(url) || !sha256) return null
@@ -133,7 +147,7 @@ function descriptorFromGithubRelease(release: any): EngineDescriptor | null {
     version,
     url,
     sha256,
-    archiveMember: asset?.name?.endsWith('.zip') ? 'yt-dlp_macos' : undefined,
+    archiveMember,
     versionArgs: ['--version']
   }
 }

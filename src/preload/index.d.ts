@@ -109,30 +109,6 @@ export interface WindowApi {
   clearDownloads: (mode: string) => Promise<{ ok: boolean }>
   openFileLocation: (path: string) => Promise<{ ok?: boolean; error?: string }>
   openFile: (path: string) => Promise<{ ok?: boolean; error?: string }>
-  listLibraryFiles: (query: {
-    offset?: number
-    limit?: number
-    query?: string
-    mediaType?: 'all' | 'video' | 'image' | 'audio'
-    sortBy?: 'date' | 'size'
-    sortDir?: 'desc' | 'asc'
-    forceRefresh?: boolean
-  }) => Promise<{ data?: { items: unknown[]; total: number }; error?: string }>
-  listLibraryWorks: (query: {
-    offset?: number
-    limit?: number
-    query?: string
-    mediaType?: 'all' | 'video' | 'image' | 'audio'
-    sortBy?: 'date' | 'size'
-    sortDir?: 'desc' | 'asc'
-    forceRefresh?: boolean
-  }) => Promise<{ data?: { items: unknown[]; total: number }; error?: string }>
-  deleteLibraryPaths: (paths: string[], recordIds?: string[]) => Promise<{
-    ok?: boolean
-    deleted?: number
-    removed?: number
-    error?: string
-  }>
   getSettings: () => Promise<{ data: unknown }>
   updateSettings: (key: string, value: unknown) => Promise<{ ok: boolean; error?: string }>
   getRemoteMcpLogs: (limit?: number) => Promise<{ data: Array<{
@@ -224,6 +200,11 @@ export interface WindowApi {
   startDouyinBulk?: (url: string) => Promise<{ data?: { id: string }; error?: string }>
   getDouyinBulkStatus?: (id: string) => Promise<{ data?: DouyinBulkJobStatus; error?: string }>
   cancelDouyinBulk?: (id: string) => Promise<{ ok: boolean; error?: string }>
+  minimizeWindow?: () => Promise<boolean>
+  maximizeWindow?: () => Promise<boolean>
+  closeWindow?: () => Promise<boolean>
+  isWindowMaximized?: () => Promise<boolean>
+  onWindowMaximizeChanged?: (callback: (maximized: boolean) => void) => () => void
   platform: NodeJS.Platform
 }
 

@@ -1,5 +1,6 @@
+import { useEffect, useState } from 'react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
-import { Check, Monitor, Moon, PanelRightClose, PanelRightOpen, Sun } from 'lucide-react'
+import { Check, Copy, Minus, Monitor, Moon, PanelRightClose, PanelRightOpen, Square, Sun, X } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import type { ThemePreference } from '@/hooks/useThemePreference'
 import { useTranslation } from 'react-i18next'
@@ -41,10 +42,44 @@ export function TitleBar({
   resolvedTheme
 }: TitleBarProps) {
   const { t } = useTranslation()
+  const [isMaximized, setIsMaximized] = useState(false)
+
+  useEffect(() => {
+    if (trafficInset) return
+    let mounted = true
+    window.api?.isWindowMaximized?.().then((max) => {
+      if (mounted) setIsMaximized(Boolean(max))
+    })
+    const unsub = window.api?.onWindowMaximizeChanged?.((max) => {
+      if (mounted) setIsMaximized(Boolean(max))
+    })
+    return () => {
+      mounted = false
+      unsub?.()
+    }
+  }, [trafficInset])
+
+  const onMinimize = () => {
+    void window.api?.minimizeWindow?.()
+  }
+
+  const onMaximize = () => {
+    void window.api?.maximizeWindow?.().then((max) => setIsMaximized(Boolean(max)))
+  }
+
+  const onClose = () => {
+    void window.api?.closeWindow?.()
+  }
+
   return (
     <header
-      className="relative flex h-[52px] shrink-0 items-stretch border-b border-border bg-window"
+      className="relative flex h-[52px] shrink-0 items-stretch border-b border-border bg-window select-none"
       style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+      onDoubleClick={(e) => {
+        if (e.target === e.currentTarget && !trafficInset) {
+          onMaximize()
+        }
+      }}
     >
       <div
         className={cn('flex h-full shrink-0 items-center', trafficInset ? 'w-[76px]' : 'w-3')}
@@ -87,6 +122,44 @@ export function TitleBar({
           onChange={onThemePreference}
           resolvedTheme={resolvedTheme}
         />
+
+        {!trafficInset && (
+          <div className="flex h-full items-center gap-1 border-l border-border/50 pl-1.5 ml-0.5">
+            <HoverHintWrap text={t('window.minimize', 'Minimize')} side="bottom">
+              <button
+                type="button"
+                onClick={onMinimize}
+                className={titleBarIconBtn}
+                aria-label={t('window.minimize', 'Minimize')}
+              >
+                <Minus className="h-4 w-4" />
+              </button>
+            </HoverHintWrap>
+            <HoverHintWrap
+              text={isMaximized ? t('window.restore', 'Restore') : t('window.maximize', 'Maximize')}
+              side="bottom"
+            >
+              <button
+                type="button"
+                onClick={onMaximize}
+                className={titleBarIconBtn}
+                aria-label={isMaximized ? t('window.restore', 'Restore') : t('window.maximize', 'Maximize')}
+              >
+                {isMaximized ? <Copy className="h-3.5 w-3.5 rotate-90" /> : <Square className="h-3.5 w-3.5" />}
+              </button>
+            </HoverHintWrap>
+            <HoverHintWrap text={t('window.close', 'Close')} side="bottom">
+              <button
+                type="button"
+                onClick={onClose}
+                className={cn(titleBarIconBtn, 'hover:bg-destructive hover:text-destructive-foreground hover:ring-destructive')}
+                aria-label={t('window.close', 'Close')}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </HoverHintWrap>
+          </div>
+        )}
       </div>
     </header>
   )

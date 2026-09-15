@@ -1,4 +1,4 @@
-import { app, nativeImage, NativeImage } from 'electron'
+import { app, BrowserWindow, nativeImage, NativeImage } from 'electron'
 import { join } from 'path'
 import { writeFileSync } from 'fs'
 import { execFile } from 'child_process'
@@ -108,11 +108,19 @@ function doUpdate(): void {
 }
 
 export function updateProgress(percent: number, speedBytes: number, activeCount?: number): void {
-  if (process.platform !== 'darwin') return
-
   latestPercent = percent
   latestSpeedBytes = speedBytes
   isActive = true
+
+  // Update taskbar/dock progress bar across all platforms (Linux/Windows/macOS)
+  const ratio = Math.max(0, Math.min(1, percent / 100))
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!win.isDestroyed()) {
+      win.setProgressBar(ratio)
+    }
+  }
+
+  if (process.platform !== 'darwin') return
 
   if (activeCount != null && activeCount > 0) {
     app.dock.setBadge(activeCount > 99 ? '99+' : String(activeCount))
@@ -138,7 +146,11 @@ export function updateProgress(percent: number, speedBytes: number, activeCount?
 }
 
 export function reset(): void {
-  if (process.platform !== 'darwin') return
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!win.isDestroyed()) {
+      win.setProgressBar(-1)
+    }
+  }
 
   if (pendingTimeout) {
     clearTimeout(pendingTimeout)
@@ -148,6 +160,8 @@ export function reset(): void {
   latestPercent = 0
   latestSpeedBytes = 0
   isActive = false
+
+  if (process.platform !== 'darwin') return
 
   if (idleIcon && !idleIcon.isEmpty()) {
     app.dock.setIcon(idleIcon)

@@ -7,6 +7,7 @@ import * as settings from '../settings'
 import { extractSecUidFromProfileUrl } from '../douyinProfile'
 import { resolveExtensionDir } from '../extensionPath'
 import {
+  mapBrowserToLinuxExecutable,
   mapBrowserToOpenApp,
   mapBrowserToWinExecutable,
   resolvedCookiesBrowser,
@@ -26,6 +27,13 @@ async function openChromeExtensionsPage(): Promise<boolean> {
     }
     if (process.platform === 'win32') {
       const exe = mapBrowserToWinExecutable(browser)
+      if (exe) {
+        await execFileAsync(exe, [CHROME_EXTENSIONS_URL])
+        return true
+      }
+    }
+    if (process.platform === 'linux') {
+      const exe = mapBrowserToLinuxExecutable(browser)
       if (exe) {
         await execFileAsync(exe, [CHROME_EXTENSIONS_URL])
         return true
@@ -52,6 +60,22 @@ interface WindowContext {
 
 export function registerWindowHandlers(ctx: WindowContext): void {
   ipcMain.handle('get-app-version', () => app.getVersion())
+  ipcMain.handle('is-window-maximized', () => ctx.getMainWindow()?.isMaximized() ?? false)
+  ipcMain.handle('minimize-window', () => {
+    ctx.getMainWindow()?.minimize()
+    return true
+  })
+  ipcMain.handle('maximize-window', () => {
+    const win = ctx.getMainWindow()
+    if (!win) return false
+    if (win.isMaximized()) win.unmaximize()
+    else win.maximize()
+    return win.isMaximized()
+  })
+  ipcMain.handle('close-window', () => {
+    ctx.getMainWindow()?.close()
+    return true
+  })
 
   const safeDownloadPath = (candidate: unknown): string | null => {
     if (typeof candidate !== 'string' || candidate.length === 0 || candidate.length > 4096 || !existsSync(candidate)) return null
@@ -231,6 +255,14 @@ export function registerWindowHandlers(ctx: WindowContext): void {
 
       if (process.platform === 'win32') {
         const exe = mapBrowserToWinExecutable(browser)
+        if (exe) {
+          await execFileAsync(exe, [canonical])
+          return { ok: true, openedIn: browser, url: canonical }
+        }
+      }
+
+      if (process.platform === 'linux') {
+        const exe = mapBrowserToLinuxExecutable(browser)
         if (exe) {
           await execFileAsync(exe, [canonical])
           return { ok: true, openedIn: browser, url: canonical }

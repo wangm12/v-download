@@ -5,7 +5,7 @@ Start here. Each living file has one job.
 | Read | When |
 |------|------|
 | [PRODUCT_DIRECTION.md](./PRODUCT_DIRECTION.md) | Strategy, guardrails, open backlog |
-| [REMOTE_JOB_API.md](./REMOTE_JOB_API.md) | HTTP jobs + MCP on `:18766` |
+| [REMOTE_JOB_API.md](./REMOTE_JOB_API.md) | HTTP jobs + MCP on `:18766`; Cursor server `v-download` |
 | [MANUAL_TESTING.md](./MANUAL_TESTING.md) | Release / regression checklist |
 | [download-engines.md](./download-engines.md) | yt-dlp vs ffmpeg vs Douyin routing |
 | [download-reliability.md](./download-reliability.md) | Runbook, resume, Douyin fallback research |

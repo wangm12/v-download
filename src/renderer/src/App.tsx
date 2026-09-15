@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
+import { useEffect, useState, useCallback, useRef, useMemo, startTransition } from 'react'
 import { Loader2, CheckCircle2, Info, X } from 'lucide-react'
 import { TitleBar } from '@/components/TitleBar'
 import { BottomBar } from '@/components/BottomBar'
@@ -8,7 +8,6 @@ import { CollectionPickerDialog } from '@/components/CollectionPickerDialog'
 import { ClearDialog } from '@/components/ClearDialog'
 import { DeleteSelectionDialog } from '@/components/DeleteSelectionDialog'
 import { PreferencesPanel } from '@/components/PreferencesPanel'
-import { LibraryView } from '@/components/LibraryView'
 import { CompactView } from '@/components/CompactView'
 import { OnboardingWizard } from '@/components/OnboardingWizard'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
@@ -72,7 +71,7 @@ export default function App() {
   )
 }
 
-type MainView = 'downloads' | 'library' | 'preferences'
+type MainView = 'downloads' | 'preferences'
 
 function readSettingsHash(): MainView {
   return window.location.hash === '#/settings' ? 'preferences' : 'downloads'
@@ -138,6 +137,12 @@ function persistSessionInterruptedDismiss(ids: string[]): void {
 function MainApp() {
   const { t } = useTranslation()
   const [mainView, setMainView] = useState<MainView>(readSettingsHash)
+  const [mountedMainViews, setMountedMainViews] = useState<Set<MainView>>(() => {
+    const views = new Set<MainView>(['downloads'])
+    const initial = readSettingsHash()
+    if (initial === 'preferences') views.add('preferences')
+    return views
+  })
   const [prefSection, setPrefSection] = useState<PrefSection>('general')
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(() =>
     readCollapsedFromStorage(LS_LEFT_SIDEBAR)
@@ -801,8 +806,34 @@ function MainApp() {
   )
 
   const preferencesMode = mainView === 'preferences'
-  const libraryMode = mainView === 'library'
+  const downloadsActive = !preferencesMode
   const trafficInset = typeof window !== 'undefined' && window.api?.platform === 'darwin'
+
+  const selectMainView = useCallback((view: MainView) => {
+    startTransition(() => setMainView(view))
+  }, [])
+
+  const frozenGroupedRef = useRef(grouped)
+  if (downloadsActive) {
+    frozenGroupedRef.current = grouped
+  }
+  const queueGrouped = downloadsActive ? grouped : frozenGroupedRef.current
+
+  useEffect(() => {
+    if (mainView !== 'preferences') return
+    setMountedMainViews((prev) => {
+      if (prev.has('preferences')) return prev
+      const next = new Set(prev)
+      next.add('preferences')
+      return next
+    })
+  }, [mainView])
+
+  const workspacePanelClass = (active: boolean) =>
+    cn(
+      'absolute inset-0 flex min-h-0 min-w-0 flex-col overflow-hidden',
+      active ? 'z-10 visible' : 'pointer-events-none invisible z-0 [content-visibility:hidden]'
+    )
 
   return (
     <DownloadActionsProvider
@@ -814,9 +845,9 @@ function MainApp() {
     >
       <div className="flex h-screen min-h-0 min-w-0 w-full flex-col bg-background text-foreground">
         <TitleBar
-          title={preferencesMode ? t('prefs.heading') : libraryMode ? t('nav.library') : 'V-Download'}
+          title={preferencesMode ? t('prefs.heading') : 'V-Download'}
           trafficInset={trafficInset}
-          showInspectorToggle={!preferencesMode && !libraryMode}
+          showInspectorToggle={!preferencesMode}
           inspectorAvailable={selectedIds.size === 1 && Boolean(selectedDownload)}
           inspectorCollapsed={rightInspectorCollapsed}
           onToggleInspector={() => setRightInspectorCollapsed((c) => !c)}
@@ -870,23 +901,25 @@ function MainApp() {
             onToggleCollapsed={() => setLeftSidebarCollapsed((c) => !c)}
             mainView={mainView}
             prefSection={prefSection}
-            onSelectQueue={() => setMainView('downloads')}
-            onSelectLibrary={() => setMainView('library')}
+            onSelectQueue={() => selectMainView('downloads')}
             onSelectPrefSection={(id) => {
-              setMainView('preferences')
+              selectMainView('preferences')
               setPrefSection(id)
             }}
           />
 
-          {preferencesMode ? (
-            <PreferencesPanel
-              section={prefSection}
-              themePreference={themePreference}
-              onThemePreference={setThemePreference}
-            />
-          ) : libraryMode ? (
-            <LibraryView />
-          ) : (
+          <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
+          {mountedMainViews.has('preferences') && (
+            <div className={workspacePanelClass(preferencesMode)} aria-hidden={!preferencesMode}>
+              <PreferencesPanel
+                section={prefSection}
+                themePreference={themePreference}
+                onThemePreference={setThemePreference}
+              />
+            </div>
+          )}
+          {mountedMainViews.has('downloads') && (
+            <div className={workspacePanelClass(downloadsActive)} aria-hidden={!downloadsActive}>
             <div className="relative flex min-h-0 min-w-0 flex-1 flex-row overflow-hidden">
               <div
                 className={cn(
@@ -1022,7 +1055,7 @@ function MainApp() {
                     />
                   ) : (
                     <VirtualizedQueue
-                      items={grouped}
+                      items={queueGrouped}
                       selectedIds={selectedIds}
                       onSelectDownload={selectDownload}
                       onSelectReadyResolve={selectReadyResolve}
@@ -1058,7 +1091,9 @@ function MainApp() {
                 />
               )}
             </div>
+            </div>
           )}
+          </div>
         </div>
 
         {showDouyinProfilePicker && douyinProfileUrl ? (

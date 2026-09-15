@@ -19,13 +19,13 @@ import { initializeUpdater } from './updater'
 import { registerUpdaterHandlers } from './ipc/updater'
 import { registerEngineHandlers } from './ipc/engines'
 import { registerNativeAuthHandlers } from './ipc/nativeAuth'
-import { registerLibraryHandlers } from './ipc/library'
 import { initializeNativeAuth, stopNativeAuthWindows } from './nativeAuth'
 import { runAppCommand } from './appCommands'
 import { APP_HELP_URL, APP_REPO_URL, buildApplicationMenuTemplate } from './appMenu'
 import { syncLoginItem } from './loginItem'
 import { quitDialogCopy, shouldWarnBeforeQuit } from './quitGuard'
 import { configureTray, syncTray } from './tray'
+import { destroyOrphanTray, forgetTray, prepareTrayNativeImage, rememberTray } from './trayIcon'
 import { osNotificationCopy, parseTaskDeepLink, shouldNotifyOs } from './taskNotify'
 import { onUiLanguageChanged } from './localizedChrome'
 import { getUiLanguage } from './uiLanguage'
@@ -145,10 +145,19 @@ function createWindow(): void {
   }
 
   mainWindow.on('close', (e) => {
-    if (process.platform === 'darwin' && !isQuitting) {
+    const shouldHideToTray = (process.platform === 'darwin' || settings.get('showTray')) && !isQuitting
+    if (shouldHideToTray) {
       e.preventDefault()
       mainWindow?.hide()
     }
+  })
+
+  mainWindow.on('maximize', () => {
+    mainWindow?.webContents.send('window-maximize-changed', true)
+  })
+
+  mainWindow.on('unmaximize', () => {
+    mainWindow?.webContents.send('window-maximize-changed', false)
   })
 
   mainWindow.on('closed', () => {
@@ -159,7 +168,12 @@ function createWindow(): void {
   mainWindow.webContents.on('before-input-event', (event, input) => {
     if ((input.meta || input.control) && input.key === 'w') {
       event.preventDefault()
-      mainWindow?.hide()
+      const shouldHideToTray = (process.platform === 'darwin' || settings.get('showTray')) && !isQuitting
+      if (shouldHideToTray) {
+        mainWindow?.hide()
+      } else {
+        mainWindow?.close()
+      }
     }
   })
 
@@ -315,7 +329,6 @@ function setupIpcHandlers(): void {
   registerUpdaterHandlers()
   registerEngineHandlers()
   registerNativeAuthHandlers()
-  registerLibraryHandlers()
 }
 
 app.whenReady().then(() => {
@@ -344,15 +357,20 @@ app.whenReady().then(() => {
 
   configureTray({
     createTray: (iconPath) => {
-      const icon = nativeImage.createFromPath(iconPath)
-      const instance = new Tray(icon.isEmpty() ? iconPath : icon)
+      destroyOrphanTray()
+      const icon = prepareTrayNativeImage(iconPath)
+      const instance = new Tray(icon ?? iconPath)
+      rememberTray(instance)
       return {
         setToolTip: (text) => instance.setToolTip(text),
         setContextMenu: (menu) => instance.setContextMenu(menu),
         on: (event, listener) => {
           if (event === 'click') instance.on('click', listener)
         },
-        destroy: () => instance.destroy(),
+        destroy: () => {
+          instance.destroy()
+          forgetTray(instance)
+        },
         popUpContextMenu: () => instance.popUpContextMenu()
       }
     },
@@ -529,9 +547,11 @@ app.on('before-quit', (event) => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
-    database.closeDB()
-    stopLocalServer()
-    stopRemoteApiServer()
-    app.quit()
+    if (!settings.get('showTray')) {
+      database.closeDB()
+      stopLocalServer()
+      stopRemoteApiServer()
+      app.quit()
+    }
   }
 })

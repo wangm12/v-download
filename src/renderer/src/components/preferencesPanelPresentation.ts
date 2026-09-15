@@ -86,7 +86,8 @@ export const PREFERENCES_SECTION_TITLES = [
   'Per-site rules',
   'System',
   'Expert tools',
-  'Remote Job API'
+  'Remote Job API',
+  'Agent skill'
 ] as const
 
 export function canPersistSiteRule(domain: string): boolean {

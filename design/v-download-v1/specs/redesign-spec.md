@@ -55,7 +55,7 @@ Do not use green, red, yellow, purple, or blue for status. State is communicated
 The sidebar is the permanent control center. It contains:
 
 - Primary action: Paste URL.
-- Library filters: All downloads, Active, Completed, Failed.
+- Queue filters: All downloads, Active, Completed, Failed.
 - Capture modes: Browser capture, Playlists, Audio only.
 - Download folder summary and available space.
 

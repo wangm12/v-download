@@ -223,52 +223,6 @@ export interface DouyinBulkJobStatus {
   stderrTail: string
 }
 
-export type LibraryMediaKind = 'video' | 'image' | 'audio' | 'other'
-export type LibraryMediaFilter = 'all' | 'video' | 'image' | 'audio'
-export type LibrarySortField = 'date' | 'size'
-export type LibrarySortDir = 'desc' | 'asc'
-
-export interface LibraryFileItem {
-  id: string
-  path: string | null
-  fileName: string
-  title: string
-  channel: string | null
-  mediaKind: LibraryMediaKind
-  size: number
-  mtimeMs: number
-  missing: boolean
-  thumbnail: string | null
-  downloadId: string | null
-  workKey: string
-}
-
-export interface LibraryWorkItem {
-  key: string
-  title: string
-  channel: string | null
-  cover: string | null
-  items: LibraryFileItem[]
-  size: number
-  mtimeMs: number
-  missing: boolean
-}
-
-export interface LibraryListQuery {
-  offset?: number
-  limit?: number
-  query?: string
-  mediaType?: LibraryMediaFilter
-  sortBy?: LibrarySortField
-  sortDir?: LibrarySortDir
-  forceRefresh?: boolean
-}
-
-export interface LibraryPage<T> {
-  items: T[]
-  total: number
-}
-
 export interface DownloadActions {
   cancel: (id: string) => void
   pause: (id: string) => void

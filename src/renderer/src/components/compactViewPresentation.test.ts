@@ -1,12 +1,9 @@
 import {
   COMPACT_HASH,
-  COMPACT_OPEN_FULL_LABEL,
-  COMPACT_PAUSE_ALL_LABEL,
   COMPACT_WINDOW_TITLE,
   compactActiveDownloads,
   compactProgressLine,
   isCompactHash,
-  isCompactSidebarNav,
   oneShotClipboardFill
 } from './compactViewPresentation'
 
@@ -21,9 +18,6 @@ equal(isCompactHash('#/settings'), false)
 equal(isCompactHash(''), false)
 equal(COMPACT_HASH, '#/compact')
 equal(COMPACT_WINDOW_TITLE, 'V-Download Mini')
-equal(isCompactSidebarNav(), false)
-equal(COMPACT_PAUSE_ALL_LABEL, 'Pause all')
-equal(COMPACT_OPEN_FULL_LABEL, 'Open full app')
 
 equal(
   compactActiveDownloads([
