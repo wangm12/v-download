@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="README.md">English</a> · <a href="README-CN.md">中文</a>
+  <a href="README.md">English Documentation</a>
 </p>
 
 <p align="center">
@@ -10,7 +10,7 @@
 
 <p align="center">
   <strong>专为 macOS 和 Linux 设计的高性能、低资源占用桌面音视频下载利器。</strong><br>
-  由 yt-dlp、FFmpeg 和 Rust 侧车强力驱动。
+  基于 Electron、React、SQLite、yt-dlp 与 FFmpeg 打造。
 </p>
 
 <p align="center">
@@ -22,103 +22,102 @@
 
 ---
 
-## 为什么选择 V-Download
+## 产品简介
 
-很多视频下载工具要么是充斥广告的套壳网页，要么是动辄失效的浏览器插件；而像 `yt-dlp` 这样的纯命令行工具虽然稳定，但配置 Python 环境、FFmpeg 依赖、YouTube PO Token 绕过和各浏览器 Cookie 解密门槛过高。
+**V-Download** 是一款开源的 Downie 风格桌面音视频下载工具，专为 macOS 和 Linux 系统深度打磨。它将 `yt-dlp` 与 `FFmpeg` 强悍的音视频解析与转码能力，与现代化精致的桌面 GUI 完美融合，具备快捷键秒级捕获链接与跑满物理带宽的下载吞吐力。
 
-**V-Download** 将 `yt-dlp` 和 `FFmpeg` 的硬核性能与优雅、精致的现代桌面客户端结合。通过 **Cmd+V / Ctrl+V** 极速捕获链接，或通过配套 Chrome 扩展一键从浏览器发送，同时内置支持 AI Agent 的 MCP 调度协议。
-
-- **极速捕获，复制即下**：复制视频链接，激活窗口后按 `Cmd+V`（Linux 上为 `Ctrl+V`），无需手动找输入框对齐粘贴。
-- **全保真音画质**：支持 4K / 8K 60fps HDR、无损音频提取、YouTube 播放列表、小红书图文以及抖音全量图集（含实况动图 Live Photo 完整提取）。
-- **硬核轻量，极低系统负载**：冷启动 < 850ms，常驻后台托盘仅占约 50MB 内存，下载数据直通内核管道，杜绝 V8 堆内存溢出。
-- **本地私密，零云端依赖**：无强制账号体系、不上传个人隐私。历史记录与偏好设置保存在本地 SQLite（WAL 模式），凭据使用操作系统原生密钥库（Keychain / Secret Service）加密。
-- **深度适配 Ubuntu / Linux**：原生 CSD 标题栏控制（最小化/最大化/关闭）、Unity / GNOME Dash 任务栏进度条实时同步、系统托盘自适应缩放，并提供 `.deb` 与 `.AppImage` 官方安装包。
+不论是抓取 8K 60fps HDR 超高清 YouTube 视频、提取抖音图集与实况动图（Live Photo），还是抽取无损 FLAC 音频，V-Download 都在本地安全独立运行，无需付费订阅，没有隐私追踪，零云端依赖。
 
 ---
 
-## 性能表现与资源占用实测
+## 核心功能特性
 
-V-Download 深度贯彻性能预算，主进程对音视频流采用操作系统管道流式写入，从不将大文件块缓存至 JavaScript 堆内存中。
+- **快捷键秒级捕获**：复制视频链接，激活窗口按 **Cmd+V**（Linux 上按 **Ctrl+V**）立即开始解析与下载，无需手动寻找输入框。
+- **全网主流站点支持**：支持 YouTube（最高 8K 60帧 HDR）、抖音/TikTok、小红书、Bilibili 等 1,000 多个支持 yt-dlp 的视频网站。
+- **抖音实况动图 (Live Photo) & 图集完整提取**：独创图集解析机制，不仅能下载超清大图，更能完整导出实况动图对应的独立微动视频片段。
+- **工业级队列调度系统**：支持 1–10 任务并发配置、FIFO 队列调度、暂停/恢复、断点续传、网络抖动自动重试与重复下载拦截。
+- **快速音频提取与视频转码**：内置高质量转换预设（MP3、AAC、Opus、FLAC、WAV，以及 H.264 / H.265 MP4 压制），由内置 FFmpeg 高速完成。
+- **YouTube PO Token 防封禁守护**：内置 Rust 编写的高性能侧车进程（`bgutil-pot-provider-rs`），本地环回自动生成 Proof-of-Origin Token，绕过 Bot 拦截。
+- **Chrome 配套浏览器扩展**：网页上一键推送到桌面端，冷启动支持系统级协议唤醒（`vdownload://wake`）。
+- **双轨 Cookie 免依赖同步**：一键同步 Chrome、Brave、Edge、Vivaldi 登录态，使用操作系统原生密钥库（macOS Keychain / Linux Secret Service）结合 CLI 自动降级通道，无需配置 Python pip 库。
+- **AI Agent / MCP 协议集成**：内建 Model Context Protocol (MCP) 服务（支持 HTTP `POST /mcp` 与 Stdio），Cursor 与 Claude 等 AI 助手可直接检索并调度下载任务。
+- **双平台原生级体验**：
+  - **macOS**：原生交通灯控制栏、深色/浅色模式自适应、Dock 图标带实时下载网速角标与进度。
+  - **Linux (Ubuntu / Debian)**：CSD 窗口控制按钮（最小化/最大化/关闭）、Unity / GNOME Dash 任务栏进度条、托盘自适应缩放，并提供官方 `.deb` 与 `.AppImage`。
 
-| 指标维度 | 实测表现 | 架构与实现细节 |
+---
+
+## 性能表现与内存占用实测
+
+V-Download 深度贯彻性能预算，主进程对音视频流采用操作系统原生管道流式写入，从不将大文件块缓存至 JavaScript V8 堆内存中。
+
+| 性能维度 | 实测基准数值 | 架构设计与优化实现 |
 |---|---|---|
-| **冷启动耗时** | **< 850 毫秒** | 采用优化编译的 SSR Bundle，IPC 模块按需懒加载，去除冗余大依赖。 |
-| **后台托盘常驻内存 (RAM)** | **~45 MB – 58 MB RSS** | 最小化进托盘后挂起非活跃渲染渲染周期，资源占用极小。 |
-| **4K 高清多流下载内存** | **~95 MB – 130 MB RSS** | 流式直通磁盘；无论下载 100MB 还是 50GB 文件，内存占用均保持平稳平直。 |
-| **后台空闲 CPU 占用** | **< 0.2%** | 全事件驱动（Reactive），依托 SQLite WAL 模式写入通知，杜绝空转轮询。 |
-| **网络下载吞吐** | **跑满物理带宽** | 启用多线程连接分块（支持并发调度），最高可打满 1Gbps+ 千兆带宽。 |
-| **存储 I/O 效率** | **亚毫秒级无感知落盘** | SQLite WAL (Write-Ahead Logging) 机制，读写并发互不阻塞，UI 丝滑不卡顿。 |
-| **开箱免配置** | **零外部运行依赖** | 内置针对对应系统的静态 `yt-dlp`、`FFmpeg` 和 `bgutil` 独立二进制，无需安装 Python 或 pip。 |
+| **冷启动耗时** | **< 850 毫秒** | 采用优化编译的 SSR Bundle，IPC 模块按需懒加载，零冗余组件。 |
+| **后台托盘常驻内存 (RAM)** | **~45 MB – 58 MB RSS** | 最小化进托盘后挂起非活跃渲染周期，极度轻量省电。 |
+| **4K 高清多流下载内存** | **~95 MB – 130 MB RSS** | 流式直通磁盘；无论下载 100MB 还是 50GB 文件，内存占用始终平直稳定。 |
+| **后台空闲 CPU 占用** | **< 0.2%** | 全事件驱动（Reactive），依托 SQLite WAL 模式写入通知，杜绝后台空转轮询。 |
+| **网络下载吞吐力** | **跑满物理带宽** | 启用多线程连接分块下载，轻松跑满 1 Gbps+ 千兆宽带。 |
+| **数据库读写延迟** | **< 1 毫秒 / 查询** | SQLite WAL (Write-Ahead Logging) 预写日志机制，异步原子写入，UI 丝滑不卡顿。 |
+| **开箱运行环境** | **零外部运行依赖** | 内置对应系统的静态 `yt-dlp`、`FFmpeg` 和 `bgutil` 独立二进制，无需安装 Python 或 pip。 |
 
 ---
 
-## 核心特性矩阵
+## 获取安装包与运行
 
-| 能力模块 | 功能说明 |
-|---|---|
-| **全网万能音视频解析** | 支持 YouTube（最高 8K、60帧、HDR）、抖音/TikTok、小红书、Bilibili 等 1000+ 网站。 |
-| **抖音实况动图 / 图集完整解析** | 原创解析算法，完整下载图集中的全部高清大图及 Live Photo 对应的独立微动视频片段。 |
-| **工业级队列调度器** | 支持 1–10 任务并发配置、FIFO 队列调度、断点续传、失败智能重试与自动排重保护。 |
-| **格式转换与无损音频提取** | 内置快速转码预设，一键将视频导出为 MP3、AAC、Opus、FLAC、WAV，或压制 H.264 / H.265 MP4。 |
-| **YouTube PO Token 防封禁服务** | 内置 Rust 编写的高性能侧车进程（`bgutil-pot-provider-rs`），本地自动计算并分发 Proof-of-Origin Token。 |
-| **配套 Chrome 浏览器扩展** | 在网页上一键推送到桌面端下载，支持 `vdownload://wake` 协议唤醒，解决无后台常驻时的拉起问题。 |
-| **双轨浏览器 Cookie 解密** | 支持从 Chrome、Edge、Brave 等导入登录态，采用原生 Keychain / GNOME Keyring 结合 yt-dlp CLI 降级通道，免外部 pip 库。 |
-| **AI Agent / MCP 协议集成** | 内建 Model Context Protocol (MCP) 服务（支持 HTTP `POST /mcp` 与 Stdio），Cursor 与 Claude 可直接控制下载。 |
-| **精致的跨平台界面体验** | 适配深色/浅色外观，macOS Dock 图标带实时网速角标与进度，Ubuntu 下带 Dash 进度条和 CSD 窗口按钮。 |
-
----
-
-## 获取安装包
-
-### 1. 直接下载官方安装件
-每次分支代码推送均由 GitHub Actions 自动编译出最新版本：
+### 1. 下载官方编译安装包
+每次代码提交都会由 GitHub Actions 自动编译出全平台最新版本：
 
 - **macOS（支持 Apple Silicon M系列 与 Intel 芯片）**：
   - 从 [Releases 页面](https://github.com/wangm12/v-download/releases) 或最新 [Nightly 每日构建](https://github.com/wangm12/v-download/releases/tag/nightly) 下载 `.dmg` 文件。
-  - 打开并拖拽 `V-Download.app` 至「应用程序」即可运行。
+  - 打开并将 `V-Download.app` 拖入「应用程序」即可使用。
 - **Ubuntu / Debian Linux (x64 与 arm64)**：
-  - 从 [Releases 页面](https://github.com/wangm12/v-download/releases) 或 [Nightly 页面](https://github.com/wangm12/v-download/releases/tag/nightly) 下载 `.deb`：
+  - 从 [Releases 页面](https://github.com/wangm12/v-download/releases) 或 [Nightly 页面](https://github.com/wangm12/v-download/releases/tag/nightly) 下载 `.deb` 安装包：
     ```sh
     sudo dpkg -i V-Download-*.deb
     ```
-- **Linux 通用便携版 (AppImage)**：
-  - 下载 `.AppImage` 文件，赋予执行权限后直接运行：
+- **Linux 通用免安装版 (AppImage)**：
+  - 下载 `.AppImage` 文件，赋予执行权限后直接双击或终端运行：
     ```sh
     chmod +x V-Download-*.AppImage && ./V-Download-*.AppImage
     ```
 
-### 2. 本地源码构建
+### 2. 从源码构建
 ```sh
+# 克隆代码仓库
 git clone https://github.com/wangm12/v-download.git
 cd v-download
+
+# 安装依赖
 make install
 
-# 自动构建当前平台的全部发布包（macOS 下生成 dmg/zip；Linux 下生成 deb/AppImage）
+# 自动为当前操作系统构建全部发布包（macOS 下产出 dmg/zip；Linux 下产出 deb/AppImage）
 make release
 
-# 或明确构建特定安装包
-make deb       # 构建 Ubuntu/Debian .deb
-make appimage  # 构建 Linux .AppImage
+# 或构建指定的安装包类型
+make deb       # 构建 Linux .deb 安装包
+make appimage  # 构建 Linux .AppImage 安装包
+make mac       # 构建 macOS DMG 和 zip
 ```
 
 ---
 
-## 本地开发常用命令
+## Make 常用命令与开发指南
 
 ```sh
-make dev       # 启动开发服务器（支持热重载）
-make build     # 编译前端与 Electron 主进程
-make test      # 运行 40+ 项测试用例与契约测试
-make typecheck # 严格类型检查
-make mac       # 打包 macOS DMG/zip
-make deb       # 打包 Linux .deb 安装包
-make linux     # 打包 Linux 全量格式 (.deb + .AppImage)
-make release   # 智能自适应打包当前平台全部安装件
-make clean     # 清理构建缓存与 staging 临时文件
+make dev       # 启动前端热重载开发服务器
+make build     # 编译前端生产静态资源与主进程 SSR
+make test      # 运行 40+ 项单元测试与接口契约测试
+make typecheck # TypeScript 全工作区严格类型检测
+make mac       # 打包 macOS DMG 与 zip 发布件
+make deb       # 打包 Ubuntu / Debian .deb 安装包
+make linux     # 打包 Linux 全量安装包 (.deb + .AppImage)
+make release   # 智能自适应打包当前平台全部发布件
+make clean     # 清理构建缓存、dist/ 目录与 staging 临时文件
 ```
 
 ---
 
 ## 开源协议
 
-本项目采用 [MIT License](LICENSE) 开源协议。
+本项目基于 [MIT License](LICENSE) 开源协议发布。
