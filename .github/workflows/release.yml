@@ -210,10 +210,19 @@ jobs:
               gh release upload "$tag" "${files[@]}" --clobber
             else
               echo "Creating release $tag..."
-              gh release create "$tag" "${files[@]}" \
-                --title "V-Download ${tag#v}" \
-                --generate-notes \
-                --verify-tag
+              tag_msg="$(git tag -l --format='%(contents)' "$tag" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+              custom_notes="$(echo "$tag_msg" | grep -v "^Release v" || true)"
+              if [ -n "$custom_notes" ]; then
+                gh release create "$tag" "${files[@]}" \
+                  --title "V-Download ${tag#v}" \
+                  --notes "$tag_msg" \
+                  --verify-tag
+              else
+                gh release create "$tag" "${files[@]}" \
+                  --title "V-Download ${tag#v}" \
+                  --generate-notes \
+                  --verify-tag
+              fi
             fi
             exit 0
           fi

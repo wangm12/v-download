@@ -30,29 +30,42 @@ if [[ "${local_head}" != "${remote_head}" ]]; then
     exit 1
 fi
 
-# 2. Determine target version
+# 2. Determine target version & release notes
+current_pkg_version="$(node -p "require('./package.json').version")"
+latest_tag="$(git tag -l "v*" 2>/dev/null | sort -V | tail -n 1 || true)"
+base_v="${latest_tag#v}"
+if [[ -z "${base_v}" ]]; then
+    base_v="${current_pkg_version}"
+fi
+
+major="$(echo "${base_v}" | cut -d. -f1)"
+minor="$(echo "${base_v}" | cut -d. -f2)"
+patch="$(echo "${base_v}" | cut -d. -f3)"
+suggested_patch="${major}.${minor}.$((patch + 1))"
+suggested_minor="${major}.$((minor + 1)).0"
+suggested_major="$((major + 1)).0.0"
+
 raw_version="${1:-${VERSION:-}}"
 
 if [[ -z "${raw_version}" ]]; then
-    current_pkg_version="$(node -p "require('./package.json').version")"
-    latest_tag="$(git tag -l "v*" 2>/dev/null | sort -V | tail -n 1 || true)"
-    base_v="${latest_tag#v}"
-    if [[ -z "${base_v}" ]]; then
-        base_v="${current_pkg_version}"
-    fi
-
-    # Suggest next patch version
-    major="$(echo "${base_v}" | cut -d. -f1)"
-    minor="$(echo "${base_v}" | cut -d. -f2)"
-    patch="$(echo "${base_v}" | cut -d. -f3)"
-    next_patch=$((patch + 1))
-    suggested="${major}.${minor}.${next_patch}"
+    echo ""
+    echo "================================================================"
+    echo "  📦 V-Download Release Wizard"
+    echo "================================================================"
+    echo "  Current version:      ${base_v} (latest tag: ${latest_tag:-none})"
+    echo ""
+    echo "  Semantic Version Guide (X.Y.Z):"
+    echo "    • Patch [bugfix]:   ${suggested_patch} (default - press Enter)"
+    echo "    • Minor [feature]:  ${suggested_minor}"
+    echo "    • Major [breaking]: ${suggested_major}"
+    echo "================================================================"
+    echo ""
 
     if [[ -t 0 ]]; then
-        read -rp "Enter release version [default: ${suggested}]: " input_version
-        raw_version="${input_version:-${suggested}}"
+        read -rp "👉 Enter version to release [default: ${suggested_patch}]: " input_version
+        raw_version="${input_version:-${suggested_patch}}"
     else
-        raw_version="${suggested}"
+        raw_version="${suggested_patch}"
     fi
 fi
 
@@ -76,7 +89,42 @@ if git ls-remote --tags origin "refs/tags/${tag}" | grep -q "${tag}"; then
     exit 1
 fi
 
-# 4. Sync version across package.json and extension/manifest.json if needed
+# 4. Prompt for Release Notes
+release_notes="${NOTES:-}"
+if [[ -z "${release_notes}" ]] && [[ -t 0 ]]; then
+    echo ""
+    echo "----------------------------------------------------------------"
+    echo "📝 Enter release notes for ${tag}"
+    echo "   (Describe what changed, or press Enter to auto-generate from commits):"
+    echo "----------------------------------------------------------------"
+    read -rp "Release notes: " input_notes
+    release_notes="${input_notes:-}"
+fi
+
+tag_message="Release ${tag}"
+if [[ -n "${release_notes}" ]]; then
+    tag_message="${tag}: ${release_notes}"
+fi
+
+# 5. Confirmation prompt
+if [[ -t 0 ]]; then
+    echo ""
+    echo "================================================================"
+    echo "  🚀 Ready to publish release: ${tag}"
+    if [[ -n "${release_notes}" ]]; then
+        echo "  Notes: ${release_notes}"
+    else
+        echo "  Notes: (Auto-generated from git commit history)"
+    fi
+    echo "================================================================"
+    read -rp "Proceed with tagging and trigger GitHub Release? [y/N]: " confirm
+    if [[ "${confirm}" != "y" ]] && [[ "${confirm}" != "Y" ]]; then
+        echo "Release cancelled."
+        exit 0
+    fi
+fi
+
+# 6. Sync version across package.json and extension/manifest.json if needed
 current_pkg_version="$(node -p "require('./package.json').version")"
 if [[ "${current_pkg_version}" != "${clean_version}" ]]; then
     echo "==> Bumping package.json to ${clean_version}..."
@@ -108,9 +156,9 @@ if [[ "${current_pkg_version}" != "${clean_version}" ]]; then
     git push origin main
 fi
 
-# 5. Create and push tag
+# 7. Create and push tag
 echo "==> Creating tag ${tag}..."
-git tag -a "${tag}" -m "Release ${tag}"
+git tag -a "${tag}" -m "${tag_message}"
 
 echo "==> Pushing tag ${tag} to origin..."
 git push origin "${tag}"
@@ -119,7 +167,7 @@ repo_url="$(git config --get remote.origin.url 2>/dev/null | sed -E 's|^git@gith
 
 echo ""
 echo "================================================================"
-echo "  🚀 Successfully published release tag: ${tag}"
+echo "  🎉 Successfully published release tag: ${tag}"
 echo "================================================================"
 echo "GitHub Actions will now automatically build and publish the release."
 echo ""
