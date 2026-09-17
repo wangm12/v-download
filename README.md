@@ -110,13 +110,17 @@ cd v-download
 # Install dependencies
 make install
 
-# Build release for current platform (macOS DMG or Linux deb/AppImage)
-make release
+# Build release packages locally for current platform (macOS DMG or Linux deb/AppImage)
+make package
 
 # Or build specific packages
 make deb       # Build Linux .deb package
 make appimage  # Build Linux .AppImage package
 make mac       # Build macOS DMG and zip
+
+# Cut a new release and trigger GitHub Actions publish
+make release              # Auto-prompts or increments patch version
+make release VERSION=1.2.0 # Release explicit version
 ```
 
 ---
@@ -131,7 +135,8 @@ make typecheck # TypeScript type checks across all workspaces
 make mac       # Package macOS DMG and zip
 make deb       # Package Ubuntu / Debian .deb
 make linux     # Package all Linux installers (.deb + .AppImage)
-make release   # Auto-detect OS and build platform release packages
+make package   # Package local installers for current OS (auto-detects macOS vs Linux)
+make release   # Cut semantic release tag & publish via GitHub Actions (make release [VERSION=X.Y.Z])
 make clean     # Clean build caches, dist/ and staging directories
 ```
 

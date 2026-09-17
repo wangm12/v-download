@@ -110,13 +110,17 @@ cd v-download
 # 安装依赖
 make install
 
-# 自动为当前操作系统构建全部发布包（macOS 下产出 dmg/zip；Linux 下产出 deb/AppImage）
-make release
+# 自动为当前操作系统构建本地发布包（macOS 下产出 dmg/zip；Linux 下产出 deb/AppImage）
+make package
 
 # 或构建指定的安装包类型
 make deb       # 构建 Linux .deb 安装包
 make appimage  # 构建 Linux .AppImage 安装包
 make mac       # 构建 macOS DMG 和 zip
+
+# 剪裁新版本并触发 GitHub Actions 云端全平台自动构建与发布
+make release              # 自动推荐递增 patch 版本号并确认
+make release VERSION=1.2.0 # 显式发布指定版本
 ```
 
 ---
@@ -131,7 +135,8 @@ make typecheck # 执行所有模块的 TypeScript 类型检查
 make mac       # 构建 macOS DMG 和 zip 安装包
 make deb       # 构建 Ubuntu / Debian .deb 安装包
 make linux     # 构建 Linux 全套安装包 (.deb + .AppImage)
-make release   # 智能识别当前操作系统并生成对应发布包
+make package   # 为当前系统打包本地安装包（自动识别 macOS 与 Linux）
+make release   # 智能校验、打标并推送 Release Tag 触发云端发布 (make release [VERSION=X.Y.Z])
 make clean     # 清理构建缓存、dist/ 与中间目录
 ```
 

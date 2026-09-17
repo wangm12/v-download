@@ -1,4 +1,4 @@
-.PHONY: install dev build mac mac-arm64 mac-x64 linux linux-arm64 deb appimage clean lint ext commit push release verify-release help
+.PHONY: install dev build mac mac-arm64 mac-x64 linux linux-arm64 deb appimage package clean lint ext commit push release verify-release help
 
 help:
 	@echo "V-Download (desktop — repo root)"
@@ -8,10 +8,11 @@ help:
 	@echo "  make mac       build + electron-builder --mac"
 	@echo "  make deb       build Linux .deb (npm run build:linux:deb)"
 	@echo "  make linux     build Linux .deb + .AppImage (npm run build:linux)"
+	@echo "  make package   build release installers locally for current OS (auto-detects macOS vs Linux)"
+	@echo "  make release   cut a release tag & push to trigger GitHub release (make release [VERSION=X.Y.Z])"
 	@echo "  make clean     rm out/, dist/, vite cache, .release-staging"
 	@echo "  make ext       reminder to reload Chrome extension"
 	@echo "  make test      npm test"
-	@echo "  make release   Build release packages (auto-detects macOS vs Linux)"
 	@echo "  make verify-release  fail-closed packaging/signing/engine/update checks"
 
 install:
@@ -78,13 +79,17 @@ commit:
 push:
 	git push origin main
 
-# Package installers: auto-detects host OS (macOS -> dmg/zip; Linux -> deb/AppImage)
-release:
+# Package installers locally: auto-detects host OS (macOS -> dmg/zip; Linux -> deb/AppImage)
+package:
 ifeq ($(shell uname -s),Darwin)
 	npm run build:mac
 else
 	npm run build:linux
 endif
+
+# Cut a release (checks git state, bumps version, creates tag v* and pushes to trigger GitHub CI/CD)
+release:
+	@./scripts/release.sh $(VERSION)
 
 verify-release:
 	npm run verify:release

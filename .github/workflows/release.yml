@@ -1,7 +1,7 @@
-# Build macOS (DMG/zip) and Linux (deb/AppImage) installers and attach them to a GitHub Release.
+# Build macOS (DMG/zip) and Linux (deb/AppImage) installers and publish to GitHub Releases.
 #
-# Every branch push (e.g. main) updates the rolling `nightly` prerelease.
-# Pushing a tag `vX.Y.Z` publishes a stable release.
+# Release is triggered ONLY when a version tag `v*` is pushed (via `make release`)
+# or manually triggered via workflow_dispatch. Normal commits on main will NOT trigger releases.
 #
 # Optional secrets:
 #   CHROME_EXTENSION_ID          32-char Chrome extension id (a-p)
@@ -15,8 +15,6 @@ name: Release
 
 on:
   push:
-    branches:
-      - "**"
     tags:
       - "v*"
   workflow_dispatch:
