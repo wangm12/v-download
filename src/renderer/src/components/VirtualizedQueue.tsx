@@ -47,8 +47,10 @@ export const VirtualizedQueue = memo(function VirtualizedQueue({
   const scrollRef = useRef<HTMLDivElement | null>(null)
   const rowObserverRef = useRef<ResizeObserver | null>(null)
   const rowNodesRef = useRef(new Map<string, HTMLDivElement>())
+  const rowRefCallbacksRef = useRef(new Map<string, (node: HTMLDivElement | null) => void>())
   const heightsRef = useRef(new Map<string, number>())
   const scrollFrameRef = useRef<number | null>(null)
+  const lastScrolledRequestRef = useRef<{ id: string; nonce: number | undefined } | null>(null)
   const [heightVersion, setHeightVersion] = useState(0)
   const [scrollTop, setScrollTop] = useState(0)
   const [viewportHeight, setViewportHeight] = useState(720)
@@ -58,11 +60,29 @@ export const VirtualizedQueue = memo(function VirtualizedQueue({
     if (previous && previous !== node) rowObserverRef.current?.unobserve(previous)
     if (!node) {
       rowNodesRef.current.delete(key)
+      rowRefCallbacksRef.current.delete(key)
       return
     }
     rowNodesRef.current.set(key, node)
     rowObserverRef.current?.observe(node)
   }, [])
+
+  const getRowRef = useCallback((key: string) => {
+    let callback = rowRefCallbacksRef.current.get(key)
+    if (!callback) {
+      callback = (node) => setRowRef(key, node)
+      rowRefCallbacksRef.current.set(key, callback)
+    }
+    return callback
+  }, [setRowRef])
+
+  useEffect(() => {
+    if (heightsRef.current.size <= items.length + 64) return
+    const activeIds = new Set(items.map((item) => item.id))
+    for (const id of heightsRef.current.keys()) {
+      if (!activeIds.has(id)) heightsRef.current.delete(id)
+    }
+  }, [items])
 
   useEffect(() => {
     const observer = new ResizeObserver((entries) => {
@@ -138,12 +158,15 @@ export const VirtualizedQueue = memo(function VirtualizedQueue({
 
   useEffect(() => {
     if (!scrollToId || !scrollRef.current) return
+    const previous = lastScrolledRequestRef.current
+    if (previous?.id === scrollToId && previous.nonce === scrollNonce) return
     const row = rows.find(({ item }) => (
       item.id === scrollToId
       || (isPlaylist(item) && item.downloads?.some((download) => download.id === scrollToId))
     ))
     if (!row) return
     scrollRef.current.scrollTo({ top: Math.max(0, row.top - 8) })
+    lastScrolledRequestRef.current = { id: scrollToId, nonce: scrollNonce }
   }, [scrollToId, scrollNonce, rows])
 
   const first = rows.length === 0 ? 0 : Math.max(0, findRowIndex(scrollTop) - OVERSCAN_ROWS)
@@ -159,7 +182,7 @@ export const VirtualizedQueue = memo(function VirtualizedQueue({
         {visibleRows.map(({ item, top }) => (
           <div
             key={item.id}
-            ref={(node) => setRowRef(item.id, node)}
+            ref={getRowRef(item.id)}
             data-queue-key={item.id}
             className="absolute left-0 right-0"
             style={{ top }}

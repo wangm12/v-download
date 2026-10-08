@@ -537,6 +537,7 @@
       return
     }
 
+    if (resolveCollector?.requestId === requestId) return
     if (resolveCollector) finishResolve(resolveCollector, null, 'A newer Douyin resolve replaced this request.')
     installResolveResponseHooks()
     const collector = { requestId, awemeId, timer: null }
@@ -699,6 +700,7 @@
       return
     }
 
+    if (profileCollector?.requestId === requestId) return
     if (profileCollector) finishProfileCollection(profileCollector, 'A newer profile import replaced this request.')
     installProfileResponseHooks()
     const collector = {

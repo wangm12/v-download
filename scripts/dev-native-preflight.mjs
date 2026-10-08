@@ -1,49 +1,61 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { spawnSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
+import {
+  getSqlitePrebuildPath,
+  runElectronInstall,
+  verifyCurrentNodeSqlite,
+  verifyElectronInstall,
+} from './sqlite-runtime.mjs'
 
-const root = resolve(new URL('..', import.meta.url).pathname)
+const root = resolve(fileURLToPath(new URL('..', import.meta.url)))
 const electronPackage = resolve(root, 'node_modules/electron/package.json')
-const rebuildCommand = resolve(root, 'node_modules/.bin/electron-rebuild')
+const sqlitePackage = resolve(root, 'node_modules/better-sqlite3/package.json')
+
+function installedPackageVersion(path, name) {
+  if (!existsSync(path)) throw new Error(`${name} is not installed: ${path}`)
+  return JSON.parse(readFileSync(path, 'utf8')).version
+}
 
 export function getPreflightPlan() {
-  if (!existsSync(electronPackage)) throw new Error(`Electron is not installed: ${electronPackage}`)
-  if (!existsSync(rebuildCommand)) throw new Error(`electron-rebuild is not installed: ${rebuildCommand}`)
-  const electronVersion = JSON.parse(readFileSync(electronPackage, 'utf8')).version
+  const electronVersion = installedPackageVersion(electronPackage, 'Electron')
+  const sqliteVersion = installedPackageVersion(sqlitePackage, 'better-sqlite3')
   return {
-    command: rebuildCommand,
-    args: ['--version', electronVersion, '--module-dir', root, '--force', '--only', 'better-sqlite3'],
+    command: process.execPath,
+    args: [resolve(root, 'node_modules/electron/install.js')],
     electronVersion,
+    sqliteVersion,
+    sqlitePrebuild: getSqlitePrebuildPath(sqlitePackage.replace(/[/\\]package\.json$/, ''), process.platform, process.arch),
   }
 }
 
 export function runPreflight() {
   const plan = getPreflightPlan()
-  console.log(`Preparing better-sqlite3 for Electron ${plan.electronVersion} before starting dev`)
-  const result = spawnSync(plan.command, plan.args, { cwd: root, stdio: 'inherit' })
-  if (result.error) throw new Error(`Electron native dependency preflight failed: ${result.error.message}`)
-  if (result.status !== 0) throw new Error(`Electron native dependency preflight failed with status ${result.status ?? 'unknown'}`)
-  console.log(`Verified better-sqlite3 against Electron ${plan.electronVersion}`)
+  if (!/^13\./.test(plan.sqliteVersion)) {
+    throw new Error(`better-sqlite3 13.x is required for the N-API runtime; found ${plan.sqliteVersion}`)
+  }
+  console.log(`Installing/verifying Electron ${plan.electronVersion} for ${process.platform}-${process.arch}`)
+  runElectronInstall(root)
+  const binding = verifyCurrentNodeSqlite(root)
+  console.log(`Verified better-sqlite3 ${plan.sqliteVersion} N-API prebuild: ${binding}`)
 }
 
 export function getRestorePlan() {
-  const args = ['rebuild', 'better-sqlite3', `--arch=${process.arch}`, `--platform=${process.platform}`]
-  const env = { ...process.env, npm_config_arch: process.arch, npm_config_platform: process.platform }
-  delete env.npm_config_target
-  delete env.npm_config_runtime
-  return { command: 'npm', args, env }
+  return {
+    platform: process.platform,
+    arch: process.arch,
+    sqlitePrebuild: getSqlitePrebuildPath(sqlitePackage.replace(/[/\\]package\.json$/, ''), process.platform, process.arch),
+  }
 }
 
 export function runRestore() {
   const plan = getRestorePlan()
-  console.log(`Restoring better-sqlite3 for host Node ${process.platform}-${process.arch}`)
-  const result = spawnSync(plan.command, plan.args, { cwd: root, env: plan.env, stdio: 'inherit' })
-  if (result.error) throw new Error(`Host native dependency restore failed: ${result.error.message}`)
-  if (result.status !== 0) throw new Error(`Host native dependency restore failed with status ${result.status ?? 'unknown'}`)
-  console.log('Verified better-sqlite3 for host Node')
+  const binding = verifyCurrentNodeSqlite(root)
+  verifyElectronInstall(root, plan.platform, plan.arch)
+  console.log(`Verified host Node and Electron N-API bindings for ${plan.platform}-${plan.arch}: ${binding}`)
 }
 
-const isMain = process.argv[1] && resolve(process.argv[1]) === resolve(new URL(import.meta.url).pathname)
+const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 if (isMain && process.argv.includes('--check')) {
   const plan = getPreflightPlan()
   console.log(JSON.stringify(plan))
@@ -51,7 +63,7 @@ if (isMain && process.argv.includes('--check')) {
   try {
     runRestore()
   } catch (error) {
-    console.error(`HOST NATIVE RESTORE BLOCKED: ${error.message}`)
+    console.error(`HOST NATIVE VERIFICATION BLOCKED: ${error.message}`)
     process.exitCode = 1
   }
 } else if (isMain) {

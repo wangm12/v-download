@@ -9,7 +9,7 @@
 <h1 align="center">V-Download</h1>
 
 <p align="center">
-  <strong>Fast, lightweight desktop video & audio downloader for macOS and Linux.</strong><br>
+  <strong>Desktop video & audio downloader for macOS and Linux.</strong><br>
   Built with Electron, React, TypeScript, SQLite, yt-dlp, and FFmpeg.
 </p>
 
@@ -17,7 +17,6 @@
   <a href="https://github.com/wangm12/v-download/releases/tag/nightly"><img src="https://img.shields.io/badge/release-nightly-blue.svg?style=flat-square" alt="Nightly Build" /></a>
   <a href="https://github.com/wangm12/v-download/releases"><img src="https://img.shields.io/github/v/release/wangm12/v-download?style=flat-square" alt="GitHub Release" /></a>
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Ubuntu%20Linux-lightgrey?style=flat-square" alt="Platforms" />
-  <img src="https://img.shields.io/badge/tests-passing-brightgreen?style=flat-square" alt="Tests" />
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License" />
 </p>
 
@@ -29,7 +28,7 @@
 
 ## Overview
 
-**V-Download** is an open-source, Downie-style desktop media downloader for macOS and Linux. It pairs the extraction power and site compatibility of `yt-dlp` and `FFmpeg` with a clean, responsive desktop interface, instant keyboard capture, and line-speed streaming throughput.
+**V-Download** is an open-source, Downie-style desktop media downloader for macOS and Linux. It pairs the extraction power and site compatibility of `yt-dlp` and `FFmpeg` with a responsive desktop interface and keyboard URL capture.
 
 Whether downloading an 8K HDR YouTube video, extracting Douyin Live Photos (motion photos) and albums, or ripping audio into lossless FLAC, V-Download runs completely locally without subscriptions, cloud accounts, or tracking.
 
@@ -44,7 +43,7 @@ Whether downloading an 8K HDR YouTube video, extracting Douyin Live Photos (moti
 - **Audio Extraction & Transcoding**: Instant conversion presets for MP3, AAC, Opus, FLAC, WAV, and video transcoding to MP4 (H.264 / H.265) via bundled FFmpeg.
 - **YouTube PO Token Automation**: Integrated Rust PO token provider daemon (`bgutil-pot-provider-rs`) running locally on loopback to prevent bot detection.
 - **Chrome Companion Extension**: One-click forwarding from Chrome to desktop with cold-start wake support (`vdownload://wake`).
-- **Dual-Track Cookie Sync**: Authenticate with YouTube, Douyin, or Bilibili by importing session cookies from Chrome, Brave, Edge, or Vivaldi using OS-native encryption (`safeStorage`) and CLI fallback.
+- **Dual-Track Cookie Sync**: Import session cookies from Chrome, Brave, Edge, or Vivaldi. V-Download uses OS-backed encryption when a protected storage backend is available; on Linux without a keyring backend, it protects the cookie file with owner-only permissions. A CLI fallback is also available.
 - **Agent & MCP Protocol Server**: Built-in Model Context Protocol server (`POST /mcp` and Stdio), enabling AI agents like Cursor or Claude to query, queue, and manage downloads.
 - **First-Class Multi-Platform Support**:
   - **macOS**: Native traffic lights, dark/light appearance sync, Dock progress icon with real-time download speed.
@@ -52,29 +51,21 @@ Whether downloading an 8K HDR YouTube video, extracting Douyin Live Photos (moti
 
 ---
 
-## Performance & Memory Usage
+## Runtime characteristics
 
-V-Download is engineered with a strict performance budget. The Electron main process streams media directly between native CLI sub-processes (`yt-dlp`, `ffmpeg`) and the filesystem, never buffering gigabytes of media frames in the JavaScript V8 heap.
+Media transfer and conversion run through bundled `yt-dlp` and FFmpeg command-line engines. Performance depends on the source site, selected formats, network, and hardware; this project does not publish reproducible startup, memory, CPU, or database benchmarks.
 
-| Metric | Measured Benchmark | Architecture & Optimization Note |
-|---|---|---|
-| **Cold Startup Time** | **< 850 ms** | Optimized Vite SSR bundle, lazy IPC module loading, zero heavyweight polyfills. |
-| **Idle Memory (Tray / Background)** | **~45 MB – 58 MB RSS** | Suspends non-essential rendering cycles when hidden or minimized to system tray. |
-| **Active 4K Download Memory** | **~95 MB – 130 MB RSS** | Stream piping directly into filesystem; memory footprint remains flat regardless of video size (100MB vs 50GB). |
-| **Idle CPU Usage** | **< 0.2%** | Event-driven reactive SQLite WAL updates; zero background polling loops. |
-| **Network Throughput** | **Line-speed saturation** | Multi-connection chunking enabled; easily saturates 1 Gbps+ high-speed connections. |
-| **Database Latency** | **< 1 ms per query** | SQLite WAL (Write-Ahead Logging) journal mode with asynchronous atomic writes. |
-| **Runtime Footprint** | **Zero external dependencies** | Bundled static binaries for `yt-dlp`, `ffmpeg`, and `bgutil-provider`. No system Python or pip required. |
+Packaged builds target macOS 12 or newer and Ubuntu/Debian Linux. The Linux `.deb` declares its required desktop and media runtime libraries. Cookie storage uses OS-backed encryption where a protected backend is available; on Linux without a keyring backend, the app uses owner-only cookie files.
 
 ---
 
 ## Installation & Downloads
 
 ### 1. Prebuilt Installers
-Prebuilt installers for macOS and Linux are automatically compiled on every push:
+Prebuilt installers are available from [GitHub Releases](https://github.com/wangm12/v-download/releases). The release workflow publishes a stable release for matching version tags and updates a rolling nightly release when run manually on a branch:
 
 - **macOS (Apple Silicon & Intel)**:
-  - Download `.dmg` from [Releases](https://github.com/wangm12/v-download/releases) or the latest [Nightly Build](https://github.com/wangm12/v-download/releases/tag/nightly).
+  - Download `.dmg` from [Releases](https://github.com/wangm12/v-download/releases) or the rolling [Nightly Build](https://github.com/wangm12/v-download/releases/tag/nightly).
   - Open the DMG and drag `V-Download.app` into Applications.
 - **Ubuntu / Debian Linux (x64 & arm64)**:
   - Download `.deb` from [Releases](https://github.com/wangm12/v-download/releases) or [Nightly](https://github.com/wangm12/v-download/releases/tag/nightly):
@@ -86,6 +77,8 @@ Prebuilt installers for macOS and Linux are automatically compiled on every push
     ```sh
     chmod +x V-Download-*.AppImage && ./V-Download-*.AppImage
     ```
+
+Publishing an artifact to GitHub does not by itself establish that the macOS app is signed, notarized, or accepted by Gatekeeper; those checks depend on the configured Apple credentials.
 
 ---
 
@@ -101,6 +94,8 @@ Prebuilt installers for macOS and Linux are automatically compiled on every push
 ---
 
 ## Build From Source
+
+Requires Node.js 22.14 or newer in the 22.x line, or 23.6 or newer (including later major versions).
 
 ```sh
 # Clone repository

@@ -1,8 +1,7 @@
 /**
- * Opens vdownload://wake in the same user-gesture turn as a click on the page (or in the
- * extension popup). Chrome then attributes the external protocol to that origin and can
- * offer "Always allow … to open links of this type", and it avoids a second wake from the
- * service worker (tabs.create) when the background passes surfacedWake: true.
+ * Opens vdownload://wake in the same user-gesture turn as a page click. Chrome attributes
+ * the external protocol to that origin and can offer "Always allow … to open links of this
+ * type". The background skips its own wake when the caller passes surfacedWake: true.
  */
 ;(function () {
   'use strict'

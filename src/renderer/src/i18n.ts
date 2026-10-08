@@ -54,13 +54,6 @@ export async function changeAppLanguage(language: UiLanguagePreference): Promise
     /* Continue changing the in-memory language when storage is unavailable. */
   }
   await i18n.changeLanguage(resolved)
-  if (typeof window !== 'undefined' && window.api?.updateSettings) {
-    try {
-      await window.api.updateSettings('uiLanguage', preference)
-    } catch {
-      /* Main persist is best-effort; renderer language already changed. */
-    }
-  }
 }
 
 export function syncLanguageFromSettings(value: unknown): void {

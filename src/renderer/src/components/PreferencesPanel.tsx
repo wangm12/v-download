@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react'
 import { Check, ChevronDown, Copy, Download, Folder, Globe, RefreshCw, Loader2, X, Puzzle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/cn'
+import { visibleDialogControls } from '@/hooks/useDialogFocus'
+import { DialogShell } from './ui'
 import { Stepper } from './Stepper'
 import { HoverHintWrap } from './HoverHintWrap'
 import type { PrefSection } from '@/preferencesNav'
@@ -71,14 +73,14 @@ function PrefCard({
   className?: string
 }) {
   return (
-    <section className={cn('overflow-hidden rounded-card bg-surface/70 ring-1 ring-inset ring-divider-subtle', className)}>
-      <div className="px-5 pt-5">
+    <section className={cn('overflow-hidden rounded-card bg-surface', className)}>
+      <div className="px-4 pt-4">
         <h3 className="text-[13px] font-semibold tracking-tight text-foreground">{title}</h3>
         {subtitle ? (
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{subtitle}</p>
         ) : null}
       </div>
-      <div className="space-y-4 px-5 pb-5 pt-4">{children}</div>
+      <div className="space-y-3 px-4 pb-4 pt-3">{children}</div>
     </section>
   )
 }
@@ -141,21 +143,21 @@ function SettingsDisclosure({
   className?: string
 }) {
   return (
-    <details className={cn('v-settings-disclosure overflow-hidden rounded-card bg-surface/35 ring-1 ring-inset ring-divider-subtle', className)} open={defaultOpen || undefined}>
-      <summary className="v-settings-summary flex cursor-pointer items-center justify-between gap-4 px-5 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-border-focus">
+    <details className={cn('v-settings-disclosure overflow-hidden rounded-card bg-surface', className)} open={defaultOpen || undefined}>
+      <summary className="v-settings-summary flex cursor-pointer items-center justify-between gap-4 px-4 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-border-focus">
         <span className="min-w-0">
           <span className="block text-[13px] font-semibold text-foreground">{title}</span>
           <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">{subtitle}</span>
         </span>
         <ChevronDown className="v-settings-chevron h-4 w-4 shrink-0 text-muted-foreground transition-transform motion-reduce:transition-none" aria-hidden />
       </summary>
-      <div className="border-t border-divider-subtle px-5 pb-5 pt-4">{children}</div>
+      <div className="space-y-4 border-t border-divider-subtle px-4 pb-4 pt-3">{children}</div>
     </details>
   )
 }
 
-const controlClass = 'min-h-10 rounded-lg bg-raised px-3 py-2 text-[13px] text-foreground ring-1 ring-inset ring-divider-subtle outline-none transition-colors focus:ring-2 focus:ring-border-focus'
-const secondaryButtonClass = 'inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-elevated px-3.5 py-2 text-[13px] font-medium text-foreground ring-1 ring-inset ring-divider-subtle transition-colors hover:bg-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:cursor-wait disabled:opacity-50'
+const controlClass = 'v-input'
+const secondaryButtonClass = 'v-button-secondary'
 
 export function PreferencesPanel({ section, themePreference, onThemePreference }: PreferencesPanelProps) {
   const { t } = useTranslation()
@@ -218,6 +220,21 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
     remoteApiMcpRequireConfirm: true,
     uiLanguage: 'en'
   })
+  const [showRemoteToken, setShowRemoteToken] = useState(false)
+  const [settingsSaveError, setSettingsSaveError] = useState('')
+  const settingsReadVersionRef = useRef(0)
+  const refreshSettingsFromMain = useCallback(async () => {
+    if (!window.api) return
+    const requestVersion = ++settingsReadVersionRef.current
+    try {
+      const res = await window.api.getSettings()
+      if (requestVersion !== settingsReadVersionRef.current) return
+      const data = (res as { data?: SettingsData })?.data ?? res
+      if (data) setSettings((prev) => ({ ...prev, ...data }))
+    } catch {
+      /* Keep the last complete settings snapshot when IPC is unavailable. */
+    }
+  }, [])
   const [filenameDraft, setFilenameDraft] = useState<string | null>(null)
   const [folderDraft, setFolderDraft] = useState<string | null>(null)
   const [filenameError, setFilenameError] = useState<OutputTemplateError | null>(null)
@@ -245,10 +262,14 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
   useEffect(() => {
     if (section !== 'mcp' || !settings.remoteApiEnabled) return
     let cancelled = false
+    let loading = false
     const pull = () => {
-      void window.api?.getRemoteMcpLogs?.(20).then((result) => {
+      const getLogs = window.api?.getRemoteMcpLogs
+      if (!getLogs || loading) return
+      loading = true
+      void getLogs(20).then((result) => {
         if (!cancelled && Array.isArray(result?.data)) setMcpLogs(result.data)
-      })
+      }).catch(() => undefined).finally(() => { loading = false })
     }
     pull()
     const timer = window.setInterval(pull, 3000)
@@ -260,12 +281,20 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
 
   useEffect(() => {
     if (!turboModalOpen) return
-    turboDialogRef.current?.focus()
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const dialog = turboDialogRef.current
+    if (!dialog) return
+    visibleDialogControls(dialog)[0]?.focus()
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') { event.preventDefault(); setTurboModalOpen(false) }
+      if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); setTurboModalOpen(false); return }
+      if (event.key !== 'Tab') return
+      const controls = visibleDialogControls(dialog)
+      const first = controls[0], last = controls[controls.length - 1]
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
     }
     document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
+    return () => { document.removeEventListener('keydown', onKeyDown); opener?.focus() }
   }, [turboModalOpen])
 
   const header = { title: t(`prefs.header.${section}Title`), subtitle: t(`prefs.header.${section}Subtitle`) }
@@ -281,11 +310,8 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
 
   useEffect(() => {
     if (!window.api) return
-    window.api.getSettings().then((res) => {
-      const data = (res as { data?: SettingsData })?.data ?? res
-      if (data) setSettings((prev) => ({ ...prev, ...data }))
-    })
-  }, [])
+    void refreshSettingsFromMain()
+  }, [refreshSettingsFromMain])
 
   useEffect(() => {
     if (!window.api?.getAppVersion) return
@@ -333,14 +359,9 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
 
   useEffect(() => {
     if (!window.api?.onSettingsChanged) return
-    const unsub = window.api.onSettingsChanged(() => {
-      window.api?.getSettings().then((res) => {
-        const data = (res as { data?: SettingsData })?.data ?? res
-        if (data) setSettings((prev) => ({ ...prev, ...data }))
-      })
-    })
+    const unsub = window.api.onSettingsChanged(() => void refreshSettingsFromMain())
     return unsub
-  }, [])
+  }, [refreshSettingsFromMain])
 
   useEffect(() => {
     if (section !== 'downloads') return
@@ -360,10 +381,7 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
     if (!window.api?.onCookiesSynced) return
     const unsub = window.api.onCookiesSynced((data) => {
       if (!awaitingCookiePushRef.current) {
-        window.api?.getSettings().then((res) => {
-          const d = (res as { data?: SettingsData })?.data ?? res
-          if (d) setSettings((prev) => ({ ...prev, ...d }))
-        })
+        void refreshSettingsFromMain()
         return
       }
       awaitingCookiePushRef.current = false
@@ -374,13 +392,10 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
       setCookieSyncBusy(false)
       setCookieSyncNote(t('banner.cookiesSavedDetail', { count: data.count }))
       window.setTimeout(() => setCookieSyncNote(''), 6000)
-      window.api?.getSettings().then((res) => {
-        const d = (res as { data?: SettingsData })?.data ?? res
-        if (d) setSettings((prev) => ({ ...prev, ...d }))
-      })
+      void refreshSettingsFromMain()
     })
     return unsub
-  }, [])
+  }, [refreshSettingsFromMain, t])
 
   useEffect(() => {
     return () => {
@@ -392,10 +407,12 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
     if (!bulkJobId || !window.api?.getDouyinBulkStatus) return
 
     let active = true
+    let polling = false
     let intervalId: ReturnType<typeof window.setInterval> | null = null
 
     const pollStatus = async () => {
-      if (!active) return
+      if (!active || polling) return
+      polling = true
       try {
         const result = await window.api.getDouyinBulkStatus!(bulkJobId)
         if (!active) return
@@ -415,6 +432,8 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
       } catch (err) {
         if (!active) return
         setBulkJobNote(err instanceof Error ? err.message : String(err))
+      } finally {
+        polling = false
       }
     }
 
@@ -429,10 +448,28 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
     }
   }, [bulkJobId])
 
-  const onUpdate = useCallback(async (key: string, value: unknown) => {
+  const onUpdate = useCallback(async (key: string, value: unknown): Promise<boolean> => {
+    settingsReadVersionRef.current += 1
     setSettings((prev) => ({ ...prev, [key]: value }))
-    if (window.api) await window.api.updateSettings(key, value)
-  }, [])
+    if (window.api) {
+      try {
+        const result = await window.api.updateSettings(key, value)
+        if (!result.ok) {
+          setSettingsSaveError(result.error || t('prefs.settingsSaveFailed'))
+          await refreshSettingsFromMain()
+          return false
+        }
+        setSettingsSaveError('')
+        return true
+      } catch {
+        setSettingsSaveError(t('prefs.settingsSaveFailed'))
+        await refreshSettingsFromMain()
+        return false
+      }
+    }
+    setSettingsSaveError(t('prefs.settingsSaveFailed'))
+    return false
+  }, [refreshSettingsFromMain, t])
 
   const filenameValue = filenameDraft ?? settings.filenameTemplate ?? '{title} [{id}]'
   const folderValue = folderDraft ?? settings.folderNameTemplate ?? '{author}'
@@ -457,13 +494,6 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
     persistTemplate(key, `${current}${token}`)
   }, [filenameValue, folderValue, persistTemplate])
 
-  const refreshSettingsFromMain = useCallback(async () => {
-    if (!window.api) return
-    const res = await window.api.getSettings()
-    const data = (res as { data?: SettingsData })?.data ?? res
-    if (data) setSettings((prev) => ({ ...prev, ...data }))
-  }, [])
-
   const handleDownloadSpeedMode = useCallback(
     async (mode: 'balanced' | 'turbo' | 'gentle') => {
       if (!window.api?.applyDownloadSpeedMode) return
@@ -478,17 +508,29 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
         setTurboModalOpen(true)
         return
       }
+      if (!result.ok) {
+        setSettingsSaveError(result.error || t('prefs.settingsSaveFailed'))
+        await refreshSettingsFromMain()
+        return
+      }
+      setSettingsSaveError('')
       await refreshSettingsFromMain()
     },
-    [refreshSettingsFromMain, settings.downloadSpeedMode, settings.turboRiskAcknowledged]
+    [refreshSettingsFromMain, settings.downloadSpeedMode, settings.turboRiskAcknowledged, t]
   )
 
   const confirmTurboMode = useCallback(async () => {
     if (!window.api?.applyDownloadSpeedMode) return
-    await window.api.applyDownloadSpeedMode('turbo', { acknowledgeTurboRisk: true })
+    const result = await window.api.applyDownloadSpeedMode('turbo', { acknowledgeTurboRisk: true })
+    if (!result.ok) {
+      setSettingsSaveError(result.error || t('prefs.settingsSaveFailed'))
+      await refreshSettingsFromMain()
+      return
+    }
+    setSettingsSaveError('')
     setTurboModalOpen(false)
     await refreshSettingsFromMain()
-  }, [refreshSettingsFromMain])
+  }, [refreshSettingsFromMain, t])
 
   useEffect(() => {
     if (section !== 'browser' || !window.api?.getChromeExtensionPath) return
@@ -694,16 +736,23 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
         className="flex-1 min-h-0 overflow-y-auto bg-background px-4 py-5 sm:px-6 sm:py-6"
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
+        {settingsSaveError ? (
+          <div role="alert" className="mx-auto mb-4 w-full max-w-[760px] rounded-lg border border-dashed border-border-strong bg-state-error-bg px-3 py-2 text-sm text-foreground">
+            {settingsSaveError}
+          </div>
+        ) : null}
         <PrefSectionPane id="general" section={section} mounted={mountedSections.has('general')}>
           <div className={PREFERENCES_WORKSPACE_CLASS}>
-            <PrefCard title={t('prefs.language.label')} subtitle={t('prefs.language.description')} className={GENERAL_SECTION_CLASS}>
-              <FieldBlock label={t('prefs.language.label')}>
+            <PrefCard title={t('ui.appearance')} className={GENERAL_SECTION_CLASS}>
+              <SettingRow label={t('prefs.language.label')}>
                 <select
+                  aria-label={t('prefs.language.label')}
                   value={languageSelectValue(settings.uiLanguage)}
                   onChange={(event) => {
                     const next = event.target.value as UiLanguagePreference
-                    setSettings((prev) => ({ ...prev, uiLanguage: next }))
-                    void changeAppLanguage(next)
+                    void (async () => {
+                      if (await onUpdate('uiLanguage', next)) await changeAppLanguage(next)
+                    })()
                   }}
                   className={controlClass}
                 >
@@ -719,11 +768,10 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
                     </option>
                   ))}
                 </select>
-              </FieldBlock>
-            </PrefCard>
-            <PrefCard title={t('prefs.theme.label')} subtitle={t('prefs.theme.description')} className={GENERAL_SECTION_CLASS}>
-              <FieldBlock label={t('prefs.theme.label')}>
+              </SettingRow>
+              <SettingRow label={t('prefs.theme.label')}>
                 <select
+                  aria-label={t('prefs.theme.label')}
                   value={themeSelectValue(themePreference)}
                   onChange={(event) => onThemePreference(event.target.value as ThemePreference)}
                   className={controlClass}
@@ -734,7 +782,7 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
                     </option>
                   ))}
                 </select>
-              </FieldBlock>
+              </SettingRow>
             </PrefCard>
             <PrefCard
               title={t('prefs.downloadBehavior.title')}
@@ -791,44 +839,99 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
         <PrefSectionPane id="downloads" section={section} mounted={mountedSections.has('downloads')}>
           <div className={PREFERENCES_WORKSPACE_CLASS}>
             <PrefCard
-              title={t('prefs.saveFiles.title')}
-              subtitle={t('prefs.saveFiles.subtitle')}
+              title={t('prefs.saveFiles.downloadFolder')}
             >
-              <FieldBlock label={t('prefs.saveFiles.downloadFolder')}>
-                <div className="flex gap-2">
-                  <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg bg-raised border border-border min-w-0">
-                    <Folder className="w-4 h-4 text-muted-foreground shrink-0" aria-hidden />
-                    <span className="text-sm text-foreground truncate">{settings.downloadDir}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleBrowse}
-                    className="min-h-11 px-4 py-2 rounded-lg bg-elevated border border-border text-sm font-medium text-foreground hover:bg-control transition-colors shrink-0"
-                  >
-                    {t('prefs.saveFiles.browse')}
-                  </button>
+              <div className="flex gap-2">
+                <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg bg-raised border border-border min-w-0">
+                  <Folder className="w-4 h-4 text-muted-foreground shrink-0" aria-hidden />
+                  <span className="truncate text-[13px] text-foreground" title={settings.downloadDir}>{settings.downloadDir}</span>
                 </div>
-              </FieldBlock>
-              <FieldBlock
-                label={t('prefs.saveFiles.proxyUrl')}
-                description={t('prefs.saveFiles.proxyUrlDesc')}
-              >
-                <input
-                  type="text"
-                  value={settings.proxyUrl ?? ''}
-                  onChange={(e) => onUpdate('proxyUrl', e.target.value)}
-                  placeholder="http://127.0.0.1:8080"
-                  className="w-full max-w-md px-3 py-2 rounded-lg bg-raised border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-border-focus"
-                />
-                <p className="text-xs leading-relaxed text-muted-foreground">
-                  {t('prefs.saveFiles.credentialsRejected')} {t('prefs.saveFiles.credentialsHint')}
+                <button
+                  type="button"
+                  onClick={handleBrowse}
+                  className="v-button-secondary shrink-0"
+                >
+                  {t('prefs.saveFiles.browse')}
+                </button>
+              </div>
+            </PrefCard>
+
+            <PrefCard
+              title={t('prefs.defaultFormat.title')}
+              subtitle={t('prefs.defaultFormat.subtitle')}
+            >
+              <div className="grid grid-cols-1 gap-4 min-[1000px]:grid-cols-2">
+                <FieldBlock
+                  label={t('prefs.defaultFormat.videoQuality')}
+                  description={t('prefs.defaultFormat.videoQualityDesc')}
+                >
+                  <select aria-label={t('prefs.defaultFormat.videoQuality')}
+                    value={settings.defaultVideoQuality}
+                    onChange={(e) => onUpdate('defaultVideoQuality', e.target.value)}
+                    className="w-full max-w-md px-3 py-2 rounded-lg bg-raised border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-border-focus"
+                  >
+                    {VIDEO_QUALITIES.map((q) => (
+                      <option key={q} value={q}>
+                        {q}p
+                      </option>
+                    ))}
+                  </select>
+                </FieldBlock>
+                <FieldBlock label={t('prefs.defaultFormat.audioQuality')} description={t('prefs.defaultFormat.audioQualityDesc')}>
+                  <select aria-label={t('prefs.defaultFormat.audioQuality')}
+                    value={settings.defaultAudioQuality}
+                    onChange={(e) => onUpdate('defaultAudioQuality', e.target.value)}
+                    className="w-full max-w-md px-3 py-2 rounded-lg bg-raised border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-border-focus"
+                  >
+                    {AUDIO_QUALITIES.map((q) => (
+                      <option key={q} value={q}>
+                        {q}kbps
+                      </option>
+                    ))}
+                  </select>
+                </FieldBlock>
+              </div>
+            </PrefCard>
+
+            <PrefCard
+              title={t('prefs.speed.title')}
+              subtitle={t('prefs.speed.subtitle')}
+            >
+              <div className="space-y-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3" role="group" aria-label={t('prefs.speed.mode')}>
+                  {DOWNLOAD_SPEED_MODES.map((mode) => {
+                    const selected = (settings.downloadSpeedMode ?? 'balanced') === mode
+                    return (
+                    <button
+                      key={mode}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() => void handleDownloadSpeedMode(mode)}
+                      className={cn(
+                        'min-h-11 rounded-lg border px-3 py-2 text-left text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-action focus:ring-offset-2 focus:ring-offset-surface',
+                        selected ? 'border-border-strong bg-selection text-foreground' : 'border-border bg-elevated text-foreground hover:bg-control'
+                      )}
+                    >
+                      <span className="flex items-center gap-2">
+                        {selected ? <Check className="h-4 w-4 shrink-0" aria-hidden /> : <span className="h-4 w-4 shrink-0" aria-hidden />}
+                        <span>{t(`prefs.speed.${mode}`)}{selected ? ` · ${t('prefs.speed.selected')}` : ''}</span>
+                      </span>
+                    </button>
+                    )
+                  })}
+                </div>
+                <p className="text-xs leading-relaxed text-muted-foreground" aria-live="polite">
+                  {t(`prefs.speed.${settings.downloadSpeedMode ?? 'balanced'}Short`)}
                 </p>
-              </FieldBlock>
+              </div>
+            </PrefCard>
+
+            <SettingsDisclosure title={t('ui.naming')} subtitle={t('ui.namingHint')}>
               <FieldBlock
                 label={t('prefs.saveFiles.filename')}
                 description={t('prefs.saveFiles.filenameDesc')}
               >
-                <input
+                <input aria-label={t('prefs.saveFiles.filename')}
                   type="text"
                   value={filenameValue}
                   onChange={(e) => persistTemplate('filenameTemplate', e.target.value)}
@@ -847,7 +950,7 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
                     </button>
                   ))}
                 </div>
-                {filenameError ? <p className="text-xs text-red-400">{t(filenameError.key, filenameError.vars)}</p> : null}
+                {filenameError ? <p className="text-xs text-error">{t(filenameError.key, filenameError.vars)}</p> : null}
               </FieldBlock>
               <ToggleRow
                 label={t('prefs.saveFiles.archiveByAuthor')}
@@ -859,7 +962,7 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
                 label={t('prefs.saveFiles.authorFolder')}
                 description={t('prefs.saveFiles.authorFolderDesc')}
               >
-                <input
+                <input aria-label={t('prefs.saveFiles.authorFolder')}
                   type="text"
                   value={folderValue}
                   onChange={(e) => persistTemplate('folderNameTemplate', e.target.value)}
@@ -880,7 +983,7 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
                     </button>
                   ))}
                 </div>
-                {folderError ? <p className="text-xs text-red-400">{t(folderError.key, folderError.vars)}</p> : null}
+                {folderError ? <p className="text-xs text-error">{t(folderError.key, folderError.vars)}</p> : null}
               </FieldBlock>
               <p className="text-xs leading-relaxed text-muted-foreground">
                 {t('prefs.saveFiles.preview', {
@@ -898,53 +1001,13 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
                   })()
                 })}
               </p>
-            </PrefCard>
-
-            <PrefCard
-              title={t('prefs.speed.title')}
-              subtitle={t('prefs.speed.subtitle')}
-            >
-              <FieldBlock
-                label={t('prefs.speed.preset')}
-                description={t('prefs.speed.presetDesc')}
-              >
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3" role="group" aria-label={t('prefs.speed.mode')}>
-                  {DOWNLOAD_SPEED_MODES.map((mode) => {
-                    const selected = (settings.downloadSpeedMode ?? 'balanced') === mode
-                    return (
-                    <button
-                      key={mode}
-                      type="button"
-                      aria-pressed={selected}
-                      onClick={() => void handleDownloadSpeedMode(mode)}
-                      className={cn(
-                        'min-h-11 rounded-lg border px-3 py-2 text-left text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-action focus:ring-offset-2 focus:ring-offset-surface',
-                        selected ? 'border-action bg-action text-action-fg shadow-sm' : 'border-border bg-elevated text-foreground hover:bg-control'
-                      )}
-                    >
-                      <span className="flex items-center gap-2">
-                        {selected ? <Check className="h-4 w-4 shrink-0" aria-hidden /> : <span className="h-4 w-4 shrink-0" aria-hidden />}
-                        <span>{t(`prefs.speed.${mode}`)}{selected ? ` · ${t('prefs.speed.selected')}` : ''}</span>
-                      </span>
-                    </button>
-                    )
-                  })}
-                </div>
-                <p className="text-xs leading-relaxed text-muted-foreground" aria-live="polite">
-                  {t(`prefs.speed.${settings.downloadSpeedMode ?? 'balanced'}Short`)}
-                </p>
-              </FieldBlock>
-            </PrefCard>
+            </SettingsDisclosure>
 
             <SettingsDisclosure
               title={t('prefs.queueBehavior.title')}
               subtitle={t('prefs.queueBehavior.subtitle')}
-              className="order-3"
             >
-            <PrefCard
-              title={t('prefs.queueBehavior.queueTitle')}
-              subtitle={t('prefs.queueBehavior.queueSubtitle')}
-            >
+
               <FieldBlock
                 label={t('prefs.queueBehavior.individualLimit')}
                 description={t('prefs.queueBehavior.individualLimitDesc', {
@@ -968,23 +1031,34 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
                 />
               </FieldBlock>
               <p className="text-xs text-muted-foreground leading-relaxed border-t border-border pt-3">{t('prefs.queueBehavior.retryNote')}</p>
-            </PrefCard>
             </SettingsDisclosure>
 
             <SettingsDisclosure
               title={t('prefs.network.title')}
               subtitle={t('prefs.network.subtitle')}
-              className="order-4"
             >
-            <PrefCard
-              title={t('prefs.network.directTitle')}
-              subtitle={t('prefs.network.directSubtitle')}
-            >
+
+              <FieldBlock
+                label={t('prefs.saveFiles.proxyUrl')}
+                description={t('prefs.saveFiles.proxyUrlDesc')}
+              >
+                <input aria-label={t('prefs.saveFiles.proxyUrl')}
+                  type="text"
+                  value={settings.proxyUrl ?? ''}
+                  onChange={(e) => onUpdate('proxyUrl', e.target.value)}
+                  placeholder="http://127.0.0.1:8080"
+                  className="w-full max-w-md px-3 py-2 rounded-lg bg-raised border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-border-focus"
+                />
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  {t('prefs.saveFiles.credentialsRejected')} {t('prefs.saveFiles.credentialsHint')}
+                </p>
+              </FieldBlock>
+
               <FieldBlock
                 label={t('prefs.network.engine')}
                 description={t('prefs.network.engineDesc')}
               >
-                <select
+                <select aria-label={t('prefs.network.engine')}
                   value={settings.directMediaEngine ?? 'auto'}
                   onChange={(e) =>
                     onUpdate('directMediaEngine', e.target.value as 'auto' | 'ffmpeg' | 'ytdlp')
@@ -1011,7 +1085,7 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
                 label={t('prefs.network.externalDl')}
                 description={t('prefs.network.externalDlDesc')}
               >
-                <input
+                <input aria-label={t('prefs.network.externalDl')}
                   type="text"
                   value={settings.ytdlpExternalDownloader ?? ''}
                   onChange={(e) => onUpdate('ytdlpExternalDownloader', e.target.value)}
@@ -1019,20 +1093,15 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
                   className="w-full max-w-md px-3 py-2 rounded-lg bg-raised border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-border-focus"
                 />
               </FieldBlock>
-            </PrefCard>
             </SettingsDisclosure>
 
             <SettingsDisclosure
               title={t('prefs.playlists.title')}
               subtitle={t('prefs.playlists.subtitle')}
-              className="order-5"
             >
-            <PrefCard
-              title={t('prefs.playlists.youtubeTitle')}
-              subtitle={t('prefs.playlists.youtubeSubtitle')}
-            >
+
               <FieldBlock label={t('prefs.playlists.mode')} description={t('prefs.playlists.modeDesc')}>
-                <select
+                <select aria-label={t('prefs.playlists.mode')}
                   value={settings.youtubePlaylistMode ?? 'native'}
                   onChange={(e) => onUpdate('youtubePlaylistMode', e.target.value)}
                   className="w-full max-w-md px-3 py-2 rounded-lg bg-raised border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-border-focus"
@@ -1064,44 +1133,9 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
                   onChange={(v) => onUpdate('youtubePlaylistMaxDownloads', v)}
                 />
               </FieldBlock>
-            </PrefCard>
             </SettingsDisclosure>
 
-            <PrefCard
-              title={t('prefs.defaultFormat.title')}
-              subtitle={t('prefs.defaultFormat.subtitle')}
-              className="order-2"
-            >
-              <FieldBlock
-                label={t('prefs.defaultFormat.videoQuality')}
-                description={t('prefs.defaultFormat.videoQualityDesc')}
-              >
-                <select
-                  value={settings.defaultVideoQuality}
-                  onChange={(e) => onUpdate('defaultVideoQuality', e.target.value)}
-                  className="w-full max-w-md px-3 py-2 rounded-lg bg-raised border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-border-focus"
-                >
-                  {VIDEO_QUALITIES.map((q) => (
-                    <option key={q} value={q}>
-                      {q}p
-                    </option>
-                  ))}
-                </select>
-              </FieldBlock>
-              <FieldBlock label={t('prefs.defaultFormat.audioQuality')} description={t('prefs.defaultFormat.audioQualityDesc')}>
-                <select
-                  value={settings.defaultAudioQuality}
-                  onChange={(e) => onUpdate('defaultAudioQuality', e.target.value)}
-                  className="w-full max-w-md px-3 py-2 rounded-lg bg-raised border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-border-focus"
-                >
-                  {AUDIO_QUALITIES.map((q) => (
-                    <option key={q} value={q}>
-                      {q}kbps
-                    </option>
-                  ))}
-                </select>
-              </FieldBlock>
-            </PrefCard>
+
           </div>
         </PrefSectionPane>
 
@@ -1137,17 +1171,34 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
                 </div>
               )}
 
-              <div className="space-y-3">
-                <div>
-                  <p className="text-sm text-foreground">{t('prefs.chromeCookie.extension')}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                    {settings.cookiesPath ? t('prefs.chromeCookie.cookiesReady') : extensionPath ? t('prefs.chromeCookie.extensionReady') : t('prefs.chromeCookie.extensionToLoad')}
-                  </p>
-                  <p className="text-xs text-muted-foreground/90 mt-1.5 leading-relaxed">
-                    {t('prefs.chromeCookie.cookiesLocal')}
-                  </p>
-                </div>
-                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch">
+              <div>
+                <p className="text-sm font-medium">{t(settings.cookiesPath ? 'ui.loginAvailable' : 'ui.loginMissing')}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{t('ui.loginHint')}</p>
+              </div>
+              <div>
+                  <button
+                    type="button"
+                    onClick={handleForceCookieSync}
+                    disabled={cookieSyncBusy || extensionInstallBusy}
+                    className={cn(
+                      'v-button-primary',
+                      cookieSyncBusy || extensionInstallBusy
+                        ? 'cursor-wait'
+                        : ''
+                    )}
+                    title={t('prefs.chromeCookie.pushCookies')}
+                    aria-busy={cookieSyncBusy}
+                  >
+                    {cookieSyncBusy ? (
+                      <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden />
+                    ) : (
+                      <RefreshCw className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    )}
+                    {cookieSyncBusy ? t('prefs.chromeCookie.syncing') : t('prefs.chromeCookie.syncBrowserCookies')}
+                  </button>
+              </div>
+              <SettingsDisclosure title={t('ui.extensionSetup')} subtitle={t('ui.optional')}>
+                <p className="text-xs text-muted-foreground">{settings.cookiesPath ? t('prefs.chromeCookie.cookiesReady') : extensionPath ? t('prefs.chromeCookie.extensionReady') : t('prefs.chromeCookie.extensionToLoad')}</p>
                   <button
                     type="button"
                     onClick={() => void handleInstallExtension()}
@@ -1168,29 +1219,8 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
                     )}
                     {extensionInstallBusy ? t('prefs.chromeCookie.opening') : t('prefs.chromeCookie.installExtension')}
                   </button>
-                  <button
-                    type="button"
-                    onClick={handleForceCookieSync}
-                    disabled={cookieSyncBusy || extensionInstallBusy}
-                    className={cn(
-                      `${secondaryButtonClass} flex-1 sm:flex-initial`,
-                      cookieSyncBusy || extensionInstallBusy
-                        ? 'cursor-wait'
-                        : ''
-                    )}
-                    title={t('prefs.chromeCookie.pushCookies')}
-                    aria-busy={cookieSyncBusy}
-                  >
-                    {cookieSyncBusy ? (
-                      <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden />
-                    ) : (
-                      <RefreshCw className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                    )}
-                    {cookieSyncBusy ? t('prefs.chromeCookie.syncing') : t('prefs.chromeCookie.syncBrowserCookies')}
-                  </button>
-                </div>
-              </div>
-
+                <p className="text-xs text-muted-foreground">{t('prefs.chromeCookie.cookiesLocal')}</p>
+              </SettingsDisclosure>
               <SettingRow
                 label={t('prefs.chromeCookie.browserProfile')}
                 description={t('prefs.chromeCookie.browserProfileDesc')}
@@ -1221,7 +1251,7 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
                 <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
                   {t('prefs.chromeCookie.binaryLicense')}{' '}
                   <a href="https://github.com/CloakHQ/cloakbrowser/blob/main/BINARY-LICENSE.md" className="text-foreground underline underline-offset-2 hover:no-underline">
-                    binary license
+                    {t('prefs.chromeCookie.binaryLicense')}
                   </a>.
                 </p>
               </SettingsDisclosure>
@@ -1312,7 +1342,7 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
                         <div className="min-w-0">
                           <p className="text-[13px] font-medium text-foreground">{engine.name}</p>
                           <p className="mt-0.5 truncate text-xs text-muted-foreground" title={engine.path || undefined}>
-                            {engine.version ? t('prefs.system.version', { version: engine.version }) : t('prefs.system.notAvailable')} · {engine.source}
+                            {engine.version ? t('prefs.system.version', { version: engine.version }) : t('prefs.system.notAvailable')} · {t(engine.source === 'bundled' ? 'ui.engineBundled' : engine.source === 'system' ? 'ui.engineSystem' : engine.source === 'custom' ? 'ui.engineCustom' : 'prefs.system.missing')}
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
@@ -1358,10 +1388,11 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
                 </div>
               </SettingsDisclosure>
             </PrefCard>
-            <PrefCard
+            <SettingsDisclosure
               title={t('prefs.expert.title')}
-              subtitle={t('prefs.expert.subtitle')}
+              subtitle={t('ui.expertHint')}
             >
+              <p className="text-xs leading-relaxed text-muted-foreground">{t('prefs.expert.subtitle')}</p>
               <div className="text-xs text-muted-foreground leading-relaxed">
                 <a
                   href="https://github.com/jiji262/douyin-downloader#minimal-working-config"
@@ -1371,10 +1402,9 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
                 >
                   {t('prefs.expert.upstreamReadme')}
                 </a>
-                <span className="text-muted-foreground"> — link, mode, number.post, browser_fallback, cookies.</span>
               </div>
               <FieldBlock label={t('prefs.expert.runPy')} description={t('prefs.expert.runPyDesc')}>
-                <input
+                <input aria-label={t('prefs.expert.runPy')}
                   type="text"
                   value={settings.douyinBulkRunPyPath ?? ''}
                   onChange={(e) => onUpdate('douyinBulkRunPyPath', e.target.value)}
@@ -1383,7 +1413,7 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
                 />
               </FieldBlock>
               <FieldBlock label={t('prefs.expert.configYml')} description={t('prefs.expert.configYmlDesc')}>
-                <input
+                <input aria-label={t('prefs.expert.configYml')}
                   type="text"
                   value={settings.douyinBulkConfigPath ?? ''}
                   onChange={(e) => onUpdate('douyinBulkConfigPath', e.target.value)}
@@ -1396,7 +1426,7 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
                 description={t('prefs.expert.bulkOutputDesc')}
               >
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <input
+                  <input aria-label={t('prefs.expert.bulkOutput')}
                     type="text"
                     value={settings.douyinBulkOutputPath ?? ''}
                     onChange={(e) => onUpdate('douyinBulkOutputPath', e.target.value)}
@@ -1429,7 +1459,7 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
                 description={t('prefs.expert.verboseDesc')}
               >
                 <label className="flex items-center gap-2 cursor-pointer text-sm text-foreground">
-                  <input
+                  <input aria-label={t('prefs.expert.verbose')}
                     type="checkbox"
                     checked={Boolean(settings.douyinBulkVerboseWarnings)}
                     onChange={(e) => onUpdate('douyinBulkVerboseWarnings', e.target.checked)}
@@ -1443,7 +1473,7 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
                 description={t('prefs.expert.bulkUrlDesc')}
               >
                 <div className="flex flex-col gap-2 sm:flex-row">
-                  <input
+                  <input aria-label={t('prefs.expert.bulkUrl')}
                     type="text"
                     value={bulkUrl}
                     onChange={(e) => setBulkUrl(e.target.value)}
@@ -1501,7 +1531,7 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
                   {bulkJobNote ? <p className="text-xs text-muted-foreground">{bulkJobNote}</p> : null}
                 </div>
               )}
-            </PrefCard>
+            </SettingsDisclosure>
           </div>
         </PrefSectionPane>
 
@@ -1519,71 +1549,6 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
                   })()
                 }}
               />
-              <FieldBlock label={t('prefs.remote.token')} description={t('prefs.remote.tokenDesc')}>
-                <div className="flex flex-wrap items-center gap-2">
-                  <input
-                    type="text"
-                    readOnly
-                    value={settings.remoteApiToken || ''}
-                    className={cn(controlClass, 'min-w-0 flex-1 font-mono text-[12px]')}
-                  />
-                  <button
-                    type="button"
-                    className={secondaryButtonClass}
-                    disabled={!settings.remoteApiToken}
-                    onClick={() => {
-                      if (!settings.remoteApiToken) return
-                      void navigator.clipboard.writeText(settings.remoteApiToken).then(() => {
-                        setRemoteTokenCopied(true)
-                        window.setTimeout(() => setRemoteTokenCopied(false), 1500)
-                      })
-                    }}
-                  >
-                    {remoteTokenCopied ? <Check className="h-3.5 w-3.5" aria-hidden /> : <Copy className="h-3.5 w-3.5" aria-hidden />}
-                    {remoteTokenCopied ? t('common.copied') : t('common.copy')}
-                  </button>
-                  <button
-                    type="button"
-                    className={secondaryButtonClass}
-                    onClick={() => {
-                      void (async () => {
-                        await onUpdate('remoteApiToken', '')
-                        await refreshSettingsFromMain()
-                      })()
-                    }}
-                  >
-                    {t('prefs.remote.regenerate')}
-                  </button>
-                </div>
-              </FieldBlock>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <FieldBlock label={t('prefs.remote.bind')}>
-                  <select
-                    value={settings.remoteApiBind ?? '127.0.0.1'}
-                    onChange={(event) => void onUpdate('remoteApiBind', event.target.value === '0.0.0.0' ? '0.0.0.0' : '127.0.0.1')}
-                    className={cn(controlClass, 'w-full')}
-                  >
-                    <option value="127.0.0.1">{t('prefs.remote.thisMac')}</option>
-                    <option value="0.0.0.0">{t('prefs.remote.lan')}</option>
-                  </select>
-                </FieldBlock>
-                <FieldBlock label={t('prefs.remote.port')}>
-                  <input
-                    type="number"
-                    min={1024}
-                    max={65535}
-                    value={settings.remoteApiPort ?? 18766}
-                    onChange={(event) => {
-                      const port = Number(event.target.value)
-                      if (Number.isFinite(port)) void onUpdate('remoteApiPort', port)
-                    }}
-                    className={cn(controlClass, 'w-full')}
-                  />
-                </FieldBlock>
-              </div>
-              <p className="text-xs leading-relaxed text-muted-foreground break-all">
-                {`curl -H "Authorization: Bearer ${settings.remoteApiToken || 'YOUR_TOKEN'}" -d '{"url":"https://example.com/watch?v=1"}' http://${(settings.remoteApiBind === '0.0.0.0' ? '<host>' : '127.0.0.1')}:${settings.remoteApiPort ?? 18766}/v1/jobs`}
-              </p>
               <FieldBlock
                 label={t('prefs.remote.mcp')}
                 description={t('prefs.remote.mcpDesc')}
@@ -1615,6 +1580,77 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
                   </button>
                 </div>
               </FieldBlock>
+              <SettingsDisclosure title={t('ui.connectionDetails')} subtitle={t('prefs.remote.tokenDesc')}>
+              <FieldBlock label={t('prefs.remote.token')} description={t('prefs.remote.tokenDesc')}>
+                <div className="flex flex-wrap items-center gap-2">
+                  <input aria-label={t('prefs.remote.token')}
+                    type={showRemoteToken ? 'text' : 'password'}
+                    readOnly
+                    value={showRemoteToken ? settings.remoteApiToken || '' : settings.remoteApiToken ? '••••••••••••••••' : ''}
+                    className={cn(controlClass, 'min-w-0 flex-1 font-mono text-[12px]')}
+                  />
+                  <button type="button" onClick={() => setShowRemoteToken((value) => !value)} className={secondaryButtonClass} aria-pressed={showRemoteToken}>
+                    {t(showRemoteToken ? 'ui.hideToken' : 'ui.showToken')}
+                  </button>
+                  <button
+                    type="button"
+                    className={secondaryButtonClass}
+                    disabled={!settings.remoteApiToken}
+                    onClick={() => {
+                      if (!settings.remoteApiToken) return
+                      void navigator.clipboard.writeText(settings.remoteApiToken).then(() => {
+                        setRemoteTokenCopied(true)
+                        window.setTimeout(() => setRemoteTokenCopied(false), 1500)
+                      })
+                    }}
+                  >
+                    {remoteTokenCopied ? <Check className="h-3.5 w-3.5" aria-hidden /> : <Copy className="h-3.5 w-3.5" aria-hidden />}
+                    {remoteTokenCopied ? t('common.copied') : t('common.copy')}
+                  </button>
+                  <button
+                    type="button"
+                    className={secondaryButtonClass}
+                    onClick={() => {
+                      void (async () => {
+                        await onUpdate('remoteApiToken', '')
+                        await refreshSettingsFromMain()
+                      })()
+                    }}
+                  >
+                    {t('prefs.remote.regenerate')}
+                  </button>
+                </div>
+              </FieldBlock>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FieldBlock label={t('prefs.remote.bind')}>
+                  <select aria-label={t('prefs.remote.bind')}
+                    value={settings.remoteApiBind ?? '127.0.0.1'}
+                    onChange={(event) => void onUpdate('remoteApiBind', event.target.value === '0.0.0.0' ? '0.0.0.0' : '127.0.0.1')}
+                    className={cn(controlClass, 'w-full')}
+                  >
+                    <option value="127.0.0.1">{t('prefs.remote.thisMac')}</option>
+                    <option value="0.0.0.0">{t('prefs.remote.lan')}</option>
+                  </select>
+                </FieldBlock>
+                <FieldBlock label={t('prefs.remote.port')}>
+                  <input aria-label={t('prefs.remote.port')}
+                    type="number"
+                    min={1024}
+                    max={65535}
+                    value={settings.remoteApiPort ?? 18766}
+                    onChange={(event) => {
+                      const port = Number(event.target.value)
+                      if (Number.isFinite(port)) void onUpdate('remoteApiPort', port)
+                    }}
+                    className={cn(controlClass, 'w-full')}
+                  />
+                </FieldBlock>
+              </div>
+              <p className="text-xs leading-relaxed text-muted-foreground break-all">
+                {`curl -H "Authorization: Bearer YOUR_TOKEN" -d '{"url":"https://example.com/watch?v=1"}' http://${(settings.remoteApiBind === '0.0.0.0' ? '<host>' : '127.0.0.1')}:${settings.remoteApiPort ?? 18766}/v1/jobs`}
+              </p>
+
+              </SettingsDisclosure>
               <ToggleRow
                 label={t('prefs.remote.allowWrite')}
                 description={t('prefs.remote.allowWriteDesc')}
@@ -1628,8 +1664,7 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
                 onChange={(v) => void onUpdate('remoteApiMcpRequireConfirm', v)}
               />
               {settings.remoteApiEnabled ? (
-                <div className="space-y-1.5">
-                  <p className="text-[11px] font-medium text-muted-foreground">{t('prefs.remote.recentMcp')}</p>
+                <SettingsDisclosure title={t('prefs.remote.recentMcp')} subtitle={t('ui.technicalDetails')}>
                   {mcpLogs.length === 0 ? (
                     <p className="text-xs text-muted-foreground">{t('prefs.remote.noMcp')}</p>
                   ) : (
@@ -1641,7 +1676,7 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
                       ))}
                     </ul>
                   )}
-                </div>
+                </SettingsDisclosure>
               ) : null}
             </PrefCard>
             <PrefCard title={t('prefs.remote.skill')} subtitle={t('prefs.remote.skillDesc')}>
@@ -1680,7 +1715,7 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
           aria-modal="true"
           aria-labelledby="turbo-modal-title"
         >
-          <div ref={turboDialogRef} tabIndex={-1} className="w-full max-w-md rounded-panel bg-surface p-5 shadow-xl space-y-3 outline-none ring-1 ring-inset ring-divider-strong">
+          <DialogShell ref={turboDialogRef} tabIndex={-1} className="max-w-md space-y-3 p-5 outline-none">
             <h2 id="turbo-modal-title" className="text-sm font-semibold text-foreground">
               {t('prefs.speed.turboTitle')}
             </h2>
@@ -1691,26 +1726,26 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
               <button
                 type="button"
                 onClick={() => setTurboModalOpen(false)}
-                className="px-4 py-2 rounded-lg border border-border bg-elevated text-sm font-medium text-foreground hover:bg-control transition-colors"
+                className="v-button-ghost"
               >
                 {t('common.cancel')}
               </button>
               <button
                 type="button"
                 onClick={() => void confirmTurboMode()}
-                className="px-4 py-2 rounded-lg border border-border-strong bg-control text-sm font-medium text-foreground hover:opacity-95 transition-opacity"
+                className="v-button-primary"
               >
                 {t('prefs.speed.enableTurbo')}
               </button>
             </div>
-          </div>
+          </DialogShell>
         </div>
       ) : null}
     </div>
   )
 }
 
-function SiteRulesEditor({ settings, onUpdate }: { settings: SettingsData; onUpdate: (key: string, value: unknown) => Promise<void> }) {
+function SiteRulesEditor({ settings, onUpdate }: { settings: SettingsData; onUpdate: (key: string, value: unknown) => Promise<boolean> }) {
   const { t } = useTranslation()
   const persisted = settings.siteRules ?? []
   const [drafts, setDrafts] = useState<SiteRule[]>([])
@@ -1756,7 +1791,7 @@ function SiteRulesEditor({ settings, onUpdate }: { settings: SettingsData; onUpd
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto] sm:items-end">
                 <FieldBlock label={t('prefs.siteRules.website')}>
                   <input
-                    aria-label={`Site rule ${index + 1} domain`}
+                    aria-label={`${t('ui.ruleDomain')} ${index + 1}`}
                     value={rule.domain}
                     onChange={(e) => updateRow(rule.id, { domain: e.target.value })}
                     placeholder="youtube.com"
@@ -1765,7 +1800,7 @@ function SiteRulesEditor({ settings, onUpdate }: { settings: SettingsData; onUpd
                 </FieldBlock>
                 <FieldBlock label={t('prefs.siteRules.downloadAs')}>
                   <select
-                    aria-label={`Site rule ${index + 1} output type`}
+                    aria-label={`${t('ui.ruleFormat')} ${index + 1}`}
                     value={rule.format}
                     onChange={(e) => updateRow(rule.id, { format: e.target.value as SiteRule['format'] })}
                     className={controlClass}
@@ -1777,7 +1812,7 @@ function SiteRulesEditor({ settings, onUpdate }: { settings: SettingsData; onUpd
                 </FieldBlock>
                 <FieldBlock label={rule.format === 'audio' ? t('prefs.siteRules.kbps') : t('prefs.siteRules.quality')}>
                   <input
-                    aria-label={`Site rule ${index + 1} quality`}
+                    aria-label={`${t('ui.ruleQuality')} ${index + 1}`}
                     inputMode="numeric"
                     value={rule.quality}
                     onChange={(e) => updateRow(rule.id, { quality: e.target.value.replace(/[^0-9]/g, '') })}
@@ -1800,7 +1835,7 @@ function SiteRulesEditor({ settings, onUpdate }: { settings: SettingsData; onUpd
                   </label>
                   <button
                     type="button"
-                    aria-label={`Remove ${rule.domain || 'site'} rule`}
+                    aria-label={`${t('ui.removeRule')} ${rule.domain}`}
                     onClick={() => removeRow(rule.id)}
                     className="inline-flex min-h-10 items-center justify-center rounded-lg px-2.5 text-[13px] text-muted-foreground transition-colors hover:bg-control hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
                   >

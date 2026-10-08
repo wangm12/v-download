@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import type { QueueAdmissionOutcome, QueueNotice } from '@v-download/shared'
 import type { Download, VideoInfo, SettingsData } from '@/types'
 import { extractUrlFromClipboard, isMediaUrl, isYouTubeUrl, filenameFromUrl } from '@/utils/youtube'
-import { isDouyinProfileHomeUrl } from '@/utils/douyinBulk'
+import { douyinProfileUrlFromInfo, normalizeDouyinProfileUrl } from '@/utils/douyinBulk'
 import { shouldOpenCollectionPicker } from '@/utils/collectionPicker'
 import { normalizeThumbnailUrl } from '@/utils/thumbnail'
 import { noteMetadataFromVideoInfo, withIncludeNote } from '@/utils/noteMetadata'
@@ -87,6 +87,10 @@ function taskFromAdmit(data: unknown): { id?: string; filePath?: string | null }
   }
 }
 
+function ipcErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message ? error.message : fallback
+}
+
 export function useUrlHandler(settings: SettingsData) {
   const { t } = useTranslation()
   const siteDefaults = useCallback((url: string) => {
@@ -119,6 +123,7 @@ export function useUrlHandler(settings: SettingsData) {
   const dialogOpenRef = useRef(false)
   const pendingResolverIdRef = useRef<string | null>(null)
   const readyResultsRef = useRef(new Map<string, InfoResolveResult>())
+  const consumedProfileResultsRef = useRef(new Set<string>())
   const promotionInFlightRef = useRef(new Set<string>())
   const readyOrderRef = useRef<string[]>([])
 
@@ -136,6 +141,20 @@ export function useUrlHandler(settings: SettingsData) {
     const result = readyResultsRef.current.get(id)
     if (!result || result.data === undefined || result.error) return false
     removeReadyId(id)
+    const profileUrl = douyinProfileUrlFromInfo(result.data)
+    if (profileUrl) {
+      setErrorMsg('')
+      setDouyinProfileUrl(profileUrl)
+      setShowDouyinProfilePicker(true)
+      dialogOpenRef.current = true
+      consumedProfileResultsRef.current.add(id)
+      readyResultsRef.current.delete(id)
+      // This row only resolved a short link. The picker creates the individual download tasks.
+      void window.api.deleteTasks([id]).catch((error: unknown) => {
+        setErrorMsg(ipcErrorMessage(error, 'Could not remove the resolved profile link from the queue'))
+      })
+      return true
+    }
     const rawInfo = result.data as Record<string, unknown>
     const entries = rawInfo?.entries as unknown[] | undefined
     if (Array.isArray(entries) && entries.length > 1) {
@@ -221,16 +240,22 @@ export function useUrlHandler(settings: SettingsData) {
           },
       includeNote
     )
-    const promoted = await window.api.promoteInfoResolve({
-      id: result.id,
-      url: info.webpage_url || result.url,
-      title: result.requestedTitle || info.title || filenameFromUrl(result.url),
-      format: selectedFormat,
-      quality: selectedQuality,
-      thumbnail: info.thumbnail,
-      duration: info.duration,
-      metadata
-    })
+    let promoted
+    try {
+      promoted = await window.api.promoteInfoResolve({
+        id: result.id,
+        url: info.webpage_url || result.url,
+        title: result.requestedTitle || info.title || filenameFromUrl(result.url),
+        format: selectedFormat,
+        quality: selectedQuality,
+        thumbnail: info.thumbnail,
+        duration: info.duration,
+        metadata
+      })
+    } catch (error) {
+      setErrorMsg(ipcErrorMessage(error, 'Could not add this item to the download queue'))
+      return false
+    }
     if (promoted?.error) {
       setErrorMsg(promoted.error)
       return false
@@ -244,11 +269,20 @@ export function useUrlHandler(settings: SettingsData) {
     if (!raw || typeof raw !== 'object') return
     const result = raw as InfoResolveResult
     if (!result.id || typeof result.url !== 'string') return
+    if (consumedProfileResultsRef.current.has(result.id)) return
     if (result.error) {
       setErrorMsg(result.error)
       return
     }
     if (result.data === undefined) return
+
+    if (douyinProfileUrlFromInfo(result.data)) {
+      readyResultsRef.current.set(result.id, result)
+      if (!readyOrderRef.current.includes(result.id)) readyOrderRef.current.push(result.id)
+      refreshDialogQueueCount()
+      advanceDialogQueue()
+      return
+    }
 
     const rawInfo = result.data as Record<string, unknown>
     const entries = rawInfo?.entries as unknown[] | undefined
@@ -333,6 +367,7 @@ export function useUrlHandler(settings: SettingsData) {
     const url = rawUrl.trim()
     if (!url) return
 
+    try {
     // Extension passes mediaType for raw CDN URLs that do not match isMediaUrl
     // (for example Douyin tos paths without ".mp4"). These remain immediate
     // direct-media downloads and do not need an info placeholder.
@@ -357,8 +392,10 @@ export function useUrlHandler(settings: SettingsData) {
       return
     }
 
-    if (!meta?.forceNew && isDouyinProfileHomeUrl(url)) {
-      setDouyinProfileUrl(url)
+    const profileUrl = normalizeDouyinProfileUrl(url)
+    if (!meta?.forceNew && profileUrl) {
+      setErrorMsg('')
+      setDouyinProfileUrl(profileUrl)
       setShowDouyinProfilePicker(true)
       dialogOpenRef.current = true
       return
@@ -387,11 +424,18 @@ export function useUrlHandler(settings: SettingsData) {
       forceNew: meta?.forceNew
     })
     applyAdmitResponse(response)
+    } catch (error) {
+      setErrorMsg(ipcErrorMessage(error, 'Could not add this URL to the download queue'))
+    }
   }, [applyAdmitResponse, settings.defaultVideoQuality, siteDefaults, t])
 
   const downloadAgain = useCallback(async (download: Pick<Download, 'id'>) => {
     if (!window.api?.downloadAgain) return
-    applyAdmitResponse(await window.api.downloadAgain(download.id))
+    try {
+      applyAdmitResponse(await window.api.downloadAgain(download.id))
+    } catch (error) {
+      setErrorMsg(ipcErrorMessage(error, 'Could not retry this download'))
+    }
   }, [applyAdmitResponse])
 
   const applyBulkNotice = useCallback((notice?: QueueNotice | null, focusId?: string) => {
@@ -411,13 +455,17 @@ export function useUrlHandler(settings: SettingsData) {
 
   const handlePaste = useCallback(async () => {
     if (!window.api) return
-    const text = await window.api.readClipboard()
-    const url = extractUrlFromClipboard(text)
-    if (!url) {
-      if (text.trim()) setErrorMsg(t('url.noLinkInClipboard'))
-      return
+    try {
+      const text = await window.api.readClipboard()
+      const url = extractUrlFromClipboard(text)
+      if (!url) {
+        if (text.trim()) setErrorMsg(t('url.noLinkInClipboard'))
+        return
+      }
+      await handleUrl(url)
+    } catch (error) {
+      setErrorMsg(ipcErrorMessage(error, 'Could not read from clipboard'))
     }
-    await handleUrl(url)
   }, [handleUrl, t])
 
   const handleExternalUrl = useCallback(async (rawUrl: string) => {

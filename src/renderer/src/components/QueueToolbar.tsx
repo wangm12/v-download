@@ -147,7 +147,7 @@ export function QueueToolbar({
                 className={cn(
                   'inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-border-focus',
                   active
-                    ? 'bg-action text-action-fg'
+                    ? 'bg-selection text-foreground'
                     : 'text-muted-foreground hover:bg-control hover:text-foreground'
                 )}
               >
@@ -178,7 +178,7 @@ export function QueueToolbar({
               type="button"
               onClick={expandSearch}
               className={cn(
-                'w-full min-w-0 flex items-center justify-center rounded-lg bg-raised ring-1 ring-inset ring-divider-subtle',
+                'w-full min-w-0 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 rounded-lg bg-raised ring-1 ring-inset ring-divider-subtle',
                 'text-tertiary-foreground hover:text-foreground hover:bg-elevated hover:ring-border-strong',
                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-border-focus',
                 'transition-colors duration-200'
@@ -230,15 +230,15 @@ export function QueueToolbar({
         onDragLeave={onDragLeave}
         onDrop={onDrop}
         className={cn(
-          'rounded-lg border border-dashed px-3 py-2.5 text-center text-xs text-muted-foreground',
-          'min-w-0 flex items-center justify-center',
+          'rounded-lg border border-dashed px-3 py-3 text-center text-xs text-muted-foreground',
+          'min-h-12 min-w-0 flex items-center justify-center',
           dragOver ? 'border-border-strong bg-selection text-foreground' : 'border-divider-strong bg-control'
         )}
       >
-        <span className="line-clamp-2">{t('queue.dropHint')}</span>
+        <span>{t('queue.dropHint')}</span>
       </div>
       {selectedCount > 0 && (
-        <div className="flex min-h-8 items-center justify-between gap-3 rounded-lg bg-selection px-2.5 py-1.5 text-xs ring-1 ring-inset ring-border-strong" role="status" aria-live="polite">
+        <div className="flex min-h-8 items-center justify-between gap-3 rounded-lg bg-selection px-2.5 py-1.5 text-xs" role="status" aria-live="polite">
           <span className="font-medium text-foreground tabular-nums">{t('queue.selectedCount', { count: selectedCount })}</span>
           {onClearSelection && (
             <button

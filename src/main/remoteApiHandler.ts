@@ -4,6 +4,8 @@ import {
   contentDisposition,
   contentTypeForName,
   isSafeFileName,
+  jobOwnedFilePathMap,
+  mediaClass,
   parseJobCreateBody,
   parseJobId,
   resolveJobOwnedFile,
@@ -149,14 +151,18 @@ export function dispatchRemoteApi(request: RemoteApiRequest, backend: RemoteJobB
       return jsonError(409, view.error ?? { code: 'download_failed', message: 'Job failed' })
     }
     if (view.expired) return jsonError(410, { code: 'expired', message: 'Job files have expired' })
-    if (view.kind !== 'file' || !view.files?.[0]) {
+    const primaryFile = view.files?.find((file) => {
+      const cls = mediaClass(file.name)
+      return cls === 'video' || cls === 'audio' || cls === 'image'
+    }) ?? view.files?.[0]
+    if (view.kind !== 'file' || !primaryFile) {
       return jsonError(409, {
         code: 'multiple_files',
         message: 'This job has multiple files; GET /v1/jobs/:id/files/:name or /archive',
         details: { kind: view.kind, count: view.files?.length ?? 0 },
       })
     }
-    return streamNamedFile(backend, id, view.files[0].name)
+    return streamNamedFile(backend, id, primaryFile.name)
   }
 
   if (method === 'GET' && action === 'files' && fileNameSeg && !segments[5]) {
@@ -188,9 +194,10 @@ export function dispatchRemoteApi(request: RemoteApiRequest, backend: RemoteJobB
     if (view.expired || !view.files?.length) {
       return jsonError(410, { code: 'expired', message: 'Job files have expired' })
     }
+    const ownedFilePaths = jobOwnedFilePathMap(backend.ownedPathsFor(id))
     const files: Array<{ path: string; name: string }> = []
     for (const file of view.files) {
-      const path = resolveJobOwnedFile(backend.ownedPathsFor(id), file.name)
+      const path = ownedFilePaths.get(file.name) ?? null
       if (!path) return jsonError(410, { code: 'expired', message: 'Job files have expired' })
       files.push({ path, name: file.name })
     }

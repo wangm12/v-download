@@ -1,7 +1,7 @@
 import { app } from 'electron'
 import { join } from 'path'
 import { randomBytes } from 'crypto'
-import { readFileSync, writeFileSync, mkdirSync, existsSync, chmodSync } from 'fs'
+import { readFileSync, writeFileSync, mkdirSync, existsSync, chmodSync, renameSync, unlinkSync } from 'fs'
 import { execFileSync } from 'child_process'
 import { homedir } from 'os'
 import { getQueueConcurrencyPolicy, type QueueConcurrencyPolicy } from '@v-download/shared'
@@ -13,6 +13,7 @@ import {
 } from '../i18n/catalog'
 import { emitUiLanguageChanged } from './localizedChrome'
 import { syncLoginItem } from './loginItem'
+import { isCanonicalUserDataProfile } from './profilePaths'
 import { syncTray } from './tray'
 import {
   INTEGRATION_BOOLEAN_DEFAULTS,
@@ -207,6 +208,10 @@ const defaults: SettingsSchema = {
 let settingsPath = ''
 let cache: SettingsSchema | null = null
 
+function cloneSettings(value: SettingsSchema): SettingsSchema {
+  return { ...value, siteRules: value.siteRules.map((rule) => ({ ...rule })) }
+}
+
 function getSettingsPath(): string {
   if (!settingsPath) {
     const dir = app.getPath('userData')
@@ -285,14 +290,18 @@ function normalizeLoadedSettings(s: SettingsSchema): void {
   }).map((rule) => { const { engine: _ignored, ...clean } = rule as SiteRule & { engine?: unknown }; const quality = Number(clean.quality); const fallback = clean.format === 'audio' ? '320' : '1080'; return { ...clean, domain: clean.domain.trim().toLowerCase(), quality: Number.isFinite(quality) && quality > 0 ? String(Math.round(quality)) : fallback, enabled: Boolean(clean.enabled) } }) : []
 }
 
-function save(): void {
+function writeSettingsFile(): void {
+  const path = getSettingsPath()
+  const tempPath = `${path}.${process.pid}.${randomBytes(8).toString('hex')}.tmp`
   try {
     const dir = app.getPath('userData')
-    if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-    writeFileSync(getSettingsPath(), JSON.stringify(cache, null, 2), 'utf-8')
-    try { chmodSync(getSettingsPath(), 0o600) } catch { /* best effort */ }
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true, mode: 0o700 })
+    writeFileSync(tempPath, JSON.stringify(cache, null, 2), { encoding: 'utf-8', mode: 0o600 })
+    chmodSync(tempPath, 0o600)
+    renameSync(tempPath, path)
   } catch (err) {
-    console.error('Failed to save settings:', err)
+    try { unlinkSync(tempPath) } catch { /* no partial settings file */ }
+    throw err
   }
 }
 
@@ -310,26 +319,32 @@ export function applyDownloadSpeedMode(
   if (mode === 'turbo' && !cache.turboRiskAcknowledged && !opts?.acknowledgeTurboRisk) {
     return 'turbo_ack_required'
   }
-  if (mode === 'balanced') {
-    cache.concurrency = 3
-    cache.sleepInterval = 3
-    cache.concurrentFragments = 5
-    cache.directMediaEngine = 'auto'
-  } else if (mode === 'turbo') {
-    cache.concurrency = 3
-    cache.sleepInterval = 0
-    cache.concurrentFragments = Math.min(32, Math.max(1, 16))
-    cache.directMediaEngine = 'ytdlp'
-    cache.turboRiskAcknowledged = true
-  } else {
-    cache.concurrency = 1
-    cache.sleepInterval = 5
-    cache.concurrentFragments = 2
-    cache.directMediaEngine = 'auto'
+  const previous = cloneSettings(cache)
+  try {
+    if (mode === 'balanced') {
+      cache.concurrency = 3
+      cache.sleepInterval = 3
+      cache.concurrentFragments = 5
+      cache.directMediaEngine = 'auto'
+    } else if (mode === 'turbo') {
+      cache.concurrency = 3
+      cache.sleepInterval = 0
+      cache.concurrentFragments = Math.min(32, Math.max(1, 16))
+      cache.directMediaEngine = 'ytdlp'
+      cache.turboRiskAcknowledged = true
+    } else {
+      cache.concurrency = 1
+      cache.sleepInterval = 5
+      cache.concurrentFragments = 2
+      cache.directMediaEngine = 'auto'
+    }
+    cache.downloadSpeedMode = mode
+    normalizeLoadedSettings(cache)
+    writeSettingsFile()
+  } catch (error) {
+    cache = previous
+    throw error
   }
-  cache.downloadSpeedMode = mode
-  normalizeLoadedSettings(cache)
-  save()
   return 'ok'
 }
 
@@ -343,6 +358,7 @@ export function get<K extends keyof SettingsSchema>(key: K): SettingsSchema[K] {
 
 export function set<K extends keyof SettingsSchema>(key: K, value: SettingsSchema[K]): void {
   load()
+  const previous = cloneSettings(cache!)
   cache![key] = value
   if (key === 'remoteApiEnabled' && cache!.remoteApiEnabled && !cache!.remoteApiToken) {
     cache!.remoteApiToken = generateRemoteApiToken()
@@ -351,17 +367,47 @@ export function set<K extends keyof SettingsSchema>(key: K, value: SettingsSchem
     cache!.remoteApiToken = generateRemoteApiToken()
   }
   normalizeLoadedSettings(cache!)
-  save()
+  try {
+    writeSettingsFile()
+  } catch (error) {
+    cache = previous
+    throw error
+  }
   if (key === 'launchAtStartup') {
-    syncLoginItem(Boolean(cache!.launchAtStartup), app.setLoginItemSettings?.bind(app))
+    try {
+      if (app.isPackaged && isCanonicalUserDataProfile()) {
+        syncLoginItem(Boolean(cache!.launchAtStartup), app.setLoginItemSettings?.bind(app))
+      }
+    } catch (error) {
+      console.error('Could not update the login item:', error)
+    }
   }
   if (key === 'showTray') {
-    syncTray(Boolean(cache!.showTray), { language: resolveUiLanguageForChrome() })
+    try { syncTray(Boolean(cache!.showTray), { language: resolveUiLanguageForChrome() }) } catch (error) {
+      console.error('Could not update the tray:', error)
+    }
   }
   if (key === 'uiLanguage') {
-    const language = resolveUiLanguageForChrome()
-    emitUiLanguageChanged(language)
-    syncTray(Boolean(cache!.showTray), { language })
+    try {
+      const language = resolveUiLanguageForChrome()
+      emitUiLanguageChanged(language)
+      syncTray(Boolean(cache!.showTray), { language })
+    } catch (error) {
+      console.error('Could not update the app language chrome:', error)
+    }
+  }
+}
+
+/** Internal transactional update used when replacing an engine binary. */
+export function setEnginePathStrict(key: 'ytdlpPath' | 'ffmpegPath', value: string): void {
+  const current = load()
+  const previous = current[key]
+  current[key] = value
+  try {
+    writeSettingsFile()
+  } catch (error) {
+    current[key] = previous
+    throw error
   }
 }
 

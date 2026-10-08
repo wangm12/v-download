@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { syncLanguageFromSettings } from '@/i18n'
 import type { SettingsData } from '@/types'
 
@@ -49,16 +49,19 @@ const DEFAULT_SETTINGS: SettingsData = {
 
 export function useSettings() {
   const [settings, setSettings] = useState<SettingsData>(DEFAULT_SETTINGS)
+  const readVersionRef = useRef(0)
 
   const loadSettings = useCallback(() => {
     if (typeof window === 'undefined' || !window.api) return
-    window.api.getSettings().then((res) => {
+    const requestVersion = ++readVersionRef.current
+    void window.api.getSettings().then((res) => {
+      if (requestVersion !== readVersionRef.current) return
       const data = ((res as { data?: SettingsData }).data ?? res) as SettingsData
       if (data) {
         setSettings((prev) => ({ ...prev, ...data }))
         if (data.uiLanguage) syncLanguageFromSettings(data.uiLanguage)
       }
-    })
+    }).catch(() => undefined)
   }, [])
 
   useEffect(() => {

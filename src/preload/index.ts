@@ -140,6 +140,7 @@ const api = {
     return () => ipcRenderer.removeListener('focus-download', sub)
   },
   onSessionInterrupted: (callback: (payload: { count: number; ids: string[] }) => void) => {
+    let active = true
     const sub = (_event: Electron.IpcRendererEvent, payload: unknown) => {
       const parsed = parseSessionInterrupted(payload)
       if (!parsed) return
@@ -149,9 +150,14 @@ const api = {
     ipcRenderer.on('session-interrupted', sub)
     if (lastSessionInterrupted) {
       const snapshot = lastSessionInterrupted
-      queueMicrotask(() => callback(snapshot))
+      queueMicrotask(() => {
+        if (active) callback(snapshot)
+      })
     }
-    return () => ipcRenderer.removeListener('session-interrupted', sub)
+    return () => {
+      active = false
+      ipcRenderer.removeListener('session-interrupted', sub)
+    }
   },
   douyinProfileListPosts: (
     profileUrl: string,

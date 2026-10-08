@@ -1,16 +1,16 @@
 {
-  "name": "V-Download Black and White Redesign Tokens",
-  "mode": "monochrome",
+  "name": "V-Download Desktop UI Tokens",
+  "mode": "semantic-grayscale",
   "color": {
     "background": {
-      "app": "#050505",
-      "window": "#0B0B0B",
-      "sidebar": "#0D0D0D"
+      "app": "#101114",
+      "window": "#101114",
+      "sidebar": "#15161A"
     },
     "surface": {
-      "base": "#111111",
-      "raised": "#161616",
-      "elevated": "#1C1C1C",
+      "base": "#1C1F25",
+      "raised": "#22252C",
+      "elevated": "#292D35",
       "control": "rgba(255,255,255,0.055)"
     },
     "border": {
@@ -19,10 +19,10 @@
       "focus": "rgba(255,255,255,0.34)"
     },
     "text": {
-      "primary": "#FFFFFF",
-      "secondary": "#A4A4A4",
-      "tertiary": "#707070",
-      "inverse": "#050505"
+      "primary": "#F4F4F6",
+      "secondary": "#A4A9B4",
+      "tertiary": "#838A97",
+      "inverse": "#101114"
     },
     "accent": {
       "primary": "#FFFFFF",
@@ -30,28 +30,12 @@
       "subtle": "rgba(255,255,255,0.10)"
     },
     "state": {
-      "active": {
-        "bg": "rgba(255,255,255,0.12)",
-        "text": "#FFFFFF",
-        "border": "rgba(255,255,255,0.18)"
-      },
-      "complete": {
-        "bg": "rgba(255,255,255,0.10)",
-        "text": "#FFFFFF",
-        "border": "rgba(255,255,255,0.16)"
-      },
-      "queued": {
-        "bg": "rgba(255,255,255,0.07)",
-        "text": "#FFFFFF",
-        "border": "rgba(255,255,255,0.14)"
-      },
-      "error": {
-        "bg": "rgba(255,255,255,0.13)",
-        "text": "#FFFFFF",
-        "border": "rgba(255,255,255,0.22)",
-        "borderStyle": "dashed"
-      }
-    }
+      "success": "#4ADE80",
+      "warning": "#FBBF24",
+      "error": "#F87171",
+      "info": "#60A5FA"
+    },
+    "selection": "#292D35"
   },
   "typography": {
     "family": "-apple-system, BlinkMacSystemFont, SF Pro Text, Inter, Segoe UI, Roboto, Helvetica, Arial, Noto Sans CJK SC, sans-serif",
@@ -68,12 +52,12 @@
     },
     "sectionTitle": {
       "size": 15,
-      "weight": 850,
+      "weight": 600,
       "lineHeight": 20
     },
     "rowTitle": {
       "size": 14,
-      "weight": 800,
+      "weight": 600,
       "lineHeight": 19
     },
     "body": {
@@ -111,7 +95,7 @@
   },
   "shadow": {
     "window": "0 22px 70px rgba(0,0,0,0.58)",
-    "modal": "0 34px 90px rgba(0,0,0,0.62)",
+    "modal": "0 12px 40px rgba(0,0,0,0.24)",
     "accent": "none"
   },
   "layout": {
@@ -123,5 +107,21 @@
     "inspectorWidth": 328,
     "titlebarHeight": 52,
     "rowHeight": 98
+  },
+  "light": {
+    "background": {
+      "window": "#FAFAFA",
+      "sidebar": "#F1F2F4"
+    },
+    "surface": "#FFFFFF",
+    "selection": "#E8EBEF",
+    "text": {
+      "primary": "#171717",
+      "secondary": "#666A73"
+    },
+    "action": {
+      "background": "#171717",
+      "text": "#FFFFFF"
+    }
   }
 }

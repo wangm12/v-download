@@ -1,0 +1,144 @@
+{
+  "mainMinimum": [
+    900,
+    480
+  ],
+  "compactMinimum": [
+    320,
+    420
+  ],
+  "dialogs": [
+    {
+      "screen": "gallery",
+      "dialogBottom": 464,
+      "footerBottom": 463,
+      "primaryBottom": 447,
+      "primaryText": "下載圖片",
+      "viewport": [
+        900,
+        480
+      ]
+    },
+    {
+      "screen": "note",
+      "dialogBottom": 422.25,
+      "footerBottom": 421.25,
+      "primaryBottom": 405.25,
+      "primaryText": "儲存筆記",
+      "viewport": [
+        900,
+        480
+      ]
+    },
+    {
+      "screen": "collection",
+      "dialogBottom": 464,
+      "footerBottom": 463,
+      "primaryBottom": 415,
+      "primaryText": "下載所選（0）",
+      "viewport": [
+        900,
+        480
+      ]
+    },
+    {
+      "screen": "onboarding",
+      "dialogBottom": 430.5,
+      "footerBottom": 429.5,
+      "primaryBottom": 413.5,
+      "primaryText": "繼續",
+      "viewport": [
+        900,
+        480
+      ]
+    },
+    {
+      "screen": "clear",
+      "dialogBottom": 359,
+      "primaryBottom": 250,
+      "primaryText": "移除已完成任務",
+      "viewport": [
+        900,
+        480
+      ]
+    },
+    {
+      "screen": "delete",
+      "dialogBottom": 316.375,
+      "primaryBottom": 295.375,
+      "primaryText": "從列表移除",
+      "viewport": [
+        900,
+        480
+      ]
+    },
+    {
+      "screen": "playlist-delete",
+      "dialogBottom": 374.375,
+      "primaryBottom": 265.375,
+      "primaryText": "僅從列表移除",
+      "viewport": [
+        900,
+        480
+      ]
+    }
+  ],
+  "preferences": [
+    {
+      "page": "一般",
+      "heading": "一般",
+      "untranslatedKeys": []
+    },
+    {
+      "page": "下載",
+      "heading": "下載",
+      "untranslatedKeys": []
+    },
+    {
+      "page": "瀏覽器",
+      "heading": "瀏覽器",
+      "untranslatedKeys": []
+    },
+    {
+      "page": "網站",
+      "heading": "網站",
+      "untranslatedKeys": []
+    },
+    {
+      "page": "MCP",
+      "heading": "MCP",
+      "untranslatedKeys": []
+    },
+    {
+      "page": "進階",
+      "heading": "進階",
+      "untranslatedKeys": []
+    }
+  ],
+  "keyboard": {
+    "profileRange": 3,
+    "profileSelectAll": 77,
+    "collectionAdditive": 2,
+    "collectionRowExclusive": 1,
+    "collectionRange": 3,
+    "formatArrowKeys": true,
+    "tabCycleClosedDetails": true,
+    "escapeRestoresOpener": true,
+    "nativeMoreMenuEnterEscapeAndFocusRestore": true
+  },
+  "states": [
+    "loading",
+    "empty",
+    "partial",
+    "restricted",
+    "complete",
+    "initial-error",
+    "download-error"
+  ],
+  "fixture": "Independent in-memory APIs using production components; no user IPC or files.",
+  "nativeProfileLoaded": 77,
+  "originalPreferencesRestored": {
+    "language": "system",
+    "theme": "dark"
+  }
+}

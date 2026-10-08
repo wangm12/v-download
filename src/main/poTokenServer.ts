@@ -1,7 +1,9 @@
-import { spawn, type ChildProcess } from 'child_process'
+import type { ChildProcess } from 'child_process'
 import { existsSync } from 'fs'
 import { join } from 'path'
 import { createServer, request, type Server } from 'http'
+import { terminateDownloadProcess } from './downloadTypes'
+import { spawnManagedProcess } from './managedChildProcesses'
 
 export interface PoTokenProvider { baseUrl: string; extractorArgs: string; pluginDir: string }
 export type PoTokenProviderStatus = 'ready' | 'unavailable'
@@ -11,9 +13,11 @@ const HOST = '127.0.0.1'
 // bgutil-pot-provider-rs v0.8.x exposes `server` and GET /ping.
 const STARTUP_TIMEOUT_MS = 2500
 let child: ChildProcess | null = null
+let childClose: Promise<void> | null = null
+let childError: Error | null = null
 let reservation: Server | null = null
 let port = 0
-let startPromise: Promise<PoTokenProviderResult> | null = null
+let ensurePromise: Promise<PoTokenProviderResult> | null = null
 let restartUsed = false
 let initialized = false
 let activeResult: PoTokenProviderResult | null = null
@@ -69,16 +73,14 @@ function healthCheck(): Promise<boolean> {
 
 async function cleanupChild(): Promise<void> {
   const current = child; child = null
+  const close = childClose
+  childClose = null
   await closeReservation()
   port = 0
   if (!current) return
-  await new Promise<void>((resolve) => {
-    let done = false
-    const finish = () => { if (!done) { done = true; resolve() } }
-    current.once('close', finish)
-    try { current.kill('SIGTERM') } catch { finish() }
-    setTimeout(() => { try { current.kill('SIGKILL') } catch {} ; finish() }, 1000)
-  })
+  const groupStopped = await terminateDownloadProcess(current, true)
+  if (!groupStopped) console.warn('[po-token] provider process group remained visible after SIGKILL escalation')
+  await close
 }
 
 async function startProvider(): Promise<PoTokenProviderResult> {
@@ -90,10 +92,18 @@ async function startProvider(): Promise<PoTokenProviderResult> {
   if (!plugins) return { status: 'unavailable', reason: 'provider plugin tree is not installed' }
   try { port = await reservePort(); await closeReservation() } catch { await cleanupChild(); return { status: 'unavailable', reason: 'no loopback port available' } }
   if (stopping) { await cleanupChild(); return { status: 'unavailable', reason: 'provider shutdown requested' } }
-  child = spawn(executable, ['server', '--host', HOST, '--port', String(port)], { stdio: 'ignore', windowsHide: true })
+  child = spawnManagedProcess(executable, ['server', '--host', HOST, '--port', String(port)], {
+    stdio: 'ignore',
+    windowsHide: true,
+    detached: process.platform !== 'win32'
+  })
+  const spawned = child
+  childError = null
+  childClose = new Promise<void>((resolve) => spawned.once('close', () => resolve()))
+  spawned.on('error', (error) => { childError = error })
   const deadline = Date.now() + STARTUP_TIMEOUT_MS
   while (Date.now() < deadline) {
-    if (child.exitCode !== null) break
+    if (childError || child.exitCode !== null) break
     if (await healthCheck()) return { status: 'ready', provider: { baseUrl: `http://${HOST}:${port}`, extractorArgs: `youtubepot-bgutilhttp:base_url=http://${HOST}:${port}`, pluginDir: plugins } }
     await new Promise((resolve) => setTimeout(resolve, 50))
   }
@@ -102,26 +112,63 @@ async function startProvider(): Promise<PoTokenProviderResult> {
 }
 
 export function ensurePoTokenProvider(): Promise<PoTokenProviderResult> {
-  if (activeResult?.status === 'ready' && child && child.exitCode === null) {
-    return healthCheck().then(async (healthy) => {
-      if (healthy) return activeResult!
-      await cleanupChild(); activeResult = null
-      if (!restartUsed) { restartUsed = true; const restartedResult = await startProvider(); if (restartedResult.status === 'ready') activeResult = restartedResult; return restartedResult }
-      return { status: 'unavailable', reason: 'provider health check failed' }
-    })
-  }
-  if (!startPromise) startPromise = startProvider().then(async (result) => {
-    if (result.status === 'ready') activeResult = result
-    if (result.status === 'unavailable' && existsSync(providerPath()) && !restartUsed) { restartUsed = true; const retry = await startProvider(); if (retry.status === 'ready') activeResult = retry; return retry }
+  if (stopping) return Promise.resolve({ status: 'unavailable', reason: 'provider shutdown requested' })
+  if (!ensurePromise) ensurePromise = (async (): Promise<PoTokenProviderResult> => {
+    const unavailableForShutdown = (): PoTokenProviderResult => ({ status: 'unavailable', reason: 'provider shutdown requested' })
+    const currentResult = activeResult
+    const currentChild = child
+
+    if (currentResult?.status === 'ready' && currentChild && currentChild.exitCode === null) {
+      const healthy = await healthCheck()
+      if (stopping) return unavailableForShutdown()
+      if (child !== currentChild || activeResult !== currentResult) {
+        return activeResult ?? { status: 'unavailable', reason: 'provider changed during health check' }
+      }
+      if (healthy) return currentResult
+
+      await cleanupChild()
+      activeResult = null
+      if (stopping) return unavailableForShutdown()
+      if (restartUsed) return { status: 'unavailable', reason: 'provider health check failed' }
+      restartUsed = true
+    } else {
+      // A child that exited between requests must be reaped before a replacement
+      // reserves a new port or updates the active provider result. Clear a stale
+      // ready result too, including the unlikely case where child was already null.
+      if (currentChild) await cleanupChild()
+      activeResult = null
+      if (stopping) return unavailableForShutdown()
+    }
+
+    let result = await startProvider()
+    if (stopping) {
+      await cleanupChild()
+      activeResult = null
+      return unavailableForShutdown()
+    }
+
+    if (result.status === 'unavailable' && existsSync(providerPath()) && !restartUsed) {
+      restartUsed = true
+      result = await startProvider()
+      if (stopping) {
+        await cleanupChild()
+        activeResult = null
+        return unavailableForShutdown()
+      }
+    }
+
+    if (result.status === 'ready' && child && child.exitCode === null) activeResult = result
+    else if (result.status === 'ready') result = { status: 'unavailable', reason: 'provider exited during startup' }
     return result
-  }).finally(() => { startPromise = null })
-  return startPromise
+  })().finally(() => { ensurePromise = null })
+  return ensurePromise!
 }
 
 export async function stopPoTokenServer(): Promise<void> {
   stopping = true
-  const pending = startPromise
+  const pending = ensurePromise
   if (pending) await pending.catch(() => undefined)
   await cleanupChild()
-  activeResult = null; restartUsed = false; initialized = false; startPromise = null; stopping = false
+  activeResult = null
+  initialized = false
 }

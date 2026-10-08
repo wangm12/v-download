@@ -9,11 +9,12 @@
   const URL_ATTR = "data-vdl-x-url";
   const ROOT_ATTR = "data-vdl-x-overlay-root";
   const INSTANCE_KEY = "__vdlXContentInstance";
+  const MAX_SCAN_DELAY_MS = 120;
   const SVG_DOWNLOAD = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
 
   if (globalThis[INSTANCE_KEY]?.teardown) globalThis[INSTANCE_KEY].teardown();
   const registry = new Map();
-  let scanFrame = 0;
+  let scanTimer = 0;
   let safetyTimer = 0;
   let stopped = false;
   let beforeUnloadHandler = null;
@@ -26,9 +27,15 @@
     for (const link of article?.querySelectorAll('a[href*="/status/"]') || []) {
       try {
         const u = new URL(link.href);
+        const host = u.hostname.toLowerCase();
+        if (!(host === "x.com" || host.endsWith(".x.com") || host === "twitter.com" || host.endsWith(".twitter.com"))) continue;
         const id = statusId(u.pathname);
-        if (id)
-          return `https://${u.hostname}/${u.pathname.split("/")[1]}/status/${id}`;
+        if (id) {
+          const statusPath = /^\/i\/web\/status\//i.test(u.pathname)
+            ? `/i/web/status/${id}`
+            : `/${u.pathname.split("/")[1]}/status/${id}`;
+          return `https://${u.hostname}${statusPath}`;
+        }
       } catch {}
     }
     return null;
@@ -36,7 +43,13 @@
   function isStatusPage() {
     return PL
       ? PL.isXStatusPage()
-      : /\/(x|twitter)\.com\/[^/]+\/status\/\d+/.test(location.href);
+      : (() => {
+          try {
+            return /^(?:\/[^/]+\/status\/\d+|\/i\/web\/status\/\d+)(?:\/|$)/.test(new URL(location.href).pathname);
+          } catch {
+            return false;
+          }
+        })();
   }
   function getPageType() {
     return isStatusPage() ? "statusDetail" : "timeline";
@@ -192,7 +205,7 @@
     }
   }
   function reconcile() {
-    scanFrame = 0;
+    scanTimer = 0;
     if (stopped) return;
     cleanup();
     const candidates = [
@@ -239,7 +252,11 @@
     }
   }
   function schedule() {
-    if (!scanFrame) scanFrame = requestAnimationFrame(reconcile);
+    if (scanTimer) return;
+    scanTimer = setTimeout(() => {
+      scanTimer = 0;
+      reconcile();
+    }, MAX_SCAN_DELAY_MS);
   }
   function init() {
     const observer = new MutationObserver(schedule);
@@ -275,7 +292,8 @@
     const teardown = () => {
       stopped = true;
       observer.disconnect();
-      cancelAnimationFrame(scanFrame);
+      clearTimeout(scanTimer);
+      scanTimer = 0;
       clearTimeout(safetyTimer);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);

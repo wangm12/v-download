@@ -1,7 +1,5 @@
-import { createWriteStream, mkdirSync, writeFileSync } from 'fs'
+import { mkdirSync } from 'fs'
 import { dirname, join, resolve } from 'path'
-import { pipeline } from 'stream/promises'
-import { Readable } from 'stream'
 import { sanitizeDownloadBasename } from './sanitizeDownloadBasename'
 import {
   downloadUrlWithDouyinSession,
@@ -27,7 +25,7 @@ import {
 import { buildDouyinCookieHeader, resolveDouyinCookieContext } from './browserCookies'
 import { getCachedProfileAwemeItem } from './douyinProfileAwemeCache'
 import { buildSignedAwemeDetailUrl } from './douyinProfileSign'
-import { delayWithAbort, fetchWithTimeout } from './httpClient'
+import { delayWithAbort, fetchWithTimeout, readResponseText, streamResponseToFile } from './httpClient'
 import { resolveDouyinInfoViaExtension } from './douyinResolveExtension'
 
 const DETAIL_API_RETRY_DELAYS_MS = [1000, 2000, 5000]
@@ -117,11 +115,7 @@ async function resolveShortUrl(
     },
     { proxyUrl: options?.proxyUrl }
   )
-  try {
-    await res.arrayBuffer()
-  } catch {
-    /* ignore */
-  }
+  await res.body?.cancel().catch(() => undefined)
   return res.url
 }
 
@@ -780,7 +774,11 @@ async function fetchAwemeDetailItem(
       let status = 200
 
       if (options?.viaHydrateSession) {
-        bodyText = await fetchTextWithDouyinSession(url, cookiesFilePath)
+        bodyText = await fetchTextWithDouyinSession(url, cookiesFilePath, {
+          signal: options?.signal,
+          timeoutMs: 20_000,
+          maxBytes: 16 * 1024 * 1024,
+        })
       } else {
         const cookieHeader =
           cookieCtx.header ?? (await buildDouyinCookieHeader(cookiesFilePath)) ?? undefined
@@ -797,7 +795,7 @@ async function fetchAwemeDetailItem(
           signal: options?.signal,
         }, { proxyUrl: options?.proxyUrl })
         status = res.status
-        bodyText = await res.text()
+        bodyText = await readResponseText(res, { timeoutMs: 20_000, maxBytes: 16 * 1024 * 1024, signal: options?.signal })
         if (!res.ok) {
           console.warn(`[douyin] aweme/detail API HTTP ${res.status} for ${awemeId}`)
           if (status === 429 || status >= 500 || !bodyText.trim()) continue
@@ -1361,7 +1359,10 @@ export async function downloadDouyinVideo(
   for (const url of urls) {
     throwIfDouyinAborted(options?.signal)
     try {
-      await downloadUrlWithDouyinSession(url, outputPath, cookiesFilePath, onProgress)
+      await downloadUrlWithDouyinSession(url, outputPath, cookiesFilePath, onProgress, {
+        signal: options?.signal,
+        idleTimeoutMs: 30_000,
+      })
       console.log(`[douyin] Download complete (Chromium session)`)
       return outputPath
     } catch (e) {
@@ -1384,18 +1385,12 @@ export async function downloadDouyinVideo(
       }
 
       const contentLength = Number(res.headers.get('content-length') ?? 0)
-      const fileStream = createWriteStream(outputPath)
       const reporter = createDouyinDownloadProgressReporter(contentLength, onProgress)
-
-      const transform = new TransformStream({
-        transform(chunk: Uint8Array, controller: TransformStreamDefaultController<Uint8Array>) {
-          reporter.addBytes(chunk.byteLength)
-          controller.enqueue(chunk)
-        },
+      await streamResponseToFile(res, outputPath, {
+        signal: options?.signal,
+        idleTimeoutMs: 30_000,
+        onChunk: (bytes) => reporter.addBytes(bytes),
       })
-
-      const readable = Readable.fromWeb(res.body.pipeThrough(transform as any) as any)
-      await pipeline(readable, fileStream)
 
       console.log(`[douyin] Download complete: ${(contentLength > 0 ? contentLength / 1024 / 1024 : 0).toFixed(1)} MB`)
       return outputPath
@@ -1438,8 +1433,9 @@ async function fetchWith429Backoff(
     let ms = 3000
     if (ra) {
       const sec = parseInt(ra, 10)
-      if (Number.isFinite(sec) && sec > 0 && sec < 3600) ms = sec * 1000
+      if (Number.isFinite(sec) && sec > 0 && sec <= 60) ms = sec * 1000
     }
+    await res.body?.cancel().catch(() => undefined)
     await delayWithAbort(ms, init.signal)
     res = await fetchWithTimeout(url, init, { timeoutMs: 30_000, proxyUrl })
   }
@@ -1468,6 +1464,11 @@ export async function downloadDouyinImageGallery(
       : ''
 
   const n = imageUrls.length
+  const controller = new AbortController()
+  const abortFromParent = () => controller.abort()
+  if (options?.signal?.aborted) controller.abort()
+  else options?.signal?.addEventListener('abort', abortFromParent, { once: true })
+  let failure: unknown
   const headers = {
     'User-Agent': DESKTOP_UA,
     Referer: 'https://www.douyin.com/',
@@ -1483,33 +1484,49 @@ export async function downloadDouyinImageGallery(
 
   let cursor = 0
   async function worker(): Promise<void> {
-    while (true) {
-      throwIfDouyinAborted(options?.signal)
-      const idx = cursor++
-      if (idx >= n) break
-      const url = imageUrls[idx]
-      const i = idx + 1
-      const res = await fetchWith429Backoff(url, {
-        headers,
-        redirect: 'follow',
-        signal: options?.signal,
-      }, options?.proxyUrl)
-      if (!res.ok) {
-        throw new Error(`Media ${i} failed: ${res.status} ${res.statusText}`)
+    try {
+      while (true) {
+        throwIfDouyinAborted(controller.signal)
+        const idx = cursor++
+        if (idx >= n) break
+        const url = imageUrls[idx]
+        const i = idx + 1
+        const res = await fetchWith429Backoff(url, {
+          headers,
+          redirect: 'follow',
+          signal: controller.signal,
+        }, options?.proxyUrl)
+        if (!res.ok) {
+          await res.body?.cancel().catch(() => undefined)
+          throw new Error(`Media ${i} failed: ${res.status} ${res.statusText}`)
+        }
+        const ext = extFromImageUrl(url, res.headers.get('content-type') ?? '')
+        const dest = join(subDir, `${String(i).padStart(3, '0')}.${ext}`)
+        const bytes = await streamResponseToFile(res, dest, {
+          signal: controller.signal,
+          idleTimeoutMs: 30_000,
+          maxBytes: 128 * 1024 * 1024,
+        })
+        if (bytes < 64) {
+          throw new Error(`Media ${i} response too small`)
+        }
+        bump()
       }
-      const ext = extFromImageUrl(url, res.headers.get('content-type') ?? '')
-      const dest = join(subDir, `${String(i).padStart(3, '0')}.${ext}`)
-      const buf = Buffer.from(await res.arrayBuffer())
-      if (buf.length < 64) {
-        throw new Error(`Media ${i} response too small`)
-      }
-      writeFileSync(dest, buf)
-      bump()
+    } catch (error) {
+      if (failure === undefined) failure = error
+      controller.abort()
+      throw error
     }
   }
 
   const pool = Math.min(GALLERY_IMAGE_PARALLEL, n)
-  await Promise.all(Array.from({ length: pool }, () => worker()))
+  try {
+    await Promise.allSettled(Array.from({ length: pool }, () => worker()))
+    if (failure !== undefined) throw failure
+    throwIfDouyinAborted(options?.signal)
+  } finally {
+    options?.signal?.removeEventListener('abort', abortFromParent)
+  }
 
   if (onProgress) onProgress(100)
   return subDir

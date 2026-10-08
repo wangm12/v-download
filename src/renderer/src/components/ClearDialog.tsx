@@ -1,6 +1,7 @@
-import { AlertTriangle, CircleCheck, Trash2 } from 'lucide-react'
+import { CircleCheck, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useDialogFocus } from '@/hooks/useDialogFocus'
+import { DialogShell } from './ui'
 
 interface ClearDialogProps {
   onClose: () => void
@@ -23,25 +24,22 @@ export function ClearDialog({ onClose, onClearCompleted, onClearAll }: ClearDial
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       onClick={onClose}
       role="presentation"
     >
-      <div
+      <DialogShell
         ref={dialogRef}
         tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby="clear-dialog-title"
         aria-describedby="clear-dialog-description"
-        className="w-[340px] rounded-panel bg-background p-6 shadow-2xl ring-1 ring-inset ring-divider-strong"
+        className="max-w-[400px] p-5"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex flex-col items-center text-center mb-6">
-          <div className="w-12 h-12 rounded-full bg-state-error-bg text-foreground flex items-center justify-center mb-4">
-            <AlertTriangle className="w-6 h-6" />
-          </div>
-          <h2 id="clear-dialog-title" className="text-lg font-semibold text-foreground mb-2">{t('clear.title')}</h2>
+        <div className="mb-5">
+          <h2 id="clear-dialog-title" className="text-base font-semibold text-foreground mb-2">{t('clear.title')}</h2>
           <p id="clear-dialog-description" className="text-sm text-muted-foreground">
             {t('clear.description')}
           </p>
@@ -51,7 +49,7 @@ export function ClearDialog({ onClose, onClearCompleted, onClearAll }: ClearDial
           <button
             type="button"
             onClick={handleClearCompleted}
-            className="w-full min-h-11 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-action text-action-fg font-medium hover:bg-action-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+            className="v-button-primary w-full"
           >
             <CircleCheck className="w-4 h-4" />
             {t('clear.removeCompleted')}
@@ -59,7 +57,7 @@ export function ClearDialog({ onClose, onClearCompleted, onClearAll }: ClearDial
           <button
             type="button"
             onClick={handleClearAll}
-            className="w-full min-h-11 flex items-center justify-center gap-2 py-2.5 rounded-button border border-dashed border-border-strong bg-control text-foreground font-medium hover:bg-surface-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+            className="v-button-secondary w-full"
           >
             <Trash2 className="w-4 h-4" />
             {t('clear.removeAll')}
@@ -67,12 +65,12 @@ export function ClearDialog({ onClose, onClearCompleted, onClearAll }: ClearDial
           <button
             type="button"
             onClick={onClose}
-            className="w-full min-h-11 py-2.5 rounded-lg bg-control text-foreground font-medium hover:bg-state-active-bg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+            className="v-button-ghost w-full"
           >
             {t('clear.cancel')}
           </button>
         </div>
-      </div>
+      </DialogShell>
     </div>
   )
 }

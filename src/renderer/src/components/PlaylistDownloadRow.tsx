@@ -13,6 +13,8 @@ import {
 import type { Download } from '@/types'
 import { useDownloadActions } from '@/contexts/DownloadActionsContext'
 import { ActionButton } from './ActionButton'
+import { ActionMenu } from './ui/ActionMenu'
+import { useTranslation } from 'react-i18next'
 import { ThumbnailImage } from './ThumbnailImage'
 import { formatFileSize } from '@/utils/format'
 import { cn } from '@/lib/cn'
@@ -38,6 +40,7 @@ export const PlaylistDownloadRow = memo(function PlaylistDownloadRow({
   className,
   style
 }: PlaylistDownloadRowProps) {
+  const { t } = useTranslation()
   const actions = useDownloadActions()
 
   return (
@@ -63,7 +66,7 @@ export const PlaylistDownloadRow = memo(function PlaylistDownloadRow({
         aria-selected={selected}
         onClick={(event) => onSelectDownload(d.id, event)}
         className="flex min-w-0 flex-1 items-center gap-3 rounded-md py-1 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
-        aria-label={`${selected ? 'Selected' : 'Select'} ${d.title}; status ${d.status}`}
+        aria-label={`${t('ui.chooseNamed', { title: d.title })}; ${t(`status.${d.status}`)}`}
       >
         {d.thumbnail ? (
           <ThumbnailImage
@@ -106,24 +109,12 @@ export const PlaylistDownloadRow = memo(function PlaylistDownloadRow({
       >
         {d.status === 'downloading' && (
           <>
-            <ActionButton icon={Pause} title="Pause" size="sm" onClick={() => actions.pause(d.id)} />
-            <ActionButton
-              icon={Trash2}
-              title="Delete with files"
-              size="sm"
-              onClick={() => actions.removeWithFiles(d.id)}
-            />
+            <ActionButton icon={Pause} title={t('queue.pause')} size="sm" onClick={() => actions.pause(d.id)} />
           </>
         )}
         {d.status === 'paused' && (
           <>
-            <ActionButton icon={Play} title="Resume" size="sm" onClick={() => actions.retry(d.id)} />
-            <ActionButton
-              icon={Trash2}
-              title="Delete with files"
-              size="sm"
-              onClick={() => actions.removeWithFiles(d.id)}
-            />
+            <ActionButton icon={Play} title={t('queue.resume')} size="sm" onClick={() => actions.retry(d.id)} />
           </>
         )}
         {d.status === 'complete' && (
@@ -131,26 +122,25 @@ export const PlaylistDownloadRow = memo(function PlaylistDownloadRow({
             {d.file_path && (
               <ActionButton
                 icon={FolderOpen}
-                title={folderActionLabel}
+                title={t(folderActionLabel === 'Reveal in Finder' ? 'inspector.revealFinder' : 'inspector.revealFolder')}
                 size="sm"
                 onClick={() => actions.openFolder(d.file_path!)}
               />
             )}
-            <ActionButton
-              icon={DownloadAgainIcon}
-              title="Download again"
-              size="sm"
-              onClick={() => actions.downloadAgain(d)}
-            />
-            <ActionButton icon={Trash2} title="Remove" size="sm" onClick={() => actions.remove(d.id)} />
+            <ActionMenu actions={[
+              { label: t('queue.downloadAgain'), icon: <DownloadAgainIcon className="h-4 w-4" />, onSelect: () => actions.downloadAgain(d) },
+              { label: t('queue.removeFromList'), icon: <Trash2 className="h-4 w-4" />, onSelect: () => actions.remove(d.id), destructive: true }
+            ]} />
           </>
         )}
         {(d.status === 'interrupted' || d.status === 'error' || d.status === 'cancelled') && (
           <>
-            <ActionButton icon={RotateCcw} title="Retry" size="sm" onClick={() => actions.retry(d.id)} />
-            <ActionButton icon={Trash2} title="Remove" size="sm" onClick={() => actions.remove(d.id)} />
+            <ActionButton icon={RotateCcw} title={t('common.retry')} size="sm" onClick={() => actions.retry(d.id)} />
           </>
         )}
+        {['downloading', 'paused', 'interrupted', 'error', 'cancelled'].includes(d.status) && <ActionMenu actions={[
+          { label: t(['downloading', 'paused'].includes(d.status) ? 'queue.deleteWithFiles' : 'queue.removeFromList'), icon: <Trash2 className="h-4 w-4" />, onSelect: () => ['downloading', 'paused'].includes(d.status) ? actions.removeWithFiles(d.id) : actions.remove(d.id), destructive: true }
+        ]} />}
       </div>
     </div>
   )

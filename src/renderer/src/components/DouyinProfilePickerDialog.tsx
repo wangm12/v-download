@@ -1,25 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import {
-  ArrowDownToLine,
-  Check,
-  CheckSquare,
-  ChevronRight,
-  Download,
-  FolderOpen,
-  Info,
-  ListFilter,
-  Loader2,
-  Square,
-  X
-} from 'lucide-react'
+import { Check, CheckSquare, ChevronDown, Download, ExternalLink, Info, Loader2, Square, X } from 'lucide-react'
 import type { QueueNotice } from '@v-download/shared'
 import type { DouyinProfileListResult, DouyinProfilePostRow, SettingsData } from '@/types'
 import { cn } from '@/lib/cn'
-import { applyProfilePickerClick, mergeProfilePosts, profilePickerStatus, selectedProfileCount } from './douyinProfilePickerState'
+import { applyProfilePickerClick, mergeProfilePosts, selectedProfileCount } from './douyinProfilePickerState'
 import { clearSelection, isSelectAllShortcut, selectAllInOrder } from '@/utils/selection'
 import { AnimatedList } from './reactbits/AnimatedList'
 import { useTranslation } from 'react-i18next'
 import { DialogShell } from './ui'
+import { useDialogFocus } from '@/hooks/useDialogFocus'
+import { formatDuration } from '@/utils/format'
+import { ThumbnailImage } from './ThumbnailImage'
 
 const MAX_LOAD_ALL_PAGES = 50
 const MAX_LOAD_ALL_ITEMS = 2000
@@ -48,54 +39,23 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose, onQue
   const [loadAllBusy, setLoadAllBusy] = useState(false)
   const [loadAllNote, setLoadAllNote] = useState('')
   const [listWarning, setListWarning] = useState('')
+  const [listRestricted, setListRestricted] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [selectionAnchor, setSelectionAnchor] = useState<string | null>(null)
   const loadAbortRef = useRef<{ key: string; abort: () => void } | null>(null)
   const cancelRequestedRef = useRef(false)
-  const dialogRef = useRef<HTMLDivElement>(null)
-  const closeRef = useRef<HTMLButtonElement>(null)
-  const openerRef = useRef<HTMLElement | null>(null)
+  const dialogRef = useDialogFocus<HTMLDivElement>(onClose)
 
   const profileLabel = useMemo(() => {
     const a = items.find((r) => r.author?.trim())?.author?.trim()
     return a ?? ''
   }, [items])
 
-  const activeActivity = loading ? 'loading' : loadAllBusy ? 'loading-all' : browserBusy ? 'browser-import' : paginationBusy ? 'loading-page' : queueBusy ? 'queueing' : error ? 'error' : 'idle'
   const selectedCount = selectedProfileCount(selected, items)
-  const countSummary = profilePickerStatus(activeActivity, Boolean(hasMore && nextCursor), items.length)
   const listBusy = paginationBusy || queueBusy || loadAllBusy || browserBusy
   const pageActionsDisabled = listBusy || loading
   const canLoadMore = Boolean(hasMore && nextCursor) && !pageActionsDisabled
 
-  useEffect(() => {
-    openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    closeRef.current?.focus()
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        onClose()
-      }
-      if (event.key === 'Tab' && dialogRef.current) {
-        const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'))
-        if (focusable.length === 0) return
-        const first = focusable[0]
-        const last = focusable[focusable.length - 1]
-        if (event.shiftKey && document.activeElement === first) {
-          event.preventDefault()
-          last.focus()
-        } else if (!event.shiftKey && document.activeElement === last) {
-          event.preventDefault()
-          first.focus()
-        }
-      }
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => {
-      document.removeEventListener('keydown', onKeyDown)
-      openerRef.current?.focus()
-    }
-  }, [onClose])
 
   const callList = useCallback(
     async (
@@ -123,6 +83,7 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose, onQue
       setLoading(true)
       setError('')
       setListWarning('')
+      setListRestricted(false)
       setItems([])
       setNextCursor(null)
       setHasMore(false)
@@ -178,6 +139,7 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose, onQue
       })
       setNextCursor(d.cursor)
       setHasMore(d.hasMore)
+      setListRestricted(false)
       if (d.warnings?.length) setListWarning(d.warnings.join(' '))
     } catch (e) {
       setListWarning('')
@@ -219,10 +181,12 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose, onQue
       })
       setNextCursor(d.cursor)
       setHasMore(d.hasMore)
+      setListRestricted(false)
       if (d.warnings?.length) setListWarning(d.warnings.join(' '))
     } catch (e) {
       const code = e && typeof e === 'object' && 'code' in e ? String((e as { code?: string }).code) : ''
       if (code === 'PAGINATION_RESTRICTED') {
+        setListRestricted(true)
         setHasMore(false)
         setNextCursor(null)
       }
@@ -286,6 +250,7 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose, onQue
       const msg = e instanceof Error ? e.message : String(e)
       const code = e && typeof e === 'object' && 'code' in e ? String((e as { code?: string }).code) : ''
       if (code === 'PAGINATION_RESTRICTED') {
+        setListRestricted(true)
         setHasMore(false)
         setNextCursor(null)
       }
@@ -377,303 +342,96 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose, onQue
     }
   }
 
+  const needsRecovery = listRestricted || Boolean(error) || (!loading && items.length === 0)
+  const browserImport = (
+    <button type="button" disabled={pageActionsDisabled} onClick={() => void handleLoadInBrowser()} className="v-button-secondary" title={t('douyin.importTitle')}>
+      {browserBusy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Download className="h-4 w-4" aria-hidden />}
+      {t('douyin.importBrowser')}
+    </button>
+  )
+
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 p-4 backdrop-blur-[2px] sm:p-6">
-      <DialogShell
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="douyin-profile-picker-title"
-        className="flex max-h-[min(820px,92vh)] w-[min(960px,96vw)] flex-col bg-window shadow-[0_28px_90px_rgb(0_0_0/0.52)]"
-        onKeyDownCapture={handleDialogKeyDown}
-      >
-        <header className="flex shrink-0 items-start justify-between gap-4 border-b border-divider-subtle bg-window px-5 py-5 sm:px-6">
-          <div className="flex min-w-0 items-start gap-3">
-            <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-control text-accent ring-1 ring-inset ring-divider-subtle">
-              <ListFilter className="h-4 w-4" aria-hidden />
-            </div>
-            <div className="min-w-0">
-              <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-tertiary-foreground">
-                {t('douyin.eyebrow')}
-              </p>
-              <h2 id="douyin-profile-picker-title" className="truncate text-base font-semibold tracking-[-0.01em] text-foreground sm:text-lg">
-                {profileLabel ? t('douyin.choosePostsNamed', { name: profileLabel }) : t('douyin.choosePosts')}
-              </h2>
-              <p className="mt-1 max-w-[68ch] truncate text-xs text-muted-foreground" title={profileUrl}>
-                {profileUrl}
-              </p>
-            </div>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+      <DialogShell ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="douyin-profile-picker-title"
+        className="flex h-[min(720px,calc(100dvh-32px))] w-[min(820px,calc(100vw-32px))] flex-col outline-none" onKeyDownCapture={handleDialogKeyDown}>
+        <header className="flex shrink-0 items-start justify-between gap-3 border-b border-divider-subtle px-5 py-4">
+          <div className="min-w-0">
+            <p className="mb-1 text-xs text-muted-foreground">{t('douyin.eyebrow')}</p>
+            <h2 id="douyin-profile-picker-title" className="truncate text-base font-semibold">{profileLabel ? t('douyin.choosePostsNamed', { name: profileLabel }) : t('douyin.choosePosts')}</h2>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={t('douyin.close')}
-            title={t('common.close')}
-            ref={closeRef}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-control hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
-          >
-            <X className="h-4 w-4" aria-hidden />
-          </button>
+          <button type="button" onClick={onClose} aria-label={t('douyin.close')} className="v-button-ghost h-9 w-9 !p-0"><X className="h-4 w-4" aria-hidden /></button>
         </header>
 
-        {!loading && items.length > 0 && (
-          <div className="grid shrink-0 grid-cols-1 border-b border-divider-subtle bg-surface/60 sm:grid-cols-3 sm:divide-x sm:divide-divider-subtle">
-            <div className="flex items-center justify-between gap-4 px-5 py-3.5 sm:block sm:px-6">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-tertiary-foreground">{t('douyin.loaded')}</span>
-              <span className="text-sm font-semibold tabular-nums text-foreground sm:mt-1 sm:block">{t('douyin.postsCount', { count: items.length })}</span>
-            </div>
-            <div className="flex items-center justify-between gap-4 border-t border-divider-subtle px-5 py-3.5 sm:block sm:border-t-0 sm:px-6">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-tertiary-foreground">{t('douyin.selected')}</span>
-              <span className="text-sm font-semibold tabular-nums text-foreground sm:mt-1 sm:block">{t('douyin.selectedOf', { selected: selectedCount, total: items.length })}</span>
-            </div>
-            <div className="flex items-center justify-between gap-4 border-t border-divider-subtle px-5 py-3.5 sm:block sm:border-t-0 sm:px-6">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-tertiary-foreground">{t('douyin.availability')}</span>
-              <span role="status" className="max-w-[24ch] truncate text-sm font-medium text-foreground sm:mt-1 sm:block" title={countSummary}>
-                {hasMore ? t('douyin.moreAvailable') : t('douyin.listComplete')}
-              </span>
-            </div>
-          </div>
-        )}
-
-        <div className="flex min-h-0 flex-1 flex-col px-5 py-4 sm:px-6 sm:py-5">
+        <div className="flex min-h-0 flex-1 flex-col px-5 py-3">
           {loading ? (
-            <div role="status" aria-live="polite" className="flex min-h-[360px] flex-1 flex-col items-center justify-center gap-3 text-muted-foreground">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-control text-accent ring-1 ring-inset ring-divider-subtle">
-                <Loader2 className="h-5 w-5 animate-spin text-foreground" aria-hidden />
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-medium text-foreground">{t('douyin.loadingPosts')}</p>
-                <p className="mt-1 text-xs text-muted-foreground">{t('douyin.loadingPostsHint')}</p>
-              </div>
-            </div>
-          ) : items.length === 0 ? (
-            <div className="flex min-h-[360px] flex-1 flex-col items-center justify-center text-center">
-              {error ? (
-                <div role="alert" aria-live="assertive" className="mb-5 max-w-xl rounded-button border border-dashed border-border-strong bg-state-error-bg px-4 py-3 text-sm text-foreground">
-                  {error}
-                </div>
-              ) : null}
-              <p className="text-sm font-medium text-foreground">{t('douyin.noPosts')}</p>
-              <p className="mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">{t('douyin.noPostsHint')}</p>
+            <div role="status" aria-live="polite" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 py-6 text-center text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin" aria-hidden /><p className="text-sm">{t('douyin.loadingPosts')}</p>
             </div>
           ) : (
             <>
-              <div className="flex shrink-0 flex-col gap-4 border-b border-divider-subtle pb-4 lg:flex-row lg:items-end lg:justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-foreground">{t('douyin.chooseToQueue')}</h3>
-                    <span className="rounded-full bg-control px-2 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
-                      {t('douyin.selectedOf', { selected: selectedCount, total: items.length })}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">{t('douyin.selectHint')}</p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2" aria-label={t('douyin.selectionControls')}>
-                  <button
-                    type="button"
-                    onClick={selectAll}
-                    className="inline-flex min-h-10 items-center gap-2 rounded-button bg-control px-3 text-xs font-semibold text-foreground transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
-                  >
-                    {selectedCount === items.length ? <CheckSquare className="h-4 w-4" aria-hidden /> : <Square className="h-4 w-4" aria-hidden />}
-                    {selectedCount === items.length ? t('douyin.deselectAll') : t('douyin.selectAllLoaded')}
-                    <kbd className="hidden rounded bg-surface-hover px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground sm:inline">⌘A</kbd>
-                  </button>
-                  <button
-                    type="button"
-                    disabled={!canLoadMore}
-                    onClick={() => void handleLoadMore()}
-                    className={cn(
-                      'inline-flex min-h-10 items-center gap-1.5 rounded-button bg-control px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus',
-                      canLoadMore ? 'text-foreground hover:bg-surface-hover' : 'cursor-not-allowed text-muted-foreground/50'
-                    )}
-                  >
-                    {paginationBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : null}
-                    {paginationBusy ? t('douyin.loading') : t('douyin.loadMore')}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={!canLoadMore}
-                    onClick={() => void handleLoadAll()}
-                    className={cn(
-                      'inline-flex min-h-10 items-center gap-1.5 rounded-button bg-control px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus',
-                      canLoadMore ? 'text-foreground hover:bg-surface-hover' : 'cursor-not-allowed text-muted-foreground/50'
-                    )}
-                  >
-                    {loadAllBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : null}
-                    {loadAllBusy ? t('douyin.loadingAll') : t('douyin.loadAll')}
-                  </button>
-                </div>
+              <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 pb-3">
+                <p role="status" aria-live="polite" className={`text-xs tabular-nums ${listRestricted ? 'text-warning' : 'text-muted-foreground'}`}>
+                  {t(listRestricted ? 'ui.loadedRestricted' : error && items.length === 0 ? 'ui.loadFailed' : items.length === 0 ? 'ui.loadedEmpty' : hasMore ? 'ui.loadedPartial' : 'ui.loadedComplete', { count: items.length })}
+                </p>
+                {items.length > 0 && <button type="button" onClick={selectAll} className="v-button-ghost !min-h-8 !px-2 !py-1">
+                  {selectedCount === items.length ? <CheckSquare className="h-4 w-4" aria-hidden /> : <Square className="h-4 w-4" aria-hidden />}
+                  {t(selectedCount === items.length ? 'douyin.deselectAll' : 'douyin.selectAllLoaded')}
+                </button>}
               </div>
-
-              {(error || listWarning || loadAllNote) && (
-                <div className="mt-4 flex flex-col gap-2">
-                  {error ? (
-                    <div role="alert" aria-live="assertive" className="flex items-start gap-2 rounded-button border border-dashed border-border-strong bg-state-error-bg px-3 py-2.5 text-xs text-foreground">
-                      <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-                      <span>{error}</span>
-                    </div>
-                  ) : null}
-                  {listWarning ? (
-                    <div role="status" aria-live="polite" className="flex items-start gap-2 rounded-button bg-control px-3 py-2.5 text-xs text-muted-foreground">
-                      <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-                      <span>{listWarning}</span>
-                    </div>
-                  ) : null}
-                  {loadAllNote ? (
-                    <div role="status" className="flex items-center justify-between gap-3 rounded-lg bg-control px-3 py-2 text-xs text-muted-foreground">
-                      <span>{loadAllNote}</span>
-                      {loadAllBusy || browserBusy ? (
-                        <button type="button" onClick={cancelActiveLoad} className="shrink-0 font-semibold text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus">
-                          {t('common.cancel')}
-                        </button>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
-              )}
-
-              <div className="mt-4 flex min-h-0 flex-1 flex-col" aria-label={t('douyin.profilePosts')}>
-                <div className="flex shrink-0 items-center justify-between gap-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-tertiary-foreground">
-                  <span>{t('douyin.posts')}</span>
-                  <span className="font-medium tracking-normal">{t('douyin.loadedCount', { count: items.length })}</span>
-                </div>
-                <div className="min-h-0 flex-1 overflow-y-auto rounded-xl bg-background/70 p-1 ring-1 ring-inset ring-divider-subtle">
-                  <AnimatedList items={items} getKey={(row) => row.awemeId} animate={items.length <= 200} className="v-divider-y">
-                    {(row) => {
-                      const isOn = selected.has(row.awemeId)
-                      const mediaLabel = row.mediaType === 'gallery'
-                        ? t('douyin.images', { count: row.imageCount ?? 0 })
-                        : row.durationSec != null
-                          ? `${row.durationSec}s`
-                          : t('douyin.video')
-                      return (
-                        <button
-                          type="button"
-                          key={row.awemeId}
-                          onClick={(event) => selectPost(row.awemeId, event)}
-                          aria-pressed={isOn}
-                          className={cn(
-                            'v-list-row group grid w-full min-h-[76px] grid-cols-[auto_64px_minmax(0,1fr)_auto] items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-border-focus sm:grid-cols-[auto_72px_minmax(0,1fr)_auto]',
-                            isOn ? 'bg-selection' : 'hover:bg-surface-hover'
-                          )}
-                          data-selected={isOn}
-                        >
-                          <span
-                            className={cn(
-                              'flex h-5 w-5 items-center justify-center rounded-md bg-control text-transparent ring-1 ring-inset ring-divider-strong transition-colors',
-                              isOn ? 'bg-accent text-accent-fg ring-accent' : 'group-hover:ring-accent/55'
-                            )}
-                            aria-hidden
-                          >
-                            {isOn ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : null}
-                          </span>
-                          <div className="h-14 w-16 shrink-0 overflow-hidden rounded-lg bg-surface ring-1 ring-inset ring-divider-subtle sm:h-16 sm:w-[72px]">
-                            {row.cover ? (
-                              <img src={row.cover} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100" />
-                            ) : (
-                              <div className="h-full w-full bg-muted" />
-                            )}
-                          </div>
-                          <div className="min-w-0 self-stretch py-0.5">
-                            <p className="line-clamp-2 text-xs font-semibold leading-relaxed text-foreground sm:text-sm">{row.title}</p>
-                            <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
-                              <span className="max-w-[18ch] truncate">{row.author}</span>
-                              <span className="text-tertiary-foreground" aria-hidden>·</span>
-                              <span className="rounded bg-control px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{row.mediaType}</span>
-                              <span>{mediaLabel}</span>
-                            </div>
-                          </div>
-                          <div className="flex shrink-0 items-center gap-1 text-muted-foreground">
-                            <span className="hidden font-mono text-[10px] sm:inline" title={row.awemeId}>{row.awemeId.slice(-6)}</span>
-                            <ChevronRight className="h-4 w-4 opacity-40 transition-transform group-hover:translate-x-0.5 group-hover:opacity-80 motion-reduce:transition-none" aria-hidden />
-                          </div>
-                        </button>
-                      )
-                    }}
-                  </AnimatedList>
-                </div>
-              </div>
-
-              <div className="mt-4 flex shrink-0 flex-col gap-3 rounded-xl bg-surface/80 px-4 py-3 ring-1 ring-inset ring-divider-subtle sm:flex-row sm:items-center sm:justify-between sm:px-5">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold tabular-nums text-foreground">
-                    {selectedCount === 0 ? t('douyin.nothingSelected') : t(selectedCount === 1 ? 'douyin.postReadyOne' : 'douyin.postsReady', { count: selectedCount })}
-                  </p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {selectedCount === 0 ? t('douyin.selectPrompt') : t('douyin.batchHint')}
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-center justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="min-h-10 rounded-lg px-3 text-xs font-semibold text-muted-foreground transition-colors hover:bg-control hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
-                  >
-                    {t('common.cancel')}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={selectedCount === 0 || listBusy || loading}
-                    onClick={() => void handleDownload()}
-                    className={cn(
-                      'inline-flex min-h-10 items-center justify-center gap-2 rounded-lg px-4 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus',
-                      selectedCount === 0 || listBusy || loading
-                        ? 'cursor-not-allowed bg-muted text-muted-foreground'
-                        : 'bg-action text-action-fg hover:bg-action-hover'
-                    )}
-                  >
-                    {queueBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <ArrowDownToLine className="h-3.5 w-3.5" aria-hidden />}
-                    {queueBusy ? t('douyin.adding') : selectedCount === 0 ? t('douyin.selectPosts') : t('douyin.addToQueue', { count: selectedCount })}
-                  </button>
-                </div>
-              </div>
+              {needsRecovery && <div role="alert" className="mb-3 shrink-0 space-y-2 text-xs">
+                <p className="flex items-center gap-2 text-warning"><Info className="h-4 w-4 shrink-0" aria-hidden />{t(error || listRestricted ? 'ui.restrictedHint' : 'ui.emptyRecoveryHint')}</p>
+                {browserImport}
+              </div>}
+              {(error || listWarning || (loadAllNote && loadAllNote !== t('douyin.listCompleteNote'))) && <details className="v-disclosure mb-2 shrink-0">
+                <summary><ChevronDown className="v-chevron h-3.5 w-3.5" aria-hidden />{t('ui.loadDetails')}</summary>
+                <p className="max-h-20 overflow-y-auto break-words pb-2 text-xs leading-relaxed text-muted-foreground">{[error, listWarning, loadAllNote].filter(Boolean).join(' ')}</p>
+              </details>}
+              {items.length === 0 ? <div className="flex min-h-0 flex-1 flex-col items-center justify-center py-6 text-center">
+                <p className="text-sm font-medium">{t('douyin.noPosts')}</p><p className="mt-1 text-xs text-muted-foreground">{t('douyin.noPostsHint')}</p>
+              </div> : <div className="min-h-0 flex-1 overflow-y-auto" aria-label={t('douyin.profilePosts')}>
+                <AnimatedList items={items} getKey={(row) => row.awemeId} animate={items.length <= 200}>
+                  {(row) => {
+                    const isOn = selected.has(row.awemeId)
+                    const mediaLabel = row.mediaType === 'gallery' ? t('douyin.images', { count: row.imageCount ?? 0 })
+                      : row.durationSec != null && row.durationSec > 0 ? formatDuration(row.durationSec) : t('douyin.video')
+                    return <button type="button" onClick={(event) => selectPost(row.awemeId, event)} aria-pressed={isOn} data-selected={isOn}
+                      className="v-list-row mb-1 flex min-h-[76px] w-full items-center gap-3 rounded-button px-3 py-2 text-left">
+                      <span className={cn('flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded border border-divider-strong', isOn && 'border-action bg-action text-action-fg')} aria-hidden>
+                        {isOn && <Check className="h-3 w-3" strokeWidth={3} />}
+                      </span>
+                      <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md bg-control"><ThumbnailImage src={row.cover} referer={profileUrl} /></div>
+                      <div className="min-w-0 flex-1"><p className="line-clamp-2 text-[13px] font-medium leading-5">{/^Aweme \d+$/.test(row.title) ? t('ui.untitledPost') : row.title}</p><p className="mt-1 text-xs text-muted-foreground">{mediaLabel}</p></div>
+                    </button>
+                  }}
+                </AnimatedList>
+              </div>}
+              {(hasMore || loadAllBusy || browserBusy) && <div className="flex shrink-0 flex-wrap items-center gap-2 pt-3">
+                {hasMore && <><button type="button" disabled={!canLoadMore} onClick={() => void handleLoadMore()} className="v-button-secondary">{paginationBusy && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />}{t(paginationBusy ? 'douyin.loading' : 'douyin.loadMore')}</button>
+                  <button type="button" disabled={!canLoadMore} onClick={() => void handleLoadAll()} className="v-button-ghost">{t(loadAllBusy ? 'douyin.loadingAll' : 'douyin.loadAll')}</button></>}
+                {(loadAllBusy || browserBusy) && <button type="button" onClick={cancelActiveLoad} className="v-button-ghost">{t('douyin.cancelLoading')}</button>}
+              </div>}
             </>
           )}
         </div>
 
-        {!loading && items.length > 0 && (
-          <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-divider-subtle bg-window px-5 py-3 sm:px-6">
-            <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
-              <span className="truncate">{t('douyin.needMore')}</span>
-              <button
-                type="button"
-                disabled={pageActionsDisabled}
-                onClick={() => void handleLoadInBrowser()}
-                title={t('douyin.importTitle')}
-                className={cn(
-                  'inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus',
-                  pageActionsDisabled ? 'cursor-not-allowed text-muted-foreground/40' : 'text-foreground hover:bg-control'
-                )}
-              >
-                <Download className="h-3.5 w-3.5" aria-hidden />
-                {t('douyin.importBrowser')}
-              </button>
-              <button
-                type="button"
-                disabled={loading}
-                onClick={() => void handleOpenProfileInBrowser()}
-                title={t('douyin.openTitle')}
-                className={cn(
-                  'inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus',
-                  loading ? 'cursor-not-allowed text-muted-foreground/40' : 'text-foreground hover:bg-control'
-                )}
-              >
-                <FolderOpen className="h-3.5 w-3.5" aria-hidden />
-                {t('douyin.openManually')}
+        <footer className="shrink-0 border-t border-divider-subtle bg-surface px-5 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-muted-foreground">{selectedCount === 0 ? t('ui.selectPrompt') : t('ui.keyboardHint')}</p>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={onClose} className="v-button-ghost">{t('common.cancel')}</button>
+              <button type="button" disabled={selectedCount === 0 || listBusy || loading} onClick={() => void handleDownload()} className="v-button-primary">
+                {queueBusy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Download className="h-4 w-4" aria-hidden />}
+                {queueBusy ? t('douyin.adding') : t('ui.downloadCount', { count: selectedCount })}
               </button>
             </div>
-            {loadAllBusy || browserBusy ? (
-              <button
-                type="button"
-                onClick={cancelActiveLoad}
-                className="min-h-8 rounded-md px-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-control hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
-              >
-                {t('douyin.cancelLoading')}
-              </button>
-            ) : null}
           </div>
-        )}
+          <details className="v-disclosure mt-1">
+            <summary><ChevronDown className="v-chevron h-3.5 w-3.5" aria-hidden />{t('ui.moreOptions')}</summary>
+            <div className="flex flex-wrap items-center gap-2 pb-1">{!needsRecovery && browserImport}
+              <button type="button" disabled={loading} onClick={() => void handleOpenProfileInBrowser()} className="v-button-ghost" title={profileUrl}><ExternalLink className="h-3.5 w-3.5" aria-hidden />{t('collection.openBrowser')}</button>
+            </div>
+          </details>
+        </footer>
       </DialogShell>
     </div>
   )

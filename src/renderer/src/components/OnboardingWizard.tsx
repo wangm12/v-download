@@ -1,23 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Check, ChevronLeft, ChevronRight, Folder, Globe, Loader2, Puzzle, RefreshCw, ShieldCheck, X } from 'lucide-react'
+import { Check, ChevronDown, ChevronLeft, ChevronRight, Folder, Loader2, Puzzle, RefreshCw, X } from 'lucide-react'
 import type { EngineStatus, SettingsData } from '@/types'
 import { cn } from '@/lib/cn'
+import { useTranslation } from 'react-i18next'
+import { useDialogFocus } from '@/hooks/useDialogFocus'
+import { DialogShell } from './ui'
 
 interface OnboardingWizardProps {
   settings: SettingsData
   onComplete: () => Promise<void>
 }
 
-const steps = [
-  { label: 'Engines', description: 'Verify the local tools' },
-  { label: 'Browser', description: 'Connect the extension' },
-  { label: 'Destination', description: 'Choose where files go' },
-  { label: 'Proxy', description: 'Optional network routing' }
-] as const
-
-const buttonClass = 'inline-flex min-h-10 items-center justify-center gap-2 rounded-lg px-4 text-[12px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:cursor-not-allowed disabled:opacity-50'
+const steps = ['ui.enginesStep', 'ui.browserStep', 'ui.folderStep', 'ui.proxyStep'] as const
 
 export function OnboardingWizard({ settings, onComplete }: OnboardingWizardProps) {
+  const { t } = useTranslation()
   const [step, setStep] = useState(0)
   const [engines, setEngines] = useState<EngineStatus[]>([])
   const [busy, setBusy] = useState(false)
@@ -60,11 +57,11 @@ export function OnboardingWizard({ settings, onComplete }: OnboardingWizardProps
     if (!window.api) return false
     const result = await window.api.updateSettings(key, value)
     if (!result.ok) {
-      setNote(result.error || `Could not save ${key}.`)
+      setNote(result.error || t('prefs.settingsSaveFailed'))
       return false
     }
     return true
-  }, [])
+  }, [t])
 
   const chooseDestination = useCallback(async () => {
     const selected = await window.api?.selectDownloadFolder?.()
@@ -79,17 +76,17 @@ export function OnboardingWizard({ settings, onComplete }: OnboardingWizardProps
     setNote('')
     try {
       const result = await window.api.installChromeExtension()
-      if (!result.ok) setNote(result.error || 'Could not open the extension installer.')
+      if (!result.ok) setNote(result.error || t('ui.extensionSetupFailed'))
       else {
         setExtensionReady(true)
-        setNote('Load the opened folder as an unpacked extension in Chrome, then continue.')
+        setNote(t('prefs.chromeCookie.extensionToLoad'))
       }
     } catch (err) {
       setNote(err instanceof Error ? err.message : String(err))
     } finally {
       setBusy(false)
     }
-  }, [])
+  }, [t])
 
   const complete = useCallback(async () => {
     setBusy(true)
@@ -106,11 +103,11 @@ export function OnboardingWizard({ settings, onComplete }: OnboardingWizardProps
   const next = useCallback(async () => {
     setNote('')
     if (step === 0 && !enginesReady) {
-      setNote('yt-dlp and ffmpeg must be available before the first download.')
+      setNote(t('ui.engineMissing'))
       return
     }
     if (step === 2 && !destination) {
-      setNote('Choose a download folder to continue.')
+      setNote(t('ui.chooseFolder'))
       return
     }
     if (step === 3) {
@@ -118,7 +115,7 @@ export function OnboardingWizard({ settings, onComplete }: OnboardingWizardProps
       return
     }
     setStep((current) => Math.min(steps.length - 1, current + 1))
-  }, [complete, destination, enginesReady, step])
+  }, [complete, destination, enginesReady, step, t])
 
   const skip = useCallback(async () => {
     setBusy(true)
@@ -129,135 +126,49 @@ export function OnboardingWizard({ settings, onComplete }: OnboardingWizardProps
     }
   }, [onComplete])
 
+  const dialogRef = useDialogFocus<HTMLDivElement>(() => { if (!busy) void skip() })
   return (
-    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/75 p-4" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
-      <div className="flex max-h-[min(760px,92vh)] w-full max-w-[920px] flex-col overflow-hidden rounded-2xl bg-background shadow-2xl ring-1 ring-inset ring-divider-strong">
-        <header className="flex items-start justify-between border-b border-divider-subtle px-6 py-5">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-tertiary-foreground">First run</p>
-            <h1 id="onboarding-title" className="mt-1 text-lg font-semibold tracking-tight text-foreground">Set up V-Download</h1>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">A few checks now make the first download predictable.</p>
-          </div>
-          <button type="button" onClick={() => void skip()} disabled={busy} aria-label="Skip setup" className="rounded-lg p-2 text-muted-foreground hover:bg-control hover:text-foreground">
-            <X className="h-4 w-4" aria-hidden />
-          </button>
+    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/50 p-4">
+      <DialogShell ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="onboarding-title" className="flex max-h-[calc(100dvh-32px)] max-w-[720px] flex-col outline-none">
+        <header className="flex shrink-0 items-start justify-between gap-3 border-b border-divider-subtle px-5 py-4">
+          <div><h1 id="onboarding-title" className="text-base font-semibold">{t('ui.welcome')}</h1><p className="mt-1 text-xs text-muted-foreground">{t('ui.welcomeHint')}</p></div>
+          <button type="button" onClick={() => void skip()} disabled={busy} aria-label={t('ui.skipSetup')} className="v-button-ghost h-9 w-9 !p-0"><X className="h-4 w-4" aria-hidden /></button>
         </header>
-
-        <div className="grid min-h-0 flex-1 md:grid-cols-[220px_minmax(0,1fr)]">
-          <nav className="border-b border-divider-subtle bg-sidebar px-4 py-4 md:border-b-0 md:border-r" aria-label="Setup steps">
-            <ol className="flex gap-2 overflow-x-auto md:flex-col md:gap-1">
-              {steps.map((item, index) => (
-                <li key={item.label} className="min-w-[130px] md:min-w-0">
-                  <button type="button" onClick={() => index <= step && setStep(index)} className={cn('flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors', index === step ? 'bg-selection text-action' : 'text-muted-foreground hover:bg-control', index > step && 'opacity-60')}>
-                    <span className={cn('flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ring-1 ring-inset', index < step ? 'bg-state-complete-bg text-foreground ring-border-strong' : index === step ? 'bg-action text-action-fg ring-action' : 'bg-control text-muted-foreground ring-divider-subtle')}>
-                      {index < step ? <Check className="h-3.5 w-3.5" aria-hidden /> : index + 1}
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block text-[12px] font-semibold">{item.label}</span>
-                      <span className="mt-0.5 hidden text-[10px] leading-relaxed md:block">{item.description}</span>
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ol>
-          </nav>
-
-          <main className="min-h-0 overflow-y-auto px-5 py-6 sm:px-8">
-            {step === 0 && (
-              <section>
-                <StepHeading eyebrow="Step 1 of 4" title="Verify the download engines" description="yt-dlp extracts media and ffmpeg merges or converts it. Both run locally on your machine." />
-                <div className="mt-6 space-y-3">
-                  {engines.map((engine) => (
-                    <div key={engine.name} className="rounded-xl bg-surface/70 p-4 ring-1 ring-inset ring-divider-subtle">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-selection text-action">
-                          {engine.name === 'yt-dlp' ? <Globe className="h-4 w-4" aria-hidden /> : <ShieldCheck className="h-4 w-4" aria-hidden />}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[13px] font-semibold text-foreground">{engine.name}</p>
-                          <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{engine.version ? `Version ${engine.version}` : 'Not found'} · {engine.source}</p>
-                        </div>
-                        <span className={cn('rounded-md px-2 py-1 text-[10px] font-semibold', engine.version ? 'bg-state-complete-bg text-foreground' : 'border border-dashed border-border-strong bg-state-error-bg text-foreground')}>
-                          {engine.version ? 'Ready' : 'Missing'}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <button type="button" onClick={() => void loadEngines(true)} disabled={busy} className={cn(buttonClass, 'mt-4 bg-elevated text-foreground ring-1 ring-inset ring-divider-subtle hover:bg-control')}>
-                  {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <RefreshCw className="h-3.5 w-3.5" aria-hidden />}
-                  Check again
-                </button>
-              </section>
-            )}
-
-            {step === 1 && (
-              <section>
-                <StepHeading eyebrow="Step 2 of 4" title="Connect your browser" description="The extension is optional, but it unlocks one-click downloads and logged-in page detection." />
-                <div className="mt-6 rounded-xl bg-surface/70 p-5 ring-1 ring-inset ring-divider-subtle">
-                  <div className="flex items-start gap-3">
-                    <Puzzle className="mt-0.5 h-5 w-5 shrink-0 text-action" aria-hidden />
-                    <div>
-                      <p className="text-[13px] font-semibold text-foreground">Chrome extension</p>
-                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Open the extension folder and Chrome’s extensions page. Choose Load unpacked, then select the folder.</p>
-                    </div>
-                  </div>
-                  <button type="button" onClick={() => void installExtension()} disabled={busy} className={cn(buttonClass, 'mt-5 bg-action text-action-fg hover:bg-action-hover')}>
-                    {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <Puzzle className="h-3.5 w-3.5" aria-hidden />}
-                    {extensionReady ? 'Open installer again' : 'Install extension'}
-                  </button>
-                </div>
-              </section>
-            )}
-
-            {step === 2 && (
-              <section>
-                <StepHeading eyebrow="Step 3 of 4" title="Choose a download folder" description="Completed files will be saved here by default. You can change this later in Preferences." />
-                <div className="mt-6 rounded-xl bg-surface/70 p-5 ring-1 ring-inset ring-divider-subtle">
-                  <div className="flex items-center gap-3 rounded-lg bg-raised px-3 py-3 ring-1 ring-inset ring-divider-subtle">
-                    <Folder className="h-4 w-4 shrink-0 text-action" aria-hidden />
-                    <span className="min-w-0 flex-1 truncate text-[13px] text-foreground">{destination || 'No folder selected'}</span>
-                    <button type="button" onClick={() => void chooseDestination()} className={cn(buttonClass, 'min-h-9 bg-elevated px-3 text-foreground hover:bg-control')}>Browse</button>
-                  </div>
-                </div>
-              </section>
-            )}
-
-            {step === 3 && (
-              <section>
-                <StepHeading eyebrow="Step 4 of 4" title="Add a proxy (optional)" description="Use a local HTTP, HTTPS, or SOCKS5 proxy for yt-dlp requests. Leave this empty if you do not use one." />
-                <div className="mt-6 rounded-xl bg-surface/70 p-5 ring-1 ring-inset ring-divider-subtle">
-                  <label className="block text-[12px] font-medium text-foreground" htmlFor="onboarding-proxy">Proxy URL</label>
-                  <input id="onboarding-proxy" value={proxyUrl} onChange={(event) => setProxyUrl(event.target.value)} placeholder="http://127.0.0.1:8080" className="mt-2 min-h-11 w-full rounded-lg bg-raised px-3 text-[13px] text-foreground ring-1 ring-inset ring-divider-subtle outline-none placeholder:text-tertiary-foreground focus:ring-2 focus:ring-border-focus" />
-                  <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">Credentials are not accepted here. Use a local proxy or configure authentication in the proxy itself.</p>
-                </div>
-              </section>
-            )}
-
-            {note && <p className="mt-4 rounded-lg border border-dashed border-border-strong bg-state-error-bg px-3 py-2 text-xs leading-relaxed text-foreground" role="status">{note}</p>}
-          </main>
-        </div>
-
-        <footer className="flex items-center justify-between border-t border-divider-subtle px-5 py-4 sm:px-8">
-          <button type="button" onClick={() => (step === 0 ? void skip() : setStep((current) => current - 1))} disabled={busy} className={cn(buttonClass, 'bg-elevated text-foreground ring-1 ring-inset ring-divider-subtle hover:bg-control')}>
-            {step === 0 ? 'Set up later' : <><ChevronLeft className="h-3.5 w-3.5" aria-hidden />Back</>}
-          </button>
-          <button type="button" onClick={() => void next()} disabled={busy} className={cn(buttonClass, 'bg-action text-action-fg hover:bg-action-hover')}>
-            {step === steps.length - 1 ? 'Finish setup' : 'Continue'}
-            {step < steps.length - 1 && <ChevronRight className="h-3.5 w-3.5" aria-hidden />}
-          </button>
+        <nav className="shrink-0 border-b border-divider-subtle px-5 py-3" aria-label={t('ui.welcome')}>
+          <ol className="flex items-center justify-between gap-2">
+            {steps.map((label, index) => <li key={label} className="min-w-0"><button type="button" disabled={index > step} aria-current={index === step ? 'step' : undefined} onClick={() => index <= step && setStep(index)} className={cn('flex min-h-8 items-center gap-2 rounded-button px-1 text-xs disabled:opacity-40', index === step ? 'text-foreground' : 'text-muted-foreground')}>
+              <span className={cn('flex h-6 w-6 shrink-0 items-center justify-center rounded-full', index === step ? 'bg-action text-action-fg' : 'bg-control')}>{index < step ? <Check className="h-3 w-3" aria-hidden /> : index + 1}</span><span className="hidden sm:block">{t(label)}</span>
+            </button></li>)}
+          </ol>
+        </nav>
+        <main className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+          <p className="mb-3 text-xs text-muted-foreground">{t('ui.stepOf', { step: step + 1, total: steps.length })}{(step === 1 || step === 3) && ` · ${t('ui.optional')}`}</p>
+          {step === 0 && <section><h2 className="text-lg font-semibold">{t(enginesReady ? 'ui.engineReady' : 'ui.engineMissing')}</h2><p className="mt-2 text-sm text-muted-foreground">{t('ui.engineHint')}</p>
+            <details className="v-disclosure mt-4" open={!enginesReady}><summary><ChevronDown className="v-chevron h-3.5 w-3.5" aria-hidden />{t('ui.technicalDetails')}</summary>
+              <dl className="space-y-3 py-3">{engines.map((engine) => <div key={engine.name} className="flex items-center justify-between gap-3 text-xs"><dt className="font-medium">{engine.name}</dt><dd className="text-muted-foreground">{engine.version || t('ui.engineNotFound')}</dd><dd className={engine.version ? 'text-success' : 'text-error'}>{t(engine.version ? 'prefs.system.ready' : 'prefs.system.missing')}</dd></div>)}</dl>
+              <button type="button" onClick={() => void loadEngines(true)} disabled={busy} className="v-button-secondary">{busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <RefreshCw className="h-4 w-4" aria-hidden />}{t('ui.checkTools')}</button>
+            </details>
+          </section>}
+          {step === 1 && <section><h2 className="text-lg font-semibold">{t('ui.browserStep')}</h2><p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t('ui.browserSetupHint')}</p>
+            <button type="button" onClick={() => void installExtension()} disabled={busy} className="v-button-secondary mt-4"><Puzzle className="h-4 w-4" aria-hidden />{t('ui.installExtension')}</button>
+            {extensionReady && <p className="mt-2 text-xs text-muted-foreground">{t('ui.extensionOpened')}</p>}
+            <details className="v-disclosure mt-3"><summary><ChevronDown className="v-chevron h-3.5 w-3.5" aria-hidden />{t('ui.technicalDetails')}</summary><p className="py-2 text-xs leading-relaxed text-muted-foreground">{t('prefs.chromeCookie.extensionToLoad')}</p></details>
+          </section>}
+          {step === 2 && <section><h2 className="text-lg font-semibold">{t('ui.folderStep')}</h2><p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t('ui.folderSetupHint')}</p>
+            <div className="mt-4 flex items-center gap-2 rounded-button bg-control px-3 py-2"><Folder className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden /><span className="min-w-0 flex-1 truncate text-[13px]" title={destination}>{destination || t('ui.chooseFolder')}</span><button type="button" onClick={() => void chooseDestination()} className="v-button-ghost !px-2">{t('common.change')}</button></div>
+          </section>}
+          {step === 3 && <section><h2 className="text-lg font-semibold">{t('ui.proxyStep')}</h2><p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t('ui.proxySetupHint')}</p>
+            <details className="v-disclosure mt-4"><summary><ChevronDown className="v-chevron h-3.5 w-3.5" aria-hidden />{t('ui.proxySetup')}</summary>
+              <label className="mt-2 block text-xs" htmlFor="onboarding-proxy">{t('prefs.saveFiles.proxyUrl')}</label><input id="onboarding-proxy" value={proxyUrl} onChange={(event) => setProxyUrl(event.target.value)} placeholder="http://127.0.0.1:8080" className="v-input mt-2" /><p className="mt-2 text-xs text-muted-foreground">{t('prefs.saveFiles.credentialsHint')}</p>
+            </details>
+          </section>}
+          {note && <p className="mt-4 break-words text-xs leading-relaxed text-error" role="status">{note}</p>}
+        </main>
+        <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-divider-subtle px-5 py-4">
+          <button type="button" onClick={() => step === 0 ? void skip() : setStep((current) => current - 1)} disabled={busy} className="v-button-ghost">{step > 0 && <ChevronLeft className="h-3.5 w-3.5" aria-hidden />}{t(step === 0 ? 'ui.skipSetup' : 'ui.back')}</button>
+          <button type="button" onClick={() => void next()} disabled={busy} className="v-button-primary">{busy && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}{t(step === 3 ? 'ui.finish' : 'ui.continue')}{step < 3 && <ChevronRight className="h-3.5 w-3.5" aria-hidden />}</button>
         </footer>
-      </div>
-    </div>
-  )
-}
-
-function StepHeading({ eyebrow, title, description }: { eyebrow: string; title: string; description: string }) {
-  return (
-    <div>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-tertiary-foreground">{eyebrow}</p>
-      <h2 className="mt-2 text-xl font-semibold tracking-tight text-foreground">{title}</h2>
-      <p className="mt-2 max-w-[56ch] text-xs leading-relaxed text-muted-foreground">{description}</p>
+      </DialogShell>
     </div>
   )
 }

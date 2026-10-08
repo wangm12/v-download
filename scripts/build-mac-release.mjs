@@ -2,8 +2,10 @@ import { cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { existsSync, readFileSync as readSync, rmSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
+import { verifySqlitePrebuild } from './sqlite-runtime.mjs'
 
-const root = resolve(new URL('..', import.meta.url).pathname)
+const root = resolve(fileURLToPath(new URL('..', import.meta.url)))
 const arch = process.argv[2] || process.env.RELEASE_ARCH || process.env.npm_config_arch || 'arm64'
 if (!['arm64', 'x64'].includes(arch)) { console.error('MAC RELEASE BUILD BLOCKED: choose arm64 or x64; use separate commands for separate releases'); process.exit(1) }
 const stagingRoot = join(root, '.release-staging')
@@ -18,16 +20,6 @@ async function safeRemoveManagedStage() {
   if (!existsSync(marker)) throw new Error(`refusing to remove unmarked staging directory: ${staging}`)
   await rm(staging, { recursive: true, force: true })
 }
-function pidIsAlive(pid) {
-  if (!Number.isInteger(pid) || pid <= 0) return false
-  try {
-    process.kill(pid, 0)
-    return true
-  } catch {
-    return false
-  }
-}
-
 function releaseLockSync() {
   if (!lockOwned) return
   try {
@@ -41,9 +33,8 @@ function releaseLockSync() {
 
 async function acquireStagingLock() {
   if (existsSync(lock)) {
-    const pid = Number(readSync(lock, 'utf8').trim())
-    if (pidIsAlive(pid)) throw new Error(`another macOS release build is using ${lock}`)
-    await rm(lock, { force: true })
+    const owner = readSync(lock, 'utf8').trim()
+    throw new Error(`macOS release lock already exists${owner ? ` (recorded owner ${owner})` : ' with no recorded owner'}: ${lock}. Verify no build is running, then remove this stale lock manually.`)
   }
   await mkdir(stagingRoot, { recursive: true })
   await writeFile(lock, `${process.pid}\n`, { flag: 'wx' })
@@ -51,7 +42,6 @@ async function acquireStagingLock() {
 }
 
 async function stage() {
-  await acquireStagingLock()
   try {
     await safeRemoveManagedStage()
     await mkdir(stagedEngines, { recursive: true })
@@ -59,7 +49,7 @@ async function stage() {
     const configPath = process.env.RELEASE_CONFIG || join(root, 'release-config.json')
     const releaseConfig = JSON.parse(await readFile(configPath, 'utf8'))
     const extensionId = process.env.CHROME_EXTENSION_ID || releaseConfig.chrome?.extensionId
-    if (!/^[a-p]{32}$/.test(extensionId || '')) throw new Error('release config is missing a valid Chrome Web Store extension ID')
+    if (!/^[a-p]{32}$/.test(extensionId || '')) throw new Error('release config is missing a valid Chrome extension ID')
     await writeFile(join(staging, 'extension-config.json'), `${JSON.stringify({ extensionId }, null, 2)}\n`)
     for (const name of ['manifest.json']) await cp(join(engineSource, name), join(stagedEngines, name))
     const metadata = JSON.parse(await readFile(join(engineSource, 'metadata.json'), 'utf8'))
@@ -85,31 +75,16 @@ function run(command, args, env = process.env) {
   const result = spawnSync(command, args, { cwd: root, env, stdio: 'inherit' })
   if (result.status !== 0) throw new Error(`${command} failed with status ${result.status ?? 'unknown'}`)
 }
-function capture(command, args, env = process.env) {
-  const result = spawnSync(command, args, { cwd: root, env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
-  if (result.status !== 0) throw new Error(`${command} failed with status ${result.status ?? 'unknown'}`)
-  return `${result.stdout}${result.stderr}`
-}
-function rebuildTargetNativeDependencies() {
-  const electronVersion = JSON.parse(readSync(join(root, 'node_modules', 'electron', 'package.json'), 'utf8')).version
-  console.log(`Rebuilding Electron native dependencies for darwin-${arch}, Electron ${electronVersion}`)
-  run(join(root, 'node_modules', '.bin', 'electron-rebuild'), ['--version', electronVersion, '--module-dir', root, '--arch', arch, '--force', '--only', 'better-sqlite3'], { ...process.env, npm_config_arch: arch, npm_config_platform: 'darwin' })
+function verifyTargetNativeDependencies() {
+  const packageDirectory = join(root, 'node_modules', 'better-sqlite3')
+  const path = verifySqlitePrebuild(packageDirectory, 'darwin', arch)
+  console.log(`Verified better-sqlite3 N-API prebuild for darwin-${arch}: ${path}`)
 }
 function validatePackagedNativeModule() {
   const appDir = join(root, 'dist', arch === 'arm64' ? 'mac-arm64' : 'mac', 'V-Download.app')
-  const native = join(appDir, 'Contents', 'Resources', 'app.asar.unpacked', 'node_modules', 'better-sqlite3', 'build', 'Release', 'better_sqlite3.node')
-  if (!existsSync(native)) throw new Error(`packaged native module is missing: ${native}`)
-  const description = capture('file', ['-b', native])
-  const matches = arch === 'arm64' ? /arm64|Apple silicon/i.test(description) : /x86_64|Intel 64/i.test(description)
-  if (!matches) throw new Error(`packaged better_sqlite3.node architecture does not match darwin-${arch}: ${description.trim()}`)
-  console.log(`Validated packaged better_sqlite3.node for darwin-${arch}: ${description.trim()}`)
-}
-function restoreHostNativeDependencies() {
-  console.log(`Restoring host Node-native better-sqlite3 for ${process.platform}-${process.arch} after Electron ${arch} packaging`)
-  const env = { ...process.env, npm_config_arch: process.arch, npm_config_platform: process.platform }
-  delete env.npm_config_target
-  delete env.npm_config_runtime
-  run('npm', ['rebuild', 'better-sqlite3', `--arch=${process.arch}`, `--platform=${process.platform}`], env)
+  const packageDirectory = join(appDir, 'Contents', 'Resources', 'app.asar.unpacked', 'node_modules', 'better-sqlite3')
+  const native = verifySqlitePrebuild(packageDirectory, 'darwin', arch, { label: 'packaged better-sqlite3' })
+  console.log(`Validated packaged better-sqlite3 N-API prebuild for darwin-${arch}: ${native}`)
 }
 function envForElectronBuilder() {
   const env = { ...process.env, RELEASE_ARCH: arch }
@@ -119,7 +94,6 @@ function envForElectronBuilder() {
   return env
 }
 let lockOwned = false
-let nativeBuildMayHaveChanged = false
 for (const signal of ['SIGINT', 'SIGTERM']) {
   process.on(signal, () => {
     releaseLockSync()
@@ -127,21 +101,17 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
   })
 }
 try {
+  await acquireStagingLock()
   run(process.execPath, ['scripts/prepare-release.mjs'], { ...process.env, RELEASE_ARCH: arch })
+  verifyTargetNativeDependencies()
   await stage()
   run('npm', ['run', 'build'], { ...process.env, RELEASE_ARCH: arch })
-  nativeBuildMayHaveChanged = true
-  rebuildTargetNativeDependencies()
   run('npx', ['electron-builder', '--mac', `--${arch}`, '--publish', 'never'], envForElectronBuilder())
   validatePackagedNativeModule()
 } catch (error) {
   console.error(`MAC RELEASE BUILD BLOCKED: ${error.message}`)
   process.exitCode = 1
 } finally {
-  if (nativeBuildMayHaveChanged) {
-    try { restoreHostNativeDependencies() } catch (error) { console.error(`HOST DEPENDENCY RESTORE BLOCKED: ${error.message}`); process.exitCode = 1 }
-  }
   if (lockOwned) await safeRemoveManagedStage().catch((error) => { console.error(`MAC RELEASE CLEANUP BLOCKED: ${error.message}`); process.exitCode = 1 })
   if (lockOwned) await rm(lock, { force: true })
-  if (existsSync(stagingRoot) && (await readdir(stagingRoot)).length === 0) await rm(stagingRoot, { recursive: true, force: true })
 }

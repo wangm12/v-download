@@ -6,6 +6,7 @@ export {
 } from './netscape-cookies.js'
 export { COOKIE_SYNC_DOMAINS, type CookieSyncDomain } from './cookie-sync-domains.js'
 export type { DownloadErrorCode, DownloadRecoveryAction } from './download-errors.js'
+export { parseDouyinProfileUrl, isDouyinShortUrl, type DouyinProfileUrl } from './douyin-url.js'
 
 export type QueueSpeedMode = 'balanced' | 'turbo' | 'gentle'
 export interface QueueConcurrencyPolicy {

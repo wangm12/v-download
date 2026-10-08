@@ -194,13 +194,24 @@
   }
 
   function onPageChange() {
+    clearNavigationTimers()
     const delays = [300, 800, 1500, 3000, 5000]
     for (const ms of delays) {
-      setTimeout(runAllInjections, ms)
+      const timer = setTimeout(() => {
+        navigationTimers.delete(timer)
+        runAllInjections()
+      }, ms)
+      navigationTimers.add(timer)
     }
   }
 
-  let lastUrl = ''
+  const navigationTimers = new Set()
+  function clearNavigationTimers() {
+    for (const timer of navigationTimers) clearTimeout(timer)
+    navigationTimers.clear()
+  }
+
+  let lastUrl = window.location.href
   let scanTimer = null
   const debouncedScan = () => {
     clearTimeout(scanTimer)
@@ -240,6 +251,9 @@
 
   window.addEventListener('beforeunload', () => {
     clearInterval(checkInterval)
+    clearNavigationTimers()
+    clearTimeout(scanTimer)
+    clearTimeout(scrollTimer)
     navObserver.disconnect()
   })
 })()

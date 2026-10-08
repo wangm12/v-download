@@ -1,6 +1,11 @@
-import { writeFileSync } from 'fs'
+import { closeSync, fstatSync, lstatSync, openSync, unlinkSync, writeFileSync } from 'fs'
 import { basename, dirname, extname, join } from 'path'
 import { sanitizeDownloadBasename } from './sanitizeDownloadBasename'
+
+export interface NoteFileWriteResult {
+  path: string
+  identity: { dev: string; ino: string; size: string; birthtimeNs?: string }
+}
 
 export interface NoteFields {
   title: string
@@ -55,6 +60,56 @@ export function noteFilePath(kind: 'gallery' | 'sidecar' | 'text', dest: string,
   return join(dirname(dest), `${stem || noteBasename(title)}.md`)
 }
 
-export function writeNoteMarkdownFile(path: string, fields: NoteFields): void {
-  writeFileSync(path, renderNoteMarkdown(fields), 'utf8')
+export function writeNoteMarkdownFile(path: string, fields: NoteFields): NoteFileWriteResult {
+  const content = renderNoteMarkdown(fields)
+  const ext = extname(path) || '.md'
+  const stem = extname(path) ? basename(path, ext) : basename(path)
+  const directory = dirname(path)
+
+  for (let suffix = 0; suffix < 1000; suffix++) {
+    const candidate = suffix === 0 ? path : join(directory, `${stem} (${suffix})${ext}`)
+    let fd: number
+    try {
+      fd = openSync(candidate, 'wx', 0o666)
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'EEXIST') continue
+      throw error
+    }
+
+    let identity: NoteFileWriteResult['identity'] | null = null
+    try {
+      writeFileSync(fd, content, 'utf8')
+      const st = fstatSync(fd, { bigint: true })
+      identity = {
+        dev: st.dev.toString(),
+        ino: st.ino.toString(),
+        size: st.size.toString(),
+        ...(st.birthtimeNs > 0n ? { birthtimeNs: st.birthtimeNs.toString() } : {}),
+      }
+    } catch (error) {
+      try {
+        const st = fstatSync(fd, { bigint: true })
+        identity = { dev: st.dev.toString(), ino: st.ino.toString(), size: st.size.toString() }
+      } catch {
+        /* The file descriptor may already be invalid. */
+      }
+      closeSync(fd)
+      if (identity) {
+        try {
+          const current = lstatSync(candidate, { bigint: true })
+          if (!current.isSymbolicLink() && current.dev.toString() === identity.dev && current.ino.toString() === identity.ino) {
+            unlinkSync(candidate)
+          }
+        } catch {
+          /* Preserve any replacement path. */
+        }
+      }
+      throw error
+    }
+    closeSync(fd)
+    if (!identity) throw new Error('Could not read the identity of the newly created note file')
+    return { path: candidate, identity }
+  }
+
+  throw new Error('Could not create a unique note file without replacing an existing file')
 }

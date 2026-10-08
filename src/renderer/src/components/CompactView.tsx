@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ArrowDownToLine } from 'lucide-react'
+import { ClipboardPaste } from 'lucide-react'
 import { useDownloads } from '@/hooks/useDownloads'
 import { useSettings } from '@/hooks/useSettings'
 import { useUrlHandler } from '@/hooks/useUrlHandler'
@@ -211,8 +211,8 @@ export function CompactView() {
 
       <div className="flex min-h-0 flex-1 flex-col gap-4 p-4">
         <div
-          className={`flex flex-1 flex-col items-center justify-center rounded-panel border border-dashed px-4 py-6 text-center ${
-            dropActive ? 'border-border-strong bg-selection' : 'border-divider-strong bg-elevated'
+          className={`flex shrink-0 flex-col rounded-panel border border-dashed px-3 py-3 ${
+            dropActive ? 'border-border-strong bg-selection' : 'border-divider-subtle bg-surface'
           }`}
           onDragOver={(event) => {
             event.preventDefault()
@@ -226,8 +226,7 @@ export function CompactView() {
             void submitUrl(text)
           }}
         >
-          <ArrowDownToLine className="mb-3 h-6 w-6 text-muted-foreground" aria-hidden />
-          <p className="text-sm font-semibold">{t('compact.dropTitle')}</p>
+          <p className="text-[13px] font-semibold">{t('compact.dropTitle')}</p>
           <p className="mt-1 text-xs text-muted-foreground">{t('compact.dropHint')}</p>
           <label className="sr-only" htmlFor="compact-url-field">{t('compact.url')}</label>
           <input
@@ -241,32 +240,32 @@ export function CompactView() {
               }
             }}
             placeholder="https://"
-            className="mt-3 min-h-11 w-full rounded-lg bg-raised px-3 text-[13px] text-foreground ring-1 ring-inset ring-divider-subtle outline-none placeholder:text-tertiary-foreground focus:ring-2 focus:ring-border-focus"
+            className="v-input mt-3"
             style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
           />
           <button
             type="button"
             onClick={() => void onPasteUrl()}
-            className="mt-3 min-h-11 rounded-full bg-action px-5 text-sm font-semibold text-action-fg hover:bg-action-hover"
+            className="v-button-primary mt-2 w-full"
             style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
           >
-            {t('compact.paste')}
+            <ClipboardPaste className="h-4 w-4" aria-hidden />{t(urlField.trim() ? 'ui.continue' : 'ui.pasteLink')}
           </button>
           {errorMsg ? <p className="mt-2 text-[11px] text-error">{errorMsg}</p> : null}
         </div>
 
-        <section className="min-h-0 shrink-0 space-y-2">
+        <section className="flex min-h-0 flex-1 flex-col gap-2">
           <h2 className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{t('compact.nowDownloading')}</h2>
-          <div className="max-h-40 space-y-2 overflow-y-auto">
+          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
             {active.length === 0 ? (
               <p className="text-xs text-muted-foreground">{t('compact.noActive')}</p>
             ) : (
               active.map((item) => (
-                <div key={item.id} className="rounded-card bg-elevated px-3 py-2 ring-1 ring-inset ring-divider-subtle">
+                <div key={item.id} className="rounded-button bg-surface px-3 py-2">
                   <p className="truncate text-[13px] font-medium">{item.title}</p>
                   <p className="mt-0.5 text-[11px] text-muted-foreground">{compactProgressLine(item)}</p>
                   <div className="mt-2 h-1 overflow-hidden rounded-full bg-control">
-                    <div className="h-full bg-foreground" style={{ width: `${Math.max(0, Math.min(100, item.progress))}%` }} />
+                    <div className="h-full bg-progress" style={{ width: `${Math.max(0, Math.min(100, item.progress))}%` }} />
                   </div>
                 </div>
               ))
@@ -274,18 +273,19 @@ export function CompactView() {
           </div>
         </section>
 
-        <div className="grid grid-cols-2 gap-2" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+        <div className="grid shrink-0 grid-cols-2 gap-2" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
           <button
             type="button"
+            disabled={active.length === 0}
             onClick={() => void window.api?.pauseAll()}
-            className="min-h-11 rounded-lg bg-control text-sm font-semibold text-foreground hover:bg-surface-hover"
+            className="v-button-secondary"
           >
             {t('compact.pauseAll')}
           </button>
           <button
             type="button"
             onClick={() => void window.api?.showMainWindow?.()}
-            className="min-h-11 rounded-lg bg-action text-sm font-semibold text-action-fg hover:bg-action-hover"
+            className="v-button-secondary"
           >
             {t('compact.openFull')}
           </button>
@@ -310,6 +310,7 @@ export function CompactView() {
       ) : null}
       {showFormatDialog && pendingVideoInfo ? (
         <FormatDialog
+          key={pendingResolverId || pendingVideoInfo.webpage_url || pendingVideoInfo.id}
           videoInfo={pendingVideoInfo}
           settings={settings}
           onClose={() => {

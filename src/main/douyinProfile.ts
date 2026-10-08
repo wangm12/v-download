@@ -1,4 +1,5 @@
 import { fetchDouyinHtmlWithChromium, isDouyinAntiBotShell } from './douyinBrowserFetch'
+import { parseDouyinProfileUrl } from '@v-download/shared'
 import { fetchDouyinPageHtml } from './douyinParseUtils'
 import { tryFetchWebAwemePostPage } from './douyinProfileApi'
 import {
@@ -29,19 +30,9 @@ function profileBrowserRecoveryTimeoutMs(): number {
   return 45_000
 }
 
-/** Strict host: `douyin.com` or `*.douyin.com`; path `/user/{sec_uid}`. */
+/** Shares and creator pages use the same host/path validation as the renderer. */
 export function extractSecUidFromProfileUrl(url: string): string | null {
-  try {
-    const raw = url.trim()
-    const u = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`)
-    const host = u.hostname.toLowerCase()
-    if (host !== 'douyin.com' && !host.endsWith('.douyin.com')) return null
-    const m = u.pathname.match(/\/user\/([^/?#]+)/)
-    if (!m?.[1]) return null
-    return decodeURIComponent(m[1])
-  } catch {
-    return null
-  }
+  return parseDouyinProfileUrl(url)?.secUid ?? null
 }
 
 function encodeCursor(maxCursor: string): string {

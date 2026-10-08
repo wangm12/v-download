@@ -1,10 +1,11 @@
-import { spawn, ChildProcess, execFileSync } from 'child_process'
+import { ChildProcess, execFileSync } from 'child_process'
 import { existsSync, mkdirSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
+import { StringDecoder } from 'node:string_decoder'
 import * as settings from './settings'
 import { resolvedCookiesBrowser } from './cookiesBrowser'
-import type { DownloadProgress, DownloadProcess } from './downloadTypes'
+import { terminateDownloadProcess, type DownloadProgress, type DownloadProcess } from './downloadTypes'
 import { classifyResolverError } from './mediaResolver'
 import { resolveMediaCandidates, type ResolverCandidate } from './mediaResolver'
 import { normalizeProxyUrl } from './settingsModel'
@@ -13,8 +14,34 @@ import { hintDirectMediaUrl } from './mediaIdentity'
 import { DEFAULT_FILENAME_TEMPLATE, renderYtdlpFilenameTemplate } from './outputTemplateModel'
 import { selectPreferredEnginePath } from './engineManagerModel'
 import { ensurePoTokenProvider } from './poTokenServer'
+import { isManagedChildShutdownRequested, spawnManagedProcess } from './managedChildProcesses'
 
 export type { DownloadProgress, DownloadProcess } from './downloadTypes'
+
+const YTDLP_INFO_TIMEOUT_MS = 70_000
+const YTDLP_INFO_STDOUT_MAX_BYTES = 32 * 1024 * 1024
+const YTDLP_INFO_STDERR_MAX_BYTES = 2 * 1024 * 1024
+const YTDLP_THUMBNAIL_TIMEOUT_MS = 20_000
+const YTDLP_THUMBNAIL_STDOUT_MAX_BYTES = 4 * 1024 * 1024
+const YTDLP_DOWNLOAD_LOG_MAX_CHARS = 512 * 1024
+const YTDLP_DESTINATION_MAX_COUNT = 10_000
+const YTDLP_OUTPUT_LINE_MAX_CHARS = 16 * 1024
+const FINAL_OUTPUT_MARKER = '__V_DOWNLOAD_FINAL_PATH__:'
+
+function appendBoundedText(
+  current: string,
+  currentBytes: number,
+  chunk: Buffer,
+  maxBytes: number
+): { value: string; bytes: number; overflow: boolean } {
+  const remaining = maxBytes - currentBytes
+  if (remaining <= 0) return { value: current, bytes: currentBytes, overflow: chunk.length > 0 }
+  if (chunk.length <= remaining) {
+    return { value: current + chunk.toString(), bytes: currentBytes + chunk.length, overflow: false }
+  }
+  const accepted = chunk.subarray(0, remaining)
+  return { value: current + accepted.toString(), bytes: currentBytes + accepted.length, overflow: true }
+}
 
 const EXTRA_PATH_DIRS = [
   '/opt/homebrew/bin',
@@ -105,6 +132,8 @@ export interface DownloadOptions {
   isPlaylist?: boolean
   /** When true with isPlaylist, pass --yes-playlist (single job for whole list). */
   youtubeNativePlaylist?: boolean
+  /** When true with isPlaylist, force all entries from a resolver-confirmed remote collection. */
+  downloadWholePlaylist?: boolean
   playlistTitle?: string
   /** Seconds between HTTP requests (yt-dlp --sleep-requests). */
   playlistSleepRequests?: number
@@ -126,6 +155,8 @@ export interface DownloadOptions {
   proxyUrl?: string
   /** Chip-token filename template; rendered to a single relative `-o`. */
   filenameTemplate?: string
+  /** Per-download scratch directory; keeps fragments and temp conversions isolated. */
+  tempDir?: string
   /** Gentle preset: yt-dlp `--limit-rate` (e.g. `2M`). */
   limitRate?: string
   onProgress?: (progress: DownloadProgress) => void
@@ -206,6 +237,11 @@ export function appendYoutubeYtdlpArgs(
 
 const ytdlpVersionCache = new Map<string, string | null>()
 
+export function clearYtdlpVersionCache(path?: string): void {
+  if (path) ytdlpVersionCache.delete(path)
+  else ytdlpVersionCache.clear()
+}
+
 function bundledYtdlpPath(): string {
   const names = process.platform === 'win32' ? ['yt-dlp.exe'] : ['yt-dlp']
   const roots = [process.resourcesPath, join(process.cwd(), 'resources')].filter((p): p is string => Boolean(p))
@@ -252,7 +288,13 @@ export function getYtdlpPath(customPath?: string): string {
 export function reconcileYtdlpPathSetting(): string {
   const requested = settings.get('ytdlpPath')
   const resolved = getYtdlpPath(requested)
-  if (resolved && resolved !== requested) settings.set('ytdlpPath', resolved)
+  if (resolved && resolved !== requested) {
+    try {
+      settings.set('ytdlpPath', resolved)
+    } catch (error) {
+      console.error('Could not persist the reconciled yt-dlp path:', error)
+    }
+  }
   return resolved
 }
 
@@ -316,6 +358,7 @@ export async function fetchThumbnailForPageUrl(
   cookiesPath?: string,
   ytdlpPath?: string
 ): Promise<string> {
+  if (isManagedChildShutdownRequested()) return ''
   const path = getYtdlpPath(ytdlpPath)
   const args: string[] = ['--dump-json', '--no-download', '--no-warnings', '--no-check-certificate']
   addYtdlpCookieArgs(pageUrl, args, cookiesPath)
@@ -324,27 +367,70 @@ export async function fetchThumbnailForPageUrl(
   args.push(pageUrl)
 
   return new Promise((resolve) => {
-    const proc = spawn(path, args, { stdio: ['ignore', 'pipe', 'pipe'], env: spawnEnv() })
-    let stdout = ''
-    proc.stdout?.on('data', (chunk: Buffer) => {
-      stdout += chunk.toString()
+    const proc = spawnManagedProcess(path, args, {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: spawnEnv(),
+      detached: process.platform !== 'win32'
     })
-    proc.on('close', () => {
+    let stdout = ''
+    let stdoutBytes = 0
+    let stderrBytes = 0
+    let cleanupPromise: Promise<boolean> | null = null
+    let settled = false
+    let timedOut = false
+    const stopProcess = (): Promise<boolean> => {
+      if (!cleanupPromise) cleanupPromise = terminateDownloadProcess(proc, true)
+      return cleanupPromise
+    }
+    const finish = (value: string): void => {
+      if (settled) return
+      settled = true
+      clearTimeout(timeout)
+      resolve(value)
+    }
+    const timeout = setTimeout(() => {
+      timedOut = true
+      void stopProcess()
+    }, YTDLP_THUMBNAIL_TIMEOUT_MS)
+    proc.stdout?.on('data', (chunk: Buffer) => {
+      const next = appendBoundedText(stdout, stdoutBytes, chunk, YTDLP_THUMBNAIL_STDOUT_MAX_BYTES)
+      stdout = next.value
+      stdoutBytes = next.bytes
+      if (next.overflow) {
+        timedOut = true
+        void stopProcess()
+      }
+    })
+    proc.stderr?.on('data', (chunk: Buffer) => {
+      stderrBytes += chunk.length
+      if (stderrBytes > YTDLP_INFO_STDERR_MAX_BYTES) {
+        timedOut = true
+        void stopProcess()
+      }
+    })
+    proc.on('close', async () => {
+      if (cleanupPromise && !(await cleanupPromise)) {
+        console.warn('[yt-dlp] thumbnail process group still visible after cancellation')
+      }
+      if (timedOut) {
+        finish('')
+        return
+      }
       try {
         const line = stdout.trim().split('\n').filter(Boolean).pop()
         if (!line) {
-          resolve('')
+          finish('')
           return
         }
         const json = JSON.parse(line) as Record<string, unknown>
         const thumbnails = json.thumbnails as Array<{ url: string }> | undefined
         const raw = thumbnails?.[0]?.url ?? (json.thumbnail as string) ?? ''
-        resolve(normalizeThumbnailUrl(String(raw)))
+        finish(normalizeThumbnailUrl(String(raw)))
       } catch {
-        resolve('')
+        finish('')
       }
     })
-    proc.on('error', () => resolve(''))
+    proc.on('error', () => { void stopProcess() })
   })
 }
 
@@ -448,6 +534,9 @@ export async function getVideoInfo(
   proxyUrl?: string,
   extras?: { omitCookies?: boolean }
 ): Promise<VideoInfo | { entries: VideoInfo[]; playlist_title?: string; playlist_channel?: string; playlist_count?: number }> {
+  if (isManagedChildShutdownRequested()) {
+    throw new DOMException('Application is shutting down', 'AbortError')
+  }
   const path = getYtdlpPath(ytdlpPath)
   const isPlaylist = isPlaylistUrl(url)
 
@@ -472,49 +561,78 @@ export async function getVideoInfo(
   args.push(url)
 
   return new Promise((resolve, reject) => {
-    const proc = spawn(path, args, {
+    const proc = spawnManagedProcess(path, args, {
       stdio: ['ignore', 'pipe', 'pipe'],
-      env: spawnEnv()
+      env: spawnEnv(),
+      detached: process.platform !== 'win32'
     })
 
     let stdout = ''
+    let stdoutBytes = 0
     let stderr = ''
+    let stderrBytes = 0
     let settled = false
-    const cleanupAbort = () => signal?.removeEventListener('abort', onAbort)
+    let stopError: Error | null = null
+    let timeout: ReturnType<typeof setTimeout> | undefined
+    const cleanup = () => {
+      if (timeout) clearTimeout(timeout)
+      signal?.removeEventListener('abort', onAbort)
+    }
     const resolveOnce = (value: VideoInfo | { entries: VideoInfo[]; playlist_title?: string; playlist_channel?: string; playlist_count?: number }) => {
       if (settled) return
       settled = true
-      cleanupAbort()
+      cleanup()
       resolve(value)
     }
     const rejectOnce = (error: Error) => {
       if (settled) return
       settled = true
-      cleanupAbort()
+      cleanup()
       reject(error)
     }
-    const onAbort = () => {
-      try { proc.kill('SIGTERM') } catch { /* process may already be closed */ }
-      rejectOnce(new DOMException('yt-dlp info resolution aborted', 'AbortError'))
+    let terminationPromise: Promise<boolean> | null = null
+    const requestStop = (error: Error): void => {
+      if (settled || stopError) return
+      stopError = error
+      terminationPromise = terminateDownloadProcess(proc, true)
     }
-    if (signal?.aborted) {
-      onAbort()
-      return
-    }
-    signal?.addEventListener('abort', onAbort, { once: true })
+    const onAbort = () => requestStop(new DOMException('yt-dlp info resolution aborted', 'AbortError'))
+    timeout = setTimeout(
+      () => requestStop(new Error(`yt-dlp info timed out after ${Math.round(YTDLP_INFO_TIMEOUT_MS / 1000)} seconds`)),
+      YTDLP_INFO_TIMEOUT_MS
+    )
+    timeout.unref?.()
+    if (signal?.aborted) onAbort()
+    else signal?.addEventListener('abort', onAbort, { once: true })
 
     proc.stdout?.on('data', (chunk: Buffer) => {
-      stdout += chunk.toString()
+      if (stopError) return
+      const next = appendBoundedText(stdout, stdoutBytes, chunk, YTDLP_INFO_STDOUT_MAX_BYTES)
+      stdout = next.value
+      stdoutBytes = next.bytes
+      if (next.overflow) requestStop(new Error('yt-dlp info output exceeded the 32 MiB limit'))
     })
     proc.stderr?.on('data', (chunk: Buffer) => {
-      stderr += chunk.toString()
+      if (stopError) return
+      const next = appendBoundedText(stderr, stderrBytes, chunk, YTDLP_INFO_STDERR_MAX_BYTES)
+      stderr = next.value
+      stderrBytes = next.bytes
+      if (next.overflow) requestStop(new Error('yt-dlp info error output exceeded the 2 MiB limit'))
     })
 
-    proc.on('close', (code) => {
+    proc.on('close', async (code) => {
       if (settled) return
+      if (stopError) {
+        if (terminationPromise && !(await terminationPromise)) {
+          console.warn('[yt-dlp] info-resolution process group still visible after cancellation')
+        }
+        rejectOnce(stopError)
+        return
+      }
       if (code !== 0 && code !== null) {
         const message = `yt-dlp exited with code ${code}: ${stderr || stdout}`
         if (!extras?.omitCookies && isValidYouTubeUrl(url) && isYoutubePageReloadError(message)) {
+          cleanup()
           void getVideoInfo(url, cookiesPath, ytdlpPath, signal, proxyUrl, { omitCookies: true }).then(resolveOnce, rejectOnce)
           return
         }
@@ -560,7 +678,7 @@ export async function getVideoInfo(
     })
 
     proc.on('error', (err) => {
-      rejectOnce(err)
+      requestStop(err)
     })
   })
 }
@@ -588,6 +706,17 @@ function extractDestinationsFromOutput(text: string): string[] {
     if (mergeMatch) found.push(mergeMatch[1].trim())
     const alreadyMatch = ALREADY_LINE_RE.exec(line)
     if (alreadyMatch) found.push(alreadyMatch[1].trim())
+  }
+  return found
+}
+
+function extractFinalDestinationsFromOutput(text: string): string[] {
+  const found: string[] = []
+  for (const rawLine of text.split('\n')) {
+    const line = stripAnsi(rawLine).replace(/\r$/, '').trim()
+    if (!line.startsWith(FINAL_OUTPUT_MARKER)) continue
+    const path = line.slice(FINAL_OUTPUT_MARKER.length).trim()
+    if (path) found.push(path)
   }
   return found
 }
@@ -791,6 +920,7 @@ export function download(
     sleepInterval = 3,
     isPlaylist = false,
     youtubeNativePlaylist = false,
+    downloadWholePlaylist = false,
     playlistTitle,
     playlistSleepRequests = 0,
     playlistMaxDownloads = 0,
@@ -805,9 +935,12 @@ export function download(
     pluginDir,
     proxyUrl,
     filenameTemplate,
+    tempDir,
     limitRate,
     onProgress: progressCb
   } = options
+
+  if (tempDir) mkdirSync(tempDir, { recursive: true })
 
   let onProgress: (progress: DownloadProgress) => void = progressCb ?? (() => {})
 
@@ -825,10 +958,16 @@ export function download(
   let formatStr: string
   let mergeOutputMp4 = false
   if (isDirectMedia) {
-    if (mediaType === 'mp3') {
+    if (format === 'audio' || format === 'mp3' || mediaType === 'mp3') {
       formatStr = 'bestaudio/best'
+      mergeOutputMp4 = false
     } else if (mediaType === 'jpeg') {
       formatStr = 'best'
+    } else if (mediaType === 'dash' || mediaType === 'mpd') {
+      // DASH manifests often expose separate video-only and audio-only
+      // representations, so `best` alone can find no combined format.
+      formatStr = 'bestvideo+bestaudio/best'
+      mergeOutputMp4 = true
     } else {
       // Single progressive / CDN URL from extension — avoid bv+ba picking a mismatched pair
       formatStr = 'best'
@@ -848,8 +987,13 @@ export function download(
     ...(mergeOutputMp4 ? (['--merge-output-format', 'mp4'] as const) : []),
     '-f', formatStr,
     '--paths', outputDir,
-    '--paths', `temp:${getYtdlpTempDir()}`,
+    '--paths', `temp:${tempDir || getYtdlpTempDir()}`,
     '-o', outputFilenameTemplate,
+    '--print', `after_move:${FINAL_OUTPUT_MARKER}%(filepath)s`,
+    // --print options can make yt-dlp default to quiet mode. Keep the existing
+    // destination/log lines and progress stream consumed by the UI parser.
+    '--no-quiet',
+    '--progress',
     '--no-warnings',
     '--no-check-certificate'
   ]
@@ -872,7 +1016,7 @@ export function download(
     args.push('--max-downloads', String(playlistMaxDownloads))
   }
 
-  if (isPlaylist && youtubeNativePlaylist && !mediaType) {
+  if (isPlaylist && (youtubeNativePlaylist || downloadWholePlaylist) && !mediaType) {
     args.push('--yes-playlist')
   }
 
@@ -929,21 +1073,35 @@ export function download(
 
   args.push(hintDirectMediaUrl(url, mediaType))
 
-  const proc = spawn(path, args, {
+  const proc = spawnManagedProcess(path, args, {
     stdio: ['ignore', 'pipe', 'pipe'],
-    env: spawnEnv()
+    env: spawnEnv(),
+    detached: process.platform !== 'win32'
   })
 
   let currentPhase = ''
   let stdoutBuf = ''
   let stderrBuf = ''
+  let mediaId = ''
   let durationSec = 0
   const destinations: string[] = []
+  const finalDestinations: string[] = []
+  let incompleteOutputPathMetadata = false
 
   const parseLine = (line: string) => {
     const plain = stripAnsi(line).replace(/\r$/, '')
+    if (plain.trim().startsWith(FINAL_OUTPUT_MARKER)) {
+      const finalPath = plain.trim().slice(FINAL_OUTPUT_MARKER.length).trim()
+      if (finalPath) {
+        if (finalDestinations.length < YTDLP_DESTINATION_MAX_COUNT) finalDestinations.push(finalPath)
+        else incompleteOutputPathMetadata = true
+      }
+    }
+    const idMatch = plain.match(/^\[info\]\s+(\d+):\s+Downloading/i)
+    if (idMatch) mediaId = idMatch[1]!
     for (const dest of extractDestinationsFromOutput(plain)) {
-      destinations.push(dest)
+      if (destinations.length < YTDLP_DESTINATION_MAX_COUNT) destinations.push(dest)
+      else incompleteOutputPathMetadata = true
     }
 
     const parsedDuration = parseMediaDurationSeconds(plain)
@@ -958,36 +1116,129 @@ export function download(
     }
   }
 
-  proc.stdout?.on('data', (chunk: Buffer) => {
-    const text = chunk.toString()
-    stdoutBuf += text
-    for (const line of text.split(/\r\n|\n|\r/)) {
-      parseLine(line)
+  type OutputLineState = {
+    decoder: StringDecoder
+    pending: string
+    skipLeadingLf: boolean
+    discardingLongLine: boolean
+    flushed: boolean
+  }
+  const makeOutputLineState = (): OutputLineState => ({
+    decoder: new StringDecoder('utf8'),
+    pending: '',
+    skipLeadingLf: false,
+    discardingLongLine: false,
+    flushed: false,
+  })
+  const stdoutLines = makeOutputLineState()
+  const stderrLines = makeOutputLineState()
+
+  const appendLineFragment = (state: OutputLineState, fragment: string): void => {
+    if (state.discardingLongLine || fragment.length === 0) return
+    if (state.pending.length + fragment.length <= YTDLP_OUTPUT_LINE_MAX_CHARS) {
+      state.pending += fragment
+      return
     }
+
+    const prefix = stripAnsi(`${state.pending}${fragment.slice(0, Math.max(0, 128 - state.pending.length))}`).trimStart()
+    if (
+      prefix.startsWith(FINAL_OUTPUT_MARKER) ||
+      prefix.startsWith('[download] Destination:') ||
+      prefix.startsWith('[Merger]')
+    ) incompleteOutputPathMetadata = true
+    state.pending = ''
+    state.discardingLongLine = true
+  }
+
+  const finishOutputLine = (state: OutputLineState): void => {
+    if (!state.discardingLongLine) parseLine(state.pending)
+    state.pending = ''
+    state.discardingLongLine = false
+  }
+
+  const consumeDecodedText = (state: OutputLineState, text: string): void => {
+    let offset = 0
+    if (state.skipLeadingLf) {
+      state.skipLeadingLf = false
+      if (text.startsWith('\n')) offset = 1
+    }
+
+    while (offset < text.length) {
+      const cr = text.indexOf('\r', offset)
+      const lf = text.indexOf('\n', offset)
+      const delimiter = cr < 0 ? lf : lf < 0 ? cr : Math.min(cr, lf)
+      if (delimiter < 0) {
+        appendLineFragment(state, text.slice(offset))
+        return
+      }
+
+      appendLineFragment(state, text.slice(offset, delimiter))
+      finishOutputLine(state)
+      const isCr = text[delimiter] === '\r'
+      if (isCr && text[delimiter + 1] === '\n') {
+        offset = delimiter + 2
+      } else {
+        // Carry only a CR at the end of this chunk: a following LF may be
+        // the second half of CRLF. A later character in this same chunk is
+        // already the next line and must not inherit that state.
+        state.skipLeadingLf = isCr && delimiter === text.length - 1
+        offset = delimiter + 1
+      }
+    }
+  }
+
+  const consumeOutputChunk = (state: OutputLineState, chunk: Buffer): string => {
+    const text = state.decoder.write(chunk)
+    consumeDecodedText(state, text)
+    return text
+  }
+
+  const flushOutputLines = (state: OutputLineState): void => {
+    if (state.flushed) return
+    state.flushed = true
+    consumeDecodedText(state, state.decoder.end())
+    // yt-dlp normally ends output lines with a newline, but process close is
+    // also a valid boundary for the final unterminated destination line.
+    finishOutputLine(state)
+    state.skipLeadingLf = false
+  }
+
+  proc.stdout?.on('data', (chunk: Buffer) => {
+    const text = consumeOutputChunk(stdoutLines, chunk)
+    stdoutBuf = `${stdoutBuf}${text}`.slice(-YTDLP_DOWNLOAD_LOG_MAX_CHARS)
   })
 
   proc.stderr?.on('data', (chunk: Buffer) => {
-    const text = chunk.toString()
-    stderrBuf += text
-    for (const line of text.split(/\r\n|\n|\r/)) {
-      parseLine(line)
-    }
+    const text = consumeOutputChunk(stderrLines, chunk)
+    stderrBuf = `${stderrBuf}${text}`.slice(-YTDLP_DOWNLOAD_LOG_MAX_CHARS)
   })
 
+  proc.once('close', () => {
+    flushOutputLines(stdoutLines)
+    flushOutputLines(stderrLines)
+  })
+
+  let termination: Promise<boolean> | null = null
+  const stopProcess = (): Promise<boolean> => {
+    if (!termination) termination = terminateDownloadProcess(proc, true)
+    return termination
+  }
   const downloadProcess: DownloadProcess = {
     process: proc,
     onProgress: (cb: (progress: DownloadProgress) => void) => {
       onProgress = cb
     },
     cancel: () => {
-      try {
-        proc.kill('SIGTERM')
-      } catch {
-        proc.kill('SIGKILL')
-      }
+      void stopProcess()
     },
+    waitForCleanup: () => termination ?? Promise.resolve(true),
     getStderr: () => stderrBuf,
-    getOutput: () => `${stdoutBuf}\n${stderrBuf}`,
+    getOutput: () => `${mediaId ? `[info] ${mediaId}: Downloading\n` : ''}${stdoutBuf}\n${stderrBuf}`,
+    getFinalDestinations: () => [...new Set([
+      ...finalDestinations,
+      ...extractFinalDestinationsFromOutput(`${stdoutBuf}\n${stderrBuf}`)
+    ])],
+    hasIncompleteOutputPathMetadata: () => incompleteOutputPathMetadata,
     getDestinations: () => {
       const fromBuffers = extractDestinationsFromOutput(`${stdoutBuf}\n${stderrBuf}`)
       return [...new Set([...destinations, ...fromBuffers])]

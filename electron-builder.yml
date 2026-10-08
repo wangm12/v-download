@@ -3,7 +3,7 @@
 # Historical bundle id — changing it breaks updates and Gatekeeper identity.
 appId: com.ytdownload.app
 productName: V-Download
-# build-mac-release.mjs performs the target Electron rebuild explicitly.
+# Release wrappers verify the target Electron and N-API SQLite runtime before packaging.
 npmRebuild: false
 directories:
   buildResources: resources
@@ -19,7 +19,7 @@ extraResources:
     filter:
       - "**/*"
   # Created by build-mac-release.mjs from the signed release configuration.
-  # Packaged builds fail closed if this fixed Chrome Web Store ID is absent.
+  # Packaged builds fail closed if the configured Chrome extension ID is absent.
   - from: .release-staging/current/extension-config.json
     to: extension-config.json
   - from: .release-staging/current/engines
@@ -27,10 +27,13 @@ extraResources:
     filter:
       - "**/*"
 asar: true
+asarUnpack:
+  - node_modules/better-sqlite3/prebuilds/**/*.node
 afterPack: ./scripts/after-pack.mjs
 mac:
   icon: resources/icon.icns
   category: public.app-category.utilities
+  minimumSystemVersion: '12.0'
   extendInfo:
     CFBundleDisplayName: V-Download
   target:
@@ -63,9 +66,22 @@ linux:
     - AppImage
     - deb
   desktop:
-    Name: V-Download
-    Comment: Downie-style video downloader
-    Keywords: download;video;youtube;douyin;
-    StartupWMClass: v-download
-    MimeType: x-scheme-handler/ytdl;x-scheme-handler/vdownload;
-
+    entry:
+      Name: V-Download
+      Comment: Downie-style video downloader
+      Keywords: download;video;youtube;douyin;
+      StartupWMClass: v-download
+      MimeType: x-scheme-handler/ytdl;x-scheme-handler/vdownload;
+deb:
+  depends:
+    - libgtk-3-0
+    - libnotify4
+    - libnss3
+    - libxss1
+    - libxtst6
+    - xdg-utils
+    - libatspi2.0-0
+    - libuuid1
+    - libsecret-1-0
+    - libgbm1
+    - 'libasound2t64 | libasound2'

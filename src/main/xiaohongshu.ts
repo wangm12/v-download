@@ -1,7 +1,7 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
+import { existsSync, mkdirSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { sanitizeDownloadBasename } from './sanitizeDownloadBasename'
-import { delayWithAbort, fetchWithTimeout } from './httpClient'
+import { delayWithAbort, fetchWithTimeout, readResponseText, streamResponseToFile } from './httpClient'
 
 const DESKTOP_UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
@@ -116,7 +116,7 @@ function buildXhsCookieHeader(cookiesFilePath?: string): string {
     .join('; ')
 }
 
-async function resolveShortUrl(url: string, proxyUrl?: string): Promise<string> {
+async function resolveShortUrl(url: string, options?: XiaohongshuFetchOptions): Promise<string> {
   if (!isXhsShortUrl(url)) return url.trim()
   const res = await fetchWithTimeout(url.trim(), {
     method: 'GET',
@@ -126,12 +126,9 @@ async function resolveShortUrl(url: string, proxyUrl?: string): Promise<string> 
       Referer: 'https://www.xiaohongshu.com/',
       'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
     },
-  }, { proxyUrl })
-  try {
-    await res.arrayBuffer()
-  } catch {
-    /* ignore */
-  }
+    signal: options?.signal,
+  }, { proxyUrl: options?.proxyUrl })
+  await res.body?.cancel().catch(() => undefined)
   return res.url
 }
 
@@ -280,7 +277,7 @@ export function parseXiaohongshuNote(
 async function fetchPageHtml(
   pageUrl: string,
   cookiesFilePath?: string,
-  proxyUrl?: string
+  options?: XiaohongshuFetchOptions
 ): Promise<string> {
   const cookieHeader = buildXhsCookieHeader(cookiesFilePath)
   const res = await fetchWithTimeout(pageUrl, {
@@ -291,11 +288,13 @@ async function fetchPageHtml(
       ...(cookieHeader ? { Cookie: cookieHeader } : {}),
     },
     redirect: 'follow',
-  }, { proxyUrl })
+    signal: options?.signal,
+  }, { proxyUrl: options?.proxyUrl })
   if (!res.ok) {
+    await res.body?.cancel().catch(() => undefined)
     throw new Error(`Xiaohongshu page fetch failed: ${res.status} ${res.statusText}`)
   }
-  return res.text()
+  return readResponseText(res, { timeoutMs: 15_000, maxBytes: 16 * 1024 * 1024, signal: options?.signal })
 }
 
 export async function getXiaohongshuInfo(
@@ -305,14 +304,17 @@ export async function getXiaohongshuInfo(
 ): Promise<XiaohongshuMediaResult | null> {
   lastGetXhsInfoError = ''
   try {
-    const resolved = await resolveShortUrl(url, options?.proxyUrl)
+    throwIfXhsAborted(options?.signal)
+    const resolved = await resolveShortUrl(url, options)
+    throwIfXhsAborted(options?.signal)
     const noteId = extractNoteId(resolved)
     if (!noteId) {
       lastGetXhsInfoError = 'Could not parse Xiaohongshu note id from URL'
       return null
     }
 
-    const html = await fetchPageHtml(resolved, cookiesFilePath, options?.proxyUrl)
+    const html = await fetchPageHtml(resolved, cookiesFilePath, options)
+    throwIfXhsAborted(options?.signal)
     const state = parseInitialState(html)
     if (!state) {
       lastGetXhsInfoError = 'Xiaohongshu page did not include note data'
@@ -335,6 +337,7 @@ export async function getXiaohongshuInfo(
     }
     return parsed
   } catch (e) {
+    if (isXhsAbortError(e) || options?.signal?.aborted) throw new DOMException('Xiaohongshu fetch aborted', 'AbortError')
     lastGetXhsInfoError = e instanceof Error ? e.message : String(e)
     return null
   }
@@ -364,8 +367,9 @@ async function fetchWith429Backoff(
     let ms = 3000
     if (ra) {
       const sec = parseInt(ra, 10)
-      if (Number.isFinite(sec) && sec > 0 && sec < 3600) ms = sec * 1000
+      if (Number.isFinite(sec) && sec > 0 && sec <= 60) ms = sec * 1000
     }
+    await res.body?.cancel().catch(() => undefined)
     await delayWithAbort(ms, init.signal)
     res = await fetchWithTimeout(url, init, { timeoutMs: 30_000, proxyUrl })
   }
@@ -397,6 +401,11 @@ export async function downloadXiaohongshuImageGallery(
   } as Record<string, string>
 
   const n = imageUrls.length
+  const controller = new AbortController()
+  const abortFromParent = () => controller.abort()
+  if (options?.signal?.aborted) controller.abort()
+  else options?.signal?.addEventListener('abort', abortFromParent, { once: true })
+  let failure: unknown
   let completed = 0
   const bump = () => {
     completed++
@@ -405,33 +414,49 @@ export async function downloadXiaohongshuImageGallery(
 
   let cursor = 0
   async function worker(): Promise<void> {
-    while (true) {
-      throwIfXhsAborted(options?.signal)
-      const idx = cursor++
-      if (idx >= n) break
-      const url = imageUrls[idx]
-      const i = idx + 1
-      const ext = extFromImageUrl(url)
-      const dest = join(subDir, `${String(i).padStart(3, '0')}.${ext}`)
-      const res = await fetchWith429Backoff(url, {
-        headers,
-        redirect: 'follow',
-        signal: options?.signal,
-      }, options?.proxyUrl)
-      if (!res.ok) {
-        throw new Error(`Image ${i} failed: ${res.status} ${res.statusText}`)
+    try {
+      while (true) {
+        throwIfXhsAborted(controller.signal)
+        const idx = cursor++
+        if (idx >= n) break
+        const url = imageUrls[idx]
+        const i = idx + 1
+        const ext = extFromImageUrl(url)
+        const dest = join(subDir, `${String(i).padStart(3, '0')}.${ext}`)
+        const res = await fetchWith429Backoff(url, {
+          headers,
+          redirect: 'follow',
+          signal: controller.signal,
+        }, options?.proxyUrl)
+        if (!res.ok) {
+          await res.body?.cancel().catch(() => undefined)
+          throw new Error(`Image ${i} failed: ${res.status} ${res.statusText}`)
+        }
+        const bytes = await streamResponseToFile(res, dest, {
+          signal: controller.signal,
+          idleTimeoutMs: 30_000,
+          maxBytes: 128 * 1024 * 1024,
+        })
+        if (bytes < 64) {
+          throw new Error(`Image ${i} response too small`)
+        }
+        bump()
       }
-      const buf = Buffer.from(await res.arrayBuffer())
-      if (buf.length < 64) {
-        throw new Error(`Image ${i} response too small`)
-      }
-      writeFileSync(dest, buf)
-      bump()
+    } catch (error) {
+      if (failure === undefined) failure = error
+      controller.abort()
+      throw error
     }
   }
 
   const pool = Math.min(GALLERY_IMAGE_PARALLEL, n)
-  await Promise.all(Array.from({ length: pool }, () => worker()))
+  try {
+    await Promise.allSettled(Array.from({ length: pool }, () => worker()))
+    if (failure !== undefined) throw failure
+    throwIfXhsAborted(options?.signal)
+  } finally {
+    options?.signal?.removeEventListener('abort', abortFromParent)
+  }
 
   if (onProgress) onProgress(100)
   return subDir

@@ -31,6 +31,14 @@ export interface DownloadRecord {
   updated_at: string
 }
 
+export interface DownloadAdmissionRecord {
+  id: string
+  url: string
+  status: string
+  file_path: string | null
+  created_at: string
+}
+
 export function initDB(): void {
   if (db) return
 
@@ -82,6 +90,8 @@ export function initDB(): void {
 
     CREATE INDEX IF NOT EXISTS idx_downloads_status ON downloads(status);
     CREATE INDEX IF NOT EXISTS idx_downloads_playlist_id ON downloads(playlist_id);
+    CREATE INDEX IF NOT EXISTS idx_downloads_completed_file_path
+      ON downloads(file_path) WHERE status = 'complete';
   `)
 
   migrateDatabase(db)
@@ -215,6 +225,81 @@ export function getDownloads(): DownloadRecord[] {
   if (!db) throw new Error('Database not initialized')
   const stmt = db.prepare('SELECT * FROM downloads ORDER BY created_at DESC')
   return stmt.all() as DownloadRecord[]
+}
+
+/** Read one queue row without materializing the full history. */
+export function getDownload(id: string): DownloadRecord | undefined {
+  if (!db) throw new Error('Database not initialized')
+  return db.prepare('SELECT * FROM downloads WHERE id = ?').get(id) as DownloadRecord | undefined
+}
+
+/** Exact indexed lookup for a completed output path without loading download history. */
+export function getCompletedDownloadByFilePath(filePath: string): DownloadRecord | undefined {
+  if (!db) throw new Error('Database not initialized')
+  return db.prepare(`
+    SELECT * FROM downloads
+    WHERE status = 'complete' AND file_path = ?
+    ORDER BY updated_at DESC
+    LIMIT 1
+  `).get(filePath) as DownloadRecord | undefined
+}
+
+/** Read a bounded set of queue rows without loading historical downloads. */
+export function getDownloadsByIds(ids: readonly string[]): DownloadRecord[] {
+  if (!db) throw new Error('Database not initialized')
+  const uniqueIds = [...new Set(ids.map((id) => String(id || '').trim()).filter(Boolean))]
+  if (uniqueIds.length === 0) return []
+
+  const byId = new Map<string, DownloadRecord>()
+  const chunkSize = 500
+  for (let offset = 0; offset < uniqueIds.length; offset += chunkSize) {
+    const chunk = uniqueIds.slice(offset, offset + chunkSize)
+    const placeholders = chunk.map(() => '?').join(', ')
+    const rows = db.prepare(`SELECT * FROM downloads WHERE id IN (${placeholders})`).all(...chunk) as DownloadRecord[]
+    for (const row of rows) byId.set(row.id, row)
+  }
+  return uniqueIds.flatMap((id) => {
+    const row = byId.get(id)
+    return row ? [row] : []
+  })
+}
+
+/** Queue scheduling only needs active rows; completed history is intentionally excluded. */
+export function getDownloadsByStatus(...statuses: string[]): DownloadRecord[] {
+  if (!db) throw new Error('Database not initialized')
+  const values = [...new Set(statuses.filter(Boolean))]
+  if (values.length === 0) return []
+  const placeholders = values.map(() => '?').join(', ')
+  return db.prepare(`SELECT * FROM downloads WHERE status IN (${placeholders}) ORDER BY created_at ASC`).all(...values) as DownloadRecord[]
+}
+
+/** Small projection used to preserve URL de-duplication without loading large extras blobs. */
+export function getDownloadAdmissionCandidates(): DownloadAdmissionRecord[] {
+  if (!db) throw new Error('Database not initialized')
+  return db.prepare(`
+    SELECT id, url, status, file_path, created_at
+    FROM downloads
+    ORDER BY created_at DESC
+  `).all() as DownloadAdmissionRecord[]
+}
+
+export interface DownloadProgressSummary {
+  total: number
+  progress: number
+  active: number
+}
+
+/** Aggregate dock progress in SQLite instead of copying every historical row on each refresh. */
+export function getDownloadProgressSummary(): DownloadProgressSummary {
+  if (!db) throw new Error('Database not initialized')
+  return db.prepare(`
+    SELECT
+      COUNT(*) AS total,
+      COALESCE(SUM(CASE WHEN status = 'complete' THEN 100 ELSE progress END), 0) AS progress,
+      COALESCE(SUM(CASE WHEN status IN ('downloading', 'queued') THEN 1 ELSE 0 END), 0) AS active
+    FROM downloads
+    WHERE status NOT IN ('resolving', 'ready')
+  `).get() as DownloadProgressSummary
 }
 
 export function deleteDownload(id: string): void {

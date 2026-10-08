@@ -97,7 +97,7 @@ export const DialogShell = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElem
     <div
       ref={ref}
       className={cn(
-        'w-full overflow-hidden rounded-panel border border-divider-strong bg-window shadow-[0_28px_90px_rgb(0_0_0/0.48)]',
+        'w-full overflow-hidden rounded-panel border border-divider-strong bg-surface shadow-[0_12px_40px_rgb(0_0_0/0.24)]',
         className
       )}
       {...props}

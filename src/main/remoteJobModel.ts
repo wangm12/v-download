@@ -1,5 +1,5 @@
 import { existsSync, statSync } from 'node:fs'
-import { join, resolve, sep } from 'node:path'
+import { basename, dirname, join, resolve, sep } from 'node:path'
 import { classifyFailureMessage, type JobError, type JobRecord } from './apiJobsModel'
 
 export const REMOTE_JOB_DIR_NAME = 'remote-jobs'
@@ -30,6 +30,15 @@ export interface JobTaskSnapshot {
 
 export function remoteJobOutputDir(downloadDir: string, jobId: string): string {
   return join(downloadDir, REMOTE_JOB_DIR_NAME, jobId)
+}
+
+/** Resolve the historical root from the durable per-job folder, not current settings. */
+export function remoteJobStorageRoots(jobOutputDir: string, jobId: string): { downloadDir: string; jobOutputDir: string } | null {
+  if (!jobOutputDir.trim()) return null
+  const resolvedOutputDir = resolve(jobOutputDir)
+  const jobsRoot = dirname(resolvedOutputDir)
+  if (basename(resolvedOutputDir) !== jobId || basename(jobsRoot) !== REMOTE_JOB_DIR_NAME) return null
+  return { downloadDir: dirname(jobsRoot), jobOutputDir: resolvedOutputDir }
 }
 
 export function isPathInside(parent: string, child: string): boolean {

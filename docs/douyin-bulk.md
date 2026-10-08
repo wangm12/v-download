@@ -2,7 +2,7 @@
 
 ## Built-in profile picker (default)
 
-Pasting a **`https://www.douyin.com/user/...`** URL on `douyin.com` (strict host) opens an in-app **post picker**: load more / load-all (capped), multi-select, then **Add to queue**. Each row becomes a normal download task (`start-downloads-bulk` → `downloadManager`), grouped by creator name in the queue. Up to **2000** posts per batch; the queue runs **Settings → Concurrent downloads** at a time, in playlist order.
+Pasting a **`https://www.douyin.com/user/...`** creator URL, an **`iesdouyin.com/share/user/...`** mobile share, or a **`v.douyin.com/...`** short link that redirects to a creator page opens an in-app **post picker**: load more / load-all (capped), multi-select, then **Add to queue**. User shares are normalized to the standard creator URL before listing; profile short links bypass the single-video extension and yt-dlp paths. Each row becomes a normal download task (`start-downloads-bulk` → `downloadManager`), grouped by creator name in the queue. Up to **2000** posts per batch; the queue runs **Settings → Concurrent downloads** at a time, in playlist order.
 
 Listing uses main-process helpers ([`douyinProfile.ts`](../src/main/douyinProfile.ts)):
 

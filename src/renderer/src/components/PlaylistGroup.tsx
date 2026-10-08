@@ -18,6 +18,7 @@ import { ThumbnailImage } from './ThumbnailImage'
 import { PlaylistDownloadRow } from './PlaylistDownloadRow'
 import { VirtualizedPlaylistItems } from './VirtualizedPlaylistItems'
 import { StatusPill } from './ui'
+import { ActionMenu } from './ui/ActionMenu'
 import {
   COLLECTION_PREVIEW_LIMIT,
   COLLECTION_VISIBLE_LIMIT,
@@ -189,7 +190,7 @@ export const PlaylistGroup = memo(function PlaylistGroup({
               </p>
               <p className="text-xs text-muted-foreground">
                 {isProfileGroup ? t('queue.profileType') : t('queue.playlistType')} · {playlist.total_count} {countLabel}
-                {playlist.output_dir ? ` · ${playlist.output_dir}` : ''}
+                {playlist.output_dir ? ` · ${playlist.output_dir.split('/').filter(Boolean).slice(-1)[0]}` : ''}
               </p>
               <div
                 className="mt-2 flex items-center gap-2"
@@ -212,13 +213,13 @@ export const PlaylistGroup = memo(function PlaylistGroup({
                 )}
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                <span>{t('queue.completedCount', { count: playlist.completed_count })}</span>
-                <span>{t('queue.remainingCount', { count: remainingCount })}</span>
+                {!isComplete && <span>{t('queue.completedCount', { count: playlist.completed_count })}</span>}
+                {remainingCount > 0 && <span>{t('queue.remainingCount', { count: remainingCount })}</span>}
                 <StatusPill tone={collectionStatus.tone}>{t(collectionStatus.label)}</StatusPill>
               </div>
             </div>
-            <div className="order-last flex basis-full min-w-0 items-center gap-2 pt-2 sm:order-none sm:basis-auto sm:min-w-[8rem] sm:pt-1">
-              <div className="flex flex-col items-end gap-0.5 flex-1 min-w-0">
+            <div className={`flex min-w-0 items-center gap-2 pt-1 ${isComplete ? '' : 'order-last basis-full sm:order-none sm:basis-auto sm:min-w-[8rem]'}`}>
+              {!isComplete && <div className="flex flex-col items-end gap-0.5 flex-1 min-w-0">
                 <div className="w-full h-1.5 rounded-full bg-control overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all duration-300 ${isComplete ? 'bg-success/80' : 'bg-progress'}`}
@@ -234,7 +235,7 @@ export const PlaylistGroup = memo(function PlaylistGroup({
                   ) : null}
                   {etaLabel ? <span>{t('queue.eta', { eta: etaLabel })}</span> : null}
                 </div>
-              </div>
+              </div>}
               {showResumeAll && (
                 <HoverHintWrap
                   text={t('queue.resumeAll')}
@@ -278,23 +279,7 @@ export const PlaylistGroup = memo(function PlaylistGroup({
                   </button>
                 </HoverHintWrap>
               )}
-              <HoverHintWrap
-                text={t('queue.removePlaylist')}
-                side="bottom"
-                className="[&>button]:h-11 [&>button]:w-11 [&>button]:p-0"
-              >
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setDeleteDialogOpen(true)
-                  }}
-                  className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-control transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
-                  aria-label={t('queue.removePlaylist')}
-                >
-                  <Trash2 className="w-4 h-4" aria-hidden />
-                </button>
-              </HoverHintWrap>
+              <ActionMenu actions={[{ label: t('queue.removePlaylist'), icon: <Trash2 className="h-4 w-4" />, onSelect: () => setDeleteDialogOpen(true), destructive: true }]} />
             </div>
             {hasMoreItems && (
               <button

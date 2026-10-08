@@ -1,8 +1,9 @@
 import { spawn } from 'node:child_process'
 import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { runPreflight, runRestore } from './dev-native-preflight.mjs'
 
-const root = resolve(new URL('..', import.meta.url).pathname)
+const root = resolve(fileURLToPath(new URL('..', import.meta.url)))
 const electronViteCommand = resolve(root, 'node_modules/.bin/electron-vite')
 
 export function getDevPlan() {
@@ -77,4 +78,4 @@ async function runDev() {
   process.exitCode = restoreError || primaryError ? 1 : childExitCode
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === resolve(new URL(import.meta.url).pathname)) runDev()
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) runDev()

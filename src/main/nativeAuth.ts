@@ -1,8 +1,9 @@
 import { app, BrowserWindow, safeStorage, session } from 'electron'
 import { execFileSync } from 'node:child_process'
-import { chmodSync, existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { buildNetscapeCookieFile } from '@v-download/shared'
+import { isCanonicalUserDataProfile } from './profilePaths'
 import {
   cookieDomainMatchesHost,
   nativeAuthHost,
@@ -46,6 +47,34 @@ function serviceName(site: NativeAuthSite): string {
   return `v-download.native-auth.${site}`
 }
 
+function hasProtectedStorage(): boolean {
+  if (!safeStorage.isEncryptionAvailable()) return false
+  if (process.platform === 'linux') {
+    try {
+      const backend = safeStorage.getSelectedStorageBackend()
+      return backend !== 'basic_text' && backend !== 'unknown'
+    } catch {
+      return false
+    }
+  }
+  return true
+}
+
+function writePrivateFile(path: string, data: string | Buffer): void {
+  const dir = dirname(path)
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true, mode: 0o700 })
+  const tempPath = `${path}.tmp`
+  try {
+    writeFileSync(tempPath, data, { mode: 0o600 })
+    chmodSync(tempPath, 0o600)
+    renameSync(tempPath, path)
+    chmodSync(path, 0o600)
+  } catch (error) {
+    try { unlinkSync(tempPath) } catch { /* no partial credential file */ }
+    throw error
+  }
+}
+
 function authDataPath(site: NativeAuthSite): string {
   return join(app.getPath('userData'), 'native-auth', `${site}.dat`)
 }
@@ -81,7 +110,7 @@ function readKeychain(site: NativeAuthSite): StoredAuth | null {
   }
 
   // Backward compatibility on macOS: read from keychain and migrate
-  if (process.platform === 'darwin') {
+  if (process.platform === 'darwin' && isCanonicalUserDataProfile()) {
     try {
       const raw = execFileSync(
         '/usr/bin/security',
@@ -117,18 +146,15 @@ function writeKeychain(site: NativeAuthSite, cookies: NativeCookie[]): StoredAut
   const stored: StoredAuth = { cookies, lastSyncedAt: new Date().toISOString() }
   const json = JSON.stringify(stored)
   const file = authDataPath(site)
-  const dir = dirname(file)
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true, mode: 0o700 })
 
-  if (safeStorage.isEncryptionAvailable()) {
+  if (hasProtectedStorage()) {
     const encrypted = safeStorage.encryptString(json)
-    writeFileSync(file, encrypted, { mode: 0o600 })
+    writePrivateFile(file, encrypted)
   } else {
-    writeFileSync(file, Buffer.from(json, 'utf8'), { mode: 0o600 })
+    writePrivateFile(file, Buffer.from(json, 'utf8'))
   }
-  chmodSync(file, 0o600)
 
-  if (process.platform === 'darwin') {
+  if (process.platform === 'darwin' && isCanonicalUserDataProfile()) {
     try {
       execFileSync(
         '/usr/bin/security',
@@ -159,10 +185,7 @@ function cookieFilePath(site: NativeAuthSite): string {
 
 function writeCookieFile(site: NativeAuthSite, cookies: NativeCookie[]): void {
   const path = cookieFilePath(site)
-  const dir = join(path, '..')
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true, mode: 0o700 })
-  writeFileSync(path, buildNetscapeCookieFile(cookies, { headerNote: 'V-Download native browser session' }), { mode: 0o600 })
-  chmodSync(path, 0o600)
+  writePrivateFile(path, buildNetscapeCookieFile(cookies, { headerNote: 'V-Download native browser session' }))
 }
 
 function deleteCookieFile(site: NativeAuthSite): void {
@@ -281,7 +304,7 @@ export function clearNativeAuth(site: NativeAuthSite): { ok: boolean; error?: st
   } catch {
     /* ignore */
   }
-  if (process.platform === 'darwin') {
+  if (process.platform === 'darwin' && isCanonicalUserDataProfile()) {
     try {
       execFileSync(
         '/usr/bin/security',

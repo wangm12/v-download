@@ -398,7 +398,7 @@ export function registerDownloadHandlers(): void {
   })
 
   ipcMain.handle('delete-task', async (_event, id: string) => {
-    downloadManager.deleteTask(id)
+    await downloadManager.deleteTask(id)
     return { ok: true }
   })
 

@@ -13,6 +13,11 @@ function broadcastSettingsChanged(): void {
   }
 }
 
+function settingWriteError(error: unknown): string {
+  const detail = error instanceof Error ? error.message : String(error)
+  return `Could not save settings: ${detail.slice(0, 240)}`
+}
+
 export function registerSettingsHandlers(): void {
   ipcMain.handle('get-settings', async () => {
     const all = settings.getAll()
@@ -23,7 +28,11 @@ export function registerSettingsHandlers(): void {
     const all = settings.getAll()
     const allowed = new Set<keyof SettingsSchema>(Object.keys(all).filter((k) => k !== 'cookiesPath') as Array<keyof SettingsSchema>)
     if (allowed.has(key as keyof SettingsSchema) && settings.validateSettingUpdate(key, value)) {
-      settings.set(key as keyof SettingsSchema, value as never)
+      try {
+        settings.set(key as keyof SettingsSchema, value as never)
+      } catch (error) {
+        return { ok: false, error: settingWriteError(error) }
+      }
       if (String(key).startsWith('remoteApi')) syncRemoteApiServer()
       broadcastSettingsChanged()
       return { ok: true }
@@ -34,9 +43,14 @@ export function registerSettingsHandlers(): void {
   ipcMain.handle(
     'apply-download-speed-mode',
     async (_event, mode: 'balanced' | 'turbo' | 'gentle', options?: { acknowledgeTurboRisk?: boolean }) => {
-      const result = settings.applyDownloadSpeedMode(mode, {
-        acknowledgeTurboRisk: Boolean(options?.acknowledgeTurboRisk)
-      })
+      let result: ReturnType<typeof settings.applyDownloadSpeedMode>
+      try {
+        result = settings.applyDownloadSpeedMode(mode, {
+          acknowledgeTurboRisk: Boolean(options?.acknowledgeTurboRisk)
+        })
+      } catch (error) {
+        return { ok: false, error: settingWriteError(error) }
+      }
       if (result === 'ok') broadcastSettingsChanged()
       return { ok: result === 'ok', error: result === 'turbo_ack_required' ? 'turbo_ack_required' : undefined }
     }

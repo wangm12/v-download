@@ -2,15 +2,17 @@
  * Live Douyin cookies from the configured browser profile (yt-dlp extraction),
  * with extension-sync Netscape fallback.
  */
-import { spawn } from 'child_process'
+import type { ChildProcess } from 'child_process'
 import { existsSync, readFileSync, statSync } from 'fs'
 import { dirname, join } from 'path'
 import { tmpdir } from 'os'
 import { fileURLToPath } from 'url'
-import { buildCookieHeaderFromNetscapeFile, parseCookieMapFromNetscapeFile } from './douyinParseUtils'
+import { buildCookieHeaderFromNetscapeFile, parseCookieMapFromNetscapeFile, parseNetscapeCookiesFromFile } from './douyinParseUtils'
 import { resolvedCookiesBrowser } from './cookiesBrowser'
 import { getYtdlpPath } from './ytdlp'
 import * as settings from './settings'
+import { terminateDownloadProcess } from './downloadTypes'
+import { spawnManagedProcess } from './managedChildProcesses'
 
 export interface PlaywrightCookie {
   name: string
@@ -30,6 +32,13 @@ export interface DouyinCookieContext {
 }
 
 const DOUYIN_DOMAIN_RE = /douyin|iesdouyin|byte|snssdk|aweme|toutiao/i
+const COOKIE_EXTRACT_TIMEOUT_MS = 30_000
+const COOKIE_EXTRACT_MAX_STDOUT_BYTES = 16 * 1024 * 1024
+const COOKIE_EXTRACT_MAX_STDERR_BYTES = 64 * 1024
+const COOKIE_FILE_MAX_BYTES = 16 * 1024 * 1024
+const activeCookieProcesses = new Map<ChildProcess, { stop: () => void; done: Promise<void> }>()
+let stoppingCookieProcesses = false
+let stopCookieProcessesPromise: Promise<void> | null = null
 
 const moduleDir = dirname(fileURLToPath(import.meta.url))
 
@@ -118,6 +127,7 @@ function netscapeMapFromPath(cookiesFilePath: string | undefined): Map<string, s
 }
 
 async function spawnExtractScript(browser: string): Promise<PlaywrightCookie[]> {
+  if (stoppingCookieProcesses) return []
   const scriptPath = extractScriptPath()
   if (!existsSync(scriptPath)) {
     console.log('[browserCookies] extract script not found:', scriptPath)
@@ -128,31 +138,42 @@ async function spawnExtractScript(browser: string): Promise<PlaywrightCookie[]> 
   const python = readYtdlpShebangInterpreter(ytdlpPath) ?? 'python3'
 
   return new Promise((resolve) => {
-    const proc = spawn(python, [scriptPath, browser], {
+    const proc = spawnManagedProcess(python, [scriptPath, browser], {
       env: process.env,
       stdio: ['ignore', 'pipe', 'pipe'],
+      detached: process.platform !== 'win32',
     })
-    let stdout = ''
+    const stdout: Buffer[] = []
+    let stdoutBytes = 0
     let stderr = ''
-    proc.stdout.on('data', (d: Buffer) => {
-      stdout += d.toString()
-    })
-    proc.stderr.on('data', (d: Buffer) => {
-      stderr += d.toString()
-    })
-    proc.on('error', (err) => {
-      console.log(`[browserCookies] spawn failed: ${err.message}`)
-      resolve([])
-    })
-    proc.on('close', (code) => {
+    let failure: Error | null = null
+    let settled = false
+    let termination: Promise<boolean> | null = null
+    let processDone!: () => void
+    const done = new Promise<void>((complete) => { processDone = complete })
+    const fail = (error: Error) => {
+      if (failure) return
+      failure = error
+      termination = terminateDownloadProcess(proc, true)
+    }
+    const timer = setTimeout(() => fail(new Error(`Cookie extraction timed out after ${COOKIE_EXTRACT_TIMEOUT_MS}ms`)), COOKIE_EXTRACT_TIMEOUT_MS)
+    const finish = async (code: number | null) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      if (failure) {
+        console.log(`[browserCookies] extract failed: ${failure.message.slice(0, 200)}`)
+        resolve([])
+        return
+      }
       if (code !== 0) {
-        const msg = stderr.trim() || stdout.trim() || `exit ${code}`
+        const msg = stderr.trim() || `exit ${code}`
         console.log(`[browserCookies] extract script failed: ${msg.slice(0, 200)}`)
         resolve([])
         return
       }
       try {
-        const parsed = JSON.parse(stdout.trim()) as {
+        const parsed = JSON.parse(Buffer.concat(stdout, stdoutBytes).toString('utf8').trim()) as {
           ok?: boolean
           cookies?: RawExtractedCookie[]
           count?: number
@@ -170,28 +191,83 @@ async function spawnExtractScript(browser: string): Promise<PlaywrightCookie[]> 
         console.log(`[browserCookies] parse failed: ${e instanceof Error ? e.message : String(e)}`)
         resolve([])
       }
+    }
+    activeCookieProcesses.set(proc, {
+      stop: () => fail(new Error('Cookie extraction stopped during application shutdown')),
+      done
+    })
+    proc.stdout!.on('data', (d: Buffer) => {
+      stdoutBytes += d.length
+      if (stdoutBytes > COOKIE_EXTRACT_MAX_STDOUT_BYTES) {
+        fail(new Error(`Cookie extraction output exceeded ${COOKIE_EXTRACT_MAX_STDOUT_BYTES} bytes`))
+        return
+      }
+      stdout.push(d)
+    })
+    proc.stderr!.on('data', (d: Buffer) => {
+      stderr = `${stderr}${d.toString('utf8')}`.slice(-COOKIE_EXTRACT_MAX_STDERR_BYTES)
+    })
+    proc.on('error', (err) => {
+      console.log(`[browserCookies] spawn failed: ${err.message}`)
+      fail(err)
+    })
+    proc.once('close', async (code) => {
+      if (termination && !(await termination)) {
+        console.warn('[browserCookies] extraction process group still visible after cancellation')
+      }
+      activeCookieProcesses.delete(proc)
+      processDone()
+      await finish(code)
     })
   })
 }
 
 async function extractCookiesViaYtdlpCli(browser: string): Promise<PlaywrightCookie[]> {
+  if (stoppingCookieProcesses) return []
   const ytdlpPath = getYtdlpPath(settings.get('ytdlpPath'))
   if (!ytdlpPath || !existsSync(ytdlpPath)) return []
 
   const tempCookieFile = join(tmpdir(), `vdl-cookies-${Date.now()}-${Math.random().toString(36).slice(2)}.txt`)
   try {
     await new Promise<void>((resolve, reject) => {
-      const proc = spawn(
+      const proc = spawnManagedProcess(
         ytdlpPath,
         ['--cookies-from-browser', browser, '--cookies', tempCookieFile, '--skip-download', 'https://www.douyin.com'],
-        { stdio: ['ignore', 'ignore', 'pipe'] }
+        { stdio: ['ignore', 'ignore', 'pipe'], detached: process.platform !== 'win32' }
       )
       let stderr = ''
-      proc.stderr?.on('data', (d: Buffer) => {
-        stderr += d.toString()
+      let failure: Error | null = null
+      let termination: Promise<boolean> | null = null
+      let processDone!: () => void
+      const done = new Promise<void>((complete) => { processDone = complete })
+      const fail = (error: Error) => {
+        if (failure) return
+        failure = error
+        termination = terminateDownloadProcess(proc, true)
+      }
+      const timer = setTimeout(
+        () => fail(new Error(`yt-dlp cookie export timed out after ${COOKIE_EXTRACT_TIMEOUT_MS}ms`)),
+        COOKIE_EXTRACT_TIMEOUT_MS
+      )
+      activeCookieProcesses.set(proc, {
+        stop: () => fail(new Error('yt-dlp cookie export stopped during application shutdown')),
+        done
       })
-      proc.on('error', reject)
-      proc.on('close', (code) => {
+      proc.stderr?.on('data', (d: Buffer) => {
+        stderr = `${stderr}${d.toString('utf8')}`.slice(-COOKIE_EXTRACT_MAX_STDERR_BYTES)
+      })
+      proc.on('error', fail)
+      proc.on('close', async (code) => {
+        clearTimeout(timer)
+        if (termination && !(await termination)) {
+          console.warn('[browserCookies] yt-dlp cookie process group still visible after cancellation')
+        }
+        activeCookieProcesses.delete(proc)
+        processDone()
+        if (failure) {
+          reject(failure)
+          return
+        }
         if (code === 0 && existsSync(tempCookieFile)) {
           resolve()
         } else {
@@ -201,12 +277,17 @@ async function extractCookiesViaYtdlpCli(browser: string): Promise<PlaywrightCoo
     })
 
     if (existsSync(tempCookieFile)) {
+      if (statSync(tempCookieFile).size > COOKIE_FILE_MAX_BYTES) {
+        throw new Error(`yt-dlp cookie file exceeded ${COOKIE_FILE_MAX_BYTES} bytes`)
+      }
       const content = readFileSync(tempCookieFile, 'utf-8')
       const cookies: RawExtractedCookie[] = []
       for (const line of content.split('\n')) {
         const trimmed = line.trim()
-        if (!trimmed || trimmed.startsWith('#')) continue
-        const parts = trimmed.split('\t')
+        if (!trimmed) continue
+        const httpOnly = trimmed.startsWith('#HttpOnly_')
+        if (trimmed.startsWith('#') && !httpOnly) continue
+        const parts = (httpOnly ? trimmed.slice('#HttpOnly_'.length) : trimmed).split('\t')
         if (parts.length >= 7) {
           cookies.push({
             domain: parts[0],
@@ -215,6 +296,7 @@ async function extractCookiesViaYtdlpCli(browser: string): Promise<PlaywrightCoo
             expires: Number(parts[4]) || -1,
             name: parts[5],
             value: parts[6] ?? '',
+            httpOnly,
           })
         }
       }
@@ -236,6 +318,36 @@ async function extractCookiesViaYtdlpCli(browser: string): Promise<PlaywrightCoo
     }
   }
   return []
+}
+
+const liveCookieExtractionByBrowser = new Map<string, Promise<PlaywrightCookie[]>>()
+
+async function extractLiveBrowserCookies(browser: string): Promise<PlaywrightCookie[]> {
+  if (stoppingCookieProcesses) return []
+  const pending = liveCookieExtractionByBrowser.get(browser)
+  if (pending) return pending
+  const extraction = (async () => {
+    const fromScript = await spawnExtractScript(browser)
+    return fromScript.length > 0 ? fromScript : extractCookiesViaYtdlpCli(browser)
+  })()
+  liveCookieExtractionByBrowser.set(browser, extraction)
+  try {
+    return await extraction
+  } finally {
+    if (liveCookieExtractionByBrowser.get(browser) === extraction) {
+      liveCookieExtractionByBrowser.delete(browser)
+    }
+  }
+}
+
+/** Stop cookie helper subprocesses before application shutdown or database teardown. */
+export function stopBrowserCookieProcesses(): Promise<void> {
+  if (stopCookieProcessesPromise) return stopCookieProcessesPromise
+  stoppingCookieProcesses = true
+  const active = [...activeCookieProcesses.values()]
+  for (const process of activeCookieProcesses.values()) process.stop()
+  stopCookieProcessesPromise = Promise.allSettled(active.map((process) => process.done)).then(() => undefined)
+  return stopCookieProcessesPromise
 }
 
 /** Poll cookies.txt mtime after extension sync (best-effort). */
@@ -262,27 +374,14 @@ export async function readDouyinCookiesFromBrowser(
   cookiesFilePath?: string
 ): Promise<PlaywrightCookie[]> {
   const browser = resolvedCookiesBrowser()
-  let live = await spawnExtractScript(browser)
-  if (live.length === 0) {
-    live = await extractCookiesViaYtdlpCli(browser)
-  }
+  const live = await extractLiveBrowserCookies(browser)
   if (live.length > 0) return live
 
   const path = cookiesFilePath?.trim() || settings.getCookiesPath()
   if (path && existsSync(path)) {
-    const map = netscapeMapFromPath(path)
-    if (map.size > 0) {
-      return filterDouyinCookies(
-        [...map.entries()].map(([name, value]) => ({
-          name,
-          value,
-          domain: '.douyin.com',
-          path: '/',
-          secure: true,
-          httpOnly: false,
-          expires: -1,
-        }))
-      )
+    const netscapeCookies = parseNetscapeCookiesFromFile(path)
+    if (netscapeCookies.length > 0) {
+      return filterDouyinCookies(netscapeCookies)
     }
   }
   return []
@@ -298,26 +397,25 @@ export async function buildDouyinCookieHeader(cookiesFilePath?: string): Promise
   return ctx.header
 }
 
-let cookieContextCache: { at: number; ctx: DouyinCookieContext } | null = null
+let cookieContextCache: { key: string; at: number; ctx: DouyinCookieContext } | null = null
 const COOKIE_CONTEXT_TTL_MS = 4000
 
 export async function resolveDouyinCookieContext(cookiesFilePath?: string): Promise<DouyinCookieContext> {
   const now = Date.now()
-  if (cookieContextCache && now - cookieContextCache.at < COOKIE_CONTEXT_TTL_MS) {
+  const browser = resolvedCookiesBrowser()
+  const fallbackPath = cookiesFilePath?.trim() || settings.getCookiesPath()
+  const cacheKey = `${browser}\0${fallbackPath}`
+  if (cookieContextCache?.key === cacheKey && now - cookieContextCache.at < COOKIE_CONTEXT_TTL_MS) {
     return cookieContextCache.ctx
   }
 
-  const browser = resolvedCookiesBrowser()
-  let live = await spawnExtractScript(browser)
-  if (live.length === 0) {
-    live = await extractCookiesViaYtdlpCli(browser)
-  }
+  const live = await extractLiveBrowserCookies(browser)
   let ctx: DouyinCookieContext
   if (live.length > 0) {
     const map = cookiesToMap(live)
     ctx = { map, header: mapToHeader(map), source: 'browser' }
   } else {
-    const path = cookiesFilePath?.trim() || settings.getCookiesPath()
+    const path = fallbackPath
     if (path && existsSync(path)) {
       const map = netscapeMapFromPath(path)
       const header = buildCookieHeaderFromNetscapeFile(path)
@@ -332,6 +430,6 @@ export async function resolveDouyinCookieContext(cookiesFilePath?: string): Prom
     }
   }
 
-  cookieContextCache = { at: now, ctx }
+  cookieContextCache = { key: cacheKey, at: now, ctx }
   return ctx
 }

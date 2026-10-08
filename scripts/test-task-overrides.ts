@@ -144,12 +144,12 @@ assert.match(
 const xhs = readFileSync(join(root, 'src/main/xiaohongshu.ts'), 'utf8')
 assert.match(
   xhs,
-  /fetchWithTimeout\(\s*url\.trim\(\),[\s\S]*?\{\s*proxyUrl\s*\}/,
+  /fetchWithTimeout\(\s*url\.trim\(\),[\s\S]*?\{\s*proxyUrl:\s*options\?\.proxyUrl\s*\}/,
   'XHS short-URL resolve must pass proxyUrl'
 )
 assert.match(
   xhs,
-  /fetchWithTimeout\(\s*pageUrl,[\s\S]*?\{\s*proxyUrl\s*\}/,
+  /fetchWithTimeout\(\s*pageUrl,[\s\S]*?\{\s*proxyUrl:\s*options\?\.proxyUrl\s*\}/,
   'XHS page HTML fetch must pass proxyUrl'
 )
 assert.match(

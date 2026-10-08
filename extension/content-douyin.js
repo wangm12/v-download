@@ -746,9 +746,49 @@
     return false
   })
 
-  // The service worker waits for this signal before sending a resolver
-  // command. This avoids racing a newly-created, still-loading Douyin tab.
-  chrome.runtime.sendMessage({ type: 'DOUYIN_RESOLVE_READY', url: location.href }, () => void chrome.runtime.lastError)
+  // Retry readiness briefly so a restarted service worker can hydrate a
+  // command persisted just before termination and still acknowledge it.
+  const readyRetryTimers = new Set()
+  let isDouyinPageUnloading = false
+  function clearReadyRetryTimers() {
+    for (const timer of readyRetryTimers) clearTimeout(timer)
+    readyRetryTimers.clear()
+  }
+  function notifyDouyinReadyUntilHandled(type, url, maxAttempts = 12) {
+    let attempts = 0
+    const send = () => {
+      if (isDouyinPageUnloading || location.href !== url || attempts >= maxAttempts) return
+      attempts += 1
+      const retry = () => {
+        if (isDouyinPageUnloading || location.href !== url || attempts >= maxAttempts) return
+        const timer = setTimeout(() => {
+          readyRetryTimers.delete(timer)
+          send()
+        }, 750)
+        readyRetryTimers.add(timer)
+      }
+      try {
+        chrome.runtime.sendMessage({ type, url }, (response) => {
+          const runtimeError = chrome.runtime.lastError
+          if (!runtimeError && response?.ok === true) return
+          retry()
+        })
+      } catch {
+        retry()
+      }
+    }
+    send()
+  }
+  function notifyDouyinReadyMessages() {
+    clearReadyRetryTimers()
+    const url = location.href
+    if (/\/user\/[^/?#]+/i.test(location.pathname)) {
+      notifyDouyinReadyUntilHandled('DOUYIN_PROFILE_READY', url)
+    }
+    if (/\/(?:note|video|gallery|share\/(?:note|video))\/\d{10,32}(?:\/|$)/i.test(location.pathname)) {
+      notifyDouyinReadyUntilHandled('DOUYIN_RESOLVE_READY', url)
+    }
+  }
 
   // ── Periodic anchor check ──────────────────────────────────────────────────
   // Detect when feed-active-video appears (e.g. modal opened on profile page)
@@ -786,6 +826,7 @@
   function handleNavigation() {
     if (location.href === lastHref) return
     lastHref = location.href
+    notifyDouyinReadyMessages()
     closePanel()
     currentData = null
     overlayExtractRequestedFor = ''
@@ -825,7 +866,9 @@
   })
 
   window.addEventListener('beforeunload', () => {
+    isDouyinPageUnloading = true
     clearInterval(anchorInterval)
+    clearReadyRetryTimers()
     if (history.pushState !== originalPushState) history.pushState = originalPushState
     if (history.replaceState !== originalReplaceState) history.replaceState = originalReplaceState
   })
@@ -850,13 +893,6 @@
     return false
   })
 
-  const notifyProfileReady = () => {
-    chrome.runtime.sendMessage(
-      { type: 'DOUYIN_PROFILE_READY', url: location.href },
-      () => void chrome.runtime.lastError
-    )
-  }
   sendBridgeHello()
-  setTimeout(notifyProfileReady, 250)
-  setTimeout(notifyProfileReady, 1200)
+  setTimeout(notifyDouyinReadyMessages, 250)
 })()

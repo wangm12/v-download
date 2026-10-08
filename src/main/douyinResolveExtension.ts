@@ -56,6 +56,9 @@ const REQUEST_ID_RE = /^[a-f0-9]{20,80}$/i
 const EXTENSION_ID_RE = /^[a-p]{32}$/
 const MAX_URL_LENGTH = 8192
 const pending = new Map<string, PendingRequest>()
+const completedResults = new Map<string, { fingerprint: string; expiresAt: number }>()
+const COMPLETED_RESULT_TTL_MS = 5 * 60_000
+const MAX_COMPLETED_RESULTS = 512
 
 function safeHttpUrl(value: unknown): string {
   if (typeof value !== 'string' || value.length < 1 || value.length > MAX_URL_LENGTH) return ''
@@ -187,6 +190,21 @@ function settleResult(requestId: string, value: PendingResolveResult): boolean {
   return true
 }
 
+function rememberCompletedResult(requestId: string, fingerprint: string): void {
+  const now = Date.now()
+  for (const [id, item] of completedResults) {
+    if (item.expiresAt > now) continue
+    completedResults.delete(id)
+  }
+  completedResults.delete(requestId)
+  completedResults.set(requestId, { fingerprint, expiresAt: now + COMPLETED_RESULT_TTL_MS })
+  while (completedResults.size > MAX_COMPLETED_RESULTS) {
+    const oldest = completedResults.keys().next().value
+    if (oldest === undefined) break
+    completedResults.delete(oldest)
+  }
+}
+
 function cancelPending(requestId: string, error: string): boolean {
   const current = clearPending(requestId)
   if (!current) return false
@@ -292,9 +310,18 @@ export function acknowledgeDouyinResolveExtensionRequest(raw: unknown): boolean 
 /** Completes a request posted by the V-Download browser extension. */
 export function completeDouyinResolveExtensionRequest(raw: unknown): boolean {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return false
-  const requestId = String((raw as Record<string, unknown>).requestId ?? '').trim()
+  const requestId = String((raw as Record<string, unknown>).requestId ?? '').trim().toLowerCase()
   if (!REQUEST_ID_RE.test(requestId)) return false
-  return settleResult(requestId, normalizeResult(raw))
+  const result = normalizeResult(raw)
+  const fingerprint = JSON.stringify(result)
+  const previous = completedResults.get(requestId)
+  if (previous && previous.expiresAt > Date.now()) {
+    return previous.fingerprint === fingerprint
+  }
+  completedResults.delete(requestId)
+  if (!settleResult(requestId, result)) return false
+  rememberCompletedResult(requestId, fingerprint)
+  return true
 }
 
 /**

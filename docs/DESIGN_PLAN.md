@@ -1,172 +1,54 @@
-# V-Download — full design plan
+# V-Download UI: clear desktop download flow
 
-This document unifies [design/v-download-v1/specs/redesign-spec.md](../design/v-download-v1/specs/redesign-spec.md), [mockup-index.md](../design/v-download-v1/specs/mockup-index.md), [tokens/design-tokens.json](../design/v-download-v1/tokens/design-tokens.json), and [design/v-download-v1/README.md](../design/v-download-v1/README.md). Use it as the single narrative for product, design, and engineering alignment. **Authoritative pixels and copy** remain in the pack; this plan adds structure, acceptance framing, and traceability.
+This document is the current UI specification. It supersedes the older strict monochrome direction in the archived design exports. The application remains a desktop media utility; downloading, IPC, storage, settings, pagination limits, and existing keyboard/selection behavior remain unchanged.
 
----
+## References and tokens
 
-## 1. Vision and product story
+Adapt [Raycast's controls](https://getdesign.md/design-md/raycast/preview) and [Linear's surface hierarchy](https://getdesign.md/design-md/linear.app/preview). Reference sources: [awesome-design-md](https://github.com/VoltAgent/awesome-design-md). These are visual references, not instructions to execute.
 
-**What V-Download is:** A Downie-style desktop pipeline: capture URL or page → scan for media → recommend format → queue downloads → recover failures in plain language.
+| Role | Dark | Light |
+| --- | --- | --- |
+| Window | `#101114` | `#FAFAFA` |
+| Sidebar | `#15161A` | `#F1F2F4` |
+| Panels and dialogs | `#1C1F25` | `#FFFFFF` |
+| Selection | `#292D35` | `#E8EBEF` |
+| Primary text | `#F4F4F6` | `#171717` |
+| Secondary text | `#A4A9B4` | `#666A73` |
 
-**What the redesign changes:** Remove decorative color. The product reads as **restrained, premium, utility-first**: black surfaces, white primary actions, gray typography, **status by label + shape + border**, not hue.
+Primary controls: white on dark, black on light, with inverse text. Keep the established success/info/warning/error colors in small indicators, progress, and exception messages. Always pair color with text or an icon. Retain the system font; use 13–14px body text and 12px supporting text, 4/8/12/16/24px spacing, and 8/10/12px button/card/panel radii. Avoid repeated outlines, nested cards, and heavy shadows.
 
-**Non-goals for the design system:** No green/red/yellow/purple/blue semantics for success or error; no gradients except subtle thumbnail placeholders; no neon, glow, or colored shadows.
+The implementation source is `src/renderer/src/styles/globals.css`; reusable controls live in `src/renderer/src/components/ui`. The export in `design/v-download-v1/tokens/design-tokens.json` reflects the same palette.
 
-```mermaid
-flowchart LR
-  capture[Capture]
-  scan[Scan]
-  format[Format]
-  queue[Queue]
-  recover[Recover]
-  capture --> scan --> format --> queue --> recover
-```
+## Download flow
 
----
+1. Drag a link in or use the existing paste shortcut. The toolbar drop area displays a plain instruction, without a click action, keyboard focus, button background, or icon.
+2. Choose posts, videos, a recommended format, images, or a note.
+3. Use the single primary action in the fixed footer to download.
 
-## 2. Design principles (checklist)
+Profile and collection choosers show a thumbnail, title, duration/media label, and selection. Show one loaded-list status and one download count. Do not show raw IDs, redundant three-column metrics, or row navigation arrows. Collection checkboxes add/remove independently; row-click and range-selection behavior stays intact. The footer remains visible when the list scrolls.
 
-| Principle | Meaning | Verify |
-|-----------|---------|--------|
-| Monochrome only | Palette from tokens; no semantic hue | Visual + hex audit |
-| One primary action | Single white CTA per modal/sheet | Screen review |
-| Status = text + shape | Pills, borders, dashed = problem | No color-only state |
-| Hierarchy over hue | Contrast, weight, spacing drive priority | Typography scale |
-| Modals are rare | Paste URL, format decision, browser guide only | IA audit |
-| Thumbnails neutral | Placeholder = black–gray gradient until loaded | Empty thumb states |
+Separate complete, partial, and restricted loading states. Hide Load more / Load all after completion. Browser import is under More options during normal use and directly visible when recovery is needed. Keep the existing pagination safety caps and cancellation.
 
----
+Format, gallery, and note dialogs share the same header and fixed folder/action footer. Keep the existing recommendation/default selection, show quality/output/available size first, and put encoding information, proxy, and headers in disclosures.
 
-## 3. Design system (source of truth)
+## Queue and details
 
-**Canonical file:** [design/v-download-v1/tokens/design-tokens.json](../design/v-download-v1/tokens/design-tokens.json).
+Completed groups show a concise complete state and no zero-remaining or full progress bar. Reveal/pause/resume/retry remain easy to reach; occasional actions use More. Failed rows show a short status; details expose the raw error separately.
 
-**Layers (from spec):** App `#050505` → Window `#0B0B0B` → Sidebar/Inspector `#0D0D0D` → Surfaces `#111111` / `#161616` / `#1C1C1C` → Borders `rgba(255,255,255,0.12–0.22)` → Text primary / secondary / tertiary → Primary action white fill, `#050505` text.
+Details show the content and next action before destination and source information. Omit missing metrics. Use concise file/folder/source names with full paths/links available in tooltips or disclosures. Highlight the existing error-category recovery action. Transcoding remains available in a disclosure and keeps the original file.
 
-**State tokens (semantic):** `active`, `complete`, `queued`, `error` (neutral backgrounds + borders; error may use **dashed** border per spec).
+## Preferences and supporting windows
 
-**Typography, spacing, radius, shadow, layout:** Defined in JSON (e.g. window title 13px/800, row height 98px, sidebar 244px, inspector 328px). Implementation maps these into app theming (e.g. Tailwind); **design QA** compares rendered app to [exports/png/14-component-library.png](../design/v-download-v1/exports/png/14-component-library.png).
+General settings use compact appearance, download-behavior, and startup groups. Downloads lead with the folder, default qualities, and speed, then closed naming, queue, network, and playlist groups. Browser settings lead with saved-login state and cookie sync; optional extension setup and technical recovery stay available below.
 
-**Light mode:** Spec Phase 4 + mockup `15-white-mode.png` — same monochrome **language**, inverted surfaces; not required for initial ship.
+Sites, MCP, and Advanced share the same content width, controls, and grouping. Connection credentials are masked until revealed; copy actions still copy the actual value. Connection parameters, logs, engine paths, and external bulk tools are grouped by purpose.
 
----
+First-run setup retains four steps. Browser and proxy setup are explicitly optional; technical details fold away. Mini keeps the link field/action and footer visible, with the active queue consuming the remaining scrolling space. Confirmation dialogs explain whether local files are kept or deleted and use the shared dialog shell.
 
-## 4. Information architecture
+## Dock
 
-```mermaid
-flowchart TB
-  subgraph shell [Main window]
-    SB[Sidebar]
-    Q[Queue]
-    IN[Inspector]
-  end
-  SB --> Q
-  Q --> IN
-```
+Export the same static high-contrast arrow from `resources/icon.svg` to PNG, ICNS, iconset sizes, and the renderer icon. Runtime Dock updates use Electron's native progress and existing task-count badge, including `99+` and clearing on idle. Keep `updateProgress(percent, speedBytes, activeCount)` and `reset()`; speed remains in the app. Do not convert SVG at runtime.
 
-| Zone | Purpose | Spec section |
-|------|---------|----------------|
-| **Sidebar** | App icon + **Downloads** list (filter via queue search), link to **Preferences**, capture modes (future); **Cmd+V** / drop for URLs (no sidebar Paste button) | redesign-spec §Sidebar |
-| **Queue** | Search, drop/paste banner, download rows, **batch controls** when multi-select / playlist | redesign-spec §Center queue |
-| **Inspector** | Selection detail: preview, format, metrics, destination, actions (Open, Reveal, Change format, Retry, Sync cookies) | redesign-spec §Right inspector |
-| **Preferences** | **In-app:** the **same 244px sidebar** lists **Queue** (download queue) and **Settings** (General → Downloads → Browser → Sites, then **Advanced** pinned below) on one home shell—no separate prefs-only sidebar. The center swaps between queue+inspector and [`PreferencesPanel`](../src/renderer/src/components/PreferencesPanel.tsx) (section title header, grouped cards; **Downloads** aligns with v2 `02-preferences-downloads`: Storage, Queue, Output format). **Sites** is the per-site format-rule editor | v2 settings pack |
-| **Chrome** | Custom title bar: traffic-light inset (macOS), **inspector collapse** + **appearance menu** (Dark / Light / Device) on the right; optional bottom status/actions bar | Mockups 01, 07 |
+## Verification
 
-**Deep link:** Loading the app with `#/settings` still opens Preferences (hash is normalized after load).
-
-**Bottom bar:** Hidden while Preferences is visible so queue actions are not offered out of context.
-
-**Empty inspector:** Never “blank” — tips + global folder/summary when nothing selected.
-
----
-
-## 5. Screen catalog (behavior + mockup + engineering phase)
-
-| # | Screen | Mockup PNG / PDF | Core behavior | Phase |
-|---|--------|------------------|----------------|-------|
-| — | Cover / direction | `00-cover.png` | Onboarding for stakeholders | — |
-| 1 | Main queue / dashboard | `01-main-queue-dashboard.png` | Three columns, selection drives inspector | 1 |
-| 2 | Empty / first launch | `02-empty-first-launch.png` | Teach paste, drag, browser companion | 1–2 |
-| 3 | Paste URL flow | `03-paste-url-flow.png` | **Sheet**: validate URL, options (picker, cookies, subfolder, audio, destination) | 2 |
-| 4 | Scanning | `04-scanning-state.png` | Step list + Cancel + Show scan log | 2 |
-| 5 | Format picker | `05-format-picker.png` | Recommended rows, sizes, **Download selected** | 2 |
-| 6 | Playlist detected | `06-playlist-detected.png` | Batch select, preset format, grouping, duplicates, captions | 2 |
-| 7 | Active downloads | `07-active-downloads.png` | Speed, ETA, pause/resume, **priority**, batch | 2–3 |
-| 8 | Completed detail | `08-completed-detail.png` | Open, Reveal, **copy link**, remove | 2–3 |
-| 9 | Error recovery | `09-error-recovery.png` | Plain-language + Sync cookies / Open page / Retry / Show log | 3 |
-| 10 | Preferences — General | `10-preferences-general.png` | Sectioned prefs | 3 |
-| 11 | Preferences — Browser | `11-preferences-browser.png` | Extension, sync, profiles, privacy | 3 |
-| 12 | Browser companion guide | `12-extension-guide.png` | Dedicated guide surface | 3 |
-| 13 | Compact mode | `13-compact-mode.png` | Mini window: capture + progress + Pause all + open full | 3 |
-| 14 | Component library | `14-component-library.png` | QA reference | ongoing |
-| 15 | White mode | `15-white-mode.png` | Light appearance variant | 4 |
-
-**Interactive board:** [design/v-download-v1/index.html](../design/v-download-v1/index.html).
-
-**Combined PDF:** [design/v-download-v1/exports/pdf/v-download-bw-redesign-mockups.pdf](../design/v-download-v1/exports/pdf/v-download-bw-redesign-mockups.pdf).
-
----
-
-## 6. Component library (rules)
-
-Summarized from redesign-spec §Component rules; detail in mockup `14` + tokens.
-
-- **Buttons:** Primary = white fill + dark text; secondary = transparent / `control` surface; destructive/recovery = **no red** — dashed or strong border + clear copy.
-- **Status pills:** Neutral only; always paired with **text**; dot + label where useful.
-- **Download rows:** Thumbnail, title, metadata, progress when active, status pill, **limited** inline actions; selection = stronger surface + border (align row treatment with sidebar filter chips).
-- **Inspector:** Mirrors selection; empty state = tips + folder.
-- **Modals / sheets:** Paste URL, format picker, browser setup guide only (other flows inline or inspector-first).
-
----
-
-## 7. Copy and content
-
-**Global:** Apply [redesign-spec §Copy guidelines](../design/v-download-v1/specs/redesign-spec.md) table (format picker toggle, subfolders, sync wording, Douyin browser label, “Best available”, scanning string).
-
-**Error strings:** User-facing problem statements, not raw logs (recovery screen).
-
-**Keyboard (target):** [redesign-spec suggested shortcuts](../design/v-download-v1/specs/redesign-spec.md) — document in app help or settings; implement in Phase 4 (or incrementally when selection model supports ⌘O / ⌘R / Space / Delete). **Shipped:** **⌘,** / **Ctrl+,** and the app menu **Settings…** item open in-app Preferences (see README shortcut table).
-
----
-
-## 8. Accessibility (non-negotiable)
-
-From redesign-spec §Accessibility notes:
-
-- Visible **focus** on buttons, rows, inputs (`focus-visible` rings aligned to token `border-focus`).
-- Status never color-only; minimum **13–14px** row titles.
-- High contrast on primary and recovery actions.
-- **Reduced motion** for scanner and progress animations (respect `prefers-reduced-motion`).
-
----
-
-## 9. Delivery roadmap (design + eng)
-
-| Phase | Design outcome | Eng acceptance (high level) |
-|-------|----------------|----------------------------|
-| **1** | Monochrome shell, 3-column IA, neutral queue/rows, drop banner + **Cmd+V** for URLs, basic inspector | Tokens applied; layout matches 01; no hue status |
-| **2** | Paste sheet, scanning UI, new format picker, playlist batch UX | Flows match 03–06; parity with yt-dlp queue |
-| **3** | Recovery, prefs sections, extension guide, compact window | Match 09–13; settings IA split |
-| **4** | White mode, motion, shortcuts, a11y polish | Match 15 + shortcut table; reduced-motion |
-
-**Out of scope for this design plan (product backlog):** See [PRODUCT_DIRECTION.md](./PRODUCT_DIRECTION.md). Douyin hydration / CloakBrowser notes: [download-reliability.md](./download-reliability.md). Orthogonal to monochrome IA unless a screen explicitly references them (e.g. cookie sync).
-
----
-
-## 10. Governance
-
-- **Change control:** Visual or IA changes update mockups + `redesign-spec.md` + this document.
-- **QA:** Per milestone, walk mockup index vs build using [MANUAL_TESTING.md](./MANUAL_TESTING.md) (including the mockup checklist section).
-- **Tokens:** Single source `design-tokens.json`; app theme must not drift without token bump.
-
----
-
-## 11. Pack layout (quick reference)
-
-| Path | Contents |
-|------|----------|
-| `design/v-download-v1/specs/redesign-spec.md` | UX rationale, screen behavior, component rules, implementation priority |
-| `design/v-download-v1/specs/mockup-index.md` | PNG/PDF index |
-| `design/v-download-v1/tokens/design-tokens.json` | Color, type, spacing, radius, shadow, layout |
-| `design/v-download-v1/exports/png/` | Individual mockups |
-| `design/v-download-v1/exports/pdf/` | Combined mockups PDF |
+Verify dark/light themes, English/简体中文/繁體中文, minimum main/mini dimensions, loading/empty/partial/restricted/full lists, selection, failure/completion, long titles, sticky footers, and keyboard focus/escape/all/range selection. Run type checks, selection, presentation, localization, UI contract, and build checks. Verify the live app with `make run`; keep review screenshots and results in `docs/reviews/ui-2026-10-03/`.

@@ -79,7 +79,7 @@ Token shape: 16–128 characters, `[A-Za-z0-9_-]`. The app generates a 48-charac
 | URL | `http` or `https`, 8–8192 characters after trim. |
 | Job id | `[A-Za-z0-9_-]{8,32}`. The app issues 16 hex characters. |
 | Errors | Always `{ "error": { "code": string, "message": string, "details"?: object } }` |
-| File names | Basename only. `/`, `\`, `..`, NUL → `400` `invalid_name`. |
+| File names | Basename only. `/`, `\`, `..`, NUL → `400` `invalid_name`. When outputs in different subfolders share a basename, the API assigns deterministic safe aliases so every output remains individually addressable. |
 
 There is **no** webhook or quality/format field on create. Quality comes from Preferences (`defaultVideoQuality`). Jobs also show up in the Downloads queue. Set `include_note: true` to write caption Markdown (`note.md` in a gallery, sidecar `.md` next to a video, or a lone `.md` for text-only posts). Text-only posts without `include_note` fail with `no_media`.
 
@@ -258,7 +258,7 @@ Cancel a job that is still `queued` or `downloading`. Cancels every underlying d
 
 ### `GET /v1/jobs/:id/file`
 
-Stream the **only** media file when `kind` is `"file"`.
+Stream the primary media file when `kind` is `"file"`, or the Markdown note for a text-only job. When a media sidecar note exists, this endpoint still returns the media file.
 
 **200** — raw bytes.
 
@@ -307,7 +307,7 @@ Example: `/v1/jobs/a1b2c3d4e5f67890/files/001.jpg`
 
 ### `GET /v1/jobs/:id/archive`
 
-ZIP of every media file. Works for `file`, `gallery`, and `collection`.
+ZIP of every media file and any requested Markdown notes. Works for `file`, `gallery`, and `collection`.
 
 **200**
 
@@ -373,7 +373,7 @@ Returned by `GET /v1/jobs/:id`.
 | `title` | string \| null | Filled in as yt-dlp / the queue learns the title |
 | `progress` | number | `0`–`100`, integer. Average of the job’s download tasks. `100` when `complete`. |
 | `kind` | `file` \| `gallery` \| `collection` \| null | Set only when `status` is `complete` and files exist |
-| `files` | array \| null | `null` until `complete`. `[]` if `expired`. Otherwise media files only |
+| `files` | array \| null | `null` until `complete`. `[]` if `expired`. Otherwise media files followed by requested Markdown notes |
 | `error` | object \| null | Set when `status` is `error` or `cancelled` |
 | `expiresAt` | null | Always `null` in the desktop app (no TTL) |
 | `expired` | boolean | `true` when `status` is `complete` and the files were deleted from disk |
@@ -382,12 +382,12 @@ Returned by `GET /v1/jobs/:id`.
 
 | Value | Meaning | How to download |
 |---|---|---|
-| `file` | One video/audio file | `GET .../file` or `.../archive` |
+| `file` | One primary media file, or one text-only Markdown note. With a sidecar note, `/file` still streams the primary media. | `GET .../file` or `.../archive` |
 | `gallery` | Two or more **images** only | `GET .../files/:name` or `.../archive` |
 | `collection` | Mixed media, or a playlist/channel fan-out | `GET .../files/:name` or `.../archive` |
 | `null` | Not finished, or complete with no usable media | — |
 
-Ignored on-disk junk (`.part`, `.ytdl`, `ffmpeg2pass*`, `compressed_*`, dotfiles) never appears in `files`.
+Requested final `.md` notes appear after media in `files[]` and in `/archive`. Ignored on-disk junk (`.part`, `.ytdl`, `ffmpeg2pass*`, `compressed_*`, dotfiles) never appears in `files`.
 
 ---
 
@@ -421,6 +421,7 @@ The body cannot set format or quality. The job uses **Preferences → default vi
 | Xiaohongshu image note | Image folder; `note.md` only when `include_note` is true |
 | Xiaohongshu / X / other text-only (resolver has title or description, no media) | Lone `.md` when `include_note` is true; otherwise `no_media` |
 | Ordinary watch page with video | One yt-dlp task; sidecar `.md` only when `include_note` is true |
+| Ordinary page whose resolver confirms multiple video entries | One playlist task published as a `collection`; `/files/:name` and `/archive` expose every completed entry |
 | YouTube playlist / channel / `@handle` | **Collection.** If playlist mode is *fan-out*, each entry becomes a task (max **50**). Otherwise one playlist task. |
 
 Cookies and site logins are whatever the desktop app already has (Chrome cookie sync, native auth). The API does not accept a cookie header.
@@ -518,6 +519,7 @@ Used for `Content-Type` and `files[].contentType`:
 | `.gif` | `image/gif` |
 | `.bmp` | `image/bmp` |
 | `.avif` | `image/avif` |
+| `.md` | `text/markdown; charset=utf-8` |
 | `.m3u8` `.m3u` | `application/vnd.apple.mpegurl` |
 | `.mpd` | `application/dash+xml` |
 | other | `application/octet-stream` |

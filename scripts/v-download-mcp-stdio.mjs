@@ -86,14 +86,17 @@ const TOOL_SCHEMAS = [
 export function defaultSettingsCandidates(home = homedir(), env = process.env, platform = process.platform) {
   if (env.V_DOWNLOAD_SETTINGS) return [env.V_DOWNLOAD_SETTINGS]
   if (platform === 'darwin') {
-    return [join(home, 'Library', 'Application Support', 'V-Download', 'settings.json')]
+    return [
+      join(home, 'Library', 'Application Support', 'v-download', 'settings.json'),
+      join(home, 'Library', 'Application Support', 'V-Download', 'settings.json')
+    ]
   }
   if (platform === 'win32') {
     const root = env.APPDATA || join(home, 'AppData', 'Roaming')
-    return [join(root, 'V-Download', 'settings.json')]
+    return [join(root, 'v-download', 'settings.json'), join(root, 'V-Download', 'settings.json')]
   }
   const xdg = env.XDG_CONFIG_HOME || join(home, '.config')
-  return [join(xdg, 'V-Download', 'settings.json')]
+  return [join(xdg, 'v-download', 'settings.json'), join(xdg, 'V-Download', 'settings.json')]
 }
 
 export function readRemoteApiTarget(settingsText, env = process.env) {
@@ -141,37 +144,46 @@ export function indexOfHeaderEnd(buf) {
   return -1
 }
 
-export function encodeMcpFrame(message) {
-  const body = Buffer.from(JSON.stringify(message), 'utf8')
+export function encodeMcpFrame(message, mode = 'newline') {
+  const json = JSON.stringify(message)
+  if (mode !== 'content-length') return Buffer.from(`${json}\n`, 'utf8')
+  const body = Buffer.from(json, 'utf8')
   return Buffer.concat([Buffer.from(`Content-Length: ${body.length}\r\n\r\n`, 'utf8'), body])
 }
 
 export class StdioFramer {
   constructor() {
     this.buf = Buffer.alloc(0)
+    this.lastModes = []
+    this.lastShiftMode = 'newline'
   }
 
   push(chunk) {
     this.buf = Buffer.concat([this.buf, Buffer.from(chunk)])
     const messages = []
+    const modes = []
     for (;;) {
       const next = this.shift()
       if (next === undefined) break
       messages.push(next)
+      modes.push(this.lastShiftMode)
     }
+    this.lastModes = modes
     return messages
   }
 
   shift() {
+    if (this.buf[0] === 0x7b) {
+      const nl = this.buf.indexOf(0x0a)
+      if (nl < 0) return undefined
+      const line = this.buf.subarray(0, nl).toString('utf8').trim()
+      this.buf = this.buf.subarray(nl + 1)
+      if (!line) return this.shift()
+      this.lastShiftMode = 'newline'
+      return JSON.parse(line)
+    }
     const headerEnd = indexOfHeaderEnd(this.buf)
     if (headerEnd < 0) {
-      const nl = this.buf.indexOf(0x0a)
-      if (nl >= 0 && this.buf[0] === 0x7b) {
-        const line = this.buf.subarray(0, nl).toString('utf8').trim()
-        this.buf = this.buf.subarray(nl + 1)
-        if (!line) return this.shift()
-        return JSON.parse(line)
-      }
       return undefined
     }
     const header = this.buf.subarray(0, headerEnd).toString('utf8')
@@ -181,6 +193,7 @@ export class StdioFramer {
     if (this.buf.length < headerEnd + len) return undefined
     const body = this.buf.subarray(headerEnd, headerEnd + len).toString('utf8')
     this.buf = this.buf.subarray(headerEnd + len)
+    this.lastShiftMode = 'content-length'
     return JSON.parse(body)
   }
 }
@@ -251,28 +264,45 @@ function localResponse(message) {
 export async function dispatchStdioMessage(message, options) {
   const target = options.target
   if (!target?.ok) return localResponse(message)
+  const timeoutMs = Number.isFinite(options.timeoutMs)
+    ? Math.min(120_000, Math.max(250, Math.floor(options.timeoutMs)))
+    : 30_000
+  const controller = new AbortController()
+  let timeout
   try {
-    const res = await options.fetchImpl(target.url, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${target.token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(message)
-    })
-    if (res.status === 204) return { type: 'notification' }
-    if (!res.ok) {
-      const text = await res.text()
-      const id = message && typeof message === 'object' ? message.id : null
-      return {
-        type: 'response',
-        body: jsonRpcError(id ?? null, -32000, `Remote MCP HTTP ${res.status}: ${text.slice(0, 200)}`)
+    const remoteRequest = (async () => {
+      const res = await options.fetchImpl(target.url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${target.token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(message),
+        signal: controller.signal
+      })
+      if (res.status === 204) return { type: 'notification' }
+      if (!res.ok) {
+        const text = await res.text()
+        const id = message && typeof message === 'object' ? message.id : null
+        return {
+          type: 'response',
+          body: jsonRpcError(id ?? null, -32000, `Remote MCP HTTP ${res.status}: ${text.slice(0, 200)}`)
+        }
       }
-    }
-    const body = await res.json()
-    return { type: 'response', body }
+      const body = await res.json()
+      return { type: 'response', body }
+    })()
+    const deadline = new Promise((_, reject) => {
+      timeout = setTimeout(() => {
+        controller.abort()
+        reject(new Error('Remote MCP request timed out'))
+      }, timeoutMs)
+    })
+    return await Promise.race([remoteRequest, deadline])
   } catch {
     return localResponse(message)
+  } finally {
+    clearTimeout(timeout)
   }
 }
 
@@ -294,12 +324,22 @@ function loadTarget() {
   }
 }
 
-function writeFrame(message) {
-  process.stdout.write(encodeMcpFrame(message))
+function writeFrame(message, mode = 'newline') {
+  process.stdout.write(encodeMcpFrame(message, mode))
 }
 
 async function main() {
   const framer = new StdioFramer()
+  const pendingResponses = new Set()
+  let inputEnded = false
+  let outputEnded = false
+  const finishWhenDrained = () => {
+    if (inputEnded && pendingResponses.size === 0 && !outputEnded) {
+      outputEnded = true
+      process.stdout.end()
+    }
+  }
+
   process.stdin.on('data', (chunk) => {
     let messages
     try {
@@ -308,13 +348,30 @@ async function main() {
       process.stderr.write(`v-download-mcp-stdio: parse error: ${error instanceof Error ? error.message : error}\n`)
       return
     }
-    for (const message of messages) {
-      void dispatchStdioMessage(message, { target: loadTarget(), fetchImpl: globalThis.fetch.bind(globalThis) }).then((result) => {
-        if (result.type === 'response') writeFrame(result.body)
-      })
+    for (const [index, message] of messages.entries()) {
+      const responseMode = framer.lastModes[index] || 'newline'
+      let task
+      task = dispatchStdioMessage(message, { target: loadTarget(), fetchImpl: globalThis.fetch.bind(globalThis) })
+        .then((result) => {
+          if (result.type === 'response') writeFrame(result.body, responseMode)
+        })
+        .catch((error) => {
+          process.stderr.write(`v-download-mcp-stdio: request failed: ${error instanceof Error ? error.message : error}\n`)
+          if (message && typeof message === 'object' && Object.prototype.hasOwnProperty.call(message, 'id')) {
+            writeFrame(jsonRpcError(message.id ?? null, -32603, 'Internal error'), responseMode)
+          }
+        })
+        .finally(() => {
+          pendingResponses.delete(task)
+          finishWhenDrained()
+        })
+      pendingResponses.add(task)
     }
   })
-  process.stdin.on('end', () => process.exit(0))
+  process.stdin.on('end', () => {
+    inputEnded = true
+    finishWhenDrained()
+  })
   process.stdin.resume()
 }
 

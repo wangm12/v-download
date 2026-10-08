@@ -2,7 +2,7 @@
  * Shared browser profile config for Douyin cookies and Playwright recovery launch.
  */
 import { existsSync } from 'fs'
-import { homedir, platform } from 'os'
+import { platform } from 'os'
 import { join } from 'path'
 import * as settings from './settings'
 
@@ -57,7 +57,6 @@ export function mapBrowserToMacExecutable(browser: string): string | undefined {
 }
 
 function resolveLinuxExecutable(browser: string): string | undefined {
-  const home = homedir()
   const snapBin = '/snap/bin'
   const firstExisting = (candidates: string[]): string => candidates.find((c) => existsSync(c)) ?? candidates[0]!
 
@@ -95,7 +94,9 @@ function resolveLinuxExecutable(browser: string): string | undefined {
         join(snapBin, 'vivaldi')
       ])
     default:
-      return join(home, '.local', 'share', 'applications', `${browser}.desktop`)
+      // A .desktop file is a launcher descriptor, not an executable. Callers
+      // use exec/spawn and must fall back to the desktop URL handler instead.
+      return undefined
   }
 }
 

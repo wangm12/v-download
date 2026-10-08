@@ -1,12 +1,21 @@
-import { existsSync, lstatSync, readdirSync, rmSync, symlinkSync } from 'node:fs'
+import { existsSync, lstatSync, readlinkSync, readdirSync, rmSync, symlinkSync } from 'node:fs'
 import { join } from 'node:path'
 
 function isSymlink(path) {
-  return existsSync(path) && lstatSync(path).isSymbolicLink()
+  try {
+    return lstatSync(path).isSymbolicLink()
+  } catch {
+    return false
+  }
 }
 
 function isDir(path) {
-  return existsSync(path) && lstatSync(path).isDirectory() && !lstatSync(path).isSymbolicLink()
+  try {
+    const stat = lstatSync(path)
+    return stat.isDirectory() && !stat.isSymbolicLink()
+  } catch {
+    return false
+  }
 }
 
 function replaceWithSymlink(path, target) {
@@ -26,11 +35,28 @@ export function findVersionDirectory(frameworkDir) {
 }
 
 export function isNormalizedPythonFramework(frameworkDir) {
-  return (
-    isSymlink(join(frameworkDir, 'Python')) &&
-    isSymlink(join(frameworkDir, 'Resources')) &&
-    isSymlink(join(frameworkDir, 'Versions', 'Current'))
-  )
+  const pythonLink = join(frameworkDir, 'Python')
+  const resourcesLink = join(frameworkDir, 'Resources')
+  const currentLink = join(frameworkDir, 'Versions', 'Current')
+  if (!isSymlink(pythonLink) || !isSymlink(resourcesLink) || !isSymlink(currentLink)) return false
+
+  try {
+    const currentTarget = readlinkSync(currentLink)
+    if (
+      readlinkSync(pythonLink) !== 'Versions/Current/Python' ||
+      readlinkSync(resourcesLink) !== 'Versions/Current/Resources' ||
+      currentTarget === '.' ||
+      currentTarget === '..' ||
+      currentTarget.includes('/') ||
+      currentTarget.includes('\\')
+    ) {
+      return false
+    }
+    const versionDir = join(frameworkDir, 'Versions', currentTarget)
+    return isDir(versionDir) && existsSync(join(versionDir, 'Python'))
+  } catch {
+    return false
+  }
 }
 
 /**

@@ -3,8 +3,10 @@ import { join, resolve, extname, basename } from 'node:path'
 import { execFileSync, spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { tmpdir } from 'node:os'
+import { fileURLToPath } from 'node:url'
+import { verifySqlitePrebuild } from './sqlite-runtime.mjs'
 
-const root = resolve(new URL('..', import.meta.url).pathname)
+const root = resolve(fileURLToPath(new URL('..', import.meta.url)))
 const dryRun = process.env.RELEASE_DRY_RUN === '1'
 const errors = []
 const warn = []
@@ -62,7 +64,7 @@ for (const a of arches) {
 if (pkg.version !== extension.version) errors.push(`extension version ${extension.version} != app version ${pkg.version}`)
 
 const envOrConfig = (env, path) => process.env[env] || path.split('.').reduce((v, k) => v?.[k], config)
-if (!/^[a-p]{32}$/.test(envOrConfig('CHROME_EXTENSION_ID', 'chrome.extensionId') || '')) errors.push('missing/invalid stable Chrome Web Store extension ID')
+if (!/^[a-p]{32}$/.test(envOrConfig('CHROME_EXTENSION_ID', 'chrome.extensionId') || '')) errors.push('missing/invalid Chrome extension ID')
 const provider = envOrConfig('PUBLISH_PROVIDER', 'updater.provider'); const updateMetadata = envOrConfig('RELEASE_UPDATE_METADATA', 'updater.metadata')
 const updaterImplemented = existsSync(join(root, 'src/main/updater.ts')) && Boolean(pkg.dependencies?.['electron-updater'])
 const updaterMock = dryRun && process.env.RELEASE_UPDATER_MOCK === '1'
@@ -87,9 +89,13 @@ function artifactTarget(artifact) {
 }
 function architectureMatches(text, arch) { return arch === 'arm64' ? /arm64|Apple silicon/i.test(text) : /x86_64|Intel 64/i.test(text) }
 function validatePackagedNativeModule(target, arch) {
-  const native = join(target.app, 'Contents', 'Resources', 'app.asar.unpacked', 'node_modules', 'better-sqlite3', 'build', 'Release', 'better_sqlite3.node')
-  if (!existsSync(native)) { errors.push(`packaged better_sqlite3.node is missing for darwin-${arch}`); return }
-  try { const description = execFileSync('file', ['-b', native], { encoding: 'utf8' }); if (!architectureMatches(description, arch)) errors.push(`packaged better_sqlite3.node architecture does not match darwin-${arch}: ${description.trim()}`) } catch { errors.push(`could not inspect packaged better_sqlite3.node for darwin-${arch}`) }
+  const packageDirectory = join(target.app, 'Contents', 'Resources', 'app.asar.unpacked', 'node_modules', 'better-sqlite3')
+  try {
+    const native = verifySqlitePrebuild(packageDirectory, 'darwin', arch, { label: 'packaged better-sqlite3' })
+    console.log(`Validated packaged better-sqlite3 N-API prebuild for darwin-${arch}: ${native}`)
+  } catch (error) {
+    errors.push(error.message)
+  }
 }
 const artifact = process.env.RELEASE_ARTIFACT
 if (!artifact && !dryRun) errors.push('RELEASE_ARTIFACT must identify the packaged .app/.dmg/.zip')
@@ -108,7 +114,18 @@ else {
     const profile = process.env.APPLE_KEYCHAIN_PROFILE; const hasEnv = process.env.APPLE_ID && process.env.APPLE_APP_SPECIFIC_PASSWORD && process.env.APPLE_TEAM_ID
     if (!profile && !hasEnv) errors.push('notarization credentials must come from CI variables or an Apple keychain profile')
     if (!process.env.RELEASE_NOTARY_SUBMISSION_ID) errors.push('RELEASE_NOTARY_SUBMISSION_ID is required')
-    else { try { const args = ['notarytool', 'info', process.env.RELEASE_NOTARY_SUBMISSION_ID, '--output-format', 'json']; if (profile) args.push('--keychain-profile', profile); const result = JSON.parse(execFileSync('xcrun', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })); if (result.status !== 'Accepted') throw new Error('not accepted'); execFileSync('xcrun', ['stapler', 'validate', target.staplerTarget], { stdio: 'pipe' }) } catch { errors.push('notarytool status was not Accepted or stapler validation failed') } }
+    else {
+      try {
+        const args = ['notarytool', 'info', process.env.RELEASE_NOTARY_SUBMISSION_ID, '--output-format', 'json']
+        if (profile) args.push('--keychain-profile', profile)
+        else args.push('--apple-id', process.env.APPLE_ID, '--password', process.env.APPLE_APP_SPECIFIC_PASSWORD, '--team-id', process.env.APPLE_TEAM_ID)
+        const result = JSON.parse(execFileSync('xcrun', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }))
+        if (result.status !== 'Accepted') throw new Error('not accepted')
+        execFileSync('xcrun', ['stapler', 'validate', target.staplerTarget], { stdio: 'pipe' })
+      } catch {
+        errors.push('notarytool status was not Accepted or stapler validation failed')
+      }
+    }
   }
 }
 if (target?.cleanup) target.cleanup()

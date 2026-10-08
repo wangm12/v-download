@@ -1,12 +1,13 @@
-import { spawn, ChildProcess } from 'child_process'
+import type { ChildProcess } from 'child_process'
 import { randomBytes } from 'crypto'
 import { mkdirSync, existsSync } from 'fs'
 import { readFile, unlink } from 'fs/promises'
-import { dirname, join } from 'path'
+import { dirname, extname, join } from 'path'
 import { tmpdir } from 'os'
 import * as settings from './settings'
-import type { DownloadProcess, DownloadProgress } from './downloadTypes'
+import { terminateDownloadProcess, type DownloadProcess, type DownloadProgress } from './downloadTypes'
 import { DEFAULT_DIRECT_MEDIA_UA, parseMediaDurationSeconds } from './ytdlp'
+import { spawnManagedProcess } from './managedChildProcesses'
 
 const EXTRA_PATH_DIRS = [
   '/opt/homebrew/bin',
@@ -153,11 +154,63 @@ export interface FfmpegDirectDownloadOptions {
   onProgress?: (progress: DownloadProgress) => void
 }
 
+export interface FfmpegOutputValidationResult {
+  valid: boolean
+  cancelled?: boolean
+  error?: string
+}
+
+export interface FfmpegDirectDownloadProcess extends DownloadProcess {
+  /** Check container readability and expected stream presence before publishing. */
+  validateOutput: (
+    path: string,
+    expectation: { format: string; mediaType?: string },
+    signal?: AbortSignal
+  ) => Promise<FfmpegOutputValidationResult>
+}
+
+const HTTP_READ_IDLE_TIMEOUT_US = 45_000_000
+const HTTP_RECONNECT_MAX_RETRIES = 2
+const FFPROBE_VALIDATION_TIMEOUT_MS = 15_000
+const FFPROBE_CAPTURE_MAX_BYTES = 64 * 1024
+
+function isHttpUrl(value: string): boolean {
+  try {
+    return /^https?:$/.test(new URL(value).protocol)
+  } catch {
+    return false
+  }
+}
+
+function isManifestInput(mediaType: string | undefined, url: string): boolean {
+  const type = (mediaType ?? '').toLowerCase()
+  return type === 'hls' || type === 'dash' || type === 'mpd' ||
+    /\.(?:m3u8|mpd)(?:\?|#|$)/i.test(url)
+}
+
+function isProgressiveHttpInput(mediaType: string | undefined, url: string): boolean {
+  return isHttpUrl(url) && !isManifestInput(mediaType, url)
+}
+
+function expectedStreamClass(format: string, mediaType: string | undefined): 'audio' | 'video' {
+  const type = (mediaType ?? '').toLowerCase()
+  if (format === 'audio' || format === 'mp3' || /^audio(?:\/|$)/.test(type) || /^(?:mp3|m4a|aac|opus|ogg|oga|wav|flac)$/.test(type)) {
+    return 'audio'
+  }
+  return 'video'
+}
+
+function ffprobeExecutable(ffmpegPath: string): string {
+  const executable = process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe'
+  const sibling = join(dirname(ffmpegPath), executable)
+  return existsSync(sibling) ? sibling : executable
+}
+
 /**
  * Download a single direct media URL with ffmpeg (remux or mp3 encode).
  * Caller is responsible for routing (e.g. auto-fallback to yt-dlp on failure).
  */
-export function downloadDirectMediaWithFfmpeg(options: FfmpegDirectDownloadOptions): DownloadProcess {
+export function downloadDirectMediaWithFfmpeg(options: FfmpegDirectDownloadOptions): FfmpegDirectDownloadProcess {
   const ffmpegPath = settings.get('ffmpegPath')
   const {
     url,
@@ -175,8 +228,9 @@ export function downloadDirectMediaWithFfmpeg(options: FfmpegDirectDownloadOptio
 
   const wantsMp3 =
     format === 'audio' || format === 'mp3' || mediaType === 'mp3'
-  const outMatch = outputPath.match(/\.([^.]+)$/i)
-  const outExt = (outMatch?.[1] ?? 'mp4').toLowerCase()
+  const muxerInputPath = outputPath.replace(/\.part$/i, '')
+  const outExt = extname(muxerInputPath).slice(1).toLowerCase() || 'mp4'
+  const outputMuxer = outExt === 'mp3' ? 'mp3' : outExt === 'mp4' ? 'mp4' : ''
 
   const isHls = mediaType === 'hls' || /\.m3u8(\?|#|$)/i.test(url)
 
@@ -184,9 +238,10 @@ export function downloadDirectMediaWithFfmpeg(options: FfmpegDirectDownloadOptio
   const headersArg = headersToFfmpegArg(headerMap)
 
   const args: string[] = ['-hide_banner', '-loglevel', 'info', '-y']
+  const progressiveHttp = isProgressiveHttpInput(mediaType, url)
 
-  /** Reuse TLS connections where supported — small win for many HLS segment requests. */
-  if (/^https?:\/\//i.test(url)) {
+  /** This is an HLS demuxer option; ordinary HTTP/DASH inputs do not accept it. */
+  if (isHls) {
     args.push('-http_persistent', '1')
   }
 
@@ -201,16 +256,34 @@ export function downloadDirectMediaWithFfmpeg(options: FfmpegDirectDownloadOptio
 
   args.push(
     '-headers',
-    headersArg,
-    '-reconnect',
-    '1',
-    '-reconnect_streamed',
-    '1',
-    '-reconnect_delay_max',
-    '5',
-    '-i',
-    url
+    headersArg
   )
+
+  if (isHttpUrl(url)) {
+    // Bound a server that accepts a connection and then stops sending bytes.
+    // A retry budget keeps repeated read timeouts from holding a queue slot forever.
+    args.push(
+      '-rw_timeout',
+      String(HTTP_READ_IDLE_TIMEOUT_US),
+      '-reconnect',
+      '1',
+      '-reconnect_streamed',
+      '1',
+      '-reconnect_delay_max',
+      '5',
+      '-reconnect_max_retries',
+      String(HTTP_RECONNECT_MAX_RETRIES)
+    )
+  }
+
+  if (progressiveHttp) {
+    // Non-manifest HTTP files are finite progressive downloads. Stop on a
+    // demux/input error so Auto can fall back instead of publishing a partial
+    // remux. HLS/DASH live inputs retain FFmpeg's existing tolerant behavior.
+    args.push('-xerror')
+  }
+
+  args.push('-i', url)
 
   if (wantsMp3 && outExt === 'mp3') {
     args.push('-vn', '-c:a', 'libmp3lame', '-q:a', '0', '-threads', '0')
@@ -225,13 +298,22 @@ export function downloadDirectMediaWithFfmpeg(options: FfmpegDirectDownloadOptio
     }
   }
 
-  args.push('-max_muxing_queue_size', '4096', outputPath)
+  args.push('-max_muxing_queue_size', '4096')
+  if (outputMuxer) args.push('-f', outputMuxer)
+  args.push(outputPath)
   mkdirSync(dirname(outputPath), { recursive: true })
 
-  const proc = spawn(ffmpegPath, args, {
+  const proc = spawnManagedProcess(ffmpegPath, args, {
     stdio: ['ignore', 'pipe', 'pipe'],
-    env: buildSpawnEnv()
+    env: buildSpawnEnv(),
+    detached: process.platform !== 'win32'
   })
+  let activeChild = proc
+  let termination: Promise<boolean> | null = null
+  const stopProcess = (): Promise<boolean> => {
+    if (!termination) termination = terminateDownloadProcess(activeChild, true)
+    return termination
+  }
 
   const destinations: string[] = [outputPath]
   let stderrBuf = ''
@@ -269,7 +351,7 @@ export function downloadDirectMediaWithFfmpeg(options: FfmpegDirectDownloadOptio
 
   const drain = (chunk: Buffer) => {
     const text = chunk.toString()
-    stderrBuf += text
+    stderrBuf = `${stderrBuf}${text}`.slice(-64 * 1024)
     for (const line of text.split(/\r\n|\n|\r/)) {
       const headerDuration = parseMediaDurationSeconds(line)
       if (headerDuration && headerDuration > knownDuration) knownDuration = headerDuration
@@ -282,20 +364,134 @@ export function downloadDirectMediaWithFfmpeg(options: FfmpegDirectDownloadOptio
   proc.stdout?.on('data', drain)
   proc.stderr?.on('data', drain)
 
-  const downloadProcess: DownloadProcess = {
+  const validateOutput: FfmpegDirectDownloadProcess['validateOutput'] = async (path, expectation, signal) => {
+    if (signal?.aborted) return { valid: false, cancelled: true }
+
+    let probe: ChildProcess
+    try {
+      const args = [
+        '-v', 'error',
+        '-show_entries', 'stream=codec_type',
+        '-of', 'json',
+        path
+      ]
+      probe = spawnManagedProcess(ffprobeExecutable(ffmpegPath), args, {
+        stdio: ['ignore', 'pipe', 'pipe'],
+        env: buildSpawnEnv(),
+        detached: process.platform !== 'win32'
+      })
+    } catch (error) {
+      return { valid: false, error: `Could not start ffprobe: ${String(error)}` }
+    }
+
+    activeChild = probe
+    termination = null
+    const expected = expectedStreamClass(expectation.format, expectation.mediaType)
+    return await new Promise<FfmpegOutputValidationResult>((resolve) => {
+      let stdout = ''
+      let stderr = ''
+      let stdoutBytes = 0
+      let timedOut = false
+      let cancelled = false
+      let spawnError = ''
+      let settled = false
+
+      const finish = (result: FfmpegOutputValidationResult) => {
+        if (settled) return
+        settled = true
+        clearTimeout(timeout)
+        signal?.removeEventListener('abort', onAbort)
+        resolve(result)
+      }
+      const onAbort = () => {
+        cancelled = true
+        void stopProcess().then(
+          () => finish({ valid: false, cancelled: true }),
+          () => finish({ valid: false, cancelled: true })
+        )
+      }
+      const timeout = setTimeout(() => {
+        timedOut = true
+        const error = `ffprobe validation timed out after ${Math.round(FFPROBE_VALIDATION_TIMEOUT_MS / 1000)} seconds`
+        void stopProcess().then(
+          () => finish({ valid: false, error }),
+          () => finish({ valid: false, error })
+        )
+      }, FFPROBE_VALIDATION_TIMEOUT_MS)
+      timeout.unref?.()
+
+      probe.stdout?.on('data', (chunk: Buffer) => {
+        if (stdoutBytes + chunk.length > FFPROBE_CAPTURE_MAX_BYTES) {
+          spawnError = 'ffprobe output exceeded its safety limit'
+          void stopProcess().then(
+            () => finish({ valid: false, error: `ffprobe validation failed: ${spawnError}` }),
+            () => finish({ valid: false, error: `ffprobe validation failed: ${spawnError}` })
+          )
+          return
+        }
+        stdoutBytes += chunk.length
+        stdout += chunk.toString('utf8')
+      })
+      probe.stderr?.on('data', (chunk: Buffer) => {
+        stderr = `${stderr}${chunk.toString('utf8')}`.slice(-FFPROBE_CAPTURE_MAX_BYTES)
+      })
+      probe.once('error', (error) => {
+        spawnError = error.message
+      })
+      probe.once('close', (code) => {
+        if (cancelled || signal?.aborted) {
+          finish({ valid: false, cancelled: true })
+          return
+        }
+        if (timedOut) {
+          finish({ valid: false, error: `ffprobe validation timed out after ${Math.round(FFPROBE_VALIDATION_TIMEOUT_MS / 1000)} seconds` })
+          return
+        }
+        if (spawnError) {
+          finish({ valid: false, error: `ffprobe validation failed: ${spawnError}` })
+          return
+        }
+        if (code !== 0) {
+          const detail = stderr.trim().split('\n').filter(Boolean).slice(-3).join('\n')
+          finish({ valid: false, error: detail ? `ffprobe could not read the output: ${detail}` : `ffprobe exited with code ${code}` })
+          return
+        }
+        let streamTypes: string[]
+        try {
+          const result = JSON.parse(stdout) as { streams?: Array<{ codec_type?: unknown }> }
+          streamTypes = Array.isArray(result.streams)
+            ? result.streams.flatMap((stream) => typeof stream?.codec_type === 'string' ? [stream.codec_type.toLowerCase()] : [])
+            : []
+        } catch {
+          finish({ valid: false, error: 'ffprobe returned malformed output metadata' })
+          return
+        }
+        if (!streamTypes.includes(expected)) {
+          finish({
+            valid: false,
+            error: `FFmpeg output is missing the expected ${expected} stream${streamTypes.length ? ` (found ${[...new Set(streamTypes)].join(', ')})` : ''}`
+          })
+          return
+        }
+        finish({ valid: true })
+      })
+      if (signal?.aborted) onAbort()
+      else signal?.addEventListener('abort', onAbort, { once: true })
+    })
+  }
+
+  const downloadProcess: FfmpegDirectDownloadProcess = {
     process: proc as ChildProcess,
     onProgress: (cb: (progress: DownloadProgress) => void) => {
       onProgress = cb
     },
     cancel: () => {
-      try {
-        proc.kill('SIGTERM')
-      } catch {
-        proc.kill('SIGKILL')
-      }
+      void stopProcess()
     },
+    waitForCleanup: () => termination ?? Promise.resolve(true),
     getStderr: () => stderrBuf,
-    getDestinations: () => [...destinations]
+    getDestinations: () => [...destinations],
+    validateOutput
   }
 
   return downloadProcess
@@ -324,7 +520,9 @@ export async function extractStreamThumbnailAsDataUrl(opts: {
   mediaType?: string
   referer?: string
   customHeaders?: Record<string, string>
+  signal?: AbortSignal
 }): Promise<string | null> {
+  if (opts.signal?.aborted) return null
   const ffmpegPath = settings.get('ffmpegPath')
   if (!ffmpegPath) return null
 
@@ -346,35 +544,38 @@ export async function extractStreamThumbnailAsDataUrl(opts: {
   }
   args.push('-headers', headersArg, '-ss', '2', '-an', '-i', url, '-frames:v', '1', '-vf', 'scale=320:-2', '-q:v', '5', outPath)
 
-  const proc = spawn(ffmpegPath, args, {
-    stdio: ['ignore', 'pipe', 'pipe'],
-    env: buildSpawnEnv()
+  const proc = spawnManagedProcess(ffmpegPath, args, {
+    stdio: 'ignore',
+    env: buildSpawnEnv(),
+    detached: process.platform !== 'win32'
   })
 
   const code = await new Promise<number>((resolve) => {
-    let done = false
+    let timedOut = false
+    let termination: Promise<boolean> | null = null
+    const stopProcess = (): void => {
+      termination = terminateDownloadProcess(proc, true)
+    }
+    const onAbort = () => {
+      timedOut = true
+      stopProcess()
+    }
+    opts.signal?.addEventListener('abort', onAbort, { once: true })
     const t = setTimeout(() => {
-      if (done) return
-      done = true
-      try {
-        proc.kill('SIGKILL')
-      } catch {
-        /* */
-      }
-      resolve(124)
+      timedOut = true
+      stopProcess()
     }, THUMB_EXTRACT_TIMEOUT_MS)
-    proc.on('close', (c) => {
-      if (done) return
-      done = true
+    proc.on('close', async (c) => {
       clearTimeout(t)
-      resolve(c ?? 1)
+      opts.signal?.removeEventListener('abort', onAbort)
+      if (termination && !(await termination)) {
+        console.warn('[ffmpeg] thumbnail process group remained visible after SIGKILL escalation')
+      }
+      resolve(timedOut ? 124 : c ?? 1)
     })
-    proc.on('error', () => {
-      if (done) return
-      done = true
-      clearTimeout(t)
-      resolve(1)
-    })
+    // Spawn failures also emit `close`; keep cleanup tied to that event.
+    proc.on('error', () => {})
+    if (opts.signal?.aborted) onAbort()
   })
 
   if (code !== 0) {

@@ -1,18 +1,23 @@
 import { app } from 'electron'
-import { createHash } from 'node:crypto'
-import { chmod, mkdir, readFile, rm, stat, writeFile, rename } from 'node:fs/promises'
+import { createHash, randomUUID } from 'node:crypto'
+import { constants as fsConstants } from 'node:fs'
+import { createWriteStream } from 'node:fs'
+import { chmod, copyFile, mkdir, readFile, rm, stat, rename } from 'node:fs/promises'
 import { join } from 'node:path'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { pipeline } from 'node:stream/promises'
+import { Readable, Transform } from 'node:stream'
 import * as settings from './settings'
 import { compareEngineVersions, parseAssetDigest, resolveEngineUpdateState, type EngineUpdateResult } from './engineManagerModel'
-import { getYtdlpPath } from './ytdlp'
+import { clearYtdlpVersionCache, getYtdlpPath } from './ytdlp'
 
 const execFileAsync = promisify(execFile)
 const ENGINE_UPDATE_MANIFEST_ENV = 'VDOWNLOAD_ENGINE_UPDATE_MANIFEST_URL'
 const GITHUB_RELEASE_URL = 'https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest'
 const CHECK_TIMEOUT_MS = 12_000
+const ENGINE_DOWNLOAD_IDLE_TIMEOUT_MS = 60_000
+const MAX_ENGINE_ARCHIVE_BYTES = 1024 * 1024 * 1024
 
 type EngineName = 'yt-dlp' | 'ffmpeg'
 type EngineSource = 'bundled' | 'custom' | 'system' | 'missing'
@@ -45,6 +50,7 @@ export interface EngineStatus {
 }
 
 const updateDescriptors = new Map<EngineName, EngineDescriptor>()
+const engineUpdatePromises = new Map<EngineName, Promise<EngineStatus[]>>()
 
 function resourcesRoot(): string {
   return process.resourcesPath || join(process.cwd(), 'resources')
@@ -113,7 +119,10 @@ async function fetchJson(url: string): Promise<any> {
         'User-Agent': 'V-Download engine manager'
       }
     })
-    if (!response.ok) throw new Error(`Engine update check failed (${response.status})`)
+    if (!response.ok) {
+      await response.body?.cancel().catch(() => undefined)
+      throw new Error(`Engine update check failed (${response.status})`)
+    }
     return await response.json()
   } finally {
     clearTimeout(timer)
@@ -248,16 +257,41 @@ async function sha256File(path: string): Promise<string> {
 
 async function downloadFile(url: string, path: string): Promise<void> {
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), 60_000)
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const touch = () => {
+    if (timer) clearTimeout(timer)
+    timer = setTimeout(() => controller.abort(), ENGINE_DOWNLOAD_IDLE_TIMEOUT_MS)
+  }
+  touch()
   try {
     const response = await fetch(url, {
       signal: controller.signal,
       headers: { 'User-Agent': 'V-Download engine manager' }
     })
-    if (!response.ok || !response.body) throw new Error(`Engine download failed (${response.status})`)
-    await writeFile(path, Buffer.from(await response.arrayBuffer()))
+    if (!response.ok || !response.body) {
+      await response.body?.cancel().catch(() => undefined)
+      throw new Error(`Engine download failed (${response.status})`)
+    }
+    let receivedBytes = 0
+    const cap = new Transform({
+      transform(chunk: Buffer, _encoding, callback) {
+        receivedBytes += chunk.length
+        if (receivedBytes > MAX_ENGINE_ARCHIVE_BYTES) {
+          callback(new Error(`Engine archive exceeded ${MAX_ENGINE_ARCHIVE_BYTES} bytes`))
+          return
+        }
+        touch()
+        callback(null, chunk)
+      }
+    })
+    await pipeline(
+      Readable.fromWeb(response.body as import('node:stream/web').ReadableStream<Uint8Array>),
+      cap,
+      createWriteStream(path),
+      { signal: controller.signal }
+    )
   } finally {
-    clearTimeout(timer)
+    if (timer) clearTimeout(timer)
   }
 }
 
@@ -270,43 +304,105 @@ async function verifyExecutable(path: string, descriptor: EngineDescriptor): Pro
   }
 }
 
-async function extractArchive(archivePath: string, descriptor: EngineDescriptor, destination: string): Promise<void> {
-  const extractDir = `${destination}.extract`
-  await rm(extractDir, { recursive: true, force: true })
+async function extractArchive(
+  archivePath: string,
+  descriptor: EngineDescriptor,
+  destination: string,
+  extractDir: string
+): Promise<void> {
   await mkdir(extractDir, { recursive: true })
   await execFileAsync('unzip', ['-q', '-o', archivePath, '-d', extractDir], { timeout: 30_000 })
   const member = descriptor.archiveMember || descriptor.name
   const extractedPath = join(extractDir, member)
+  if (!extractedPath.startsWith(`${extractDir}${process.platform === 'win32' ? '\\' : '/'}`)) {
+    throw new Error(`${descriptor.name} archive member path is invalid`)
+  }
   await verifyExecutable(extractedPath, descriptor)
-  await rm(destination, { force: true })
   await rename(extractedPath, destination)
-  await rm(extractDir, { recursive: true, force: true })
 }
 
-export async function updateEngine(name: EngineName): Promise<EngineStatus[]> {
+async function updateEngineOnce(name: EngineName): Promise<EngineStatus[]> {
   const descriptor = updateDescriptors.get(name)
   if (!descriptor) throw new Error(`No verified ${name} update is available`)
   if (compareEngineVersions(descriptor.version, '0') <= 0) throw new Error('Invalid engine version')
 
   const targetDir = join(app.getPath('userData'), 'engines', `${process.platform}-${process.arch}`)
   await mkdir(targetDir, { recursive: true })
-  const archivePath = join(targetDir, `.${name}.download`)
+  const transactionId = randomUUID()
+  const archivePath = join(targetDir, `.${name}.${transactionId}.download`)
+  const stagedPath = join(targetDir, `.${name}.${transactionId}.candidate`)
+  const extractDir = `${stagedPath}.extract`
+  const backupPath = join(targetDir, `.${name}.${transactionId}.backup`)
   const targetPath = join(targetDir, process.platform === 'win32' ? `${name}.exe` : name)
+  let hadOriginal = false
+  let installed = false
   try {
     await downloadFile(descriptor.url, archivePath)
     if ((await sha256File(archivePath)) !== descriptor.sha256) throw new Error(`${name} archive checksum mismatch`)
     if (descriptor.archiveMember) {
-      await extractArchive(archivePath, descriptor, targetPath)
+      await extractArchive(archivePath, descriptor, stagedPath, extractDir)
     } else {
       await verifyExecutable(archivePath, descriptor)
-      await rm(targetPath, { force: true })
-      await rename(archivePath, targetPath)
+      await rename(archivePath, stagedPath)
     }
-    await settings.set(name === 'yt-dlp' ? 'ytdlpPath' : 'ffmpegPath', targetPath)
+
+    try {
+      await copyFile(targetPath, backupPath, fsConstants.COPYFILE_EXCL)
+      hadOriginal = true
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+    }
+
+    try {
+      await rename(stagedPath, targetPath)
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code
+      if (process.platform !== 'win32' || (code !== 'EEXIST' && code !== 'EPERM' && code !== 'EACCES')) throw error
+      await rm(targetPath, { force: true })
+      await rename(stagedPath, targetPath)
+    }
+    installed = true
+
+    try {
+      settings.setEnginePathStrict(name === 'yt-dlp' ? 'ytdlpPath' : 'ffmpegPath', targetPath)
+    } catch (error) {
+      if (hadOriginal && process.platform === 'win32') await rm(targetPath, { force: true })
+      if (!hadOriginal) await rm(targetPath, { force: true })
+      installed = false
+      if (hadOriginal) {
+        await rename(backupPath, targetPath)
+        hadOriginal = false
+      }
+      throw error
+    }
+
+    if (name === 'yt-dlp') clearYtdlpVersionCache(targetPath)
+    await rm(backupPath, { force: true }).then(() => { hadOriginal = false }).catch(() => undefined)
     updateDescriptors.delete(name)
+  } catch (error) {
+    if (hadOriginal) {
+      if (process.platform === 'win32') await rm(targetPath, { force: true }).catch(() => undefined)
+      await rename(backupPath, targetPath).catch(() => undefined)
+    } else if (installed) {
+      await rm(targetPath, { force: true }).catch(() => undefined)
+    }
+    throw error
   } finally {
     await rm(archivePath, { force: true })
-    await rm(`${targetPath}.extract`, { recursive: true, force: true })
+    await rm(stagedPath, { force: true })
+    await rm(extractDir, { recursive: true, force: true })
   }
   return getEngineStatuses()
+}
+
+export function updateEngine(name: EngineName): Promise<EngineStatus[]> {
+  const existing = engineUpdatePromises.get(name)
+  if (existing) return existing
+  const update = updateEngineOnce(name)
+  engineUpdatePromises.set(name, update)
+  const clear = () => {
+    if (engineUpdatePromises.get(name) === update) engineUpdatePromises.delete(name)
+  }
+  void update.then(clear, clear)
+  return update
 }

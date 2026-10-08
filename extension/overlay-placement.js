@@ -8,22 +8,42 @@
   const DEFAULT_BTN_SIZE = 32
   const DEFAULT_INSET = 10
 
+  function hostIsOrSubdomain(host, domain) {
+    return host === domain || host.endsWith(`.${domain}`)
+  }
+
+  function currentHttpHost() {
+    try {
+      const url = new URL(location.href)
+      return /^https?:$/.test(url.protocol) ? url.hostname.toLowerCase() : ''
+    } catch {
+      return ''
+    }
+  }
+
   // ── Site detection ───────────────────────────────────────────────────────
 
   function isDouyinPage() {
-    return /^https?:\/\/([a-z0-9-]+\.)?(douyin|iesdouyin)\.com/i.test(location.href)
+    const host = currentHttpHost()
+    return hostIsOrSubdomain(host, 'douyin.com') || hostIsOrSubdomain(host, 'iesdouyin.com')
   }
 
   function isTikTokPage() {
-    return /^https?:\/\/([a-z0-9-]+\.)?tiktok\.com/i.test(location.href)
+    return hostIsOrSubdomain(currentHttpHost(), 'tiktok.com')
   }
 
   function isXPage() {
-    return /^https?:\/\/(www\.)?(x\.com|twitter\.com)/.test(location.href)
+    const host = currentHttpHost()
+    return hostIsOrSubdomain(host, 'x.com') || hostIsOrSubdomain(host, 'twitter.com')
   }
 
   function isXStatusPage() {
-    return /\/(x|twitter)\.com\/[^/]+\/status\/\d+/.test(location.href)
+    if (!isXPage()) return false
+    try {
+      return /^(?:\/[^/]+\/status\/\d+|\/i\/web\/status\/\d+)(?:\/|$)/.test(new URL(location.href).pathname)
+    } catch {
+      return false
+    }
   }
 
   function isYouTubePage() {

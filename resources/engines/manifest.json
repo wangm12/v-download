@@ -7,10 +7,18 @@
       "version": "2026.07.04",
       "archive": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.07.04/yt-dlp_macos.zip",
       "sha256": "b0724470a0cf6dae5175a87eee05d6e75c5a0c10d2c3015166bd4d34e92b1b7b",
-      "member": "yt-dlp_macos", "versionArgs": ["--version"], "kind": "zip"
+      "member": "yt-dlp_macos", "versionArgs": ["--version"], "kind": "zip",
+      "platforms": {
+        "linux": {
+          "archives": {
+            "arm64": { "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.07.04/yt-dlp_linux_aarch64", "sha256": "b6ce97646773070d7a7ffd6bbbdcaecb47c48483909c54c915bf08a7a9b5e0b1", "kind": "raw" },
+            "x64": { "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.07.04/yt-dlp_linux", "sha256": "6bbb3d314cde4febe36e5fa1d55462e29c974f63444e707871834f6d8cc210ae", "kind": "raw" }
+          }
+        }
+      }
     },
-    "ffmpeg": {"version": "8.1.2", "archives": {"arm64": {"archive": "https://ffmpeg.martin-riedl.de/download/macos/arm64/1783011502_8.1.2/ffmpeg.zip", "sha256": "ef1aa60006c7b77ce170c1608c08d8e4ba1c30c5746f2ac986ded932d0ac2c3c"}, "x64": {"archive": "https://ffmpeg.martin-riedl.de/download/macos/amd64/1783018342_8.1.2/ffmpeg.zip", "sha256": "a52ef43883f44c219766d4b3bdde4e635b35465d0b704c01c3a0566b59775df9"}}, "member": "ffmpeg", "versionArgs": ["-version"], "kind": "zip"},
-    "ffprobe": {"version": "8.1.2", "archives": {"arm64": {"archive": "https://ffmpeg.martin-riedl.de/download/macos/arm64/1783011502_8.1.2/ffprobe.zip", "sha256": "c39787f4af7a3932502d2d48db6f6feaaa836b48a73ef78c32cc3285df61dfaf"}, "x64": {"archive": "https://ffmpeg.martin-riedl.de/download/macos/amd64/1783018342_8.1.2/ffprobe.zip", "sha256": "5408ca588c8c72b0dde3afe676d0a7acf25ef97e55ae6eba5c7bede1cda42695"}}, "member": "ffprobe", "versionArgs": ["-version"], "kind": "zip"},
+    "ffmpeg": {"version": "8.1.2", "archives": {"arm64": {"archive": "https://ffmpeg.martin-riedl.de/download/macos/arm64/1783011502_8.1.2/ffmpeg.zip", "sha256": "ef1aa60006c7b77ce170c1608c08d8e4ba1c30c5746f2ac986ded932d0ac2c3c"}, "x64": {"archive": "https://ffmpeg.martin-riedl.de/download/macos/amd64/1783018342_8.1.2/ffmpeg.zip", "sha256": "a52ef43883f44c219766d4b3bdde4e635b35465d0b704c01c3a0566b59775df9"}}, "member": "ffmpeg", "versionArgs": ["-version"], "kind": "zip", "requiredEncoders": ["libx264", "libx265", "libvpx-vp9", "libopus", "libmp3lame"], "platforms": {"linux": {"archives": {"arm64": {"url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-07-31-14-10/ffmpeg-n8.1.2-34-g9b6c8969e0-linuxarm64-gpl-8.1.tar.xz", "sha256": "177e40c91564dec3840096f3bf1ffe696b94330585972462cfc739fa29fe0e1a", "kind": "tar.xz", "member": "ffmpeg-n8.1.2-34-g9b6c8969e0-linuxarm64-gpl-8.1/bin/ffmpeg", "licenseMember": "ffmpeg-n8.1.2-34-g9b6c8969e0-linuxarm64-gpl-8.1/LICENSE.txt"}, "x64": {"url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-07-31-14-10/ffmpeg-n8.1.2-34-g9b6c8969e0-linux64-gpl-8.1.tar.xz", "sha256": "09fc77be269c7053e438b7e96548e4af97604faf96a42c4a3c56a1ad74c22c0a", "kind": "tar.xz", "member": "ffmpeg-n8.1.2-34-g9b6c8969e0-linux64-gpl-8.1/bin/ffmpeg", "licenseMember": "ffmpeg-n8.1.2-34-g9b6c8969e0-linux64-gpl-8.1/LICENSE.txt"}}}}},
+    "ffprobe": {"version": "8.1.2", "archives": {"arm64": {"archive": "https://ffmpeg.martin-riedl.de/download/macos/arm64/1783011502_8.1.2/ffprobe.zip", "sha256": "c39787f4af7a3932502d2d48db6f6feaaa836b48a73ef78c32cc3285df61dfaf"}, "x64": {"archive": "https://ffmpeg.martin-riedl.de/download/macos/amd64/1783018342_8.1.2/ffprobe.zip", "sha256": "5408ca588c8c72b0dde3afe676d0a7acf25ef97e55ae6eba5c7bede1cda42695"}}, "member": "ffprobe", "versionArgs": ["-version"], "kind": "zip", "platforms": {"linux": {"archives": {"arm64": {"url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-07-31-14-10/ffmpeg-n8.1.2-34-g9b6c8969e0-linuxarm64-gpl-8.1.tar.xz", "sha256": "177e40c91564dec3840096f3bf1ffe696b94330585972462cfc739fa29fe0e1a", "kind": "tar.xz", "member": "ffmpeg-n8.1.2-34-g9b6c8969e0-linuxarm64-gpl-8.1/bin/ffprobe", "licenseMember": "ffmpeg-n8.1.2-34-g9b6c8969e0-linuxarm64-gpl-8.1/LICENSE.txt"}, "x64": {"url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-07-31-14-10/ffmpeg-n8.1.2-34-g9b6c8969e0-linux64-gpl-8.1.tar.xz", "sha256": "09fc77be269c7053e438b7e96548e4af97604faf96a42c4a3c56a1ad74c22c0a", "kind": "tar.xz", "member": "ffmpeg-n8.1.2-34-g9b6c8969e0-linux64-gpl-8.1/bin/ffprobe", "licenseMember": "ffmpeg-n8.1.2-34-g9b6c8969e0-linux64-gpl-8.1/LICENSE.txt"}}}}},
     "bgutil-provider": {
       "version": "0.8.1",
       "archives": {
@@ -18,6 +26,14 @@
         "x64": {"url": "https://github.com/jim60105/bgutil-ytdlp-pot-provider-rs/releases/download/v0.8.1/bgutil-pot-macos-x86_64", "sha256": "0391175fa938c7fabbb8b40a40bd43182ef75af97e1dd3fab56eb23b4ac3e113"}
       },
       "member": null, "versionArgs": ["--version"], "kind": "raw",
+      "platforms": {
+        "linux": {
+          "archives": {
+            "arm64": { "url": "https://github.com/jim60105/bgutil-ytdlp-pot-provider-rs/releases/download/v0.8.1/bgutil-pot-linux-aarch64", "sha256": "4f4a1f681dba45e695e1c14d314517da180a1fd374afd09d634fd80ef6d0284b", "kind": "raw" },
+            "x64": { "url": "https://github.com/jim60105/bgutil-ytdlp-pot-provider-rs/releases/download/v0.8.1/bgutil-pot-linux-x86_64", "sha256": "e7c264a574fa2705b6e5dc62283a8a4e80130f27b9d7e9df44e6b09aa6151a87", "kind": "raw" }
+          }
+        }
+      },
       "launchArgs": ["server", "--host", "127.0.0.1", "--port", "PORT"], "healthPath": "/ping",
       "plugin": {"version": "0.8.1", "archive": "https://github.com/jim60105/bgutil-ytdlp-pot-provider-rs/releases/download/v0.8.1/bgutil-ytdlp-pot-provider-rs.zip", "sha256": "99fd83b98fa93b193d6a3b69dc74410d76e7a2b889868c54d16121cac9060344"}
     }

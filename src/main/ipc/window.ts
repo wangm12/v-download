@@ -1,8 +1,9 @@
 import { app, ipcMain, shell, dialog, BrowserWindow, nativeTheme } from 'electron'
-import { execFile } from 'child_process'
+import { execFile, spawn } from 'child_process'
 import { promisify } from 'util'
 import { existsSync, statSync, realpathSync } from 'fs'
-import { resolve, relative } from 'path'
+import { resolve, relative, isAbsolute, sep } from 'path'
+import * as database from '../database'
 import * as settings from '../settings'
 import { extractSecUidFromProfileUrl } from '../douyinProfile'
 import { resolveExtensionDir } from '../extensionPath'
@@ -13,9 +14,23 @@ import {
   resolvedCookiesBrowser,
 } from '../cookiesBrowser'
 
+const CHROME_EXTENSIONS_URL = 'chrome://extensions'
 const execFileAsync = promisify(execFile)
 
-const CHROME_EXTENSIONS_URL = 'chrome://extensions'
+function launchDetached(command: string, args: string[]): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      detached: process.platform !== 'win32',
+      stdio: 'ignore',
+      windowsHide: true
+    })
+    child.once('error', reject)
+    child.once('spawn', () => {
+      child.unref()
+      resolve()
+    })
+  })
+}
 
 async function openChromeExtensionsPage(): Promise<boolean> {
   const browser = resolvedCookiesBrowser()
@@ -28,14 +43,14 @@ async function openChromeExtensionsPage(): Promise<boolean> {
     if (process.platform === 'win32') {
       const exe = mapBrowserToWinExecutable(browser)
       if (exe) {
-        await execFileAsync(exe, [CHROME_EXTENSIONS_URL])
+        await launchDetached(exe, [CHROME_EXTENSIONS_URL])
         return true
       }
     }
     if (process.platform === 'linux') {
       const exe = mapBrowserToLinuxExecutable(browser)
       if (exe) {
-        await execFileAsync(exe, [CHROME_EXTENSIONS_URL])
+        await launchDetached(exe, [CHROME_EXTENSIONS_URL])
         return true
       }
     }
@@ -80,10 +95,39 @@ export function registerWindowHandlers(ctx: WindowContext): void {
   const safeDownloadPath = (candidate: unknown): string | null => {
     if (typeof candidate !== 'string' || candidate.length === 0 || candidate.length > 4096 || !existsSync(candidate)) return null
     try {
-      const file = realpathSync(candidate); const root = realpathSync(settings.get('downloadDir'))
-      const rel = relative(root, file)
-      if (!statSync(file).isFile() || rel.startsWith('..') || resolve(root, rel) !== file) return null
-      return file
+      const canonicalPath = realpathSync(candidate)
+      const targetStat = statSync(canonicalPath)
+      const isRegularFile = targetStat.isFile()
+      const isDirectory = targetStat.isDirectory()
+      if (!isRegularFile && !isDirectory) return null
+
+      if (isRegularFile) {
+        try {
+          const root = realpathSync(settings.get('downloadDir'))
+          const rel = relative(root, canonicalPath)
+          const isInsideDownloadDir =
+            rel !== '..' &&
+            !rel.startsWith(`..${sep}`) &&
+            !isAbsolute(rel) &&
+            resolve(root, rel) === canonicalPath
+          if (isInsideDownloadDir) return canonicalPath
+        } catch {
+          // A missing or inaccessible current download folder does not invalidate
+          // a completed output recorded elsewhere in the queue database.
+        }
+      }
+
+      // Custom per-task output folders and historical outputs can live outside
+      // the current default folder. Only allow their exact persisted path, and
+      // only while it still resolves to the same regular file or gallery folder.
+      const record = database.getCompletedDownloadByFilePath(candidate)
+      if (!record?.file_path) return null
+      const recordedPath = realpathSync(record.file_path)
+      if (recordedPath !== canonicalPath) return null
+      const recordedStat = statSync(recordedPath)
+      if (isRegularFile && recordedStat.isFile()) return canonicalPath
+      if (isDirectory && recordedStat.isDirectory()) return canonicalPath
+      return null
     } catch { return null }
   }
   ipcMain.handle('set-native-theme-source', (_event, source: unknown) => {
@@ -121,7 +165,8 @@ export function registerWindowHandlers(ctx: WindowContext): void {
   ipcMain.handle('open-file', async (_event, path: unknown) => {
     try {
       const safePath = safeDownloadPath(path); if (!safePath) return { ok: false, error: 'File is outside the download folder' }
-      await shell.openPath(safePath)
+      const openError = await shell.openPath(safePath)
+      if (openError) return { ok: false, error: openError }
       return { ok: true }
     } catch (err) {
       return { error: err instanceof Error ? err.message : String(err) }
@@ -256,7 +301,7 @@ export function registerWindowHandlers(ctx: WindowContext): void {
       if (process.platform === 'win32') {
         const exe = mapBrowserToWinExecutable(browser)
         if (exe) {
-          await execFileAsync(exe, [canonical])
+          await launchDetached(exe, [canonical])
           return { ok: true, openedIn: browser, url: canonical }
         }
       }
@@ -264,7 +309,7 @@ export function registerWindowHandlers(ctx: WindowContext): void {
       if (process.platform === 'linux') {
         const exe = mapBrowserToLinuxExecutable(browser)
         if (exe) {
-          await execFileAsync(exe, [canonical])
+          await launchDetached(exe, [canonical])
           return { ok: true, openedIn: browser, url: canonical }
         }
       }

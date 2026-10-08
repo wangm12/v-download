@@ -171,6 +171,24 @@ export function findReusableDownload<T extends { url: string; status: string; cr
   })[0]
 }
 
+/** Index newest reusable rows once when evaluating a batch admission. */
+export function indexReusableDownloads<
+  T extends { id: string; url: string; status: string; created_at?: string }
+>(rows: readonly T[]): Map<string, T> {
+  const indexed = new Map<string, T>()
+  const timestamps = new Map<string, number>()
+  for (const row of rows) {
+    if (!row || !ADMISSION_STATUS.has(String(row.status))) continue
+    const key = queueIdentityKey(row.url)
+    if (!key) continue
+    const timestamp = Date.parse(row.created_at || '') || 0
+    if (indexed.has(key) && (timestamps.get(key) ?? 0) >= timestamp) continue
+    indexed.set(key, row)
+    timestamps.set(key, timestamp)
+  }
+  return indexed
+}
+
 export function decideQueueAdmission(input: {
   forceNew?: boolean
   existing?: { status: string; file_path?: string | null }

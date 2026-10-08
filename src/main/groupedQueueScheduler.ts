@@ -46,14 +46,16 @@ export function planQueueAdmissions(
     if (task.playlistId != null) activeByCollection.set(task.playlistId, (activeByCollection.get(task.playlistId) ?? 0) + 1)
   }
   const result: string[] = []
+  let admittedIndividuals = 0
   const admittedCollections = new Set(activeByCollection.keys())
   const initiallyActiveCollections = new Set(activeByCollection.keys())
   const remaining = orderQueue(queuedTasks)
 
   const admit = (task: SchedulerTask): boolean => {
     if (task.playlistId == null) {
-      if (activeIndividuals + result.filter((id) => queued.find((q) => q.id === id)?.playlistId == null).length >= individualLimit) return false
+      if (activeIndividuals + admittedIndividuals >= individualLimit) return false
       result.push(task.id)
+      admittedIndividuals++
       return true
     }
     const count = activeByCollection.get(task.playlistId) ?? 0

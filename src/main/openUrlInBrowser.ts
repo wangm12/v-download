@@ -1,6 +1,5 @@
 import { shell } from 'electron'
-import { execFile } from 'child_process'
-import { promisify } from 'util'
+import { execFile, spawn } from 'node:child_process'
 import {
   mapBrowserToLinuxExecutable,
   mapBrowserToMacExecutable,
@@ -9,7 +8,32 @@ import {
   resolvedCookiesBrowser,
 } from './cookiesBrowser'
 
-const execFileAsync = promisify(execFile)
+function launchBrowser(executable: string, args: string[]): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(executable, args, {
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: true,
+    })
+    child.once('error', reject)
+    child.once('spawn', () => {
+      child.unref()
+      resolve()
+    })
+  })
+}
+
+function openMacApplication(appName: string, url: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    execFile('/usr/bin/open', ['-a', appName, url], {
+      timeout: 5_000,
+      maxBuffer: 256 * 1024,
+    }, (error) => {
+      if (error) reject(error)
+      else resolve()
+    })
+  })
+}
 
 export interface OpenConfiguredBrowserOptions {
   /**
@@ -40,11 +64,11 @@ export async function openUrlInConfiguredBrowser(
         // returns success but discards --new-background-tab when Chrome is
         // already running.
         const args = options.background ? ['--new-background-tab', url] : [url]
-        await execFileAsync(executable, args)
+        await launchBrowser(executable, args)
         return { ok: true, openedIn: appName ?? browser }
       }
       if (appName) {
-        await execFileAsync('open', ['-a', appName, url])
+        await openMacApplication(appName, url)
         return { ok: true, openedIn: appName }
       }
     }
@@ -53,7 +77,7 @@ export async function openUrlInConfiguredBrowser(
       const exe = mapBrowserToWinExecutable(browser)
       if (exe) {
         const args = options.background ? ['--new-background-tab', url] : [url]
-        await execFileAsync(exe, args)
+        await launchBrowser(exe, args)
         return { ok: true, openedIn: browser }
       }
     }
@@ -62,7 +86,7 @@ export async function openUrlInConfiguredBrowser(
       const exe = mapBrowserToLinuxExecutable(browser)
       if (exe) {
         const args = options.background ? ['--new-background-tab', url] : [url]
-        await execFileAsync(exe, args)
+        await launchBrowser(exe, args)
         return { ok: true, openedIn: browser }
       }
     }

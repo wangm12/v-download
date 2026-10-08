@@ -12,14 +12,24 @@ export interface DouyinBulkJobStatus {
 }
 
 interface DouyinBulkJob extends DouyinBulkJobStatus {
-  cancel: () => void
+  cancel: () => Promise<boolean>
+  completion: Promise<void>
 }
 
 const STDERR_TAIL_LIMIT = 4000
+const MAX_RETAINED_FINISHED_JOBS = 128
 const jobs = new Map<string, DouyinBulkJob>()
 
 function tailStderr(stderr: string): string {
   return stderr.slice(-STDERR_TAIL_LIMIT)
+}
+
+function pruneFinishedJobs(): void {
+  const finished = [...jobs.values()].filter((job) => job.state !== 'running')
+  const excess = finished.length - MAX_RETAINED_FINISHED_JOBS
+  for (let i = 0; i < excess; i++) {
+    jobs.delete(finished[i]!.id)
+  }
 }
 
 export function startDouyinBulkJob(rawUrl: string): { id: string } {
@@ -32,15 +42,18 @@ export function startDouyinBulkJob(rawUrl: string): { id: string } {
   const startedAt = new Date().toISOString()
   const { promise, cancel } = runDouyinBulkCli({ url })
 
-  jobs.set(id, {
+  pruneFinishedJobs()
+  const job: DouyinBulkJob = {
     id,
     state: 'running',
     startedAt,
     stderrTail: '',
-    cancel
-  })
+    cancel,
+    completion: Promise.resolve(),
+  }
+  jobs.set(id, job)
 
-  promise
+  job.completion = promise
     .then(({ code, stderr }) => {
       const job = jobs.get(id)
       if (!job) return
@@ -63,6 +76,7 @@ export function startDouyinBulkJob(rawUrl: string): { id: string } {
         job.state = 'failed'
       }
     })
+    .then(() => undefined)
 
   return { id }
 }
@@ -87,10 +101,17 @@ export function cancelDouyinBulkJob(id: string): boolean {
 
   job.state = 'cancelled'
   job.endedAt = new Date().toISOString()
-  try {
-    job.cancel()
-  } catch {
-    // ignore cancellation errors; state is already updated to cancelled
-  }
+  void job.cancel().catch(() => undefined)
   return true
+}
+
+/** Cancel and await external Python bulk jobs during orderly application shutdown. */
+export async function stopDouyinBulkJobs(): Promise<void> {
+  const active = [...jobs.values()].filter((job) => job.state === 'running')
+  for (const job of active) {
+    job.state = 'cancelled'
+    job.endedAt = new Date().toISOString()
+    void job.cancel().catch(() => undefined)
+  }
+  await Promise.allSettled(active.map((job) => job.completion))
 }

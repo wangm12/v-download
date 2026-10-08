@@ -44,12 +44,15 @@ export function showCompactWindow(options: {
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
 
   const hash = compactLoadHash()
-  if (options.devServerUrl) {
-    const base = options.devServerUrl.replace(/\/$/, '')
-    void win.loadURL(`${base}/${hash}`)
-  } else {
-    void win.loadFile(join(__dirname, '../renderer/index.html'), { hash: COMPACT_HASH.replace(/^#/, '') })
-  }
+  const loadPromise = options.devServerUrl
+    ? (() => {
+        const base = options.devServerUrl!.replace(/\/$/, '')
+        return win.loadURL(`${base}/${hash}`)
+      })()
+    : win.loadFile(join(__dirname, '../renderer/index.html'), { hash: COMPACT_HASH.replace(/^#/, '') })
+  void loadPromise.catch((error) => {
+    console.warn('[compactWindow] failed to load window:', error instanceof Error ? error.message : error)
+  })
 
   win.on('closed', () => {
     if (compactWindow === win) compactWindow = null

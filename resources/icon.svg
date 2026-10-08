@@ -1,37 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
   <svg x="82" y="82" width="860" height="860" viewBox="0 0 1024 1024">
-    <defs>
-      <linearGradient id="tile" x1="20%" y1="4%" x2="82%" y2="96%">
-        <stop offset="0%" stop-color="#3A3A40"/>
-        <stop offset="55%" stop-color="#141416"/>
-        <stop offset="100%" stop-color="#0C0C0E"/>
-      </linearGradient>
-      <linearGradient id="sheen" x1="50%" y1="0%" x2="50%" y2="40%">
-        <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.10"/>
-        <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
-      </linearGradient>
-      <linearGradient id="arrow" x1="50%" y1="16%" x2="50%" y2="90%">
-        <stop offset="0%" stop-color="#F4F0E9"/>
-        <stop offset="55%" stop-color="#E4DED4"/>
-        <stop offset="100%" stop-color="#C8C1B7"/>
-      </linearGradient>
-    </defs>
-    <rect width="1024" height="1024" rx="228" fill="url(#tile)"/>
-    <rect width="1024" height="1024" rx="228" fill="url(#sheen)"/>
-    <path fill="url(#arrow)" d="
-      M 440 236
-      h 144
-      a 40 40 0 0 1 40 40
-      v 292
-      l 12 0
-      c 14 0 18 20 8 30
-      L 544 800
-      c -14 22 -50 22 -64 0
-      L 320 598
-      c -10 -10 -6 -30 8 -30
-      l 12 0
-      V 276
-      a 40 40 0 0 1 40 -40
-      Z"/>
+    <rect x="2" y="2" width="1020" height="1020" rx="228" fill="#1C1F25" stroke="#3B3F48" stroke-width="4"/>
+    <path d="M448 216h128a40 40 0 0 1 40 40v298h104c24 0 35 29 18 46L540 798a40 40 0 0 1-56 0L286 600c-17-17-6-46 18-46h104V256a40 40 0 0 1 40-40Z" fill="#F4F4F6"/>
   </svg>
 </svg>

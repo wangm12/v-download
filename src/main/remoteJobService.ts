@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs'
 import { basename, dirname } from 'node:path'
 import { randomBytes } from 'node:crypto'
 import * as downloadManager from './downloadManager'
@@ -8,10 +8,11 @@ import { listPlaylistEntries } from './playlistList'
 import {
   JOB_ID_PATTERN,
   MAX_ATTEMPTS,
+  assignUniqueJobArtifactNames,
   classifyFailureMessage,
   classifyInputUrl,
   collectionTooLarge,
-  listJobArtifacts,
+  listOwnedJobArtifactFiles,
   parseStoredError,
   shouldRetryError,
   type Artifact,
@@ -24,23 +25,30 @@ import {
   deriveJobRecord,
   emptyPlaylistError,
   remoteJobOutputDir,
+  remoteJobStorageRoots,
   siblingTaskIds,
   type StoredRemoteJob,
 } from './remoteJobModel'
 import type { RemoteJobBackend } from './remoteApiHandler'
 import { resolveVideoInfo } from './videoInfoResolver'
 import { isResolvePlaylist, taskOptionsFromResolveData } from './remoteResolveTask'
+import { worklogError } from './worklog'
 
 export const MAX_COLLECTION_ITEMS = 50
 export type { StoredRemoteJob }
 
 let storePath = ''
 let cache: Record<string, StoredRemoteJob> | null = null
+let taskJobIndex: Map<string, string> | null = null
+let storeSaveTimer: ReturnType<typeof setTimeout> | null = null
 let listenerAttached = false
+const STORE_PROGRESS_SAVE_DELAY_MS = 1200
 
 export function configureRemoteJobStore(path: string): void {
+  if (storeSaveTimer || (cache && storePath && path !== storePath)) flushRemoteJobStore()
   storePath = path
   cache = null
+  taskJobIndex = null
 }
 
 function getStorePath(): string {
@@ -59,10 +67,47 @@ function loadStore(): Record<string, StoredRemoteJob> {
   return cache
 }
 
+function getTaskJobIndex(): Map<string, string> {
+  if (taskJobIndex) return taskJobIndex
+  taskJobIndex = new Map()
+  for (const job of Object.values(loadStore())) {
+    for (const taskId of job.downloadTaskIds) taskJobIndex.set(taskId, job.id)
+  }
+  return taskJobIndex
+}
+
 function saveStore(): void {
   const path = getStorePath()
   mkdirSync(dirname(path), { recursive: true })
-  writeFileSync(path, JSON.stringify(cache ?? {}, null, 2), { encoding: 'utf-8', mode: 0o600 })
+  const temp = `${path}.tmp`
+  writeFileSync(temp, JSON.stringify(cache ?? {}, null, 2), { encoding: 'utf-8', mode: 0o600 })
+  chmodSync(temp, 0o600)
+  renameSync(temp, path)
+  chmodSync(path, 0o600)
+}
+
+function scheduleStoreSave(): void {
+  if (storeSaveTimer) return
+  const scheduledPath = storePath
+  const scheduledCache = cache
+  storeSaveTimer = setTimeout(() => {
+    storeSaveTimer = null
+    if (storePath !== scheduledPath || cache !== scheduledCache) return
+    try {
+      saveStore()
+    } catch (error) {
+      worklogError('remote_job_store_save_failed', error)
+      console.error('Failed to persist remote job progress:', error)
+    }
+  }, STORE_PROGRESS_SAVE_DELAY_MS)
+  storeSaveTimer.unref?.()
+}
+
+/** Flush coalesced progress updates before app shutdown or switching the store path. */
+export function flushRemoteJobStore(): void {
+  if (storeSaveTimer) clearTimeout(storeSaveTimer)
+  storeSaveTimer = null
+  if (cache) saveStore()
 }
 
 function nowIso(): string {
@@ -77,9 +122,17 @@ function newJobId(): string {
   return id
 }
 
-function putJob(job: StoredRemoteJob): void {
+function putJob(job: StoredRemoteJob, persistence: 'immediate' | 'deferred' = 'immediate'): void {
   loadStore()[job.id] = job
-  saveStore()
+  if (taskJobIndex) {
+    for (const taskId of job.downloadTaskIds) taskJobIndex.set(taskId, job.id)
+  }
+  if (persistence === 'deferred') scheduleStoreSave()
+  else {
+    if (storeSaveTimer) clearTimeout(storeSaveTimer)
+    storeSaveTimer = null
+    saveStore()
+  }
 }
 
 function readJob(id: string): StoredRemoteJob | null {
@@ -107,36 +160,20 @@ function remoteTaskMeta(
 }
 
 function ownedPathsForJob(job: StoredRemoteJob): string[] {
-  const records = db.getDownloads()
-  const ids = new Set(job.downloadTaskIds)
+  const records = db.getDownloadsByIds(job.downloadTaskIds)
+  const outputDir = job.outputDir || remoteJobOutputDir(settings.get('downloadDir'), job.id)
+  const roots = remoteJobStorageRoots(outputDir, job.id)
+  if (!roots) return []
   return collectOwnedPaths({
-    downloadDir: settings.get('downloadDir'),
-    jobOutputDir: job.outputDir || remoteJobOutputDir(settings.get('downloadDir'), job.id),
-    taskPaths: records.filter((row) => ids.has(row.id)).map((row) => row.file_path),
+    downloadDir: roots.downloadDir,
+    jobOutputDir: roots.jobOutputDir,
+    taskPaths: records.map((row) => row.file_path),
   })
 }
 
 function artifactsFromOwnedPaths(paths: string[]): Artifact[] {
-  const out: Artifact[] = []
-  const seen = new Set<string>()
-  for (const owned of paths) {
-    if (!owned || !existsSync(owned)) continue
-    const st = statSync(owned)
-    if (st.isFile()) {
-      if (seen.has(owned)) continue
-      seen.add(owned)
-      out.push({ name: basename(owned), sizeBytes: st.size })
-      continue
-    }
-    if (!st.isDirectory()) continue
-    for (const artifact of listJobArtifacts(owned)) {
-      const key = `${owned}:${artifact.name}`
-      if (seen.has(key)) continue
-      seen.add(key)
-      out.push(artifact)
-    }
-  }
-  return out
+  return assignUniqueJobArtifactNames(listOwnedJobArtifactFiles(paths))
+    .map(({ name, sizeBytes }) => ({ name, sizeBytes }))
 }
 
 async function enqueueJob(jobId: string): Promise<void> {
@@ -220,16 +257,30 @@ async function enqueueJob(jobId: string): Promise<void> {
       putJob(latest)
       return
     }
+    if (resolved.data && typeof resolved.data === 'object' && (resolved.data as { _type?: unknown })._type === 'douyin_profile') {
+      latest.error = { code: 'invalid_request', message: 'This Douyin link is a creator profile. Open it in V-Download and use the profile post picker for bulk downloads.' }
+      latest.updatedAt = nowIso()
+      putJob(latest)
+      return
+    }
     if (isResolvePlaylist(resolved.data)) {
-      const task = downloadManager.addTask({
+      const playlistInfo = resolved.data as { playlist_title?: unknown; title?: unknown }
+      const resolvedTitle =
+        (typeof playlistInfo.playlist_title === 'string' && playlistInfo.playlist_title.trim()) ||
+        (typeof playlistInfo.title === 'string' && playlistInfo.title.trim()) ||
+        latest.title ||
+        'Playlist'
+      const task = downloadManager.addResolvedMultiOutputTask({
         url: latest.url,
-        title: latest.title || 'download',
+        title: resolvedTitle,
         format: 'video',
         quality,
+        playlistId: latest.id,
         forceNew: true,
-        metadata: remoteTaskMeta(latest),
+        metadata: remoteTaskMeta(latest, { playlistTitle: resolvedTitle }),
       })
       latest.downloadTaskIds = [task.id]
+      latest.title = resolvedTitle
       latest.updatedAt = nowIso()
       putJob(latest)
       return
@@ -265,11 +316,12 @@ async function enqueueJob(jobId: string): Promise<void> {
 }
 
 function onDownloadTask(task: { id: string; status: string; error?: string | null; title?: string }): void {
-  const jobs = Object.values(loadStore())
-  const job = jobs.find((row) => row.downloadTaskIds.includes(task.id))
+  const jobId = getTaskJobIndex().get(task.id)
+  const job = jobId ? readJob(jobId) : null
   if (!job || job.cancelled || job.error) return
   const previous = job.lastTaskStatus[task.id]
-  job.lastTaskStatus[task.id] = task.status
+  const stateChanged = previous !== task.status
+  if (stateChanged) job.lastTaskStatus[task.id] = task.status
   if (task.title && !job.title) job.title = task.title
   job.updatedAt = nowIso()
 
@@ -293,7 +345,7 @@ function onDownloadTask(task: { id: string; status: string; error?: string | nul
     }
     return
   }
-  putJob(job)
+  putJob(job, task.status === 'downloading' && !stateChanged ? 'deferred' : 'immediate')
 }
 
 export function attachRemoteJobListener(): void {
@@ -337,7 +389,7 @@ export function getStoredJob(id: string): StoredRemoteJob | null {
 export function getJobRecord(id: string): JobRecord | null {
   const job = getStoredJob(id)
   if (!job) return null
-  const records = db.getDownloads().filter((row) => job.downloadTaskIds.includes(row.id))
+  const records = db.getDownloadsByIds(job.downloadTaskIds)
   return deriveJobRecord(job, records)
 }
 
@@ -357,7 +409,7 @@ export function cancelRemoteJob(id: string): 'ok' | 'not_found' | 'not_cancellab
   if (!job) return 'not_found'
   const current = deriveJobRecord(
     job,
-    db.getDownloads().filter((row) => job.downloadTaskIds.includes(row.id)),
+    db.getDownloadsByIds(job.downloadTaskIds),
   )
   if (current.status === 'complete' || current.status === 'error' || current.status === 'cancelled') {
     return 'not_cancellable'
@@ -372,11 +424,13 @@ export function cancelRemoteJob(id: string): 'ok' | 'not_found' | 'not_cancellab
 }
 
 export function listJobRecords(): JobRecord[] {
-  return Object.values(loadStore())
-    .map((job) => {
-      const records = db.getDownloads().filter((row) => job.downloadTaskIds.includes(row.id))
-      return deriveJobRecord(job, records)
-    })
+  const jobs = Object.values(loadStore())
+  const recordsById = new Map(db.getDownloadsByIds([...new Set(jobs.flatMap((job) => job.downloadTaskIds))]).map((row) => [row.id, row]))
+  return jobs
+    .map((job) => deriveJobRecord(job, job.downloadTaskIds.flatMap((taskId) => {
+      const record = recordsById.get(taskId)
+      return record ? [record] : []
+    })))
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
 }
 

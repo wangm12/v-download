@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, statSync } from 'node:fs'
-import { basename, extname, join, resolve, sep } from 'node:path'
+import { createHash } from 'node:crypto'
+import { basename, extname, join, relative, resolve, sep } from 'node:path'
 
 export const JOB_ID_PATTERN = /^[A-Za-z0-9_-]{8,32}$/
 export const MAX_ATTEMPTS = 3
@@ -25,6 +26,13 @@ export interface JobFile {
 export interface Artifact {
   name: string
   sizeBytes: number
+}
+
+export interface JobArtifactFile extends Artifact {
+  /** Absolute path is internal to the main process and is never returned by the API. */
+  path: string
+  /** Stable per-job key used to derive a deterministic safe public filename. */
+  stableKey: string
 }
 
 export interface JobRecord {
@@ -53,6 +61,7 @@ export interface JobView {
 const IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.avif'])
 const VIDEO_EXT = new Set(['.mp4', '.webm', '.mkv', '.mov', '.avi', '.flv', '.ts', '.m4v'])
 const AUDIO_EXT = new Set(['.m4a', '.mp3', '.opus', '.ogg', '.aac', '.wav', '.flac'])
+const NOTE_EXT = '.md'
 const PLAYLIST_EXT = new Set(['.m3u8', '.m3u', '.mpd'])
 const DIRECT_EXT = new Set([...IMAGE_EXT, ...VIDEO_EXT, ...AUDIO_EXT, ...PLAYLIST_EXT])
 
@@ -79,6 +88,7 @@ const CONTENT_TYPES: Record<string, string> = {
   '.gif': 'image/gif',
   '.bmp': 'image/bmp',
   '.avif': 'image/avif',
+  '.md': 'text/markdown; charset=utf-8',
   '.m3u8': 'application/vnd.apple.mpegurl',
   '.m3u': 'application/vnd.apple.mpegurl',
   '.mpd': 'application/dash+xml',
@@ -174,36 +184,18 @@ export function isSafeFileName(name: unknown): name is string {
 
 export function resolveJobFilePath(jobDir: string, name: string): string | null {
   if (!isSafeFileName(name)) return null
-  const root = resolve(jobDir)
-  const direct = resolve(root, name)
-  if (direct === root || !direct.startsWith(root + sep)) return null
-  if (existsSync(direct) && statSync(direct).isFile()) return direct
-  try {
-    for (const entry of walkFiles(root)) {
-      if (entry.name === name) return entry.path
-    }
-  } catch {
-    return null
-  }
-  return null
+  return assignUniqueJobArtifactNames(listJobArtifactFiles(jobDir)).find((entry) => entry.name === name)?.path ?? null
 }
 
 /** Resolve a job file only among paths this job owns (file or directory). */
 export function resolveJobOwnedFile(ownedPaths: string[], name: string): string | null {
   if (!isSafeFileName(name)) return null
-  for (const owned of ownedPaths) {
-    if (!owned || !existsSync(owned)) continue
-    const st = statSync(owned)
-    if (st.isFile()) {
-      if (basename(owned) === name) return owned
-      continue
-    }
-    if (st.isDirectory()) {
-      const found = resolveJobFilePath(owned, name)
-      if (found) return found
-    }
-  }
-  return null
+  return jobOwnedFilePathMap(ownedPaths).get(name) ?? null
+}
+
+/** Build a deterministic name-to-path index for one-file and archive requests. */
+export function jobOwnedFilePathMap(ownedPaths: string[]): Map<string, string> {
+  return new Map(assignUniqueJobArtifactNames(listOwnedJobArtifactFiles(ownedPaths)).map((entry) => [entry.name, entry.path]))
 }
 
 function walkFiles(root: string): Array<{ name: string; path: string; sizeBytes: number }> {
@@ -230,6 +222,165 @@ export function listJobArtifacts(jobDir: string): Artifact[] {
   return walkFiles(jobDir).map(({ name, sizeBytes }) => ({ name, sizeBytes }))
 }
 
+/** Enumerate job artifacts with the internal source path needed for exact addressing. */
+export function listJobArtifactFiles(jobDir: string): JobArtifactFile[] {
+  if (!existsSync(jobDir) || !statSync(jobDir).isDirectory()) return []
+  const root = resolve(jobDir)
+  return walkFiles(root).map(({ name, path, sizeBytes }) => ({
+    name,
+    path,
+    sizeBytes,
+    stableKey: relative(root, path).split(sep).join('/'),
+  }))
+}
+
+/** Collect files from the supplied owned paths without resolving outside them. */
+export function listOwnedJobArtifactFiles(ownedPaths: string[]): JobArtifactFile[] {
+  const out: JobArtifactFile[] = []
+  const seen = new Set<string>()
+  for (const rawPath of ownedPaths) {
+    if (!rawPath || !existsSync(rawPath)) continue
+    const path = resolve(rawPath)
+    const st = statSync(path)
+    if (st.isFile()) {
+      const name = basename(path)
+      if (isIgnoredArtifactName(name) || seen.has(path)) continue
+      seen.add(path)
+      out.push({ name, path, sizeBytes: st.size, stableKey: path })
+      continue
+    }
+    if (!st.isDirectory()) continue
+    for (const entry of listJobArtifactFiles(path)) {
+      if (seen.has(entry.path)) continue
+      seen.add(entry.path)
+      out.push({ ...entry, stableKey: entry.path })
+    }
+  }
+  return out
+}
+
+function portableFileName(name: string): boolean {
+  if (!isSafeFileName(name) || /[\u0000-\u001f\u007f<>:"|?*%]/.test(name) || /[. ]$/.test(name)) return false
+  const stem = name.split('.')[0]?.toUpperCase() ?? ''
+  return !/^(?:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/.test(stem)
+}
+
+const MAX_PORTABLE_FILE_NAME_BYTES = 255
+
+function truncateUtf8(value: string, maxBytes: number): string {
+  if (maxBytes <= 0) return ''
+  let out = ''
+  let bytes = 0
+  for (const char of value) {
+    const charBytes = Buffer.byteLength(char, 'utf8')
+    if (bytes + charBytes > maxBytes) break
+    out += char
+    bytes += charBytes
+  }
+  return out
+}
+
+function truncatePortableName(name: string, maxBytes: number): string {
+  if (Buffer.byteLength(name, 'utf8') <= maxBytes) return name
+  const ext = extname(name)
+  const stem = ext ? name.slice(0, -ext.length) : name
+  // Preserve a file's extension where it fits; the rest of the byte budget
+  // belongs to the stem so ZIP entries remain extractable on common filesystems.
+  const extension = truncateUtf8(ext, Math.max(0, maxBytes - 1))
+  const stemBudget = Math.max(0, maxBytes - Buffer.byteLength(extension, 'utf8'))
+  const shortenedStem = truncateUtf8(stem, stemBudget)
+  return `${shortenedStem || (extension ? '_' : 'download')}${extension}`
+}
+
+function safeArtifactBaseName(rawName: string): { name: string; needsSuffix: boolean } {
+  const normalized = rawName.normalize('NFC')
+  let name = normalized
+    .replace(/[\\/\u0000-\u001f\u007f<>:"|?*%]/g, '_')
+    .replace(/\.{2,}/g, '_')
+    .replace(/^[. ]+|[. ]+$/g, '_')
+  if (!name || name === '.' || name === '..') name = 'download'
+  const stem = name.split('.')[0]?.toUpperCase() ?? ''
+  if (/^(?:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/.test(stem)) name = `_${name}`
+  name = truncatePortableName(name, MAX_PORTABLE_FILE_NAME_BYTES)
+  if (!isSafeFileName(name)) name = 'download'
+  return { name, needsSuffix: name !== rawName || !portableFileName(rawName) }
+}
+
+function appendArtifactSuffix(name: string, suffix: string): string {
+  const originalExt = extname(name)
+  const stem = originalExt ? name.slice(0, -originalExt.length) : name
+  const marker = ` (${suffix})`
+  const maxExtensionBytes = Math.max(
+    0,
+    MAX_PORTABLE_FILE_NAME_BYTES - Buffer.byteLength(marker, 'utf8') - 1
+  )
+  // Real media extensions are short; for pathological long extensions, keep
+  // the complete collision suffix and cap the extension so the alias remains
+  // extractable on filesystems with a 255-byte component limit.
+  const ext = truncateUtf8(originalExt, maxExtensionBytes)
+  const maxStemBytes = Math.max(
+    0,
+    MAX_PORTABLE_FILE_NAME_BYTES - Buffer.byteLength(marker, 'utf8') - Buffer.byteLength(ext, 'utf8')
+  )
+  return `${truncateUtf8(stem, maxStemBytes) || '_'}${marker}${ext}`
+}
+
+function artifactNameKey(name: string): string {
+  return name.normalize('NFC').toLowerCase()
+}
+
+/** Preserve ordinary names; deterministically disambiguate collisions and unsafe names. */
+export function assignUniqueJobArtifactNames(files: JobArtifactFile[]): JobArtifactFile[] {
+  const prepared = files.map((file) => ({
+    file,
+    base: safeArtifactBaseName(file.name),
+  }))
+  const groups = new Map<string, typeof prepared>()
+  for (const item of prepared) {
+    const key = artifactNameKey(item.base.name)
+    const group = groups.get(key) ?? []
+    group.push(item)
+    groups.set(key, group)
+  }
+
+  const needsSuffix = new Set<JobArtifactFile>()
+  const reservedNames = new Set<string>()
+  for (const [key, group] of groups) {
+    if (group.length === 1 && !group[0]!.base.needsSuffix) {
+      reservedNames.add(key)
+    } else {
+      for (const item of group) needsSuffix.add(item.file)
+    }
+  }
+
+  const assigned = new Map<JobArtifactFile, string>()
+  for (const item of prepared) {
+    if (!needsSuffix.has(item.file)) assigned.set(item.file, item.base.name)
+  }
+
+  const pending = prepared
+    .filter((item) => needsSuffix.has(item.file))
+    .sort((a, b) => a.file.stableKey < b.file.stableKey ? -1 : a.file.stableKey > b.file.stableKey ? 1 : 0)
+  const usedNames = new Set(reservedNames)
+  for (const item of pending) {
+    const digest = createHash('sha256').update(item.file.stableKey).digest('hex')
+    let candidate = ''
+    for (let length = 10; length <= digest.length; length += 2) {
+      candidate = appendArtifactSuffix(item.base.name, digest.slice(0, length))
+      if (!usedNames.has(artifactNameKey(candidate))) break
+    }
+    let collisionIndex = 1
+    while (!candidate || usedNames.has(artifactNameKey(candidate))) {
+      candidate = appendArtifactSuffix(item.base.name, `${digest}-${collisionIndex}`)
+      collisionIndex += 1
+    }
+    assigned.set(item.file, candidate)
+    usedNames.add(artifactNameKey(candidate))
+  }
+
+  return prepared.map(({ file }) => ({ ...file, name: assigned.get(file) ?? safeArtifactBaseName(file.name).name }))
+}
+
 export function classifyArtifacts(artifacts: Artifact[]): {
   kind: JobKind | null
   files?: JobFile[]
@@ -240,19 +391,29 @@ export function classifyArtifacts(artifacts: Artifact[]): {
     const cls = mediaClass(a.name)
     return cls === 'video' || cls === 'audio' || cls === 'image'
   })
+  const notes = artifacts.filter((artifact) => (
+    extname(artifact.name).toLowerCase() === NOTE_EXT && !isIgnoredArtifactName(artifact.name)
+  ))
+  const toFiles = (items: Artifact[]): JobFile[] => items.map((artifact, i) => ({
+    name: artifact.name,
+    contentType: contentTypeForName(artifact.name),
+    sizeBytes: artifact.sizeBytes,
+    index: i + 1,
+  }))
   if (media.length === 0) {
     if (playlists.length > 0) {
       return { kind: null, error: { code: 'remux_failed', message: 'HLS/DASH did not remux into a media file' } }
     }
+    if (notes.length > 0) {
+      const files = toFiles(notes)
+      return { kind: files.length === 1 ? 'file' : 'collection', files }
+    }
     return { kind: null, error: { code: 'empty_output', message: 'Download produced no media files' } }
   }
 
-  const files = media.map((a, i) => ({
-    name: a.name,
-    contentType: contentTypeForName(a.name),
-    sizeBytes: a.sizeBytes,
-    index: i + 1,
-  }))
+  // Keep media first so the primary download remains stable for legacy
+  // `/file` clients; requested Markdown notes follow for listing and archives.
+  const files = toFiles([...media, ...notes])
 
   if (media.length === 1) return { kind: 'file', files }
 

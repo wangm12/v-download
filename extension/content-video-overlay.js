@@ -22,9 +22,100 @@
 
   // Per-video state plus one page-level positioning scheduler.
   const videoState = new WeakMap()
+  const motionCandidates = new Set()
+  const visibleVideos = new Set()
+  const layoutObservedVideos = new Map()
   const positionQueue = new Set()
   let positionRafId = null
   let visiblePositionRequested = false
+  let layoutResizeObserver = null
+  let layoutMutationObserver = null
+  let layoutMutationRefreshScheduled = false
+
+  function invalidateLayoutVideos(videos) {
+    for (const video of videos) {
+      const state = videoState.get(video)
+      if (typeof state?.handleLayoutChange === 'function') state.handleLayoutChange()
+    }
+  }
+
+  function ensureLayoutObservers() {
+    if (typeof ResizeObserver === 'function' && !layoutResizeObserver) {
+      layoutResizeObserver = new ResizeObserver((entries) => {
+        const affected = new Set()
+        for (const entry of entries) {
+          const videos = layoutObservedVideos.get(entry.target)
+          if (videos) for (const video of videos) affected.add(video)
+        }
+        invalidateLayoutVideos(affected)
+      })
+    }
+    if (typeof MutationObserver === 'function' && !layoutMutationObserver) {
+      layoutMutationObserver = new MutationObserver((records) => {
+        const affected = new Set()
+        for (const record of records) {
+          const videos = layoutObservedVideos.get(record.target)
+          if (videos) for (const video of videos) affected.add(video)
+        }
+        invalidateLayoutVideos(affected)
+      })
+    }
+  }
+
+  function observeVideoLayout(video, targets) {
+    ensureLayoutObservers()
+    for (const target of targets) {
+      let videos = layoutObservedVideos.get(target)
+      if (!videos) {
+        videos = new Set()
+        layoutObservedVideos.set(target, videos)
+        layoutResizeObserver?.observe(target)
+        layoutMutationObserver?.observe(target, {
+          attributes: true,
+          attributeFilter: ['class', 'style']
+        })
+      }
+      videos.add(video)
+    }
+  }
+
+  function scheduleLayoutMutationObserverRefresh() {
+    if (!layoutMutationObserver || layoutMutationRefreshScheduled) return
+    layoutMutationRefreshScheduled = true
+    queueMicrotask(() => {
+      layoutMutationRefreshScheduled = false
+      if (!layoutObservedVideos.size) {
+        layoutMutationObserver?.disconnect()
+        layoutMutationObserver = null
+        return
+      }
+      layoutMutationObserver.disconnect()
+      for (const target of layoutObservedVideos.keys()) {
+        layoutMutationObserver.observe(target, {
+          attributes: true,
+          attributeFilter: ['class', 'style']
+        })
+      }
+    })
+  }
+
+  function unobserveVideoLayout(video, targets) {
+    let refreshMutationObserver = false
+    for (const target of targets) {
+      const videos = layoutObservedVideos.get(target)
+      if (!videos) continue
+      videos.delete(video)
+      if (videos.size) continue
+      layoutObservedVideos.delete(target)
+      layoutResizeObserver?.unobserve(target)
+      refreshMutationObserver = true
+    }
+    if (!layoutObservedVideos.size) {
+      layoutResizeObserver?.disconnect()
+      layoutResizeObserver = null
+    }
+    if (refreshMutationObserver) scheduleLayoutMutationObserverRefresh()
+  }
 
   function flushPositionQueue() {
     positionRafId = null
@@ -65,9 +156,9 @@
 
   function collectMotionVideos() {
     const videos = []
-    for (const video of document.querySelectorAll('video')) {
+    for (const video of motionCandidates) {
       const state = videoState.get(video)
-      if (state && (state.isInViewport || activePanelVideo === video)) videos.push(video)
+      if (state && state.isInViewport && state.hasReliableCandidate && !state.motionIdle && (!state.isHovered || state.isLayoutTracking)) videos.push(video)
     }
     return videos
   }
@@ -88,7 +179,6 @@
       const state = videoState.get(video)
       if (typeof state?.trackMotion === 'function') state.trackMotion()
     }
-    if (primaryOverlayVideo()) refreshDenseOverlays()
     if (collectMotionVideos().length && !document.hidden && motionRafId == null) {
       motionRafId = requestAnimationFrame(motionTick)
     }
@@ -967,17 +1057,75 @@
     let motionIdle = false
     let lastVideoFingerprint = ''
     let hasReliableCandidate = false
+    let disposed = false
+    let layoutObserved = false
+    let layoutTargets = []
+    let layoutTracking = false
+    let layoutTrackingStartedAt = 0
     let candidateRefreshTimer = null
     let sourceChangeTimer = null
     const isYTResolver = () => isYouTubePage() && isYouTubeWatchPage()
     const idleWindowMs = typeof PL?.MOTION_IDLE_MS === 'number' ? PL.MOTION_IDLE_MS : 400
     const idleMaxTravel = typeof PL?.MOTION_IDLE_PX === 'number' ? PL.MOTION_IDLE_PX : 2
+    const layoutTrackingMaxMs = 1600
     function overlayIsHovered() {
       return hoveredOverlayVideo === video
+    }
+    function setLayoutObservation(shouldObserve) {
+      if (disposed) shouldObserve = false
+      if (shouldObserve === layoutObserved) return
+      if (shouldObserve) {
+        layoutTargets = []
+        let target = video
+        for (let depth = 0; target && depth < 6 && target !== document.body && target !== document.documentElement; depth += 1) {
+          if (target.nodeType === 1) layoutTargets.push(target)
+          target = target.parentElement
+        }
+        observeVideoLayout(video, layoutTargets)
+        layoutObserved = true
+      } else {
+        unobserveVideoLayout(video, layoutTargets)
+        layoutTargets = []
+        layoutObserved = false
+      }
+    }
+    function updateMotionEligibility() {
+      if (disposed) {
+        motionCandidates.delete(video)
+        setLayoutObservation(false)
+        return
+      }
+      setLayoutObservation(isInViewport && hasReliableCandidate && !suppressed)
+      if (isInViewport && hasReliableCandidate && !suppressed && !motionIdle && (!overlayIsHovered() || layoutTracking)) {
+        motionCandidates.add(video)
+      } else {
+        motionCandidates.delete(video)
+      }
     }
     function resetMotionSettle() {
       motionSamples = []
       motionIdle = false
+      layoutTracking = false
+      updateMotionEligibility()
+    }
+    function stopMotionUntilLayoutChange() {
+      motionSamples = []
+      motionIdle = true
+      layoutTracking = false
+      updateMotionEligibility()
+    }
+    function handleLayoutChange() {
+      if (disposed || !isInViewport || !hasReliableCandidate || suppressed) return
+      if (!layoutTracking) {
+        resetMotionSettle()
+        layoutTracking = true
+        layoutTrackingStartedAt = typeof performance !== 'undefined' && typeof performance.now === 'function'
+          ? performance.now()
+          : Date.now()
+        updateMotionEligibility()
+      }
+      startMotionLoop()
+      queueVideoPosition(video)
     }
     function hideButton() {
       btn.classList.remove('vdl-visible')
@@ -985,6 +1133,7 @@
       btn.setAttribute('aria-hidden', 'true')
     }
     function revealButton() {
+      updateMotionEligibility()
       startMotionLoop()
       if (!hasReliableCandidate || !isInViewport || suppressed) {
         hideButton()
@@ -992,7 +1141,7 @@
       }
       if (!syncPosition()) {
         hideButton()
-        resetMotionSettle()
+        stopMotionUntilLayoutChange()
         return
       }
       if (hoveredOverlayVideo !== video && !motionIdle) {
@@ -1012,7 +1161,7 @@
       if (document.hidden) return
       if (!syncPosition()) {
         hideButton()
-        resetMotionSettle()
+        stopMotionUntilLayoutChange()
         return
       }
       const rect = prevRect
@@ -1026,11 +1175,17 @@
       motionIdle = typeof PL?.motionIsIdle === 'function'
         ? PL.motionIsIdle(motionSamples, { now, windowMs: idleWindowMs, maxTravel: idleMaxTravel })
         : false
+      if (layoutTracking && (motionIdle || now - layoutTrackingStartedAt >= layoutTrackingMaxMs)) {
+        layoutTracking = false
+      }
+      updateMotionEligibility()
       if (overlayIsHovered() || motionIdle) revealButton()
       else hideButton()
     }
     function setCandidateVisibility(available) {
+      if (disposed) return
       hasReliableCandidate = isYTResolver() || available
+      updateMotionEligibility()
       if (!hasReliableCandidate) {
         hideButton()
       } else if (isInViewport && !suppressed) {
@@ -1044,7 +1199,7 @@
     let candidateRefreshInFlight = false
     let lastCandidateRefreshAt = 0
     const refreshCandidateVisibility = async () => {
-      if (document.hidden) return
+      if (disposed || document.hidden) return
       if (isYTResolver()) { setCandidateVisibility(true); return }
       const elementCandidate = Array.from(video.querySelectorAll('source')).some((source) => {
         const candidate = { url: source.src, mime: source.type || '', source: 'element' }
@@ -1057,8 +1212,11 @@
       lastCandidateRefreshAt = now
       try {
         const resp = await fetchFrameMediaSnapshot()
+        if (disposed) return
         setCandidateVisibility((resp.media || []).some((candidate) => globalThis.VDownloadMediaPatterns?.isReliableCandidate(candidate)))
-      } catch { setCandidateVisibility(false) }
+      } catch {
+        if (!disposed) setCandidateVisibility(false)
+      }
       finally { candidateRefreshInFlight = false }
     }
     const startCandidateRefresh = () => {
@@ -1177,6 +1335,9 @@
     const observer = new IntersectionObserver((entries) => {
       for (const entry of entries) {
         isInViewport = entry.isIntersecting
+        if (isInViewport) visibleVideos.add(video)
+        else visibleVideos.delete(video)
+        updateMotionEligibility()
         if (isInViewport) startMotionLoop()
         if (isInViewport && !suppressed && hasReliableCandidate) {
           revealButton()
@@ -1196,6 +1357,7 @@
     observer.observe(video)
     void refreshCandidateVisibility()
     const onWindowResize = () => {
+      resetMotionSettle()
       queueVideoPosition(video)
     }
     window.addEventListener('resize', onWindowResize)
@@ -1212,12 +1374,16 @@
     }
     const onOverlayHoverEnter = () => {
       hoveredOverlayVideo = video
+      updateMotionEligibility()
+      handleLayoutChange()
       refreshDenseOverlays()
     }
     const onOverlayHoverLeave = (event) => {
       if (overlayHoverContains(event?.relatedTarget)) return
       if (hoveredOverlayVideo === video) {
         hoveredOverlayVideo = null
+        resetMotionSettle()
+        startMotionLoop()
         refreshDenseOverlays()
       }
     }
@@ -1233,6 +1399,7 @@
     btn.addEventListener('click', async (e) => {
       e.preventDefault()
       e.stopPropagation()
+      if (disposed) return
 
       if (activePanel && activePanelVideo === video) {
         closeActivePanel()
@@ -1265,6 +1432,8 @@
         }
       }
 
+      if (disposed) return
+
       if (errorMsg) {
         const panel = document.createElement('div')
         panel.className = 'vdl-format-panel'
@@ -1287,9 +1456,16 @@
     const cleanup = () => {
       if (cleanup.done) return
       cleanup.done = true
+      disposed = true
       observer.disconnect()
       positionQueue.delete(video)
-      resetMotionSettle()
+      motionCandidates.delete(video)
+      visibleVideos.delete(video)
+      if (layoutObserved) {
+        unobserveVideoLayout(video, layoutTargets)
+        layoutTargets = []
+        layoutObserved = false
+      }
       stopCandidateRefresh()
       if (sourceChangeTimer) clearTimeout(sourceChangeTimer)
       btn.remove()
@@ -1320,13 +1496,17 @@
       btn, cleanup, observer,
       get hasReliableCandidate() { return hasReliableCandidate },
       get isInViewport() { return isInViewport },
+      get motionIdle() { return motionIdle },
+      get isHovered() { return overlayIsHovered() },
+      get isLayoutTracking() { return layoutTracking },
+      handleLayoutChange,
       syncPosition,
       revealButton,
       hideButton,
       trackMotion,
       resetMotionSettle,
       rearmCandidateDiscovery: () => {
-        if (!hasReliableCandidate && isInViewport && !suppressed) {
+        if (!disposed && !hasReliableCandidate && isInViewport && !suppressed) {
           startCandidateRefresh()
           void refreshCandidateVisibility()
         }
@@ -1474,6 +1654,14 @@
     createOverlayForVideo(video)
   }
 
+  // Site-specific scripts own these pages. Exit before registering generic
+  // listeners or wrapping history so skipped pages stay inert.
+  if (PL && typeof PL.shouldBootGenericOverlay === 'function') {
+    if (!PL.shouldBootGenericOverlay()) return
+  } else if (isDouyinPage() || isTikTokPage() || isXPage()) {
+    return
+  }
+
   // ── Global click / key handlers for panel dismissal ──────────────────────
 
   document.addEventListener('click', (e) => {
@@ -1488,6 +1676,11 @@
   })
 
   window.addEventListener('scroll', () => {
+    for (const video of visibleVideos) {
+      const state = videoState.get(video)
+      state?.resetMotionSettle()
+      state?.hideButton()
+    }
     queueVisibleVideoPositions()
     if (!activePanel || !activePanelVideo) return
     const site = PL ? PL.getSiteContext().site : 'generic'
@@ -1582,11 +1775,6 @@
   })
 
   function init() {
-    if (PL && typeof PL.shouldBootGenericOverlay === 'function') {
-      if (!PL.shouldBootGenericOverlay()) return
-    } else if (isDouyinPage() || isTikTokPage() || isXPage()) {
-      return
-    }
     updateSuppression()
     scanVideos()
 

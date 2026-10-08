@@ -9,7 +9,7 @@
 <h1 align="center">V-Download</h1>
 
 <p align="center">
-  <strong>专为 macOS 和 Linux 设计的高性能、低资源占用桌面音视频下载利器。</strong><br>
+  <strong>适用于 macOS 和 Linux 的桌面音视频下载工具。</strong><br>
   基于 Electron、React、TypeScript、SQLite、yt-dlp 与 FFmpeg 打造。
 </p>
 
@@ -17,7 +17,6 @@
   <a href="https://github.com/wangm12/v-download/releases/tag/nightly"><img src="https://img.shields.io/badge/每日构建-nightly-blue.svg?style=flat-square" alt="Nightly Build" /></a>
   <a href="https://github.com/wangm12/v-download/releases"><img src="https://img.shields.io/github/v/release/wangm12/v-download?style=flat-square" alt="GitHub Release" /></a>
   <img src="https://img.shields.io/badge/平台-macOS%20%7C%20Ubuntu%20Linux-lightgrey?style=flat-square" alt="平台支持" />
-  <img src="https://img.shields.io/badge/测试-全部通过-brightgreen?style=flat-square" alt="测试状态" />
   <img src="https://img.shields.io/badge/许可证-MIT-green?style=flat-square" alt="开源许可" />
 </p>
 
@@ -29,7 +28,7 @@
 
 ## 产品简介
 
-**V-Download** 是一款开源的 Downie 风格桌面音视频下载工具，专为 macOS 和 Linux 系统深度打磨。它将 `yt-dlp` 与 `FFmpeg` 强悍的音视频解析与转码能力，与现代化精致的桌面 GUI 完美融合，具备快捷键秒级捕获链接与跑满物理带宽的下载吞吐力。
+**V-Download** 是一款开源的 Downie 风格桌面音视频下载工具，适用于 macOS 和 Linux。它将 `yt-dlp` 与 `FFmpeg` 的音视频解析与转码能力，与桌面界面和快捷键链接捕获结合起来。
 
 不论是抓取 8K 60fps HDR 超高清 YouTube 视频、提取抖音图集与实况动图（Live Photo），还是抽取无损 FLAC 音频，V-Download 都在本地安全独立运行，无需付费订阅，没有隐私追踪，零云端依赖。
 
@@ -44,7 +43,7 @@
 - **快速音频提取与视频转码**：内置高质量转换预设（MP3、AAC、Opus、FLAC、WAV，以及 H.264 / H.265 MP4 压制），由内置 FFmpeg 高速完成。
 - **YouTube PO Token 防封禁守护**：内置 Rust 编写的高性能侧车进程（`bgutil-pot-provider-rs`），本地环回自动生成 Proof-of-Origin Token，绕过 Bot 拦截。
 - **Chrome 配套浏览器扩展**：网页上一键推送到桌面端，冷启动支持系统级协议唤醒（`vdownload://wake`）。
-- **双轨 Cookie 免依赖同步**：一键同步 Chrome、Brave、Edge、Vivaldi 登录态，使用操作系统原生密钥库（macOS Keychain / Linux Secret Service）结合 CLI 自动降级通道，无需配置 Python pip 库。
+- **双轨 Cookie 同步**：从 Chrome、Brave、Edge、Vivaldi 导入登录 Cookie。系统提供受保护存储后端时使用系统加密；Linux 未配置密钥环时使用仅所有者可读写的 Cookie 文件，也可使用 CLI 降级通道。
 - **AI Agent / MCP 协议集成**：内建 Model Context Protocol (MCP) 服务（支持 HTTP `POST /mcp` 与 Stdio），Cursor 与 Claude 等 AI 助手可直接检索并调度下载任务。
 - **双平台原生级体验**：
   - **macOS**：原生交通灯控制栏、深色/浅色模式自适应、Dock 图标带实时下载网速角标与进度。
@@ -52,29 +51,21 @@
 
 ---
 
-## 性能表现与内存占用实测
+## 运行环境
 
-V-Download 深度贯彻性能预算，主进程对音视频流采用操作系统原生管道流式写入，从不将大文件块缓存至 JavaScript V8 堆内存中。
+媒体传输和转码由随应用提供的 `yt-dlp` 与 FFmpeg 命令行引擎完成。实际性能会受网站、格式、网络和硬件影响；项目没有发布可复现的启动、内存、CPU 或数据库基准数据。
 
-| 性能维度 | 实测基准数值 | 架构设计与优化实现 |
-|---|---|---|
-| **冷启动耗时** | **< 850 毫秒** | 采用优化编译的 SSR Bundle，IPC 模块按需懒加载，零冗余组件。 |
-| **后台托盘常驻内存 (RAM)** | **~45 MB – 58 MB RSS** | 最小化进托盘后挂起非活跃渲染周期，极度轻量省电。 |
-| **4K 高清多流下载内存** | **~95 MB – 130 MB RSS** | 流式直通磁盘；无论下载 100MB 还是 50GB 文件，内存占用始终平直稳定。 |
-| **后台空闲 CPU 占用** | **< 0.2%** | 全事件驱动（Reactive），依托 SQLite WAL 模式写入通知，杜绝后台空转轮询。 |
-| **网络下载吞吐力** | **跑满物理带宽** | 启用多线程连接分块下载，轻松跑满 1 Gbps+ 千兆宽带。 |
-| **数据库读写延迟** | **< 1 毫秒 / 查询** | SQLite WAL (Write-Ahead Logging) 预写日志机制，异步原子写入，UI 丝滑不卡顿。 |
-| **开箱运行环境** | **零外部运行依赖** | 内置对应系统的静态 `yt-dlp`、`FFmpeg` 和 `bgutil` 独立二进制，无需安装 Python 或 pip。 |
+安装包面向 macOS 12 及更高版本，以及 Ubuntu/Debian Linux。Linux `.deb` 会声明桌面和媒体运行所需的系统库。系统有受保护存储后端时 Cookie 使用系统加密；Linux 没有密钥环后端时，应用改用仅所有者可读写的 Cookie 文件。
 
 ---
 
 ## 获取安装包与下载
 
 ### 1. 下载官方编译安装包
-每次代码提交都会由 GitHub Actions 自动编译出全平台最新版本：
+安装包可在 [GitHub Releases](https://github.com/wangm12/v-download/releases) 获取。发布工作流会为版本匹配的标签发布正式版本；从分支手动运行工作流时会更新滚动 Nightly：
 
 - **macOS（支持 Apple Silicon M系列 与 Intel 芯片）**：
-  - 从 [Releases 页面](https://github.com/wangm12/v-download/releases) 或最新 [Nightly 每日构建](https://github.com/wangm12/v-download/releases/tag/nightly) 下载 `.dmg` 文件。
+  - 从 [Releases 页面](https://github.com/wangm12/v-download/releases) 或滚动 [Nightly 构建](https://github.com/wangm12/v-download/releases/tag/nightly) 下载 `.dmg` 文件。
   - 打开并将 `V-Download.app` 拖入「应用程序」即可使用。
 - **Ubuntu / Debian Linux (x64 与 arm64)**：
   - 从 [Releases 页面](https://github.com/wangm12/v-download/releases) 或 [Nightly 页面](https://github.com/wangm12/v-download/releases/tag/nightly) 下载 `.deb` 安装包：
@@ -86,6 +77,8 @@ V-Download 深度贯彻性能预算，主进程对音视频流采用操作系统
     ```sh
     chmod +x V-Download-*.AppImage && ./V-Download-*.AppImage
     ```
+
+GitHub 发布成功本身不能证明 macOS 应用已签名、公证或通过 Gatekeeper 检查；这些结果取决于 Apple 凭据配置。
 
 ---
 
@@ -101,6 +94,8 @@ V-Download 深度贯彻性能预算，主进程对音视频流采用操作系统
 ---
 
 ## 从源码构建
+
+Node.js 要求：22.x 需为 22.14 或更高版本；23.6 或更高版本也受支持，包括后续主版本。
 
 ```sh
 # 克隆代码仓库

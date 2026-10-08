@@ -3,6 +3,13 @@ document.addEventListener('DOMContentLoaded', () => {
   chrome.runtime.sendMessage({ type: 'GET_MEDIA' }, (response) => {
     const { media = [], tabUrl = '', tabTitle = '' } = response || {}
     renderMedia(media, tabUrl, tabTitle)
+    if (chrome.runtime.lastError || response?.error) {
+      const empty = document.getElementById('empty')
+      const message = empty?.querySelector('p')
+      const hint = empty?.querySelector('.hint')
+      if (message) message.textContent = response?.error || 'Could not read media from this tab. Reopen the popup to retry.'
+      if (hint) hint.style.display = 'none'
+    }
   })
 })
 
@@ -183,18 +190,15 @@ function renderMedia(media, tabUrl, tabTitle) {
     inFlight = true
     downloadBtn.disabled = true
 
-    // Give immediate visible feedback before any async work or popup-closing
-    // side effect. The anchor must still run in this click's user gesture.
-    const wakeFromGesture = globalThis.__vdownloadWakeFromUserGesture
-    const surfacedWake = typeof wakeFromGesture === 'function' ? wakeFromGesture() === true : false
-
     chrome.runtime.sendMessage(
       {
         type: 'DOWNLOAD_MEDIA',
         items,
         tabUrl,
         tabTitle,
-        surfacedWake
+        // Let the service worker try the local app first. It can launch the
+        // protocol wake only after the request fails, without closing this popup.
+        surfacedWake: false
       },
       (response) => {
         const results = Array.isArray(response?.results) ? response.results : []

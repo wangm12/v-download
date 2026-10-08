@@ -1,6 +1,9 @@
 {
   "name": "v-download",
   "version": "1.1.7",
+  "engines": {
+    "node": ">=22.14.0 <23 || >=23.6.0"
+  },
   "description": "A Downie-style video downloader for YouTube, Douyin, and any website, powered by yt-dlp",
   "author": "V-Download Contributors <support@v-download.app>",
   "main": "./out/main/index.js",
@@ -36,7 +39,7 @@
     "verify:engines": "node scripts/engines.mjs verify",
     "prepare:release": "node scripts/prepare-release.mjs",
     "preview": "electron-vite preview",
-    "postinstall": "npm run build --workspace=@v-download/shared && node scripts/write-extension-cookie-sync.mjs && electron-builder install-app-deps",
+    "postinstall": "npm run build --workspace=@v-download/shared && node scripts/write-extension-cookie-sync.mjs && node node_modules/electron/install.js",
     "sync:extension-constants": "npm run build --workspace=@v-download/shared && node scripts/write-extension-cookie-sync.mjs",
     "test:douyin-profile": "npx tsx scripts/test-douyin-profile.ts",
     "test:douyin-gallery": "npx tsx scripts/test-douyin-gallery.ts",
@@ -70,6 +73,7 @@
     "test:ytdlp-argv": "npx tsx scripts/test-ytdlp-provider-argv.ts",
     "test:extension": "node scripts/test-extension-media.js && node scripts/test-extension-download.js",
     "test:ui-contract": "node scripts/test-ui-contract.mjs",
+    "test:dock-progress": "node scripts/test-dock-progress.mjs",
     "test:python-framework": "node scripts/test-python-framework.mjs",
     "test:engines": "node scripts/test-engines.mjs",
     "test:thumbnail-fetch": "npx tsx scripts/test-thumbnail-fetch.ts",
@@ -87,7 +91,7 @@
   },
   "dependencies": {
     "@v-download/shared": "*",
-    "better-sqlite3": "^11.0.0",
+    "better-sqlite3": "13.0.3",
     "cloakbrowser": "^0.3.30",
     "electron-updater": "^6.8.9",
     "i18next": "^26.3.6",
@@ -98,9 +102,9 @@
     "yazl": "^3.3.1"
   },
   "overrides": {
-    "js-yaml": "^4.2.0",
+    "js-yaml": "^4.3.2",
     "socks": {
-      "ip-address": "^10.2.0"
+      "ip-address": "^10.3.1"
     },
     "cloakbrowser": {
       "tar": "^7.5.22"
@@ -118,15 +122,16 @@
     "@vitejs/plugin-react": "^4.0.0",
     "autoprefixer": "^10.4.0",
     "clsx": "^2.1.0",
-    "electron": "^33.0.0",
-    "electron-builder": "^25.0.0",
-    "electron-vite": "^2.0.0",
+    "electron": "43.7.5",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^3.1.0",
     "lucide-react": "^0.460.0",
     "postcss": "^8.4.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwind-merge": "^2.5.0",
     "tailwindcss": "^3.4.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vite": "^6.4.3"
   }
 }

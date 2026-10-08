@@ -62,6 +62,11 @@ export function useDownloads() {
   const downloadIndexRef = useRef(new Map<string, number>())
   const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const refreshPromiseRef = useRef<Promise<void> | null>(null)
+  const refreshInFlightRef = useRef(false)
+  const refreshAgainRef = useRef(false)
+  const refreshInvalidatedRef = useRef(false)
+  const refreshUpdatesRef = useRef(new Map<string, Partial<Download>>())
+  const refreshRemovedIdsRef = useRef(new Set<string>())
 
   const rebuildDownloadIndex = useCallback((items: Download[]) => {
     const index = new Map<string, number>()
@@ -101,6 +106,10 @@ export function useDownloads() {
 
   const queueProgressUpdate = useCallback(
     (id: string, updates: Partial<Download>, immediate = false) => {
+      if (refreshInFlightRef.current) {
+        const duringRefresh = refreshUpdatesRef.current.get(id) ?? {}
+        refreshUpdatesRef.current.set(id, { ...duringRefresh, ...updates })
+      }
       const existing = pendingRef.current.get(id) ?? {}
       pendingRef.current.set(id, { ...existing, ...updates })
       if (immediate) {
@@ -119,6 +128,7 @@ export function useDownloads() {
   )
 
   const removeDownload = useCallback((id: string) => {
+    if (refreshInFlightRef.current) refreshRemovedIdsRef.current.add(id)
     pendingRef.current.delete(id)
     setDownloads((prev) => {
       const next = prev.filter((d) => d.id !== id)
@@ -130,6 +140,9 @@ export function useDownloads() {
   const removeDownloads = useCallback((ids: string[]) => {
     if (ids.length === 0) return
     const drop = new Set(ids)
+    if (refreshInFlightRef.current) {
+      for (const id of drop) refreshRemovedIdsRef.current.add(id)
+    }
     for (const id of drop) pendingRef.current.delete(id)
     setDownloads((prev) => {
       const next = prev.filter((d) => !drop.has(d.id))
@@ -144,23 +157,57 @@ export function useDownloads() {
 
   const refreshDownloads = useCallback(async () => {
     if (typeof window === 'undefined' || !window.api) return
-    if (refreshPromiseRef.current) return refreshPromiseRef.current
+    if (refreshPromiseRef.current) {
+      refreshAgainRef.current = true
+      return refreshPromiseRef.current
+    }
+    refreshInFlightRef.current = true
+    refreshInvalidatedRef.current = false
+    refreshUpdatesRef.current.clear()
+    refreshRemovedIdsRef.current.clear()
     const refresh = (async () => {
       try {
         const res = await window.api.getDownloads()
         const data = (res as { data?: unknown[] })?.data ?? res
+        if (refreshInvalidatedRef.current) return
+        const refreshUpdates = new Map(refreshUpdatesRef.current)
+        refreshUpdatesRef.current.clear()
+        const removedDuringRefresh = new Set(refreshRemovedIdsRef.current)
+        refreshRemovedIdsRef.current.clear()
         pendingRef.current.clear()
         if (flushTimerRef.current) {
           clearTimeout(flushTimerRef.current)
           flushTimerRef.current = null
         }
         const next = Array.isArray(data) ? normalizeTasks(data) : []
-        rebuildDownloadIndex(next)
-        setDownloads(next)
+        if (refreshUpdates.size > 0) {
+          const index = new Map<string, number>()
+          next.forEach((download, position) => index.set(download.id, position))
+          for (const [id, updates] of refreshUpdates) {
+            const position = index.get(id)
+            if (position == null) {
+              // A task event arrived after the IPC snapshot was requested. Fetch again so
+              // an add/terminal event cannot disappear behind an older full-list response.
+              refreshAgainRef.current = true
+              continue
+            }
+            next[position] = { ...next[position], ...updates }
+          }
+        }
+        const filtered = removedDuringRefresh.size > 0
+          ? next.filter((download) => !removedDuringRefresh.has(download.id))
+          : next
+        rebuildDownloadIndex(filtered)
+        setDownloads(filtered)
       } catch {
         /* Keep the current queue visible when a transient IPC refresh fails. */
       } finally {
+        refreshInFlightRef.current = false
         refreshPromiseRef.current = null
+        if (refreshAgainRef.current) {
+          refreshAgainRef.current = false
+          void refreshDownloads()
+        }
       }
     })()
     refreshPromiseRef.current = refresh
@@ -174,6 +221,7 @@ export function useDownloads() {
 
     const unsubProgress = window.api.onDownloadProgress((data) => {
       if (data?.cleared || data?.bulkAdded || data?.bulkRemoved) {
+        if (refreshInFlightRef.current) refreshInvalidatedRef.current = true
         if (flushTimerRef.current) {
           clearTimeout(flushTimerRef.current)
           flushTimerRef.current = null
@@ -200,8 +248,12 @@ export function useDownloads() {
     const unsubNew = window.api.onNewDownload((data) => {
       if (data && typeof data === 'object') {
         const nextTask = normalizeTask(data)
+        if (refreshInFlightRef.current) {
+          const current = refreshUpdatesRef.current.get(nextTask.id) ?? {}
+          refreshUpdatesRef.current.set(nextTask.id, { ...current, ...nextTask })
+        }
         setDownloads((prev) => {
-          if (prev.some((download) => download.id === nextTask.id)) return prev
+          if (downloadIndexRef.current.has(nextTask.id)) return prev
           const next = [nextTask, ...prev]
           rebuildDownloadIndex(next)
           return next
@@ -225,13 +277,17 @@ export function useDownloads() {
   // reconciliation loop only while one is in a non-download state. This also
   // guarantees a timed-out background resolver cannot remain visually stuck as
   // “Resolving…” after its terminal DB update.
+  const hasPendingResolution = downloads.some(
+    (download) => download.status === 'resolving' || download.status === 'ready'
+  )
+
   useEffect(() => {
-    if (!downloads.some((download) => download.status === 'resolving' || download.status === 'ready')) return
+    if (!hasPendingResolution) return
     const timer = setInterval(() => {
       void refreshDownloads()
     }, 2_000)
     return () => clearInterval(timer)
-  }, [downloads, refreshDownloads])
+  }, [hasPendingResolution, refreshDownloads])
 
   return { downloads, removeDownload, removeDownloads, updateDownload, refreshDownloads }
 }

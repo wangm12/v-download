@@ -146,10 +146,16 @@ export async function fetchRemoteThumbnailDataUrl(
         }
         continue
       }
-      if (!res.ok) return null
+      if (!res.ok) {
+        await res.body?.cancel().catch(() => {})
+        return null
+      }
 
       const declaredMime = (res.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase()
-      if (declaredMime && !declaredMime.startsWith('image/')) return null
+      if (declaredMime && !declaredMime.startsWith('image/')) {
+        await res.body?.cancel().catch(() => {})
+        return null
+      }
       const buf = await readLimitedBody(res)
       if (!buf || buf.length < 64) return null
       const mime = declaredMime.startsWith('image/') ? declaredMime : imageMimeFromBytes(buf)

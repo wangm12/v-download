@@ -1,4 +1,5 @@
-import { spawn } from 'child_process'
+import { terminateDownloadProcess } from './downloadTypes'
+import { isManagedChildShutdownRequested, spawnManagedProcess } from './managedChildProcesses'
 import {
   addYtdlpCookieArgs,
   appendYoutubeYtdlpArgs,
@@ -26,6 +27,10 @@ export interface PlaylistListResult {
   playlistChannel: string
   sourceUrl: string
 }
+
+const PLAYLIST_LIST_TIMEOUT_MS = 180_000
+const PLAYLIST_STDOUT_MAX_BYTES = 64 * 1024 * 1024
+const PLAYLIST_STDERR_MAX_BYTES = 2 * 1024 * 1024
 
 function spawnEnv(): Record<string, string> {
   return { ...(process.env as Record<string, string>) }
@@ -124,6 +129,9 @@ export async function listPlaylistEntries(
   cookiesPath?: string,
   ytdlpPath?: string
 ): Promise<PlaylistListResult> {
+  if (isManagedChildShutdownRequested()) {
+    throw new DOMException('Application is shutting down', 'AbortError')
+  }
   const path = getYtdlpPath(ytdlpPath)
   const args: string[] = [
     '--dump-json',
@@ -138,19 +146,65 @@ export async function listPlaylistEntries(
   args.push(url)
 
   const result = await new Promise<PlaylistListResult>((resolve, reject) => {
-    const proc = spawn(path, args, { stdio: ['ignore', 'pipe', 'pipe'], env: spawnEnv() })
+    const proc = spawnManagedProcess(path, args, {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: spawnEnv(),
+      detached: process.platform !== 'win32'
+    })
 
     let stdout = ''
+    let stdoutBytes = 0
     let stderr = ''
+    let stderrBytes = 0
+    let stopError: Error | null = null
+    let termination: Promise<boolean> | null = null
+    const stopProcess = (error: Error): void => {
+      if (stopError) return
+      stopError = error
+      termination = terminateDownloadProcess(proc, true)
+    }
+    const timeout = setTimeout(() => {
+      stopProcess(new Error(`yt-dlp playlist listing timed out after ${Math.round(PLAYLIST_LIST_TIMEOUT_MS / 1000)} seconds`))
+    }, PLAYLIST_LIST_TIMEOUT_MS)
+
+    const appendBounded = (current: string, currentBytes: number, chunk: Buffer, maxBytes: number) => {
+      const available = Math.max(0, maxBytes - currentBytes)
+      const accepted = chunk.subarray(0, available)
+      return {
+        value: current + accepted.toString(),
+        bytes: currentBytes + accepted.length,
+        overflow: accepted.length < chunk.length
+      }
+    }
 
     proc.stdout?.on('data', (chunk: Buffer) => {
-      stdout += chunk.toString()
+      if (stopError) return
+      const next = appendBounded(stdout, stdoutBytes, chunk, PLAYLIST_STDOUT_MAX_BYTES)
+      stdout = next.value
+      stdoutBytes = next.bytes
+      if (next.overflow) {
+        stopProcess(new Error('yt-dlp playlist output exceeded the 64 MiB limit'))
+      }
     })
     proc.stderr?.on('data', (chunk: Buffer) => {
-      stderr += chunk.toString()
+      if (stopError) return
+      const next = appendBounded(stderr, stderrBytes, chunk, PLAYLIST_STDERR_MAX_BYTES)
+      stderr = next.value
+      stderrBytes = next.bytes
+      if (next.overflow) {
+        stopProcess(new Error('yt-dlp playlist error output exceeded the 2 MiB limit'))
+      }
     })
 
-    proc.on('close', (code) => {
+    proc.on('close', async (code) => {
+      clearTimeout(timeout)
+      if (stopError) {
+        if (termination && !(await termination)) {
+          console.warn('[yt-dlp] playlist-list process group still visible after cancellation')
+        }
+        reject(stopError)
+        return
+      }
       if (code !== 0 && code !== null) {
         reject(new Error(`yt-dlp list failed (code ${code}): ${stderr || stdout}`))
         return
@@ -201,7 +255,9 @@ export async function listPlaylistEntries(
       }
     })
 
-    proc.on('error', (err) => reject(err))
+    proc.on('error', (err) => {
+      stopProcess(err)
+    })
   })
 
   await enrichMissingThumbnails(result.items, url, cookiesPath, ytdlpPath)

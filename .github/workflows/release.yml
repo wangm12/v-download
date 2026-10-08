@@ -46,6 +46,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Validate Chrome extension ID
+        env:
+          CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
+        run: |
+          node -e 'const id=(process.env.CHROME_EXTENSION_ID||"").trim(); if(!/^[a-p]{32}$/.test(id)){console.error("CHROME_EXTENSION_ID must be a configured 32-character a-p ID");process.exit(1)}'
+
       - name: Require tag to match package.json
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
@@ -61,7 +67,8 @@ jobs:
           CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
         run: |
           node --input-type=module -e '
-            const id = (process.env.CHROME_EXTENSION_ID || "").trim() || "abcdefghijklmnopabcdefghijklmnop"
+            const id = (process.env.CHROME_EXTENSION_ID || "").trim()
+            if (!/^[a-p]{32}$/.test(id)) throw new Error("CHROME_EXTENSION_ID must be a configured 32-character a-p ID")
             const { writeFileSync } = await import("node:fs")
             writeFileSync("release-config.json", `${JSON.stringify({
               updater: { provider: "generic", metadata: "" },
@@ -106,7 +113,7 @@ jobs:
           npm run build:mac:${{ matrix.arch }}
         env:
           RELEASE_ARCH: ${{ matrix.arch }}
-          CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID || 'abcdefghijklmnopabcdefghijklmnop' }}
+          CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
           CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.CSC_LINK != '' }}
@@ -140,11 +147,25 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Validate Chrome extension ID
+        env:
+          CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
+        run: |
+          node -e 'const id=(process.env.CHROME_EXTENSION_ID||"").trim(); if(!/^[a-p]{32}$/.test(id)){console.error("CHROME_EXTENSION_ID must be a configured 32-character a-p ID");process.exit(1)}'
+
+      - name: Cache fetched Linux engines
+        uses: actions/cache@v4
+        with:
+          path: |
+            resources/engines/linux-x64
+            resources/engines/po-token/linux-x64
+          key: engines-linux-x64-${{ hashFiles('resources/engines/manifest.json') }}
+
       - name: Package Linux release
         run: npm run build:linux:x64
         env:
           RELEASE_ARCH: x64
-          CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID || 'abcdefghijklmnopabcdefghijklmnop' }}
+          CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
 
       - name: Upload Linux installers
         uses: actions/upload-artifact@v4

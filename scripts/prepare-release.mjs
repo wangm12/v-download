@@ -1,8 +1,9 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 
-const root = new URL('..', import.meta.url).pathname
+const root = fileURLToPath(new URL('..', import.meta.url))
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 const configPath = process.env.RELEASE_CONFIG || join(root, 'release-config.json')
 const requested = process.env.RELEASE_ARCH || process.env.npm_config_arch
@@ -32,7 +33,7 @@ if (pkg.version !== manifest.version) errors.push(`extension version ${manifest.
 try {
   const config = JSON.parse(readFileSync(configPath, 'utf8'))
   const extensionId = process.env.CHROME_EXTENSION_ID || config.chrome?.extensionId
-  if (!/^[a-p]{32}$/.test(extensionId || '')) errors.push('release config is missing a valid stable Chrome Web Store extension ID')
+  if (!/^[a-p]{32}$/.test(extensionId || '')) errors.push('release config is missing a valid Chrome extension ID')
 } catch {
   errors.push(`missing or invalid release config: ${configPath}`)
 }

@@ -1,5 +1,7 @@
 import * as settings from './settings'
+import { parseDouyinProfileUrl } from '@v-download/shared'
 import * as ytdlp from './ytdlp'
+import { resolveDouyinShareUrl } from './douyinUrlResolution'
 import {
   getDouyinInfo,
   getLastDouyinInfoError,
@@ -179,8 +181,20 @@ export async function resolveVideoInfo(url: string, signal?: AbortSignal): Promi
 
     const infoProxyUrl = settings.get('proxyUrl') || undefined
     let douyinHint: Awaited<ReturnType<typeof getDouyinInfo>> = null
+    let douyinPageUrl = url
     if (douyinUrl) {
-      douyinHint = await getDouyinInfo(url, cookiesPath || undefined, {
+      try {
+        douyinPageUrl = await resolveDouyinShareUrl(url, { signal: resolveSignal, proxyUrl: infoProxyUrl })
+      } catch (error) {
+        throwIfAborted(resolveSignal)
+        console.warn('[douyin] Short-link inspection failed; trying existing media sources:', error instanceof Error ? error.message : error)
+      }
+      throwIfAborted(resolveSignal)
+      const profile = parseDouyinProfileUrl(douyinPageUrl)
+      if (profile) {
+        return { data: { _type: 'douyin_profile', id: profile.secUid, title: 'Douyin profile', webpage_url: profile.url } }
+      }
+      douyinHint = await getDouyinInfo(douyinPageUrl, cookiesPath || undefined, {
         signal: resolveSignal,
         proxyUrl: infoProxyUrl,
       })
@@ -194,6 +208,7 @@ export async function resolveVideoInfo(url: string, signal?: AbortSignal): Promi
     let xhsHint: Awaited<ReturnType<typeof getXiaohongshuInfo>> = null
     if (xhsUrl) {
       xhsHint = await getXiaohongshuInfo(url, cookiesPath || undefined, {
+        signal: resolveSignal,
         proxyUrl: infoProxyUrl,
       })
       throwIfAborted(resolveSignal)
@@ -221,7 +236,7 @@ export async function resolveVideoInfo(url: string, signal?: AbortSignal): Promi
         if (text) return { data: text }
       }
       if (douyinUrl) {
-        const douyin = douyinHint ?? await getDouyinInfo(url, cookiesPath || undefined, {
+        const douyin = douyinHint ?? await getDouyinInfo(douyinPageUrl, cookiesPath || undefined, {
           signal: resolveSignal,
           proxyUrl: infoProxyUrl,
         })
@@ -231,6 +246,7 @@ export async function resolveVideoInfo(url: string, signal?: AbortSignal): Promi
       }
       if (xhsUrl) {
         const xhs = xhsHint ?? (await getXiaohongshuInfo(url, cookiesPath || undefined, {
+          signal: resolveSignal,
           proxyUrl: infoProxyUrl,
         }))
         if (xhs && (isXiaohongshuGallery(xhs) || isXiaohongshuText(xhs))) return { data: toXhsData(url, xhs) }

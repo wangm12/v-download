@@ -3,18 +3,19 @@ import { join } from 'path'
 import { optimizer, is } from '@electron-toolkit/utils'
 import * as database from './database'
 import * as downloadManager from './downloadManager'
-import { initializeInfoResolutionManager } from './infoResolutionManager'
+import { initializeInfoResolutionManager, stopInfoResolutionManager } from './infoResolutionManager'
+import { stopManagedChildProcesses } from './managedChildProcesses'
 import * as dockProgress from './dockProgress'
 import { initializePoTokenServer, stopPoTokenServer } from './poTokenServer'
 import { reconcileYtdlpPathSetting } from './ytdlp'
 import { startLocalServer, stopLocalServer, setDownloadHandler, setMediaDownloadHandler, DownloadRequest, DownloadDispatchResult, LOCAL_SERVER_PORT } from './localServer'
 import { stopRemoteApiServer, syncRemoteApiServer } from './remoteApiServer'
-import { attachRemoteJobListener, configureRemoteJobStore } from './remoteJobService'
+import { attachRemoteJobListener, configureRemoteJobStore, flushRemoteJobStore } from './remoteJobService'
 import * as settings from './settings'
 import { registerDownloadHandlers } from './ipc/downloads'
 import { registerSettingsHandlers } from './ipc/settings'
 import { registerWindowHandlers } from './ipc/window'
-import { initWorklog, worklog } from './worklog'
+import { initWorklog, worklog, worklogError } from './worklog'
 import { initializeUpdater } from './updater'
 import { registerUpdaterHandlers } from './ipc/updater'
 import { registerEngineHandlers } from './ipc/engines'
@@ -30,6 +31,9 @@ import { osNotificationCopy, parseTaskDeepLink, shouldNotifyOs } from './taskNot
 import { onUiLanguageChanged } from './localizedChrome'
 import { getUiLanguage } from './uiLanguage'
 import { closeCompactWindow, showCompactWindow } from './compactWindowHost'
+import { stopDouyinBulkJobs } from './douyinBulkJobs'
+import { closeProxyDispatchers } from './httpClient'
+import { isCanonicalUserDataProfile } from './profilePaths'
 
 app.setName('V-Download')
 
@@ -254,18 +258,32 @@ function attachOsTaskNotifications(): void {
     }
     if (!Notification.isSupported()) return
     const copy = osNotificationCopy(task.status, task.title || '', getUiLanguage())
-    const notification = new Notification({
-      title: copy.title,
-      body: copy.body
-    })
-    notification.on('click', () => focusTask(task.id))
-    notification.on('close', () => {
-      if (activeOsNotifications.get(task.id) === notification) {
+    let notification: Notification | null = null
+    const releaseNotification = () => {
+      if (notification && activeOsNotifications.get(task.id) === notification) {
         activeOsNotifications.delete(task.id)
       }
-    })
-    activeOsNotifications.set(task.id, notification)
-    notification.show()
+    }
+    try {
+      notification = new Notification({
+        title: copy.title,
+        body: copy.body
+      })
+      notification.on('click', () => focusTask(task.id))
+      notification.on('close', releaseNotification)
+      notification.on('failed', (_event, error) => {
+        releaseNotification()
+        worklogError('os_notification_failed', new Error(error || 'OS notification failed'), {
+          taskId: task.id,
+          status: task.status
+        })
+      })
+      activeOsNotifications.set(task.id, notification)
+      notification.show()
+    } catch (error) {
+      releaseNotification()
+      worklogError('os_notification_show_failed', error, { taskId: task.id, status: task.status })
+    }
   })
 }
 
@@ -332,6 +350,7 @@ function setupIpcHandlers(): void {
 }
 
 app.whenReady().then(() => {
+  if (!gotLock) return
   initWorklog()
   worklog('app_ready', { packaged: app.isPackaged, version: app.getVersion() })
 
@@ -409,7 +428,9 @@ app.whenReady().then(() => {
   })
 
   dockProgress.init()
-  syncLoginItem(settings.get('launchAtStartup'), app.setLoginItemSettings?.bind(app))
+  if (app.isPackaged && isCanonicalUserDataProfile()) {
+    syncLoginItem(settings.get('launchAtStartup'), app.setLoginItemSettings?.bind(app))
+  }
 
   database.initDB()
   initializeNativeAuth()
@@ -450,7 +471,7 @@ app.whenReady().then(() => {
   // Only the packaged app should claim URL schemes. Dev Electron from
   // node_modules would otherwise become the OS handler and open the generic
   // Electron splash when the extension triggers ytdl:// or vdownload:// wake.
-  if (app.isPackaged) {
+  if (app.isPackaged && isCanonicalUserDataProfile()) {
     app.setAsDefaultProtocolClient('ytdl')
     app.setAsDefaultProtocolClient('vdownload')
   }
@@ -465,6 +486,7 @@ app.whenReady().then(() => {
   void initializeUpdater(mainWindow).catch(() => undefined)
 
   app.on('activate', () => {
+    if (isQuitting) return
     startLocalServer()
     syncRemoteApiServer()
     if (mainWindow && !mainWindow.isDestroyed()) {
@@ -488,6 +510,7 @@ app.on('open-url', (event, url) => {
 })
 
 app.on('second-instance', (_event, commandLine) => {
+  if (isQuitting) return
   startLocalServer()
   const deepLink = commandLine.find((arg) => isDeepLinkUrl(arg))
   if (deepLink) {
@@ -538,19 +561,73 @@ app.on('before-quit', (event) => {
   }
 
   event.preventDefault()
+  isQuitting = true
   closeCompactWindow()
   stopNativeAuthWindows()
-  stopRemoteApiServer()
-  void stopPoTokenServer().finally(() => app.quit())
-  isQuitting = true
+
+  const waitForShutdownStep = async (
+    name: string,
+    operation: Promise<unknown>,
+    timeoutMs: number
+  ): Promise<boolean> => {
+    let timeout: ReturnType<typeof setTimeout> | null = null
+    const deadline = new Promise<{ completed: false; success: false }>((resolve) => {
+      timeout = setTimeout(() => resolve({ completed: false, success: false }), timeoutMs)
+    })
+    const finished = operation.then(
+      () => ({ completed: true as const, success: true as const }),
+      (error) => {
+        worklogError('shutdown_step_failed', error, { step: name })
+        return { completed: true as const, success: false as const }
+      }
+    )
+    const outcome = await Promise.race([finished, deadline])
+    if (timeout) clearTimeout(timeout)
+    if (!outcome.completed) {
+      worklogError('shutdown_step_timeout', new Error(`Timed out waiting for ${name}`))
+    }
+    return outcome.completed && outcome.success
+  }
+
+  void (async () => {
+    await Promise.all([
+      waitForShutdownStep('local_server', stopLocalServer(), 3500),
+      waitForShutdownStep('remote_api_server', stopRemoteApiServer(), 3500)
+    ])
+    const [downloadsStopped, resolversStopped, childProcessesStopped] = await Promise.all([
+      waitForShutdownStep('active_downloads', downloadManager.stopActiveDownloads(), 20_000),
+      waitForShutdownStep('info_resolvers', stopInfoResolutionManager(), 20_000),
+      waitForShutdownStep('managed_child_processes', stopManagedChildProcesses(), 20_000),
+      waitForShutdownStep('douyin_bulk_jobs', stopDouyinBulkJobs(), 6_000),
+    ])
+    try {
+      flushRemoteJobStore()
+    } catch (error) {
+      worklogError('remote_job_store_flush_failed', error)
+    }
+    await waitForShutdownStep('po_token_provider', stopPoTokenServer(), 2500)
+    await waitForShutdownStep('proxy_http_clients', closeProxyDispatchers(), 3500)
+    if (downloadsStopped && resolversStopped && childProcessesStopped) {
+      try {
+        database.closeDB()
+      } catch (error) {
+        worklogError('database_close_failed', error)
+      }
+    } else {
+      worklogError(
+        'database_close_skipped',
+        new Error('Active downloader cleanup is still running; preserve its database handle until process exit')
+      )
+    }
+    // Do not re-enter Electron's native before-quit dispatch if cleanup
+    // settles in a microtask before the first quit call has unwound.
+    setImmediate(() => app.quit())
+  })()
 })
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     if (!settings.get('showTray')) {
-      database.closeDB()
-      stopLocalServer()
-      stopRemoteApiServer()
       app.quit()
     }
   }

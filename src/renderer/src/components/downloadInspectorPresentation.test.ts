@@ -29,10 +29,11 @@ expect(
   JSON.stringify(getInspectorStatCells({ durationLabel: '12:01', sizeLabel: null, formatLabel: 'mp4 · 1080' })) ===
     JSON.stringify([
       { label: 'Duration', value: '12:01' },
-      { label: 'Size', value: '—' },
       { label: 'Format', value: 'mp4 · 1080' }
     ]),
-  'inspector stats must keep a three-cell grid'
+  'inspector stats must omit unknown metrics'
 )
+
+expect(getInspectorStatCells({ durationLabel: null, sizeLabel: null, formatLabel: null }).length === 0, 'no metadata must render no metrics')
 
 console.log('Download details presentation state passed')

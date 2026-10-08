@@ -23,9 +23,12 @@ export const INFO_RESOLVE_TIMEOUT_MS = 90_000
 let scheduler: InfoResolutionScheduler | null = null
 const active = new Map<string, ActiveResolve>()
 const readyResults = new Map<string, InfoResolveEvent>()
+const resolverRuns = new Set<Promise<void>>()
+let stoppingResolvers = false
+let stopResolversPromise: Promise<void> | null = null
 
 function getTask(id: string): downloadManager.DownloadTask | undefined {
-  return downloadManager.getAll().find((task) => task.id === id)
+  return downloadManager.getById(id)
 }
 
 function isResolverTask(task: downloadManager.DownloadTask | undefined): boolean {
@@ -116,8 +119,13 @@ async function resolveOne(id: string): Promise<void> {
 }
 
 export function initializeInfoResolutionManager(): void {
-  if (scheduler) return
-  scheduler = new InfoResolutionScheduler(resolveOne, {
+  if (scheduler || stoppingResolvers) return
+  scheduler = new InfoResolutionScheduler((id) => {
+    let trackedRun!: Promise<void>
+    trackedRun = resolveOne(id).finally(() => resolverRuns.delete(trackedRun))
+    resolverRuns.add(trackedRun)
+    return trackedRun
+  }, {
     maxConcurrent: MAX_CONCURRENT_RESOLVERS,
     onCancelActive: (id) => active.get(id)?.controller.abort()
   })
@@ -129,6 +137,7 @@ export function initializeInfoResolutionManager(): void {
 }
 
 export function enqueueInfoResolve(id: string): boolean {
+  if (stoppingResolvers) return false
   if (!scheduler) initializeInfoResolutionManager()
   const task = getTask(id)
   if (!task || !isResolverTask(task) || task.status !== 'resolving') return false
@@ -144,6 +153,7 @@ export function cancelInfoResolve(id: string): boolean {
 }
 
 export function retryInfoResolve(id: string): boolean {
+  if (stoppingResolvers) return false
   if (!scheduler) initializeInfoResolutionManager()
   const task = getTask(id)
   if (!task || !isResolverTask(task)) return false
@@ -155,8 +165,8 @@ export function retryInfoResolve(id: string): boolean {
 }
 
 export function resumePersistedInfoResolves(): void {
-  if (!scheduler) return
-  for (const task of downloadManager.getAll()) {
+  if (!scheduler || stoppingResolvers) return
+  for (const task of downloadManager.getByStatus('resolving', 'ready')) {
     if (!isResolverTask(task)) continue
     if (task.status === 'ready') downloadManager.markInfoResolveResolving(task.id)
     if (task.status === 'resolving' || task.status === 'ready') enqueueInfoResolve(task.id)
@@ -204,4 +214,15 @@ export function getInfoResolveStats(): { maxConcurrent: number; active: number; 
     active: scheduler?.activeCount ?? 0,
     queued: scheduler?.queuedCount ?? 0
   }
+}
+
+/** Stop queued and active resolver work before database teardown. */
+export function stopInfoResolutionManager(): Promise<void> {
+  if (stopResolversPromise) return stopResolversPromise
+  stoppingResolvers = true
+  scheduler?.stop()
+  for (const resolve of active.values()) resolve.controller.abort()
+  readyResults.clear()
+  stopResolversPromise = Promise.allSettled([...resolverRuns]).then(() => undefined)
+  return stopResolversPromise
 }

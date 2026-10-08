@@ -4,7 +4,7 @@
  */
 import { existsSync, readFileSync } from 'fs'
 import { resolve } from 'path'
-import { fetchWithTimeout } from './httpClient'
+import { fetchWithTimeout, readResponseText } from './httpClient'
 
 export const DOUYIN_MOBILE_UA =
   'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1'
@@ -20,18 +20,48 @@ export interface DouyinPageFetchOptions {
   proxyUrl?: string
 }
 
-export function parseCookieMapFromNetscapeFile(cookiePath: string): Record<string, string> {
-  const map: Record<string, string> = {}
-  if (!existsSync(cookiePath)) return map
+export interface NetscapeCookieRow {
+  domain: string
+  path: string
+  secure: boolean
+  expires: number
+  name: string
+  value: string
+  httpOnly: boolean
+}
+
+export function parseNetscapeCookiesFromFile(cookiePath: string): NetscapeCookieRow[] {
+  if (!existsSync(cookiePath)) return []
   const content = readFileSync(cookiePath, 'utf-8')
+  const cookies: NetscapeCookieRow[] = []
   for (const line of content.split('\n')) {
-    if (line.startsWith('#') || !line.trim()) continue
-    const parts = line.split('\t')
+    if (!line.trim()) continue
+    const httpOnly = line.startsWith('#HttpOnly_')
+    if (line.startsWith('#') && !httpOnly) continue
+    const parts = (httpOnly ? line.slice('#HttpOnly_'.length) : line).split('\t')
     if (parts.length >= 7 && /douyin/i.test(parts[0])) {
       const name = parts[5]?.trim()
       const value = parts[6]?.trim()
-      if (name && value != null) map[name] = value
+      if (name && value != null) {
+        cookies.push({
+          domain: parts[0]!.trim(),
+          path: parts[2]!.trim() || '/',
+          secure: parts[3]!.trim().toUpperCase() === 'TRUE',
+          expires: Number(parts[4]) || -1,
+          name,
+          value,
+          httpOnly,
+        })
+      }
     }
+  }
+  return cookies
+}
+
+export function parseCookieMapFromNetscapeFile(cookiePath: string): Record<string, string> {
+  const map: Record<string, string> = {}
+  for (const cookie of parseNetscapeCookiesFromFile(cookiePath)) {
+    map[cookie.name] = cookie.value
   }
   return map
 }
@@ -115,6 +145,13 @@ export async function fetchDouyinPageHtml(
     { headers, redirect: 'follow', signal: options?.signal },
     { timeoutMs: options?.timeoutMs, proxyUrl: options?.proxyUrl }
   )
-  if (!res.ok) throw new Error(`Page fetch failed: ${res.status}`)
-  return res.text()
+  if (!res.ok) {
+    await res.body?.cancel().catch(() => undefined)
+    throw new Error(`Page fetch failed: ${res.status}`)
+  }
+  return readResponseText(res, {
+    timeoutMs: options?.timeoutMs ?? 15_000,
+    maxBytes: 16 * 1024 * 1024,
+    signal: options?.signal,
+  })
 }

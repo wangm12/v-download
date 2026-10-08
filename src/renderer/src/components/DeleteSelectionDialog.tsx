@@ -1,5 +1,7 @@
-import { AlertTriangle, Trash2 } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 import { useDialogFocus } from '@/hooks/useDialogFocus'
+import { useTranslation } from 'react-i18next'
+import { DialogShell } from './ui'
 
 interface DeleteSelectionDialogProps {
   count: number
@@ -8,54 +10,20 @@ interface DeleteSelectionDialogProps {
 }
 
 export function DeleteSelectionDialog({ count, onClose, onConfirm }: DeleteSelectionDialogProps) {
+  const { t } = useTranslation()
   const dialogRef = useDialogFocus<HTMLDivElement>(onClose)
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
-      onClick={onClose}
-      role="presentation"
-    >
-      <div
-        ref={dialogRef}
-        tabIndex={-1}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="delete-selection-dialog-title"
-        aria-describedby="delete-selection-dialog-description"
-        className="w-[360px] rounded-panel bg-background p-6 shadow-2xl ring-1 ring-inset ring-divider-strong"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="mb-6 flex flex-col items-center text-center">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-state-error-bg text-foreground">
-            <AlertTriangle className="h-6 w-6" aria-hidden />
-          </div>
-          <h2 id="delete-selection-dialog-title" className="mb-2 text-lg font-semibold text-foreground">
-            Remove selected downloads?
-          </h2>
-          <p id="delete-selection-dialog-description" className="text-sm leading-relaxed text-muted-foreground">
-            This will remove {count} download{count === 1 ? '' : 's'} from the queue. Downloaded files will stay on disk.
-          </p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose} role="presentation">
+      <DialogShell ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="delete-selection-dialog-title" aria-describedby="delete-selection-dialog-description"
+        className="max-w-[400px] p-5" onClick={(event) => event.stopPropagation()}>
+        <h2 id="delete-selection-dialog-title" className="text-base font-semibold">{t('ui.deleteSelection')}</h2>
+        <p id="delete-selection-dialog-description" className="mt-2 text-sm leading-relaxed text-muted-foreground">{t(count === 1 ? 'ui.deleteSelectionBodyOne' : 'ui.deleteSelectionBody', { count })}</p>
+        <div className="mt-5 flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="v-button-ghost">{t('common.cancel')}</button>
+          <button type="button" onClick={onConfirm} className="v-button-primary"><Trash2 className="h-4 w-4" aria-hidden />{t('queue.removeFromList')}</button>
         </div>
-
-        <div className="flex flex-col gap-2">
-          <button
-            type="button"
-            onClick={onConfirm}
-            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-button border border-dashed border-border-strong bg-control py-2.5 font-medium text-foreground transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
-          >
-            <Trash2 className="h-4 w-4" aria-hidden />
-            Remove from list
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="min-h-11 w-full rounded-lg bg-control py-2.5 font-medium text-foreground transition-colors hover:bg-state-active-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
+      </DialogShell>
     </div>
   )
 }

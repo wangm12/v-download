@@ -13,6 +13,15 @@
 
   let activePanel = null
   let lastHref = location.href
+  const delayedPlayerChecks = new Set()
+
+  function schedulePlayerCheck(delay) {
+    const timer = setTimeout(() => {
+      delayedPlayerChecks.delete(timer)
+      checkPlayer()
+    }, delay)
+    delayedPlayerChecks.add(timer)
+  }
 
   function getPlayerRect() {
     return PL ? PL.getTikTokPlayerRect() : null
@@ -270,6 +279,7 @@
   }
 
   function checkPlayer() {
+    handleNavigation()
     if (document.hidden) return
     const btn = document.getElementById(BTN_ID)
     if (hasPlayer()) {
@@ -282,28 +292,62 @@
     }
   }
 
-  document.addEventListener('keydown', (e) => {
+  const onKeyDown = (e) => {
     if (e.key === 'Escape' && activePanel) closePanel()
-  })
+  }
+  document.addEventListener('keydown', onKeyDown)
 
-  const navObserver = new MutationObserver(() => {
+  function handleNavigation() {
     if (location.href === lastHref) return
     lastHref = location.href
     closePanel()
-    setTimeout(checkPlayer, 300)
-    setTimeout(checkPlayer, 1000)
-    setTimeout(checkPlayer, 2000)
+    for (const timer of delayedPlayerChecks) clearTimeout(timer)
+    delayedPlayerChecks.clear()
+    schedulePlayerCheck(300)
+    schedulePlayerCheck(1000)
+    schedulePlayerCheck(2000)
+  }
+
+  const navObserver = new MutationObserver(() => {
+    handleNavigation()
   })
   navObserver.observe(document.documentElement, { subtree: false, childList: true })
 
   const playerInterval = setInterval(checkPlayer, 1500)
-  setTimeout(checkPlayer, 300)
-  setTimeout(checkPlayer, 1000)
-  setTimeout(checkPlayer, 2500)
+  schedulePlayerCheck(300)
+  schedulePlayerCheck(1000)
+  schedulePlayerCheck(2500)
 
-  document.addEventListener('visibilitychange', () => {
+  const onVisibilityChange = () => {
     if (!document.hidden) checkPlayer()
-  })
+  }
+  document.addEventListener('visibilitychange', onVisibilityChange)
 
-  window.addEventListener('beforeunload', () => clearInterval(playerInterval))
+  const originalPushState = history.pushState
+  const originalReplaceState = history.replaceState
+  const wrappedPushState = function (...args) {
+    const result = originalPushState.apply(this, args)
+    handleNavigation()
+    return result
+  }
+  const wrappedReplaceState = function (...args) {
+    const result = originalReplaceState.apply(this, args)
+    handleNavigation()
+    return result
+  }
+  history.pushState = wrappedPushState
+  history.replaceState = wrappedReplaceState
+  window.addEventListener('popstate', handleNavigation)
+
+  window.addEventListener('beforeunload', () => {
+    clearInterval(playerInterval)
+    for (const timer of delayedPlayerChecks) clearTimeout(timer)
+    delayedPlayerChecks.clear()
+    navObserver.disconnect()
+    document.removeEventListener('keydown', onKeyDown)
+    document.removeEventListener('visibilitychange', onVisibilityChange)
+    window.removeEventListener('popstate', handleNavigation)
+    if (history.pushState === wrappedPushState) history.pushState = originalPushState
+    if (history.replaceState === wrappedReplaceState) history.replaceState = originalReplaceState
+  })
 })()

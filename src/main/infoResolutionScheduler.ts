@@ -15,6 +15,7 @@ export class InfoResolutionScheduler {
   private readonly active = new Set<string>()
   private readonly cancelled = new Set<string>()
   private readonly retryAfterActive = new Set<string>()
+  private stopped = false
 
   constructor(
     worker: (id: string) => Promise<void>,
@@ -26,7 +27,7 @@ export class InfoResolutionScheduler {
   }
 
   enqueue(id: string): boolean {
-    if (!id || this.cancelled.has(id) || this.active.has(id) || this.queued.includes(id)) return false
+    if (this.stopped || !id || this.cancelled.has(id) || this.active.has(id) || this.queued.includes(id)) return false
     this.queued.push(id)
     this.pump()
     return true
@@ -37,7 +38,6 @@ export class InfoResolutionScheduler {
     const queuedIndex = this.queued.indexOf(id)
     if (queuedIndex >= 0) {
       this.queued.splice(queuedIndex, 1)
-      this.cancelled.add(id)
       return true
     }
     if (this.active.has(id)) {
@@ -49,7 +49,7 @@ export class InfoResolutionScheduler {
   }
 
   retry(id: string): boolean {
-    if (!id) return false
+    if (this.stopped || !id) return false
     this.cancelled.delete(id)
     if (this.active.has(id)) {
       this.retryAfterActive.add(id)
@@ -79,7 +79,19 @@ export class InfoResolutionScheduler {
     return [...this.queued]
   }
 
+  stop(): void {
+    if (this.stopped) return
+    this.stopped = true
+    this.queued.length = 0
+    this.retryAfterActive.clear()
+    for (const id of this.active) {
+      this.cancelled.add(id)
+      this.onCancelActive?.(id)
+    }
+  }
+
   private pump(): void {
+    if (this.stopped) return
     while (this.active.size < this.maxConcurrent && this.queued.length > 0) {
       const id = this.queued.shift()!
       if (this.cancelled.has(id)) continue
@@ -95,6 +107,7 @@ export class InfoResolutionScheduler {
       this.active.delete(id)
       const shouldRetry = this.retryAfterActive.delete(id)
       if (shouldRetry && !this.cancelled.has(id)) this.queued.push(id)
+      this.cancelled.delete(id)
       this.pump()
     }
   }

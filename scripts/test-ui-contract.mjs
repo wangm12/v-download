@@ -171,16 +171,17 @@ assert.doesNotMatch(sidebar, /onSelectCompact|Compact Window|nav\.compact/, 'Com
 assert.doesNotMatch(appShell, /clipboard\.read|setInterval\([^\)]*clipboard/, 'compact must not poll the clipboard')
 
 const formatDialog = read('src/renderer/src/components/FormatDialog.tsx')
-const formatFooter = formatDialog.match(/\{\/\* Footer \*\/\}\s*<div className="([^"]+)"/)
-assert.ok(formatFooter, 'format dialog footer className must be present')
-assert.match(formatFooter[1], /\bshrink-0\b/, 'format dialog footer must be shrink-0 so flex + overflow-hidden cannot clip the action row')
-assert.match(formatFooter[1], /\bpb-5\b/, 'format dialog footer must own pb-5; last-child pb-3 equals rounded-panel and looks flush under overflow-hidden')
-assert.doesNotMatch(formatFooter[1], /^bg-elevated px-5$/, 'format dialog footer must not use horizontal-only padding')
-const noteCheckbox = formatDialog.match(/<label className="[^"]*\bpb-5\b[^"]*">[\s\S]*?(INCLUDE_NOTE_CHECKBOX_LABEL|t\('format\.includeNote'\))/)
-assert.ok(noteCheckbox, 'note checkbox must have pb-5 so there is a gap before the footer')
-assert.ok(
-  formatDialog.indexOf(noteCheckbox[0]) < formatDialog.indexOf('{/* Footer */}'),
-  'note checkbox must sit above the footer so the selection is not flush with the action row'
-)
+const formatFooter = formatDialog.match(/<footer className="([^"]+)"/)
+assert.ok(formatFooter, 'format dialog must expose a dedicated footer')
+assert.match(formatFooter[1], /\bshrink-0\b/, 'format action footer must not shrink')
+assert.match(formatFooter[1], /\bpy-4\b/, 'format action footer needs vertical padding')
+assert.ok(formatDialog.indexOf("t('format.includeNote')") < formatDialog.indexOf('<footer'), 'note choice must remain above the action footer')
+assert.ok(formatDialog.indexOf('onClick={downloadSelected}') > formatDialog.indexOf('<footer'), 'all media types must use the fixed download action')
+assert.match(appShell, /onPaste: handlePaste/, 'paste shortcut must retain the existing paste workflow')
+for (const path of ['DouyinProfilePickerDialog', 'CollectionPickerDialog']) {
+  const picker = read(`src/renderer/src/components/${path}.tsx`)
+  assert.match(picker, /<footer className="shrink-0/, `${path}: footer must be outside the scrolling list`)
+  assert.doesNotMatch(picker, /row\.awemeId\.slice|\{row\.id\}/, `${path}: internal IDs must not appear in rows`)
+}
 
 console.log(`ui contract: ${rendererFiles.length} renderer files and ${extensionFiles.length} extension files checked`)

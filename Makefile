@@ -21,7 +21,7 @@ install:
 dev:
 	@mkdir -p logs
 	@echo "=== V-Download dev — full log also in logs/dev-latest.log ==="
-	@V_DOWNLOAD_VERBOSE=1 ELECTRON_ENABLE_LOGGING=1 npm run dev 2>&1 | tee logs/dev-latest.log
+	@bash -o pipefail -c 'V_DOWNLOAD_VERBOSE=1 ELECTRON_ENABLE_LOGGING=1 npm run dev 2>&1 | tee logs/dev-latest.log'
 
 build:
 	npm run build

@@ -19,8 +19,8 @@ export function getInspectorStatCells(input: {
   formatLabel: string | null
 }): Array<{ label: string; value: string }> {
   return [
-    { label: 'Duration', value: input.durationLabel || '—' },
-    { label: 'Size', value: input.sizeLabel || '—' },
-    { label: 'Format', value: input.formatLabel || '—' }
-  ]
+    { label: 'Duration', value: input.durationLabel || '' },
+    { label: 'Size', value: input.sizeLabel || '' },
+    { label: 'Format', value: input.formatLabel || '' }
+  ].filter((cell) => Boolean(cell.value))
 }

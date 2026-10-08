@@ -1,14 +1,16 @@
 import { createServer, IncomingMessage, ServerResponse } from 'http'
-import { app, BrowserWindow } from 'electron'
-import { writeFileSync, mkdirSync, existsSync, chmodSync, readFileSync, realpathSync } from 'fs'
+import { app, BrowserWindow, dialog } from 'electron'
+import { writeFileSync, mkdirSync, existsSync, chmodSync, readFileSync, realpathSync, renameSync, unlinkSync } from 'fs'
 import { randomBytes } from 'crypto'
-import { join } from 'path'
+import { dirname, join } from 'path'
 import { buildNetscapeCookieFile, type ChromeSyncedCookie } from '@v-download/shared'
 import * as settings from './settings'
 import { resolveExtensionDir } from './extensionPath'
 import { getUnpackedChromeExtensionId } from './extensionIdentity'
 import { CHROME_EXTENSION_ID_PATTERN, filterValidCookieRecords, isAllowedOrigin, isAuthorizedExtensionRequest, validateDownloadPayload } from './securityValidation'
 import { worklog, worklogError } from './worklog'
+import { getUiLanguage } from './uiLanguage'
+import { translate } from '../i18n/catalog'
 import {
   completeDouyinProfileExtensionRequest,
   getDouyinProfileExtensionCommand,
@@ -27,6 +29,22 @@ let cookieSyncRequested = false
 const MAX_BODY_BYTES = 2 * 1024 * 1024
 const MAX_COOKIES = 2000
 let pairingSecret = ''
+let portConflictNotified = false
+
+function writePrivateFile(path: string, data: string | Buffer): void {
+  const dir = dirname(path)
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true, mode: 0o700 })
+  const tempPath = `${path}.${process.pid}.tmp`
+  try {
+    writeFileSync(tempPath, data, { encoding: 'utf8', mode: 0o600 })
+    chmodSync(tempPath, 0o600)
+    renameSync(tempPath, path)
+    chmodSync(path, 0o600)
+  } catch (error) {
+    try { unlinkSync(tempPath) } catch { /* no partial secret or cookie file */ }
+    throw error
+  }
+}
 
 function readConfiguredExtensionIds(): ReadonlySet<string> {
   const ids = new Set<string>()
@@ -64,7 +82,12 @@ const allowUnpinnedDevelopmentExtension =
 function getPairingSecret(): string {
   if (pairingSecret) return pairingSecret
   const path = join(app.getPath('userData'), 'extension-pairing.secret')
-  try { pairingSecret = readFileSync(path, 'utf8').trim() } catch { pairingSecret = randomBytes(32).toString('hex'); mkdirSync(app.getPath('userData'), { recursive: true }); writeFileSync(path, pairingSecret, { encoding: 'utf8', mode: 0o600 }); chmodSync(path, 0o600) }
+  try {
+    pairingSecret = readFileSync(path, 'utf8').trim()
+  } catch {
+    pairingSecret = randomBytes(32).toString('hex')
+    writePrivateFile(path, pairingSecret)
+  }
   return pairingSecret
 }
 
@@ -139,8 +162,7 @@ function saveCookiesFile(cookies: ChromeSyncedCookie[]): string {
   const content = buildNetscapeCookieFile(cookies, {
     headerNote: 'This file is auto-synced from Chrome via V-Download extension',
   })
-  writeFileSync(cookiesPath, content, { encoding: 'utf-8', mode: 0o600 })
-  chmodSync(cookiesPath, 0o600)
+  writePrivateFile(cookiesPath, content)
 
   settings.set('cookiesPath', cookiesPath)
   return cookiesPath
@@ -148,24 +170,27 @@ function saveCookiesFile(cookies: ChromeSyncedCookie[]): string {
 
 function readBody(req: IncomingMessage): Promise<string> {
   return new Promise((resolve, reject) => {
-    let body = ''
+    const chunks: Buffer[] = []
     let size = 0
     let settled = false
     req.on('data', (chunk) => {
       if (settled) return
-      size += chunk.length
+      const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
+      size += bytes.length
       if (size > MAX_BODY_BYTES) {
         settled = true
-        reject(new Error('Request body too large'))
-        req.destroy()
+        reject(Object.assign(new Error('Request body too large'), { code: 'payload_too_large' }))
+        // Drain without retaining additional bytes so the client can receive the
+        // explicit 413 response instead of a reset socket.
+        req.resume()
         return
       }
-      body += chunk
+      chunks.push(bytes)
     })
     req.on('end', () => {
       if (!settled) {
         settled = true
-        resolve(body)
+        resolve(Buffer.concat(chunks, size).toString('utf8'))
       }
     })
     req.on('error', (error) => {
@@ -174,7 +199,24 @@ function readBody(req: IncomingMessage): Promise<string> {
         reject(error)
       }
     })
+    req.on('aborted', () => {
+      if (!settled) {
+        settled = true
+        reject(new Error('Request body was aborted'))
+      }
+    })
   })
+}
+
+function respondRequestError(res: ServerResponse, error: unknown, fallback: string): void {
+  const code = error && typeof error === 'object' && 'code' in error
+    ? (error as { code?: unknown }).code
+    : undefined
+  if (code === 'payload_too_large') {
+    json(res, 413, { error: 'Request body too large' })
+    return
+  }
+  json(res, 400, { error: fallback })
 }
 
 function cors(res: ServerResponse, origin?: string): void {
@@ -193,7 +235,7 @@ function json(res: ServerResponse, status: number, data: Record<string, unknown>
 export function startLocalServer(): void {
   if (server) return
 
-  server = createServer(async (req, res) => {
+  const created = createServer(async (req, res) => {
     cors(res, req.headers.origin)
 
     if (req.method === 'OPTIONS') {
@@ -237,8 +279,8 @@ export function startLocalServer(): void {
           return
         }
         json(res, 200, { ok: true })
-      } catch (_err) {
-        json(res, 400, { error: 'Invalid profile import result' })
+      } catch (err) {
+        respondRequestError(res, err, 'Invalid profile import result')
       }
       return
     }
@@ -269,8 +311,8 @@ export function startLocalServer(): void {
           return
         }
         json(res, 200, { ok: true })
-      } catch (_err) {
-        json(res, 400, { error: 'Invalid Douyin resolve result' })
+      } catch (err) {
+        respondRequestError(res, err, 'Invalid Douyin resolve result')
       }
       return
     }
@@ -285,8 +327,8 @@ export function startLocalServer(): void {
           return
         }
         json(res, 200, { ok: true })
-      } catch (_err) {
-        json(res, 400, { error: 'Invalid Douyin resolve acknowledgement' })
+      } catch (err) {
+        respondRequestError(res, err, 'Invalid Douyin resolve acknowledgement')
       }
       return
     }
@@ -373,8 +415,8 @@ export function startLocalServer(): void {
         broadcastSettingsChanged()
         broadcastCookiesSynced(validCookies.length)
         json(res, 200, { ok: true, count: validCookies.length, skipped })
-      } catch (_err) {
-        json(res, 400, { error: 'Invalid cookie request' })
+      } catch (err) {
+        respondRequestError(res, err, 'Invalid cookie request')
       }
       return
     }
@@ -403,7 +445,7 @@ export function startLocalServer(): void {
         json(res, 200, { ok: true, accepted: true })
       } catch (err) {
         worklogError('download_request_failed', err)
-        json(res, 400, { error: 'Invalid download request' })
+        respondRequestError(res, err, 'Invalid download request')
       }
       return
     }
@@ -416,18 +458,69 @@ export function startLocalServer(): void {
     json(res, 404, { error: 'Not found' })
   })
 
-  server.listen(LOCAL_SERVER_PORT, '127.0.0.1', () => {
+  created.headersTimeout = 15_000
+  created.requestTimeout = 30_000
+  created.keepAliveTimeout = 5_000
+  server = created
+
+  created.listen(LOCAL_SERVER_PORT, '127.0.0.1', () => {
     console.log(`Local server listening on http://127.0.0.1:${LOCAL_SERVER_PORT}`)
   })
 
-  server.on('error', (err) => {
+  created.on('error', (err) => {
+    if (server === created) server = null
+    worklogError('local_server_error', err)
     console.error('Local server error:', err)
+    const code = err && typeof err === 'object' && 'code' in err
+      ? (err as NodeJS.ErrnoException).code
+      : undefined
+    if (code === 'EADDRINUSE' && !portConflictNotified) {
+      portConflictNotified = true
+      try {
+        const language = getUiLanguage()
+        const options = {
+          type: 'warning' as const,
+          title: translate(language, 'chromeCookie.localServerUnavailableTitle'),
+          message: translate(language, 'chromeCookie.localServerUnavailableMessage'),
+          detail: translate(language, 'chromeCookie.localServerUnavailableDetail', { port: LOCAL_SERVER_PORT }),
+          buttons: [translate(language, 'common.close')],
+        }
+        const owner = BrowserWindow.getAllWindows().find((window) => !window.isDestroyed() && window.isVisible())
+        const notification = owner
+          ? dialog.showMessageBox(owner, options)
+          : dialog.showMessageBox(options)
+        void notification.catch(() => undefined)
+      } catch (noticeError) {
+        worklogError('local_server_conflict_notice_failed', noticeError)
+      }
+    }
   })
 }
 
-export function stopLocalServer(): void {
-  if (server) {
-    server.close()
-    server = null
-  }
+export function stopLocalServer(graceMs = 2500): Promise<void> {
+  const current = server
+  server = null
+  if (!current) return Promise.resolve()
+
+  return new Promise((resolve) => {
+    let settled = false
+    const finish = () => {
+      if (settled) return
+      settled = true
+      clearTimeout(forceCloseTimer)
+      resolve()
+    }
+    const forceCloseTimer = setTimeout(() => {
+      current.closeAllConnections?.()
+      finish()
+    }, graceMs)
+    forceCloseTimer.unref?.()
+
+    try {
+      current.close(() => finish())
+      current.closeIdleConnections?.()
+    } catch {
+      finish()
+    }
+  })
 }

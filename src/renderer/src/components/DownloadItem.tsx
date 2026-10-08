@@ -7,6 +7,7 @@ import { formatDuration } from '@/utils/format'
 import { cn } from '@/lib/cn'
 import { ThumbnailImage } from './ThumbnailImage'
 import { StatusPill } from './ui'
+import { ActionMenu } from './ui/ActionMenu'
 import { revealFolderLabel } from './downloadInspectorPresentation'
 import { getStatusTone } from './statusPresentation'
 import { useTranslation } from 'react-i18next'
@@ -26,10 +27,11 @@ export const DownloadItem = memo(function DownloadItem({ download, selected = fa
   const actions = useDownloadActions()
   const { id, title, format, quality, status, progress, speed, eta, phase, thumbnail, duration, channel, error, url } = download
 
-  const metadataParts = [channel, format, quality, duration ? formatDuration(duration) : ''].filter(Boolean)
+  const formatLabel = format === 'video' ? t('format.video') : format === 'audio' ? t('format.audio') : format
+  const metadataParts = [channel, formatLabel, quality, duration ? formatDuration(duration) : ''].filter(Boolean)
   const metadata = metadataParts.join(' · ')
   const isResolverPlaceholder = /^resolving(?:…|\.\.\.)?$/i.test(title.trim())
-  let sourceLabel = 'link'
+  let sourceLabel = t('inspector.sourcePage')
   try {
     sourceLabel = new URL(url).hostname.replace(/^www\./i, '') || sourceLabel
   } catch {
@@ -98,9 +100,9 @@ export const DownloadItem = memo(function DownloadItem({ download, selected = fa
         )
       case 'error':
         return (
-          <span title={error || 'Unknown error'} className="max-w-full min-w-0">
+          <span title={error || t('status.error')} className="max-w-full min-w-0">
             <StatusPill tone={getStatusTone('error')} className="max-w-full min-w-0">
-              <span className="truncate">{t('status.error')}{error ? `: ${error}` : ''}</span>
+              <span className="truncate">{t('status.error')}</span>
             </StatusPill>
           </span>
         )
@@ -123,6 +125,7 @@ export const DownloadItem = memo(function DownloadItem({ download, selected = fa
       aria-selected={selected}
       onClick={(event) => onSelect?.(id, event)}
       onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
           onSelect?.(id)
@@ -144,7 +147,7 @@ export const DownloadItem = memo(function DownloadItem({ download, selected = fa
       <div className="flex-shrink-0 relative w-[106px] h-[60px] rounded-lg overflow-hidden bg-surface ring-1 ring-inset ring-divider-subtle">
         <ThumbnailImage src={thumbnail} referer={url || undefined} />
         <div className="absolute inset-0 flex items-center justify-center bg-black/25">
-          <Play className="w-6 h-6 text-foreground/80" fill="currentColor" />
+          <Play className="w-6 h-6 text-white/90" fill="currentColor" />
         </div>
       </div>
 
@@ -158,22 +161,22 @@ export const DownloadItem = memo(function DownloadItem({ download, selected = fa
         {status === 'downloading' && (
           <>
             <ActionButton icon={Pause} title={t('queue.pause')} onClick={() => actions.pause(id)} />
-            <ActionButton icon={Trash2} title={t('queue.deleteWithFiles')} onClick={() => actions.removeWithFiles(id)} />
           </>
         )}
         {status === 'paused' && (
           <>
             <ActionButton icon={Play} title={t('queue.resume')} onClick={() => actions.retry(id)} />
-            <ActionButton icon={Trash2} title={t('queue.deleteWithFiles')} onClick={() => actions.removeWithFiles(id)} />
           </>
         )}
         {status === 'complete' && (
           <>
             {download.file_path && (
-              <ActionButton icon={FolderOpen} title={folderActionLabel} onClick={() => actions.openFolder(download.file_path!)} />
+              <ActionButton icon={FolderOpen} title={t(folderActionLabel === 'Reveal in Finder' ? 'inspector.revealFinder' : 'inspector.revealFolder')} onClick={() => actions.openFolder(download.file_path!)} />
             )}
-            <ActionButton icon={DownloadAgainIcon} title={t('queue.downloadAgain')} onClick={() => actions.downloadAgain(download)} />
-            <ActionButton icon={Trash2} title={t('queue.removeFromList')} onClick={() => actions.remove(id)} />
+            <ActionMenu actions={[
+              { label: t('queue.downloadAgain'), icon: <DownloadAgainIcon className="h-4 w-4" />, onSelect: () => actions.downloadAgain(download) },
+              { label: t('queue.removeFromList'), icon: <Trash2 className="h-4 w-4" />, onSelect: () => actions.remove(id), destructive: true }
+            ]} />
           </>
         )}
         {status === 'queued' && (
@@ -191,15 +194,16 @@ export const DownloadItem = memo(function DownloadItem({ download, selected = fa
             >
               {t('queue.selectFormat')}
             </button>
-            <ActionButton icon={Trash2} title={t('common.remove')} onClick={() => actions.remove(id)} />
           </>
         )}
         {(status === 'interrupted' || status === 'error' || status === 'cancelled') && (
           <>
             <ActionButton icon={RotateCcw} title={t('common.retry')} onClick={() => actions.retry(id)} />
-            <ActionButton icon={Trash2} title={t('common.remove')} onClick={() => actions.remove(id)} />
           </>
         )}
+        {['downloading', 'paused', 'ready', 'interrupted', 'error', 'cancelled'].includes(status) && <ActionMenu actions={[
+          { label: t(['downloading', 'paused'].includes(status) ? 'queue.deleteWithFiles' : 'queue.removeFromList'), icon: <Trash2 className="h-4 w-4" />, onSelect: () => ['downloading', 'paused'].includes(status) ? actions.removeWithFiles(id) : actions.remove(id), destructive: true }
+        ]} />}
       </div>
     </div>
   )

@@ -149,7 +149,7 @@ function MainApp() {
   )
   const [rightInspectorCollapsed, setRightInspectorCollapsed] = useState(() => readRightInspectorCollapsedFromStorage())
   const { preference: themePreference, setPreference: setThemePreference, resolvedTheme } = useThemePreference()
-  const { downloads, removeDownload, removeDownloads, updateDownload, refreshDownloads } = useDownloads()
+  const { downloads, removeDownload, removeDownloads, refreshDownloads } = useDownloads()
   const { settings, loadSettings } = useSettings()
   const {
     errorMsg,
@@ -840,7 +840,6 @@ function MainApp() {
       refreshDownloads={refreshDownloads}
       removeDownload={removeDownload}
       removeDownloads={removeDownloads}
-      updateDownload={updateDownload}
       downloadAgain={downloadAgain}
     >
       <div className="flex h-screen min-h-0 min-w-0 w-full flex-col bg-background text-foreground">
@@ -1116,6 +1115,7 @@ function MainApp() {
 
         {showFormatDialog && pendingVideoInfo && (
           <FormatDialog
+            key={pendingResolverId || pendingVideoInfo.webpage_url || pendingVideoInfo.id}
             videoInfo={pendingVideoInfo}
             onClose={() => {
               setShowFormatDialog(false)

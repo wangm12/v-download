@@ -1,3 +1,5 @@
+import { mediaTypeForCandidate, protocolFor, type ResolverCandidate } from './mediaResolver'
+
 export interface RemoteTaskFromResolve {
   title: string
   format: string
@@ -19,6 +21,41 @@ function noteMetadata(info: Record<string, unknown>, pageUrl: string): Record<st
   }
 }
 
+const PERSISTABLE_MEDIA_TYPES = new Set([
+  'hls', 'dash', 'mp4', 'webm', 'flv', 'mkv', 'mp3', 'm4a', 'aac', 'opus', 'ogg', 'wav', 'flac', 'jpeg',
+])
+
+function isHttpUrl(value: string): boolean {
+  try {
+    const protocol = new URL(value).protocol
+    return protocol === 'http:' || protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+function directMediaType(info: Record<string, unknown>, pageUrl: string, id: string): string {
+  const candidateLists = [info.candidates, info.formats].filter(Array.isArray) as unknown[][]
+  for (const candidates of candidateLists) {
+    const candidate = candidates.find((value): value is ResolverCandidate => {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+      const record = value as Record<string, unknown>
+      return typeof record.url === 'string' && record.url === pageUrl
+    })
+    if (candidate) {
+      const mediaType = mediaTypeForCandidate(candidate)
+      return PERSISTABLE_MEDIA_TYPES.has(mediaType) ? mediaType : ''
+    }
+  }
+
+  // Direct-media resolution uses the source URL as its yt-dlp id. Infer only
+  // the safe media type from that URL; never persist its candidate URL or
+  // treat the URL itself as a filename/id marker.
+  if (id !== pageUrl) return ''
+  const mediaType = mediaTypeForCandidate({ url: pageUrl, protocol: protocolFor(pageUrl) })
+  return PERSISTABLE_MEDIA_TYPES.has(mediaType) ? mediaType : ''
+}
+
 export function isResolvePlaylist(data: unknown): boolean {
   if (!data || typeof data !== 'object') return false
   const entries = (data as { entries?: unknown }).entries
@@ -32,6 +69,7 @@ export function taskOptionsFromResolveData(data: unknown, pageUrl: string): Remo
   const duration = typeof info.duration === 'number' ? info.duration : undefined
   const channel = typeof info.channel === 'string' ? info.channel : ''
   const id = typeof info.id === 'string' ? info.id : ''
+  const mediaType = directMediaType(info, pageUrl, id)
   const note = noteMetadata(info, pageUrl)
   const type = typeof info._type === 'string' ? info._type : ''
   const imageUrls = Array.isArray(info.image_urls)
@@ -73,7 +111,8 @@ export function taskOptionsFromResolveData(data: unknown, pageUrl: string): Remo
     metadata: {
       ...note,
       ...(channel ? { channel } : {}),
-      ...(id ? { ytdlpId: id } : {}),
+      ...(id && !isHttpUrl(id) ? { ytdlpId: id } : {}),
+      ...(mediaType ? { mediaType } : {}),
     },
   }
 }

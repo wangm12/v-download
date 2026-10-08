@@ -88,7 +88,7 @@ export function validateDownloadPayload(payload: unknown): { ok: true; value: Re
   if (p.headers !== undefined) {
     if (!p.headers || typeof p.headers !== 'object' || Array.isArray(p.headers)) return { ok: false, error: 'Invalid headers' }
     const h = p.headers as Record<string, unknown>
-    if (Object.keys(h).length > 32 || Object.entries(h).some(([k, v]) => !HEADER_NAME.test(k) || typeof v !== 'string' || v.length > 4096 || /[\r\n]/.test(v))) return { ok: false, error: 'Invalid headers' }
+    if (Object.keys(h).length > 32 || Object.entries(h).some(([k, v]) => !HEADER_NAME.test(k) || typeof v !== 'string' || v.length > 4096 || /[\u0000-\u0008\u000a-\u001f\u007f]/.test(v))) return { ok: false, error: 'Invalid headers' }
   }
   return { ok: true, value: p }
 }

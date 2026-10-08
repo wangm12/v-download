@@ -9,6 +9,7 @@
  */
 import { BrowserWindow, session, app, net } from 'electron'
 import { createWriteStream, existsSync, readFileSync } from 'fs'
+import { unlink } from 'node:fs/promises'
 import { join, resolve } from 'path'
 import type { BrowserContext } from 'playwright-core'
 import * as settings from './settings'
@@ -600,8 +601,10 @@ async function fetchDouyinHtmlWithElectronChromium(
 /** GET text through the Chromium hydrate session (for signed web APIs after page visit). */
 export async function fetchTextWithDouyinSession(
   url: string,
-  cookiesFilePath?: string
+  cookiesFilePath?: string,
+  options: { signal?: AbortSignal; timeoutMs?: number; maxBytes?: number } = {}
 ): Promise<string> {
+  if (options.signal?.aborted) throw createAbortError()
   const ses = session.fromPartition(SESSION_PARTITION)
   if (cookiesFilePath?.trim()) {
     await applyNetscapeCookiesToSession(ses, cookiesFilePath)
@@ -616,21 +619,54 @@ export async function fetchTextWithDouyinSession(
     request.setHeader('Accept', 'application/json, text/plain, */*')
 
     const chunks: Buffer[] = []
+    const maxBytes = Math.max(1, options.maxBytes ?? 16 * 1024 * 1024)
+    let total = 0
+    let settled = false
+    const timeoutMs = Math.max(1, options.timeoutMs ?? 20_000)
+    const timer = setTimeout(() => {
+      try { request.abort() } catch { /* ignore */ }
+      finish(new Error(`Douyin session request timed out after ${timeoutMs}ms`))
+    }, timeoutMs)
+    const cleanup = () => {
+      clearTimeout(timer)
+      options.signal?.removeEventListener('abort', onAbort)
+    }
+    const finish = (error?: Error, value?: string) => {
+      if (settled) return
+      settled = true
+      cleanup()
+      if (error) reject(error)
+      else resolve(value ?? '')
+    }
+    const onAbort = () => {
+      try { request.abort() } catch { /* ignore */ }
+      finish(createAbortError())
+    }
+    options.signal?.addEventListener('abort', onAbort, { once: true })
+    if (options.signal?.aborted) onAbort()
     request.on('response', (response) => {
       const code = response.statusCode ?? 0
-      response.on('data', (chunk: Buffer) => chunks.push(chunk))
+      response.on('data', (chunk: Buffer) => {
+        total += chunk.length
+        if (total > maxBytes) {
+          try { request.abort() } catch { /* ignore */ }
+          finish(new Error(`Douyin session response exceeded ${maxBytes} bytes`))
+          return
+        }
+        chunks.push(chunk)
+      })
       response.on('end', () => {
         const body = Buffer.concat(chunks).toString('utf-8')
         if (code < 200 || code >= 400) {
-          reject(new Error(`HTTP ${code}: ${body.slice(0, 200)}`))
+          finish(new Error(`HTTP ${code}: ${body.slice(0, 200)}`))
           return
         }
-        resolve(body)
+        finish(undefined, body)
       })
-      response.on('error', reject)
+      response.on('error', (error) => finish(error))
     })
-    request.on('error', reject)
-    request.end()
+    request.on('error', (error) => finish(error))
+    if (!settled) request.end()
   })
 }
 
@@ -639,8 +675,10 @@ export async function downloadUrlWithDouyinSession(
   url: string,
   outputPath: string,
   cookiesFilePath?: string,
-  onProgress?: (progress: DouyinDownloadProgress) => void
+  onProgress?: (progress: DouyinDownloadProgress) => void,
+  options: { signal?: AbortSignal; idleTimeoutMs?: number } = {}
 ): Promise<void> {
+  throwIfAborted(options.signal)
   const ses = session.fromPartition(SESSION_PARTITION)
   if (cookiesFilePath?.trim()) {
     await applyNetscapeCookiesToSession(ses, cookiesFilePath)
@@ -653,38 +691,71 @@ export async function downloadUrlWithDouyinSession(
     request.setHeader('User-Agent', DESKTOP_UA)
     request.setHeader('Accept-Language', 'zh-CN,zh;q=0.9,en;q=0.8')
 
+    let settled = false
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const idleTimeoutMs = Math.max(1, options.idleTimeoutMs ?? 30_000)
+    const cleanup = () => {
+      if (timer) clearTimeout(timer)
+      options.signal?.removeEventListener('abort', onAbort)
+    }
+    const finish = (error?: Error) => {
+      if (settled) return
+      settled = true
+      cleanup()
+      if (error) {
+        fileStream?.destroy()
+        try { request.abort() } catch { /* ignore */ }
+        void unlink(outputPath).catch(() => undefined).finally(() => reject(error))
+      } else {
+        resolve()
+      }
+    }
+    const touch = () => {
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(() => finish(new Error(`Douyin media stream was idle for ${idleTimeoutMs}ms`)), idleTimeoutMs)
+      timer.unref?.()
+    }
+    let fileStream: ReturnType<typeof createWriteStream> | null = null
+    const onAbort = () => finish(createAbortError())
+    options.signal?.addEventListener('abort', onAbort, { once: true })
+    if (options.signal?.aborted) onAbort()
+    touch()
+
     request.on('response', (response) => {
       const streamResponse = response as unknown as { pause: () => void; resume: () => void }
       const code = response.statusCode ?? 0
       if (code !== 200) {
         streamResponse.resume()
-        reject(new Error(`Download failed: ${code} ${response.statusMessage ?? ''}`.trim()))
+        finish(new Error(`Download failed: ${code} ${response.statusMessage ?? ''}`.trim()))
         return
       }
 
       const contentLength = parseInt(String(response.headers['content-length'] ?? '0'), 10) || 0
-      const fileStream = createWriteStream(outputPath)
+      fileStream = createWriteStream(outputPath)
       const reporter = createDouyinDownloadProgressReporter(contentLength, onProgress)
 
       response.on('data', (chunk: Buffer) => {
+        touch()
         reporter.addBytes(chunk.length)
-        if (!fileStream.write(chunk)) {
+        if (!fileStream!.write(chunk)) {
           streamResponse.pause()
-          fileStream.once('drain', () => streamResponse.resume())
+          fileStream!.once('drain', () => {
+            touch()
+            streamResponse.resume()
+          })
         }
       })
 
       response.on('end', () => {
-        fileStream.end(() => resolve())
+        fileStream!.end(() => finish())
       })
-      response.on('error', (err) => {
-        fileStream.destroy()
-        reject(err)
-      })
+      response.on('aborted', () => finish(new Error('Douyin media response was aborted')))
+      response.on('error', (err) => finish(err))
+      fileStream.on('error', (err) => finish(err))
     })
 
-    request.on('error', reject)
-    request.end()
+    request.on('error', (err) => finish(err))
+    if (!settled) request.end()
   })
 }
 
