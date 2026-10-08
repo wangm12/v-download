@@ -13,7 +13,18 @@ assert.deepEqual([...MCP_TOOL_NAMES].sort(), [...APP_TOOL_NAMES].sort())
 
 assert.deepEqual(
   defaultSettingsCandidates('/Users/demo', {} as NodeJS.ProcessEnv, 'darwin'),
-  ['/Users/demo/Library/Application Support/V-Download/settings.json']
+  [
+    '/Users/demo/Library/Application Support/v-download/settings.json',
+    '/Users/demo/Library/Application Support/V-Download/settings.json'
+  ]
+)
+assert.deepEqual(
+  defaultSettingsCandidates('/home/demo', {} as NodeJS.ProcessEnv, 'linux'),
+  ['/home/demo/.config/v-download/settings.json', '/home/demo/.config/V-Download/settings.json']
+)
+assert.deepEqual(
+  defaultSettingsCandidates('/home/demo', { XDG_CONFIG_HOME: '/tmp/config' } as NodeJS.ProcessEnv, 'linux'),
+  ['/tmp/config/v-download/settings.json', '/tmp/config/V-Download/settings.json']
 )
 assert.deepEqual(
   defaultSettingsCandidates('/Users/demo', { V_DOWNLOAD_SETTINGS: '/tmp/settings.json' } as NodeJS.ProcessEnv, 'darwin'),

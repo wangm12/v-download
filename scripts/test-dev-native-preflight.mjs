@@ -1,21 +1,23 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { getPreflightPlan, getRestorePlan } from './dev-native-preflight.mjs'
 import { getDevPlan, isIgnorableKillError } from './dev.mjs'
+import { getSqlitePrebuildPath, verifyCurrentNodeSqlite, verifyElectronInstall } from './sqlite-runtime.mjs'
 
 const plan = getPreflightPlan()
 assert.match(plan.electronVersion, /^\d+\.\d+\.\d+$/)
-assert.ok(plan.command.endsWith('/node_modules/.bin/electron-rebuild'))
-assert.deepEqual(plan.args.slice(0, 2), ['--version', plan.electronVersion])
-assert.deepEqual(plan.args.slice(2), ['--module-dir', process.cwd(), '--force', '--only', 'better-sqlite3'])
+assert.equal(plan.command, process.execPath)
+assert.deepEqual(plan.args, [resolve('node_modules/electron/install.js')])
+assert.equal(plan.sqliteVersion, '13.0.3')
+assert.equal(plan.sqlitePrebuild, getSqlitePrebuildPath(resolve('node_modules/better-sqlite3'), process.platform, process.arch))
 
 const restorePlan = getRestorePlan()
-assert.equal(restorePlan.command, 'npm')
-assert.deepEqual(restorePlan.args, ['rebuild', 'better-sqlite3', `--arch=${process.arch}`, `--platform=${process.platform}`])
-assert.equal(restorePlan.env.npm_config_arch, process.arch)
-assert.equal(restorePlan.env.npm_config_platform, process.platform)
-assert.equal(restorePlan.env.npm_config_target, undefined)
-assert.equal(restorePlan.env.npm_config_runtime, undefined)
+assert.equal(restorePlan.arch, process.arch)
+assert.equal(restorePlan.platform, process.platform)
+assert.equal(restorePlan.sqlitePrebuild, plan.sqlitePrebuild)
+assert.equal(verifyCurrentNodeSqlite(process.cwd()), plan.sqlitePrebuild)
+assert.ok(verifyElectronInstall(process.cwd()))
 
 const devPlan = getDevPlan()
 assert.ok(devPlan.command.endsWith('/node_modules/.bin/electron-vite'))
@@ -29,7 +31,7 @@ const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url),
 assert.equal(
   pkg.scripts.pretest,
   'node scripts/dev-native-preflight.mjs --restore',
-  'npm test must restore host Node better-sqlite3 after Electron postinstall'
+  'npm test must verify the host Node and Electron N-API prebuilds'
 )
 const preflightSource = readFileSync(new URL('./dev-native-preflight.mjs', import.meta.url), 'utf8')
 assert.match(preflightSource, /process\.argv\.includes\('--restore'\)/)

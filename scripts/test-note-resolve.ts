@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdtempSync, readFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
@@ -50,9 +50,18 @@ assert.equal(noteFilePath('text', '/tmp', ''), join('/tmp', 'untitled.md'))
 
 const dir = mkdtempSync(join(tmpdir(), 'vdl-note-'))
 const mdPath = join(dir, 'note.md')
-writeNoteMarkdownFile(mdPath, { title: 'Retry', author: '', url: 'https://a', description: 'one' })
-writeNoteMarkdownFile(mdPath, { title: 'Retry', author: '', url: 'https://a', description: 'two' })
-assert.match(readFileSync(mdPath, 'utf8'), /two/)
+try {
+  const original = writeNoteMarkdownFile(mdPath, { title: 'Retry', author: '', url: 'https://a', description: 'one' })
+  const retry = writeNoteMarkdownFile(mdPath, { title: 'Retry', author: '', url: 'https://a', description: 'two' })
+  assert.equal(original.path, mdPath)
+  assert.notEqual(retry.path, mdPath, 'a retry must create a new note without replacing an existing file')
+  assert.match(readFileSync(original.path, 'utf8'), /one/)
+  assert.doesNotMatch(readFileSync(original.path, 'utf8'), /two/)
+  assert.match(readFileSync(retry.path, 'utf8'), /two/)
+  assert.notEqual(retry.identity.ino, original.identity.ino)
+} finally {
+  rmSync(dir, { recursive: true, force: true })
+}
 
 const textNote = parseXiaohongshuNote(
   { type: 'normal', title: 'Only words', desc: 'Full caption', user: { nickname: 'Sam' } },
@@ -143,6 +152,6 @@ assert.match(readFileSync('src/main/index.ts', 'utf8'), /params\.set\('autoStart
 const urlHandler = readFileSync('src/renderer/src/hooks/useUrlHandler.ts', 'utf8')
 assert.match(urlHandler, /shouldPromptFormatDialog/)
 assert.doesNotMatch(urlHandler, /!settings\.showFormatDialog/)
-assert.match(readFileSync('src/renderer/src/components/FormatDialog.tsx', 'utf8'), /INCLUDE_NOTE_CHECKBOX_LABEL/)
+assert.match(readFileSync('src/renderer/src/components/FormatDialog.tsx', 'utf8'), /t\('format\.includeNote'\)/)
 
 console.log('note resolve helpers passed')
