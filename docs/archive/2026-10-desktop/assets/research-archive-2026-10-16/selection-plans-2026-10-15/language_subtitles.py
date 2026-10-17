@@ -1,0 +1,5 @@
+from client import *
+selection={'version':1,'target':'video','maxHeight':1080,'videoCodec':'h264','maxFps':30,'dynamicRange':'any','output':'mp4','postprocess':'h264-mp4','audioLanguage':'en'}
+r=invoke('start-download',{'url':BASE+'/media/english-annotated.mp4?plan=language-subs','title':'English subtitles compatibility','format':'video','selection':selection});assert r.get('data'),r
+row=wait(r['data']['id']);assert row['status']=='complete',{k:row.get(k) for k in ['id','status','error']}
+m=probe(row['filePath']);assert len([s for s in m['streams'] if s['codec_type']=='subtitle'])==1;assert len(m['chapters'])==3;assert next(s for s in m['streams'] if s['codec_type']=='video')['codec_name']=='h264';decode(row['filePath']);(ROOT/'language-subtitles-results.json').write_text(json.dumps({'id':row['id'],'languageRequested':'en','languageOutput':[s.get('tags',{}).get('language') for s in m['streams'] if s['codec_type']=='audio'],'subtitles':1,'chapters':3,'decode':'PASS'},indent=2));print('ISO en/eng matching + MP4 compatibility + subtitle/chapter preservation PASS')

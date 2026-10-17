@@ -1,0 +1,14 @@
+{
+  "appAsarSha256": "6f90d3cb0814570189b1363fe2dc127e674776b72f790c975e894e910957802c",
+  "compiledFilesMatched": 7,
+  "extensionMatches": true,
+  "version": "1.1.7",
+  "build": "1.1.9",
+  "bundleId": "com.ytdownload.app",
+  "architecture": "arm64",
+  "installedPath": "/Applications/V-Download.app",
+  "signature": "same Apple Development identity as previous installation",
+  "notarized": false,
+  "artifact": "/Users/mingjie/Downloads/V-Download-1.1.7-local-20261015-r2-arm64.dmg",
+  "artifactSha256": "8d4164b31f5e35583cf1a89f70199058d765232b43215d4e4c9f2c723cb3ba4e"
+}

@@ -1,0 +1,8 @@
+{
+  "started_epoch": 1792051248.3299258,
+  "url": "http://127.0.0.1:55661/direct.mp4?case=permission",
+  "directory": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/runtime/downie-output/permission",
+  "test_mode": "0555",
+  "restored_mode": "0o755",
+  "files": []
+}

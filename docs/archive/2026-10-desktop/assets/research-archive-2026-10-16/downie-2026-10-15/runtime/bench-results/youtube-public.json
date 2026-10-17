@@ -1,0 +1,96 @@
+{
+  "label": "youtube-public",
+  "input_url": "https://www.youtube.com/watch?v=YE7VzlLtp-4",
+  "started_epoch": 1792049877.841275,
+  "elapsed_s": 3.386,
+  "http_create_status": 202,
+  "final": {
+    "id": "9dcb8e2a061621da",
+    "status": "error",
+    "url": "https://www.youtube.com/watch?v=YE7VzlLtp-4",
+    "title": "Big Buck Bunny",
+    "progress": 0,
+    "kind": null,
+    "files": null,
+    "error": {
+      "code": "auth_required",
+      "message": "ERROR: unable to download video data: HTTP Error 403: Forbidden — Sign in to the source site and retry; no credentials were retained."
+    },
+    "expiresAt": null,
+    "expired": false
+  },
+  "trace": [
+    {
+      "elapsed_s": 0,
+      "http_status": 202,
+      "job": {
+        "id": "9dcb8e2a061621da",
+        "status": "queued",
+        "url": "https://www.youtube.com/watch?v=YE7VzlLtp-4"
+      }
+    },
+    {
+      "elapsed_s": 0.015905791000000002,
+      "http_status": 200,
+      "job": {
+        "id": "9dcb8e2a061621da",
+        "status": "queued",
+        "url": "https://www.youtube.com/watch?v=YE7VzlLtp-4",
+        "title": null,
+        "progress": 0,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 1.8013754999999998,
+      "http_status": 200,
+      "job": {
+        "id": "9dcb8e2a061621da",
+        "status": "downloading",
+        "url": "https://www.youtube.com/watch?v=YE7VzlLtp-4",
+        "title": "Big Buck Bunny",
+        "progress": 0,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 3.364578583,
+      "http_status": 200,
+      "job": {
+        "id": "9dcb8e2a061621da",
+        "status": "error",
+        "url": "https://www.youtube.com/watch?v=YE7VzlLtp-4",
+        "title": "Big Buck Bunny",
+        "progress": 0,
+        "kind": null,
+        "files": null,
+        "error": {
+          "code": "auth_required",
+          "message": "ERROR: unable to download video data: HTTP Error 403: Forbidden — Sign in to the source site and retry; no credentials were retained."
+        },
+        "expiresAt": null,
+        "expired": false
+      }
+    }
+  ],
+  "resources": {
+    "sample_interval_s": 0.1,
+    "samples": 35,
+    "observed_peak_family_rss_mib": 691.91,
+    "sampled_family_cpu_seconds": 1.05,
+    "limitations": [
+      "RSS is sampled aggregate resident memory, not unique/private memory; shared pages may be counted repeatedly.",
+      "Short-lived children or their final CPU/RSS peak between 100ms samples can be missed; CPU is an observed estimate.",
+      "Measurements include Electron root/renderers/GPU and observed descendant engines, but not the fixture server or unrelated original app."
+    ]
+  },
+  "outputs": []
+}

@@ -1,0 +1,19 @@
+{
+  "capacityStatus": 422,
+  "capacityReply": {
+    "error": "Two media inspections are already running. Try again shortly."
+  },
+  "cancelledReplies": [
+    {
+      "error": "Media inspection cancelled"
+    },
+    {
+      "error": "Media inspection cancelled"
+    }
+  ],
+  "taskIds": [
+    "1703888c-7de6-43ec-b230-401451ba6ad5",
+    "a06a10cf-247b-4917-a4d5-ed5d37b952af"
+  ],
+  "ownedProbeLeftovers": []
+}

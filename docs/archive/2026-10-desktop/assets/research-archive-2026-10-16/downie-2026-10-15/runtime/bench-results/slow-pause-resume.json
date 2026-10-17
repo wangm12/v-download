@@ -1,0 +1,1849 @@
+{
+  "label": "slow-pause-resume",
+  "input_url": "http://127.0.0.1:55661/slow.mp4",
+  "started_epoch": 1792049278.4244869,
+  "elapsed_s": 124.8744,
+  "http_create_status": 202,
+  "final": {
+    "id": "6a7c9fb9bc113fce",
+    "status": "complete",
+    "url": "http://127.0.0.1:55661/slow.mp4",
+    "title": "Direct media",
+    "progress": 100,
+    "kind": "file",
+    "files": [
+      {
+        "name": "Direct media [743b2974-9134-4e4c-8927-00b237f79c5b].mp4",
+        "contentType": "video/mp4",
+        "sizeBytes": 2908122,
+        "index": 1
+      }
+    ],
+    "error": null,
+    "expiresAt": null,
+    "expired": false
+  },
+  "trace": [
+    {
+      "elapsed_s": 0,
+      "http_status": 202,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "queued",
+        "url": "http://127.0.0.1:55661/slow.mp4"
+      }
+    },
+    {
+      "elapsed_s": 0.009793083000000008,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 0,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 2.955392917,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 1,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 4.42300325,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 2,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 4.946151583,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 3,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 5.986404833,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 4,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 6.934459875,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 5,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 7.985222875000001,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 6,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 8.405662208,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 7,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 9.456170417000001,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 8,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 9.973111333,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 9,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 11.016850583,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 10,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 11.438407125000001,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 11,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 12.489055625,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 12,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 13.014861167000001,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 13,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 13.948217375,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 14,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 14.999392708,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 15,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 15.531427125,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 16,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 17.489679291999998,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 17,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 18.021505833,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 18,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 18.338592875,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "queued",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 18,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 34.884098208,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 18,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 53.8470625,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 19,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 54.898993125,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 20,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 55.317956167,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 21,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 56.35523875,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 22,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 57.397973917,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 23,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 57.926010792,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 24,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 58.86237925,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 25,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 59.906777083,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 26,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 60.428631333,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 27,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 61.362629333,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 28,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 61.888130917,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 29,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 62.934471792,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 30,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 63.886688667,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 31,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 64.94299725,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 32,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 65.887302167,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 33,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 67.472337875,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 34,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 68.951094625,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 35,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 69.478192375,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 36,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 70.956439708,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 37,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 71.490600958,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 38,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 72.967430583,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 39,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 74.027153375,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 40,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 74.9793725,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 41,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 76.021960833,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 42,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 77.073562792,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 43,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 77.498661708,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 44,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 78.552033667,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 45,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 79.495378292,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 46,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 80.546207792,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 47,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 81.079238542,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 48,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 82.566775917,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 49,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 84.045514,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 50,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 84.568886167,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 51,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 85.617726417,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 52,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 86.568866,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 53,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 87.621024292,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 54,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 88.151817208,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 55,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 89.105947833,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 56,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 89.635911958,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 57,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 90.587942208,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 58,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 91.121041542,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 59,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 92.173265875,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 60,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 93.113214292,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 61,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 93.644094667,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 62,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 94.175824708,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 63,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 95.137214667,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 64,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 96.196661792,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 65,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 97.151924875,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 66,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 98.73366,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 67,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 99.162070333,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 68,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 100.212775625,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 69,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 101.1630605,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 70,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 101.6923095,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 71,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 102.740898083,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 72,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 103.69640333299999,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 73,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 104.764025625,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 74,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 105.285675292,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 75,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 106.22718575,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 76,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 106.750610333,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 77,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 107.789957083,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 78,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 108.314955583,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 79,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 109.262519875,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 80,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 109.788251167,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 81,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 110.831155458,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 82,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 111.25232275,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 83,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 112.304866417,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 84,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 113.342211583,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 85,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 114.292535917,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 86,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 114.81749075,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 87,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 115.34051245799999,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 88,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 116.282159583,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 89,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 117.336138792,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 90,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 117.859224875,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 91,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 118.379461708,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 92,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 119.321767708,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 93,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 119.846854958,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 94,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 120.890022708,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 95,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 121.834173667,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 96,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 122.355623292,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 97,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 123.404463708,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 98,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 124.348545833,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 99,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 124.872800958,
+      "http_status": 200,
+      "job": {
+        "id": "6a7c9fb9bc113fce",
+        "status": "complete",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 100,
+        "kind": "file",
+        "files": [
+          {
+            "name": "Direct media [743b2974-9134-4e4c-8927-00b237f79c5b].mp4",
+            "contentType": "video/mp4",
+            "sizeBytes": 2908122,
+            "index": 1
+          }
+        ],
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    }
+  ],
+  "resources": {
+    "sample_interval_s": 0.1,
+    "samples": 1173,
+    "observed_peak_family_rss_mib": 545.44,
+    "sampled_family_cpu_seconds": 12.17,
+    "limitations": [
+      "RSS is sampled aggregate resident memory, not unique/private memory; shared pages may be counted repeatedly.",
+      "Short-lived children or their final CPU/RSS peak between 100ms samples can be missed; CPU is an observed estimate.",
+      "Measurements include Electron root/renderers/GPU and observed descendant engines, but not the fixture server or unrelated original app."
+    ]
+  },
+  "outputs": [
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/runtime/output/remote-jobs/6a7c9fb9bc113fce/Direct media [743b2974-9134-4e4c-8927-00b237f79c5b].mp4",
+      "bytes": 2908122,
+      "exit_code": 0,
+      "probe": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+            "profile": "High",
+            "codec_type": "video",
+            "codec_tag_string": "avc1",
+            "codec_tag": "0x31637661",
+            "mime_codec_string": "avc1.64001f",
+            "width": 1280,
+            "height": 720,
+            "coded_width": 1280,
+            "coded_height": 720,
+            "has_b_frames": 2,
+            "sample_aspect_ratio": "1:1",
+            "display_aspect_ratio": "16:9",
+            "pix_fmt": "yuv420p",
+            "level": 31,
+            "chroma_location": "left",
+            "field_order": "progressive",
+            "is_avc": "true",
+            "nal_length_size": "4",
+            "id": "0x1",
+            "r_frame_rate": "30/1",
+            "avg_frame_rate": "30/1",
+            "time_base": "1/15360",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 184320,
+            "duration": "12.000000",
+            "bit_rate": "1801451",
+            "bits_per_raw_sample": "8",
+            "nb_frames": "360",
+            "extradata_size": 45,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "VideoHandler",
+              "encoder": "Lavc62.28.102 libx264"
+            }
+          },
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_long_name": "AAC (Advanced Audio Coding)",
+            "profile": "LC",
+            "codec_type": "audio",
+            "codec_tag_string": "mp4a",
+            "codec_tag": "0x6134706d",
+            "mime_codec_string": "mp4a.40.2",
+            "sample_fmt": "fltp",
+            "sample_rate": "48000",
+            "channels": 1,
+            "channel_layout": "mono",
+            "bits_per_sample": 0,
+            "initial_padding": 0,
+            "id": "0x2",
+            "r_frame_rate": "0/0",
+            "avg_frame_rate": "0/0",
+            "time_base": "1/48000",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 576000,
+            "duration": "12.000000",
+            "bit_rate": "127538",
+            "nb_frames": "564",
+            "extradata_size": 5,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "SoundHandler"
+            }
+          }
+        ],
+        "chapters": [],
+        "format": {
+          "filename": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/runtime/output/remote-jobs/6a7c9fb9bc113fce/Direct media [743b2974-9134-4e4c-8927-00b237f79c5b].mp4",
+          "nb_streams": 2,
+          "nb_programs": 0,
+          "nb_stream_groups": 0,
+          "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+          "format_long_name": "QuickTime / MOV",
+          "start_time": "0.000000",
+          "duration": "12.000000",
+          "size": "2908122",
+          "bit_rate": "1938748",
+          "probe_score": 100,
+          "tags": {
+            "major_brand": "isom",
+            "minor_version": "512",
+            "compatible_brands": "isomiso2avc1mp41",
+            "title": "REA synthetic 720p fixture",
+            "encoder": "Lavf62.12.102"
+          }
+        }
+      },
+      "stderr": ""
+    }
+  ]
+}

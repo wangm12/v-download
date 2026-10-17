@@ -1,0 +1,14 @@
+{
+  "fullSuite": "npm test passed before final supervised-process diagnostic amendment",
+  "finalChecks": {
+    "npm run test:terminal-error": "passed, real direct spawn and managed POSIX spawn",
+    "npm run test:download-progress": "passed",
+    "npm run test:presentation": "passed",
+    "npm run typecheck": "passed",
+    "npm run build": "passed",
+    "git diff --check": "passed"
+  },
+  "noDatabaseMigration": true,
+  "ipcChange": "additive optional outputDir, old messages remain accepted",
+  "extensionCodeChange": false
+}

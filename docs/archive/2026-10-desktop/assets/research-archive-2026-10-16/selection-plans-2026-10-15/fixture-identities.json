@@ -1,0 +1,5 @@
+{
+  "ffmpeg": "/Applications/V-Download.app/Contents/Resources/engines/darwin-arm64/ffmpeg",
+  "duration_seconds": 12,
+  "renditions": "same 360p at 30 / 60 fps"
+}

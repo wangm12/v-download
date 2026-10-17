@@ -1,0 +1,18 @@
+{
+  "originalRows": 2,
+  "allOriginalFieldsUnchanged": true,
+  "schemaVersion": 4,
+  "databaseIntegrity": "ok",
+  "settingsByteIdentical": true,
+  "credentialsByteIdentical": {
+    "cookies.txt": true,
+    "extension-pairing.secret": true
+  },
+  "testPlanRemoved": true,
+  "testRowsRemoved": 10,
+  "loginStorageFilesCompared": 46,
+  "loginStorageDifferences": [],
+  "mainUiStorageRestoredFromBackup": true,
+  "finalOfflineVerified": true,
+  "remoteJobsByteIdentical": true
+}

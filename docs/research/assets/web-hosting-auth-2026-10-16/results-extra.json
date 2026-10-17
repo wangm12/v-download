@@ -1,0 +1,57 @@
+{
+  "started_at_utc": "2026-10-17T06:01:46.114463+00:00",
+  "base_argv_from": "results.json",
+  "public_cases": [
+    {
+      "exit": 1,
+      "timeout": false,
+      "elapsed_seconds": 0.78,
+      "stderr": "WARNING: Your yt-dlp version (2026.07.04) is older than 90 days!\n         It is strongly recommended to always use the latest version.\n         Auto-update is not supported for unpackaged executables; Re-download the latest release.\n         To suppress this warning, add --no-update to your command/config.\nERROR: [TikTok] 6742501081818877190: Unexpected response from webpage request; please report this issue on  https://github.com/yt-dlp/yt-dlp/issues?q= , filling out the appropriate issue template. Confirm you are on the latest version using  yt-dlp -U\n",
+      "site": "TikTok",
+      "url": "https://www.tiktok.com/@patroxofficial/video/6742501081818877190?langCountry=en",
+      "mode": "metadata_only"
+    },
+    {
+      "exit": 0,
+      "timeout": false,
+      "elapsed_seconds": 1.417,
+      "stderr": "WARNING: Your yt-dlp version (2026.07.04) is older than 90 days!\n         It is strongly recommended to always use the latest version.\n         Auto-update is not supported for unpackaged executables; Re-download the latest release.\n         To suppress this warning, add --no-update to your command/config.\n",
+      "site": "MDN public MP4",
+      "url": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
+      "mode": "complete_download",
+      "file_exists": true,
+      "output": {
+        "sha256": "0cd83d944a6ca7822b4a8306cecc60a36e859b041f6702c6a1ad9ead78924451",
+        "bytes": 1128375,
+        "ffprobe": {
+          "programs": [],
+          "stream_groups": [],
+          "streams": [
+            {
+              "codec_name": "h264",
+              "codec_type": "video",
+              "width": 960,
+              "height": 540
+            },
+            {
+              "codec_name": "aac",
+              "codec_type": "audio"
+            }
+          ],
+          "format": {
+            "duration": "5.055000"
+          }
+        },
+        "ffprobe_exit": 0,
+        "full_decode_exit": 0,
+        "decode_stderr": ""
+      }
+    }
+  ],
+  "upstream_head_at_research": "897341241f2bfb2439fe0367f4c7c9ccd29a3828",
+  "cleanup": {
+    "temporary_media_removed": true,
+    "personal_profiles_accessed": false
+  },
+  "ended_at_utc": "2026-10-17T06:01:48.516267+00:00"
+}

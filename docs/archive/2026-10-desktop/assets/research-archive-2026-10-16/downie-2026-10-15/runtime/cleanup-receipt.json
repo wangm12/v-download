@@ -1,0 +1,58 @@
+{
+  "verified_at_utc": "2026-10-15T08:24:51.475987+00:00",
+  "processes": {
+    "research_electron": {
+      "pid": 77744,
+      "present": false,
+      "process_identity": "",
+      "exit_code": 1
+    },
+    "fixture_server": {
+      "pid": 41892,
+      "present": false,
+      "process_identity": "",
+      "exit_code": 1
+    },
+    "original_v_download": {
+      "pid": 29928,
+      "present": true,
+      "process_identity": "29928 Mon Oct 12 20:36:50 2026     /Applications/V-Download.app/Contents/MacOS/V-Download",
+      "exit_code": 0
+    },
+    "downie": {
+      "pid": 72565,
+      "present": true,
+      "process_identity": "72565 Thu Oct 15 00:55:56 2026     /Applications/Downie 4.app/Contents/MacOS/Downie 4",
+      "exit_code": 0
+    }
+  },
+  "ports": {
+    "55661": {
+      "listener_output": "",
+      "exit_code": 1,
+      "stderr": ""
+    },
+    "56322": {
+      "listener_output": "",
+      "exit_code": 1,
+      "stderr": ""
+    },
+    "18765": {
+      "listener_output": "p29928\ncV-Download\nf55\ntIPv4\nn127.0.0.1:18765",
+      "exit_code": 0,
+      "stderr": ""
+    }
+  },
+  "profile_settings_mode": "0o600",
+  "transport_token_found_in_report_files": false,
+  "downie_restore_observation": {
+    "concurrent_downloads": 3,
+    "connections_per_download": 4,
+    "quality": "Automatically Select Best Quality",
+    "destination": "Downloads",
+    "global_postprocessing": "None",
+    "current_queue": "No Downloads",
+    "history": "Research URL records retained; no bulk clearing of user history"
+  },
+  "temporary_directory_mode_restored": "0o755"
+}

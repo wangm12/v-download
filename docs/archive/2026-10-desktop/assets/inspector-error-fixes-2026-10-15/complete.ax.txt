@@ -1,0 +1,92 @@
+Window: "V-Download", App: V-Download.
+0 standard window V-Download, Secondary Actions: Raise
+	1 container V-Download
+		2 container
+			3 HTML content V-Download, URL: file:///Applications/V-Download.app/Contents/Resources/app.asar/out/renderer/index.html
+				4 container
+					5 text V-Download
+					6 button Hide download details
+					7 pop up button Theme menu
+					8 text V-Download
+					9 text Downloads
+					10 button Collapse navigation
+					11 container Home
+						12 text WORKSPACE
+						13 button Downloads
+						14 text PREFERENCES
+						15 button General
+						16 button Downloads
+						17 button Browser
+						18 button Sites
+						19 button MCP
+						20 button Advanced
+					21 container
+						22 heading Downloads, Value: 1
+							23 text Downloads
+						24 text 2 items
+						25 toggle button All, Value: 1
+						26 toggle button Active, Value: 0
+						27 toggle button Done, Value: 0
+						28 toggle button Needs attention, Value: 0
+						29 search text field (settable) Description: Search downloads, Value: E2E, Placeholder: Search downloads…
+						30 text Drop a link here or press Cmd+V to paste from the clipboard 1 selected
+						31 button Clear selection
+						32 container
+							33 toggle button E2E destination Video · best Complete Reveal in Finder More actions, Value: 1
+								34 text E2E destination
+								35 text Video · best
+								36 text Complete
+								37 container
+									38 button Reveal in Finder
+									39 pop up button More actions
+							40 toggle button E2E blocker Video · best Complete Reveal in Finder More actions, Value: 0
+								41 text E2E blocker
+								42 text Video · best
+								43 text Complete
+								44 container
+									45 button Reveal in Finder
+									46 pop up button More actions
+						47 button (disabled) Start all downloads
+						48 button (disabled) Pause all downloads
+						49 button Clear downloads
+						50 text 4 Downloads · 4 Complete
+						51 button Sync cookies from Chrome (all supported sites)
+						52 container Download details
+							53 heading Download details, Value: 2
+								54 text Download details
+							55 button Close download details
+							56 heading E2E destination, Value: 2
+								57 text E2E destination
+							58 text Complete
+							59 container
+								60 text Download plan  ·  E2E destination
+							61 text Select automatically using this plan
+							62 definition list
+								63 container Format
+									64 text Format
+								65 text Video · best
+							66 container
+								67 button Open file
+								68 button Reveal in Finder
+							69 text Destination
+							70 text E2E destination [0fab3258-d77d-4cc5-9317-52ab15cd69c4].mp4
+							71 text inspector-error-fixes-2026-10-15/output
+							72 text Source
+							73 button 127.0.0.1
+							74 disclosure triangle Show link details
+								75 text Show link details
+							76 disclosure triangle Create converted copy
+								77 text Create converted copy
+							78 pop up button More actions
+	79 close button
+	80 full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window
+	81 minimize button
+82 menu bar
+	83 V-Download
+	84 File
+	85 Edit
+	86 View
+	87 Window
+	88 Help
+
+The focused UI element is 29 search text field (settable) Description: Search downloads, Value: E2E, Placeholder: Search downloads…

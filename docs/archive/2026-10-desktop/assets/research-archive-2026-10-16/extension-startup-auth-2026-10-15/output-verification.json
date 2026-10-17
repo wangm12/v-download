@@ -1,0 +1,242 @@
+[
+  {
+    "id": "94b560e7-4f40-4d99-b996-807c9b0b2faa",
+    "url": "http://127.0.0.1:54702/stream/final-1/1/master.m3u8?token=a%2fb&label=hello%20world&utm_source=early",
+    "filePath": "/Users/mingjie/Documents/github/personal-projects/v-download-research/extension-startup-auth-2026-10-15/output/Early capture final-1 [94b560e7-4f40-4d99-b996-807c9b0b2faa].mp4",
+    "sourceContext": {
+      "version": 1,
+      "pageUrl": "http://127.0.0.1:54702/watch/early?round=final-1",
+      "documentUrl": "http://127.0.0.1:54702/watch/early?round=final-1",
+      "initiator": "http://127.0.0.1:54702",
+      "tabId": 552129030,
+      "frameId": 0,
+      "navigationEpoch": 2,
+      "observedAt": 1792119034698,
+      "pageTitle": "Early capture final-1",
+      "documentId": "D5DDD891192EB674C0038657B49CA0F8"
+    },
+    "referer": "http://127.0.0.1:54702/watch/early?round=final-1",
+    "plan": {
+      "id": "custom:startup-check",
+      "name": "360p 30 fps check",
+      "revision": 1
+    },
+    "selection": {
+      "version": 1,
+      "target": "video",
+      "maxHeight": 360,
+      "videoCodec": "any",
+      "maxFps": 30,
+      "dynamicRange": "any",
+      "output": "mp4",
+      "postprocess": "h264-mp4"
+    },
+    "duration": "12.033008",
+    "video": {
+      "codec_name": "h264",
+      "height": 360,
+      "avg_frame_rate": "30/1"
+    },
+    "audioCodec": "aac",
+    "fullDecode": "passed"
+  },
+  {
+    "id": "56b6c223-1640-4b0f-ba80-92ca0c810b2d",
+    "url": "http://127.0.0.1:54702/stream/fallback-3/3/master.m3u8?token=a%2fb&label=hello%20world&utm_source=early",
+    "filePath": "/Users/mingjie/Documents/github/personal-projects/v-download-research/extension-startup-auth-2026-10-15/output/Early capture fallback-3 [56b6c223-1640-4b0f-ba80-92ca0c810b2d].mp4",
+    "sourceContext": {
+      "version": 1,
+      "pageUrl": "http://127.0.0.1:54702/watch/early?round=fallback-3",
+      "documentUrl": "http://127.0.0.1:54702/embed/early?round=fallback-3&slot=3",
+      "tabId": 552129030,
+      "frameId": 10,
+      "navigationEpoch": 2,
+      "observedAt": 1792118526429,
+      "pageTitle": "Early capture fallback-3",
+      "documentId": "C228668D267FCA97E2FEC1828A521A89"
+    },
+    "referer": "http://127.0.0.1:54702/embed/early?round=fallback-3&slot=3",
+    "plan": {
+      "id": "builtin:compatible",
+      "name": "Compatible MP4",
+      "revision": 1
+    },
+    "selection": {
+      "version": 1,
+      "target": "video",
+      "maxHeight": 1080,
+      "videoCodec": "any",
+      "dynamicRange": "any",
+      "output": "mp4",
+      "postprocess": "h264-mp4"
+    },
+    "duration": "12.032000",
+    "video": {
+      "codec_name": "h264",
+      "height": 360,
+      "avg_frame_rate": "60/1"
+    },
+    "audioCodec": "aac",
+    "fullDecode": "passed"
+  },
+  {
+    "id": "888283c8-5d28-4281-978d-2ce26ffd1b75",
+    "url": "http://127.0.0.1:54702/direct/reload-1/film.mp4?token=a%2fb&label=hello%20world&utm_source=early",
+    "filePath": "/Users/mingjie/Documents/github/personal-projects/v-download-research/extension-startup-auth-2026-10-15/output/Early capture reload-1 4 [888283c8-5d28-4281-978d-2ce26ffd1b75].mp4",
+    "sourceContext": {
+      "version": 1,
+      "pageUrl": "http://127.0.0.1:54702/watch/early?round=reload-1",
+      "documentUrl": "http://127.0.0.1:54702/watch/early?round=reload-1",
+      "initiator": "http://127.0.0.1:54702",
+      "tabId": 552129030,
+      "frameId": 0,
+      "navigationEpoch": 2,
+      "observedAt": 1792118202789,
+      "pageTitle": "Early capture reload-1",
+      "documentId": "75525D70AFFB283B96AD46F0B618F571"
+    },
+    "referer": "http://127.0.0.1:54702/watch/early?round=reload-1",
+    "plan": {
+      "id": "builtin:compatible",
+      "name": "Compatible MP4",
+      "revision": 1
+    },
+    "selection": {
+      "version": 1,
+      "target": "video",
+      "maxHeight": 1080,
+      "videoCodec": "any",
+      "dynamicRange": "any",
+      "output": "mp4",
+      "postprocess": "h264-mp4"
+    },
+    "duration": "12.010000",
+    "video": {
+      "codec_name": "h264",
+      "height": 360,
+      "avg_frame_rate": "30/1"
+    },
+    "audioCodec": "aac",
+    "fullDecode": "passed"
+  },
+  {
+    "id": "9b278c98-e94e-45db-9530-d8dda85105c3",
+    "url": "http://127.0.0.1:54702/stream/reload-1/3/master.m3u8?token=a%2fb&label=hello%20world&utm_source=early",
+    "filePath": "/Users/mingjie/Documents/github/personal-projects/v-download-research/extension-startup-auth-2026-10-15/output/Early capture reload-1 3 [9b278c98-e94e-45db-9530-d8dda85105c3].mp4",
+    "sourceContext": {
+      "version": 1,
+      "pageUrl": "http://127.0.0.1:54702/watch/early?round=reload-1",
+      "documentUrl": "http://127.0.0.1:54702/embed/early?round=reload-1&slot=3",
+      "initiator": "http://127.0.0.1:54702",
+      "tabId": 552129030,
+      "frameId": 6,
+      "navigationEpoch": 2,
+      "observedAt": 1792118202800,
+      "pageTitle": "Early capture reload-1",
+      "documentId": "EFFBA77EA50E61D7BC0B282EE955E29F"
+    },
+    "referer": "http://127.0.0.1:54702/embed/early?round=reload-1&slot=3",
+    "plan": {
+      "id": "builtin:compatible",
+      "name": "Compatible MP4",
+      "revision": 1
+    },
+    "selection": {
+      "version": 1,
+      "target": "video",
+      "maxHeight": 1080,
+      "videoCodec": "any",
+      "dynamicRange": "any",
+      "output": "mp4",
+      "postprocess": "h264-mp4"
+    },
+    "duration": "12.032000",
+    "video": {
+      "codec_name": "h264",
+      "height": 360,
+      "avg_frame_rate": "60/1"
+    },
+    "audioCodec": "aac",
+    "fullDecode": "passed"
+  },
+  {
+    "id": "e5e3c93a-8c87-4385-830b-f15928790de1",
+    "url": "http://127.0.0.1:54702/stream/reload-1/2/master.m3u8?token=a%2fb&label=hello%20world&utm_source=early",
+    "filePath": "/Users/mingjie/Documents/github/personal-projects/v-download-research/extension-startup-auth-2026-10-15/output/Early capture reload-1 2 [e5e3c93a-8c87-4385-830b-f15928790de1].mp4",
+    "sourceContext": {
+      "version": 1,
+      "pageUrl": "http://127.0.0.1:54702/watch/early?round=reload-1",
+      "documentUrl": "http://127.0.0.1:54702/watch/early?round=reload-1",
+      "initiator": "http://127.0.0.1:54702",
+      "tabId": 552129030,
+      "frameId": 0,
+      "navigationEpoch": 2,
+      "observedAt": 1792118202783,
+      "pageTitle": "Early capture reload-1",
+      "documentId": "75525D70AFFB283B96AD46F0B618F571"
+    },
+    "referer": "http://127.0.0.1:54702/watch/early?round=reload-1",
+    "plan": {
+      "id": "builtin:compatible",
+      "name": "Compatible MP4",
+      "revision": 1
+    },
+    "selection": {
+      "version": 1,
+      "target": "video",
+      "maxHeight": 1080,
+      "videoCodec": "any",
+      "dynamicRange": "any",
+      "output": "mp4",
+      "postprocess": "h264-mp4"
+    },
+    "duration": "12.032000",
+    "video": {
+      "codec_name": "h264",
+      "height": 360,
+      "avg_frame_rate": "60/1"
+    },
+    "audioCodec": "aac",
+    "fullDecode": "passed"
+  },
+  {
+    "id": "8bc08e3d-95ff-4916-acc0-6b4eb8483f14",
+    "url": "http://127.0.0.1:54702/stream/reload-1/1/master.m3u8?token=a%2fb&label=hello%20world&utm_source=early",
+    "filePath": "/Users/mingjie/Documents/github/personal-projects/v-download-research/extension-startup-auth-2026-10-15/output/Early capture reload-1 1 [8bc08e3d-95ff-4916-acc0-6b4eb8483f14].mp4",
+    "sourceContext": {
+      "version": 1,
+      "pageUrl": "http://127.0.0.1:54702/watch/early?round=reload-1",
+      "documentUrl": "http://127.0.0.1:54702/watch/early?round=reload-1",
+      "initiator": "http://127.0.0.1:54702",
+      "tabId": 552129030,
+      "frameId": 0,
+      "navigationEpoch": 2,
+      "observedAt": 1792118202781,
+      "pageTitle": "Early capture reload-1",
+      "documentId": "75525D70AFFB283B96AD46F0B618F571"
+    },
+    "referer": "http://127.0.0.1:54702/watch/early?round=reload-1",
+    "plan": {
+      "id": "builtin:compatible",
+      "name": "Compatible MP4",
+      "revision": 1
+    },
+    "selection": {
+      "version": 1,
+      "target": "video",
+      "maxHeight": 1080,
+      "videoCodec": "any",
+      "dynamicRange": "any",
+      "output": "mp4",
+      "postprocess": "h264-mp4"
+    },
+    "duration": "12.032000",
+    "video": {
+      "codec_name": "h264",
+      "height": 360,
+      "avg_frame_rate": "60/1"
+    },
+    "audioCodec": "aac",
+    "fullDecode": "passed"
+  }
+]

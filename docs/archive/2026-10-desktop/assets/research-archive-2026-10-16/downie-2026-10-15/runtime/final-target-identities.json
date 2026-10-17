@@ -1,0 +1,20 @@
+{
+  "verified_at_utc": "2026-10-15T08:21:11.554885+00:00",
+  "files": [
+    {
+      "path": "/Applications/Downie 4.app/Contents/MacOS/Downie 4",
+      "bytes": 3685664,
+      "sha256": "6eb6e6582f8bb47e3e0d6ba0fabeabbbfbf72b6e4c4795a95d3ab1b3b4ed1b61"
+    },
+    {
+      "path": "/Applications/Downie 4.app/Contents/Frameworks/DownieCore.framework/Versions/A/DownieCore",
+      "bytes": 33866592,
+      "sha256": "1931e01249a987a7bd4ecb4f4c0cd2cbdfe2757a183b4420f1eea71d078240cd"
+    },
+    {
+      "path": "/Applications/V-Download.app/Contents/Resources/app.asar",
+      "bytes": 28443231,
+      "sha256": "2b436fae61184fb4f1a265a9a82f6af835b10a5b8a5b96dddf8cfaf9d1991a61"
+    }
+  ]
+}

@@ -1,0 +1,351 @@
+{
+  "packaged": true,
+  "staleSessionStatus": 410,
+  "tasks": [
+    {
+      "id": "5db8f560-8f91-479d-b3ff-df83bc0f9bd4",
+      "url": "http://127.0.0.1:62438/expired-mismatch.m3u8",
+      "title": "重新捕获仍验证360上限",
+      "format": "video",
+      "quality": "360",
+      "status": "complete",
+      "progress": 100,
+      "filePath": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output/changed-重新捕获仍验证360上限.mp4",
+      "thumbnail": null,
+      "duration": null,
+      "metadata": {
+        "recaptureRevision": 2,
+        "recaptureAt": "2026-10-16T05:46:29.742Z",
+        "sourceContext": {
+          "version": 1,
+          "pageUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+          "documentUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+          "observedAt": 1792129586604
+        },
+        "downloadRequest": {
+          "version": 1,
+          "selection": {
+            "version": 1,
+            "target": "video",
+            "maxHeight": 360,
+            "videoCodec": "any",
+            "dynamicRange": "any",
+            "output": "original",
+            "postprocess": "none"
+          },
+          "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output",
+          "filenameTemplate": "changed-{title}",
+          "includeNote": false,
+          "archiveByAuthor": false,
+          "folderNameTemplate": "{author}",
+          "playlistSubfolder": false
+        },
+        "candidate": {
+          "url": "http://127.0.0.1:62438/media/360.mp4",
+          "container": "mp4"
+        },
+        "mediaType": "mp4",
+        "referer": "http://127.0.0.1:62438/watch?lesson=a%20b",
+        "ytdlpId": "720",
+        "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output",
+        "skipAdoptExisting": true
+      },
+      "playlistId": null,
+      "playlistIndex": null,
+      "error": null,
+      "errorCode": null,
+      "createdAt": "2026-10-16T05:46:28.197Z",
+      "updatedAt": "2026-10-16T05:46:30.275Z",
+      "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output"
+    },
+    {
+      "id": "dc93df21-9905-4f55-b58f-7db7d0b05fa8",
+      "url": "http://127.0.0.1:62438/expired-exact.m3u8",
+      "title": "精确来源不可静默放宽",
+      "format": "video",
+      "quality": "360",
+      "status": "error",
+      "progress": 0,
+      "filePath": null,
+      "thumbnail": null,
+      "duration": null,
+      "metadata": {
+        "sourceContext": {
+          "version": 1,
+          "pageUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+          "documentUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+          "observedAt": 1792129586604
+        },
+        "downloadRequest": {
+          "version": 1,
+          "selection": {
+            "version": 1,
+            "target": "video",
+            "maxHeight": 360,
+            "videoCodec": "any",
+            "dynamicRange": "any",
+            "output": "original",
+            "postprocess": "none",
+            "exact": {
+              "sourceUrl": "http://127.0.0.1:62438/expired-exact.m3u8",
+              "formatId": "locked-format",
+              "kind": "muxed"
+            }
+          },
+          "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output",
+          "filenameTemplate": "changed-{title}",
+          "includeNote": false,
+          "archiveByAuthor": false,
+          "folderNameTemplate": "{author}",
+          "playlistSubfolder": false
+        },
+        "mediaType": "hls",
+        "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output"
+      },
+      "playlistId": null,
+      "playlistIndex": null,
+      "error": "ERROR: [generic] expired-exact: Unable to download webpage: HTTP Error 403: Forbidden (caused by <HTTPError 403: Forbidden>) — The source refused access; the cause is unknown. Open the source page and recapture its media.",
+      "errorCode": "ACCESS_DENIED",
+      "createdAt": "2026-10-16T05:46:27.681Z",
+      "updatedAt": "2026-10-16T05:46:28.166Z",
+      "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output"
+    },
+    {
+      "id": "66b67ae3-8358-4c43-817f-d1bca4b05f07",
+      "url": "http://127.0.0.1:62438/denied",
+      "title": "解析被拒绝403",
+      "format": "video",
+      "quality": "360",
+      "status": "complete",
+      "progress": 100,
+      "filePath": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output/解析被拒绝403.mp4",
+      "thumbnail": null,
+      "duration": null,
+      "metadata": {
+        "recaptureRevision": 1,
+        "recaptureAt": "2026-10-16T05:46:26.616Z",
+        "sourceContext": {
+          "version": 1,
+          "pageUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+          "documentUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+          "observedAt": 1792129586604
+        },
+        "downloadRequest": {
+          "version": 1,
+          "selection": {
+            "version": 1,
+            "target": "video",
+            "maxHeight": 360,
+            "videoCodec": "h264",
+            "maxFps": 30,
+            "dynamicRange": "any",
+            "output": "mp4",
+            "postprocess": "h264-mp4"
+          },
+          "plan": {
+            "id": "capture-plan",
+            "name": "原方案 360p H264",
+            "revision": 1
+          },
+          "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output",
+          "filenameTemplate": "{title}",
+          "includeNote": false,
+          "archiveByAuthor": false,
+          "folderNameTemplate": "{author}",
+          "playlistSubfolder": false
+        },
+        "candidate": {
+          "url": "http://127.0.0.1:62438/media/360.mp4",
+          "container": "mp4"
+        },
+        "mediaType": "mp4",
+        "referer": "http://127.0.0.1:62438/watch?lesson=a%20b",
+        "ytdlpId": "360",
+        "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output",
+        "skipAdoptExisting": true
+      },
+      "playlistId": null,
+      "playlistIndex": null,
+      "error": null,
+      "errorCode": null,
+      "createdAt": "2026-10-16T05:42:28.039Z",
+      "updatedAt": "2026-10-16T05:46:27.488Z",
+      "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output"
+    },
+    {
+      "id": "8371c500-882e-4194-b0ba-9cca078d1c1e",
+      "url": "http://127.0.0.1:62438/missing",
+      "title": "来源不存在404",
+      "format": "video",
+      "quality": "360",
+      "status": "error",
+      "progress": 0,
+      "filePath": null,
+      "thumbnail": null,
+      "duration": null,
+      "metadata": {
+        "sourceContext": {
+          "version": 1,
+          "pageUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+          "documentUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+          "observedAt": 1792129347997
+        },
+        "downloadRequest": {
+          "version": 1,
+          "selection": {
+            "version": 1,
+            "target": "video",
+            "maxHeight": 360,
+            "videoCodec": "h264",
+            "maxFps": 30,
+            "dynamicRange": "any",
+            "output": "mp4",
+            "postprocess": "h264-mp4"
+          },
+          "plan": {
+            "id": "capture-plan",
+            "name": "原方案 360p H264",
+            "revision": 1
+          },
+          "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output",
+          "filenameTemplate": "{title}",
+          "includeNote": false,
+          "archiveByAuthor": false,
+          "folderNameTemplate": "{author}",
+          "playlistSubfolder": false
+        },
+        "mediaType": "hls",
+        "referer": "http://127.0.0.1:62438/watch?lesson=a%20b",
+        "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output"
+      },
+      "playlistId": null,
+      "playlistIndex": null,
+      "error": "ERROR: [generic] missing#: Unable to download webpage: HTTP Error 404: Not Found (caused by <HTTPError 404: Not Found>) — Try another format or capture media from the source page.",
+      "errorCode": "UNSUPPORTED",
+      "createdAt": "2026-10-16T05:42:28.031Z",
+      "updatedAt": "2026-10-16T05:42:29.603Z",
+      "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output"
+    },
+    {
+      "id": "95739025-00c9-4672-a788-933ead419baf",
+      "url": "http://127.0.0.1:62438/unauthorized",
+      "title": "明确需要认证401",
+      "format": "video",
+      "quality": "360",
+      "status": "error",
+      "progress": 0,
+      "filePath": null,
+      "thumbnail": null,
+      "duration": null,
+      "metadata": {
+        "sourceContext": {
+          "version": 1,
+          "pageUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+          "documentUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+          "observedAt": 1792129347997
+        },
+        "downloadRequest": {
+          "version": 1,
+          "selection": {
+            "version": 1,
+            "target": "video",
+            "maxHeight": 360,
+            "videoCodec": "h264",
+            "maxFps": 30,
+            "dynamicRange": "any",
+            "output": "mp4",
+            "postprocess": "h264-mp4"
+          },
+          "plan": {
+            "id": "capture-plan",
+            "name": "原方案 360p H264",
+            "revision": 1
+          },
+          "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output",
+          "filenameTemplate": "{title}",
+          "includeNote": false,
+          "archiveByAuthor": false,
+          "folderNameTemplate": "{author}",
+          "playlistSubfolder": false
+        },
+        "mediaType": "hls",
+        "referer": "http://127.0.0.1:62438/watch?lesson=a%20b",
+        "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output"
+      },
+      "playlistId": null,
+      "playlistIndex": null,
+      "error": "ERROR: [generic] unauthorized#: Unable to download webpage: HTTP Error 401: Unauthorized (caused by <HTTPError 401: Unauthorized>) — The source explicitly requires authentication. Sign in and retry.",
+      "errorCode": "AUTH_REQUIRED",
+      "createdAt": "2026-10-16T05:42:28.025Z",
+      "updatedAt": "2026-10-16T05:42:29.120Z",
+      "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output"
+    },
+    {
+      "id": "bd464d01-c22a-4aa9-a268-1152964023fd",
+      "url": "http://127.0.0.1:62438/expired.m3u8",
+      "title": "原方案恢复360",
+      "format": "video",
+      "quality": "360",
+      "status": "complete",
+      "progress": 100,
+      "filePath": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output/原方案恢复360 (1).mp4",
+      "thumbnail": null,
+      "duration": null,
+      "metadata": {
+        "recaptureRevision": 1,
+        "recaptureAt": "2026-10-16T05:44:26.512Z",
+        "sourceContext": {
+          "version": 1,
+          "pageUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+          "documentUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+          "initiator": "http://127.0.0.1:62438",
+          "tabId": 1184395397,
+          "frameId": 0,
+          "navigationEpoch": 2,
+          "observedAt": 1792129429760,
+          "documentId": "38B2517A11414F6EDABDCCA51BD7AE3F"
+        },
+        "downloadRequest": {
+          "version": 1,
+          "selection": {
+            "version": 1,
+            "target": "video",
+            "maxHeight": 360,
+            "videoCodec": "h264",
+            "maxFps": 30,
+            "dynamicRange": "any",
+            "output": "mp4",
+            "postprocess": "h264-mp4"
+          },
+          "plan": {
+            "id": "capture-plan",
+            "name": "原方案 360p H264",
+            "revision": 1
+          },
+          "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output",
+          "filenameTemplate": "{title}",
+          "includeNote": false,
+          "archiveByAuthor": false,
+          "folderNameTemplate": "{author}",
+          "playlistSubfolder": false
+        },
+        "candidate": {
+          "url": "http://127.0.0.1:62438/media/master.m3u8?token=a%2fb&label=hello%20world",
+          "container": "hls",
+          "protocol": "hls"
+        },
+        "mediaType": "hls",
+        "referer": "http://127.0.0.1:62438/watch?lesson=a%20b",
+        "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output",
+        "skipAdoptExisting": true
+      },
+      "playlistId": null,
+      "playlistIndex": null,
+      "error": null,
+      "errorCode": null,
+      "createdAt": "2026-10-16T05:42:28.006Z",
+      "updatedAt": "2026-10-16T05:44:27.528Z",
+      "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output"
+    }
+  ]
+}

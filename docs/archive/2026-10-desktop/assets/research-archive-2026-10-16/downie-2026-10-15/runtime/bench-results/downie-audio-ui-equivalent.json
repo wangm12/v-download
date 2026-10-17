@@ -1,0 +1,40 @@
+{
+  "label": "audio-ui-equivalent",
+  "input_url": "http://127.0.0.1:55661/watch/dash",
+  "scheme": "downie://XUOpenURL?url=http%3A%2F%2F127.0.0.1%3A55661%2Fwatch%2Fdash&destination=%2FUsers%2Fmingjie%2FDocuments%2Fgithub%2Fpersonal-projects%2Fv-download-research%2Fdownie-2026-10-15%2Fruntime%2Fdownie-output%2Faudio-ui-equivalent&postprocessing=audio",
+  "started_epoch": 1792051107.3325582,
+  "identity": {
+    "pid": 72565,
+    "birth": "Thu Oct 15 00:55:56 2026",
+    "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+  },
+  "launcher_exit_code": 0,
+  "launcher_stderr": "",
+  "stable_file_observed": false,
+  "output_detection_elapsed_s": null,
+  "observation_elapsed_s": 20.0089,
+  "trace": [
+    {
+      "elapsed_s": 0.0726,
+      "files": []
+    }
+  ],
+  "resources": {
+    "sample_interval_s": 0.1,
+    "samples": 195,
+    "observed_peak_family_rss_mib": 181.05,
+    "sampled_family_cpu_seconds": 0.78,
+    "limitations": [
+      "RSS is sampled aggregate resident memory, not unique/private memory; shared pages may be counted repeatedly.",
+      "Short-lived children or their final CPU/RSS peak between 100ms samples can be missed; CPU is an observed estimate.",
+      "Includes observed descendants of the Downie root; system-managed/reparented WebKit or translation services may be excluded; unrelated research Electron and fixture server are excluded."
+    ]
+  },
+  "outputs": [],
+  "conditions": [
+    "Official documented downie:// URL scheme invoked by open -a exact installed app path.",
+    "Existing user profile, empty queue at start; research destination and temporary concurrency=1, connections=1, quality limit720p.",
+    "Output detection is a 100ms polled non-empty final-extension file, stable for800ms, with post-hoc ffprobe; not a UI completion milestone.",
+    "Warm already-running app. CPU is sampled estimate; RSS is summed process family; XPC WebKit processes reparented to launchd may not be captured."
+  ]
+}

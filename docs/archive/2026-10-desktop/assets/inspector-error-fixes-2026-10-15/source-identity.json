@@ -1,0 +1,16 @@
+{
+  "head": "a3d0bfbb444045e034b0fdfc611e4f2a9888c464",
+  "touched": {
+    "src/main/downloadError.ts": "d68214aec16fb4f4f711d48c397b5a97fdd4893d7ec3a8acabdd04f526e98f7a",
+    "src/main/downloadManager.ts": "27d6385aecc25dc1b810c5679dbbecdbc731843905a64c429bf4f16ca191c848",
+    "src/main/downloadProgress.ts": "7819dbbfecdc3ef2b00fc3ccfbddd9028b0377240615d02236e5064084e9d753",
+    "src/renderer/src/types/index.ts": "c1aaa473d4567d70b3c6849c22c90bd2d7ce3f9829d23736baa6f789391f1b87",
+    "src/renderer/src/hooks/useDownloads.ts": "7aa7f6d3a64f0e6007cd9e8dd79cdf33335678c3631a47043e9ca4eefaea09e1",
+    "src/renderer/src/hooks/downloadProgress.ts": "1fefae230eddb6113d2130385c5c4db5a6919fb6ee4d3e2dd527d264b7fe86df",
+    "src/renderer/src/components/DownloadInspector.tsx": "4ba5e688ed4cff96a6243b5ba35464733524fcc8d6b73e0c1539a8aee8d7cd56",
+    "src/renderer/src/components/downloadInspectorPresentation.ts": "f072716b7527e3f3eb0c7cb444fb6c85109206c5340608744c87fbb997b12931",
+    "src/renderer/src/components/downloadInspectorPresentation.test.ts": "8a1f2df8161e0b08674ae8b9bf14af223fe91136e2e53dca518dfafef36151ec",
+    "scripts/test-terminal-error-propagation.ts": "f1e12d07cc27a7091b15b8fe6a93bf2759b39f3fbe8880158a0a7d6d28125d00",
+    "scripts/test-download-progress.ts": "74da4ddfb0e5e3930e2937ed267eaf5a1e890ebe85e416cf231a6eb2624bfc38"
+  }
+}

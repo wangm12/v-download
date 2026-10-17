@@ -1,0 +1,20 @@
+{
+  "privateFilesMatch": {
+    "settings.json": true,
+    "cookies.txt": true,
+    "extension-pairing.secret": true,
+    "remote-jobs.json": true
+  },
+  "originalRows": 2,
+  "allOriginalDownloadFieldsUnchanged": true,
+  "integrity": "ok",
+  "authFilesPreserved": 0,
+  "authFileDifferences": [],
+  "normalProfileRunning": true,
+  "testTasksInNormalProfile": 0,
+  "browserAndUiStorageFilesCompared": 262,
+  "browserAndUiStorageFilesIdentical": 261,
+  "browserAndUiStorageFileDifferences": [
+    "Local Storage/leveldb/LOG"
+  ]
+}

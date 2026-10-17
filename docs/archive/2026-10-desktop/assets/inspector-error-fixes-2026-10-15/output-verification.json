@@ -1,0 +1,36 @@
+[
+  {
+    "id": "69669b51-9dfb-47fe-a878-9129f10ba49e",
+    "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/inspector-error-fixes-2026-10-15/output/E2E blocker [69669b51-9dfb-47fe-a878-9129f10ba49e].mp4",
+    "sha256": "de726c461e0704ba342e9779ad9782b8233478be5b8c1d5d63f266dfd9296ef2",
+    "duration": "4.000000",
+    "streams": [
+      [
+        "video",
+        "h264"
+      ],
+      [
+        "audio",
+        "aac"
+      ]
+    ],
+    "fullDecode": true
+  },
+  {
+    "id": "0fab3258-d77d-4cc5-9317-52ab15cd69c4",
+    "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/inspector-error-fixes-2026-10-15/output/E2E destination [0fab3258-d77d-4cc5-9317-52ab15cd69c4].mp4",
+    "sha256": "de726c461e0704ba342e9779ad9782b8233478be5b8c1d5d63f266dfd9296ef2",
+    "duration": "4.000000",
+    "streams": [
+      [
+        "video",
+        "h264"
+      ],
+      [
+        "audio",
+        "aac"
+      ]
+    ],
+    "fullDecode": true
+  }
+]

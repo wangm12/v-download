@@ -1,0 +1,30 @@
+{
+  "verified_at_utc": "2026-10-15T08:25:12.039310+00:00",
+  "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/runtime/output/remote-jobs/5163af85bd0bcb81/Direct media [7076e53a-ce2b-4d18-8ab9-887c3ccb7463].mp4",
+  "bytes": 2908122,
+  "sha256": "d48a95ca49de5d6520ee2e57093e51716b7a32f344e0f82131da0a6b95e2c5b8",
+  "decode_command": [
+    "/Applications/V-Download.app/Contents/Resources/engines/darwin-arm64/ffmpeg",
+    "-v",
+    "error",
+    "-xerror",
+    "-err_detect",
+    "explode",
+    "-i",
+    "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/runtime/output/remote-jobs/5163af85bd0bcb81/Direct media [7076e53a-ce2b-4d18-8ab9-887c3ccb7463].mp4",
+    "-map",
+    "0:v?",
+    "-map",
+    "0:a?",
+    "-progress",
+    "pipe:1",
+    "-f",
+    "null",
+    "-"
+  ],
+  "exit_code": 0,
+  "decoded_video_frames": 360,
+  "stderr": "",
+  "progress": "frame=360\nfps=0.00\nstream_0_0_q=-0.0\nbitrate=N/A\ntotal_size=N/A\nout_time_us=12000000\nout_time_ms=12000000\nout_time=00:00:12.000000\ndup_frames=0\ndrop_frames=0\nspeed= 205x\nprogress=end\n",
+  "valid": true
+}

@@ -1,0 +1,41 @@
+{
+  "single": {
+    "ok": true
+  },
+  "batch": {
+    "ok": true,
+    "results": [
+      {
+        "ok": true,
+        "status": 200
+      },
+      {
+        "ok": true,
+        "status": 200
+      }
+    ]
+  },
+  "invalidPlan": {
+    "ok": false,
+    "error": "The selected download plan no longer exists. Choose another plan."
+  },
+  "wakes": 0,
+  "catalog": [
+    {
+      "id": "builtin:archive",
+      "revision": 1
+    },
+    {
+      "id": "builtin:compatible",
+      "revision": 1
+    },
+    {
+      "id": "builtin:audio",
+      "revision": 1
+    },
+    {
+      "id": "51fd0b04-7e51-45b9-b8f8-06d1349cbb35",
+      "revision": 1
+    }
+  ]
+}

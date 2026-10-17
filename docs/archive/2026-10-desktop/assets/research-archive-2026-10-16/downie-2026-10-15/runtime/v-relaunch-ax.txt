@@ -1,0 +1,138 @@
+Window: "V-Download", App: Electron.
+0 standard window V-Download, Secondary Actions: Raise
+	1 container V-Download
+		2 container
+			3 HTML content V-Download, URL: file:///Applications/V-Download.app/Contents/Resources/app.asar/out/renderer/index.html
+				4 container
+					5 text V-Download
+					6 pop up button 主题菜单
+					7 text V-Download
+					8 text 下载
+					9 button 收起导航
+					10 container 主页
+						11 text 工作区
+						12 button 下载
+						13 text 偏好设置
+						14 button 通用
+						15 button 下载
+						16 button 浏览器
+						17 button 站点
+						18 button MCP
+						19 button 高级
+					20 container
+						21 text 1 个下载已中断
+						22 button 全部继续
+						23 button 关闭
+						24 heading 下载, Value: 1
+							25 text 下载
+						26 text 22 项
+						27 toggle button 全部, Value: 1
+						28 toggle button 进行中, Value: 0
+						29 toggle button 已完成, Value: 0
+						30 toggle button 需要关注 5, Value: 0
+							31 text 需要关注
+							32 text 5
+						33 button 搜索下载
+						34 text 将链接拖到这里，或按 Cmd+V 从剪贴板粘贴
+						35 container
+							36 toggle button Direct media 视频 · 360 已中断 重试 更多操作, Value: 0
+								37 text Direct media
+								38 text 视频 · 360
+								39 text 已中断
+								40 container
+									41 button 重试
+									42 pop up button 更多操作
+							43 toggle button Local synthetic download fixture (1) mp3 · 128 已完成 在 Finder 中显示 更多操作, Value: 0
+								44 text Local synthetic download fixture (1)
+								45 text mp3 · 128
+								46 text 已完成
+								47 container
+									48 button 在 Finder 中显示
+									49 pop up button 更多操作
+							50 toggle button Big Buck Bunny Blender · 视频 · 360 · 9:57 失败 重试 更多操作, Value: 0
+								51 text Big Buck Bunny
+								52 text Blender · 视频 · 360 · 9:57
+								53 text 失败
+								54 container
+									55 button 重试
+									56 pop up button 更多操作
+							57 toggle button Direct media 视频 · 360 已完成 在 Finder 中显示 更多操作, Value: 0
+								58 text Direct media
+								59 text 视频 · 360
+								60 text 已完成
+								61 container
+									62 button 在 Finder 中显示
+									63 pop up button 更多操作
+							64 toggle button Direct media 视频 · 360 已完成 在 Finder 中显示 更多操作, Value: 0
+								65 text Direct media
+								66 text 视频 · 360
+								67 text 已完成
+								68 container
+									69 button 在 Finder 中显示
+									70 pop up button 更多操作
+							71 toggle button Direct media 视频 · 720 已取消 重试 更多操作, Value: 0
+								72 text Direct media
+								73 text 视频 · 720
+								74 text 已取消
+								75 container
+									76 button 重试
+									77 pop up button 更多操作
+							78 toggle button Direct media 视频 · 720 已完成 在 Finder 中显示 更多操作, Value: 0
+								79 text Direct media
+								80 text 视频 · 720
+								81 text 已完成
+								82 container
+									83 button 在 Finder 中显示
+									84 pop up button 更多操作
+							85 toggle button Direct media 视频 · 720 失败 重试 更多操作, Value: 0
+								86 text Direct media
+								87 text 视频 · 720
+								88 text 失败
+								89 container
+									90 button 重试
+									91 pop up button 更多操作
+							92 toggle button Direct media 视频 · 720 失败 重试 更多操作, Value: 0
+								93 text Direct media
+								94 text 视频 · 720
+								95 text 失败
+								96 container
+									97 button 重试
+									98 pop up button 更多操作
+							99 toggle button Local synthetic download fixture (1) 视频 · 720 已完成 在 Finder 中显示 更多操作, Value: 0
+								100 text Local synthetic download fixture (1)
+								101 text 视频 · 720
+								102 text 已完成
+								103 container
+									104 button 在 Finder 中显示
+									105 pop up button 更多操作
+							106 toggle button Local synthetic download fixture (1) 视频 · 720 已完成 在 Finder 中显示 更多操作, Value: 0
+								107 text Local synthetic download fixture (1)
+								108 text 视频 · 720
+								109 text 已完成
+								110 container
+									111 button 在 Finder 中显示
+									112 pop up button 更多操作
+							113 toggle button Direct media 视频 · 720 已完成 在 Finder 中显示 更多操作, Value: 0
+								114 text Direct media
+								115 text 视频 · 720
+								116 text 已完成
+								117 container
+									118 button 在 Finder 中显示
+									119 pop up button 更多操作
+						120 button 开始全部下载
+						121 button (disabled) 暂停全部下载
+						122 button 清除下载
+						123 text 22 个下载 · 17 已完成
+						124 button 从 Chrome 同步 Cookie（所有支持的网站）
+	125 close button
+	126 full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window
+	127 minimize button
+128 menu bar
+	129 Electron
+	130 文件
+	131 编辑
+	132 显示
+	133 窗口
+	134 帮助
+
+The focused UI element is 3 HTML content V-Download, URL: file:///Applications/V-Download.app/Contents/Resources/app.asar/out/renderer/index.html

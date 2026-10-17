@@ -2,7 +2,7 @@
 
 Short regression matrix for **V-Download** (desktop + extension). Use legal URLs you control or stable public samples; rotate when sites change.
 
-Debug logging: see [DEBUG.md](./DEBUG.md) (`make dev` session log + release `worklog.txt`). Automated suite: `npm test` at the repo root.
+Debug logging: see [DEBUG.md](DEBUG.md) (`make dev` session log + release `worklog.txt`). Automated suite: `npm test` at the repo root.
 
 ## P0 — every release
 
@@ -81,7 +81,7 @@ Preferences → **Downloads** → **Download speed**.
 3. **Gentle** — Low concurrency and higher sleep; useful if you hit rate limits. Gentle also maps to yt-dlp `--limit-rate 2M` (2 MiB/s).
 4. **Optional external downloader** — Set `aria2c` only if installed; start one HLS job and confirm yt-dlp still completes or surfaces a clear error if the binary is missing.
 
-See [download-engines.md](./download-engines.md) for the routing matrix.
+See [download-engines.md](download-engines.md) for the routing matrix.
 
 ## Cookies and login (critical for Instagram / members YouTube)
 
@@ -90,7 +90,7 @@ See [download-engines.md](./download-engines.md) for the routing matrix.
 
 ## Remote Job API
 
-Full contract: [REMOTE_JOB_API.md](./REMOTE_JOB_API.md).
+Full contract: [REMOTE_JOB_API.md](REMOTE_JOB_API.md).
 
 - Preferences sidebar → **MCP** → enable Remote API (default off, `127.0.0.1:18766`).
 - `POST /v1/jobs` with Bearer token and `{ "url": "…" }` returns 202; poll `GET /v1/jobs/:id` or list with `GET /v1/jobs`. Default is media only (no caption Markdown). `{ "url": "…", "include_note": true }` writes `note.md` / a sidecar `.md`.
@@ -106,11 +106,22 @@ Full contract: [REMOTE_JOB_API.md](./REMOTE_JOB_API.md).
 
 Record: URL, surface (paste / extension / remote API), pass/fail, yt-dlp version, Chrome login state, cookie sync timing, notes.
 
-See also [download-reliability.md](./download-reliability.md) for Douyin fallback / CloakBrowser notes, and [PRODUCT_DIRECTION.md](./PRODUCT_DIRECTION.md) for the open backlog.
+See also [download-reliability.md](download-reliability.md) for Douyin fallback / CloakBrowser notes, and [PRODUCT_DIRECTION.md](PRODUCT_DIRECTION.md) for the current scope. Delivered changes and their evidence are indexed in [DESKTOP_STATUS.md](DESKTOP_STATUS.md); archived feature rankings are not release requirements.
 
-## Monochrome redesign — mockup vs build
+## Precise plans and browser capture
 
-Use this matrix with [DESIGN_PLAN.md](./DESIGN_PLAN.md) and the PNGs under [`design/v-download-v1/exports/png/`](../design/v-download-v1/exports/png/) (or the combined [PDF](../design/v-download-v1/exports/pdf/v-download-bw-redesign-mockups.pdf)). For each row, open the mockup, compare to the current app, and tick when the **Verify** criteria are met (or mark N/A if the phase is not shipped yet).
+- Submit the same plan through single, collection, and extension entry points. Check frozen revision, original collection positions, quality / audio labels, and actual output with ffprobe.
+- Reload the development extension, navigate once, and inspect the first popup without refreshing the page. Preserve independent candidates, raw query strings, complete Referer, and iframe document context; repeated observations must not increase scores.
+- Inspect MP4 / HLS / DASH candidates on demand. Unknown facts stay unknown; manifest inspection is not a completed download.
+- Recapture a failed task, explicitly choose a replacement, and verify the same task ID, plan and output root. Reject stale / canceled / foreign-page sessions and incompatible exact format IDs.
+- Switch between task details after editing capture input. Each task initializes its own input / message state.
+- Verify MP3 contains audio only, selected height is enforced, promised existing embedded subtitles / chapters survive, and output checks run before completion.
+- Produce a 404 and a real missing-engine launch error. They must lead to different categories; an unexplained 403 is not automatically a login requirement.
+- Keep a historical failed task, interrupt another task, restart and recover. Only the interrupted task is resumed.
+
+## Desktop UI regression — specification and historical mockups
+
+Use the current [UI specification](DESIGN_PLAN.md). The PNGs under [`design/v-download-v1/exports/png/`](../design/v-download-v1/exports/png) and combined [PDF](../design/v-download-v1/exports/pdf/v-download-bw-redesign-mockups.pdf) are historical visual references. Verify the current specification and behavior; do not require pixel equivalence to an older monochrome export. Mark unsupported historical surfaces N/A.
 
 | Mockup | Screen | Phase | Verify in build |
 |--------|--------|-------|-----------------|

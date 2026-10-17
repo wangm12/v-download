@@ -1,0 +1,48 @@
+{
+  "research_date": "2026-10-15",
+  "source_head": "a3d0bfbb444045e034b0fdfc611e4f2a9888c464",
+  "files": [
+    {
+      "path": "/Applications/Downie 4.app/Contents/MacOS/Downie 4",
+      "bytes": 3685664,
+      "sha256": "6eb6e6582f8bb47e3e0d6ba0fabeabbbfbf72b6e4c4795a95d3ab1b3b4ed1b61"
+    },
+    {
+      "path": "/Applications/Downie 4.app/Contents/Frameworks/DownieCore.framework/Versions/A/DownieCore",
+      "bytes": 33866592,
+      "sha256": "1931e01249a987a7bd4ecb4f4c0cd2cbdfe2757a183b4420f1eea71d078240cd"
+    },
+    {
+      "path": "/Applications/V-Download.app/Contents/Resources/app.asar",
+      "bytes": 28443231,
+      "sha256": "2b436fae61184fb4f1a265a9a82f6af835b10a5b8a5b96dddf8cfaf9d1991a61"
+    },
+    {
+      "path": "/Applications/V-Download.app/Contents/Resources/engines/darwin-arm64/yt-dlp",
+      "bytes": 12107104,
+      "sha256": "e0ded0a3ca3c9633519578dc44adaa53003df86d1126bd4bf233ae9dc6da992b"
+    },
+    {
+      "path": "/Applications/V-Download.app/Contents/Resources/engines/darwin-arm64/ffmpeg",
+      "bytes": 65256368,
+      "sha256": "4a9b309ffe7204d9791df8d96697b18f255c5cffcd826df55f085044d930d201"
+    },
+    {
+      "path": "/Applications/V-Download.app/Contents/Resources/engines/darwin-arm64/ffprobe",
+      "bytes": 65066080,
+      "sha256": "0558a2fa04d4cb7085e3275cacd50cacb1d6ff4e41d44fb25653500c469071e5"
+    }
+  ],
+  "downie": {
+    "CFBundleIdentifier": "com.charliemonroe.Downie-4",
+    "CFBundleShortVersionString": "4.7.27",
+    "CFBundleVersion": "4787",
+    "LSMinimumSystemVersion": "10.14.6"
+  },
+  "v_download": {
+    "CFBundleIdentifier": "com.ytdownload.app",
+    "CFBundleShortVersionString": "1.1.7",
+    "CFBundleVersion": "1.1.7",
+    "LSMinimumSystemVersion": "12.0"
+  }
+}

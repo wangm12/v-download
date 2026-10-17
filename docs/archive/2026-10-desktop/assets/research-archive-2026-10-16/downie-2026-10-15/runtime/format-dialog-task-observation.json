@@ -1,0 +1,26 @@
+[
+  {
+    "id": "2c663f66-e299-4264-9696-5db553a76e50",
+    "url": "http://127.0.0.1:55661/watch/dash",
+    "title": "Local synthetic download fixture (1)",
+    "format": "mp3",
+    "quality": "128",
+    "status": "complete",
+    "progress": 100.0,
+    "file_path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/runtime/output/Local synthetic download fixture (1) [dash-1].mp3",
+    "error_code": null,
+    "updated_at": "2026-10-15T07:40:11.348Z"
+  },
+  {
+    "id": "83ab833b-2d7a-417e-9cc6-8306d5fbfd9b",
+    "url": "https://www.youtube.com/watch?v=YE7VzlLtp-4",
+    "title": "Big Buck Bunny",
+    "format": "video",
+    "quality": "360",
+    "status": "error",
+    "progress": 0.0,
+    "file_path": null,
+    "error_code": "AUTH_REQUIRED",
+    "updated_at": "2026-10-15T07:38:01.353Z"
+  }
+]

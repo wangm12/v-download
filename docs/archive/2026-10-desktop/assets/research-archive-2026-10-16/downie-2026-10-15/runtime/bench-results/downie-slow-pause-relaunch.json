@@ -1,0 +1,240 @@
+{
+  "label": "slow-pause-relaunch",
+  "input_url": "http://127.0.0.1:55661/slow.mp4",
+  "scheme": "downie://XUOpenURL?url=http%3A%2F%2F127.0.0.1%3A55661%2Fslow.mp4&destination=%2FUsers%2Fmingjie%2FDocuments%2Fgithub%2Fpersonal-projects%2Fv-download-research%2Fdownie-2026-10-15%2Fruntime%2Fdownie-output%2Fslow-pause-relaunch",
+  "started_epoch": 1792050916.101032,
+  "identity": {
+    "pid": 41896,
+    "birth": "Thu Oct 15 00:17:36 2026",
+    "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+  },
+  "launcher_exit_code": 0,
+  "launcher_stderr": "",
+  "stable_file_observed": true,
+  "output_detection_elapsed_s": 104.7367,
+  "observation_elapsed_s": 105.5731,
+  "trace": [
+    {
+      "elapsed_s": 0.074,
+      "files": []
+    },
+    {
+      "elapsed_s": 0.1795,
+      "files": [
+        {
+          "name": "slow.mp4.downiepart/750BDC68-D45F-4BB5-A5A4-2051F2838647.mp4",
+          "bytes": 0
+        },
+        {
+          "name": "slow.mp4.downiepart/750BDC68-D45F-4BB5-A5A4-2051F2838647.mp4.plist",
+          "bytes": 269
+        }
+      ]
+    },
+    {
+      "elapsed_s": 42.7893,
+      "files": [
+        {
+          "name": "slow.mp4 -  - 2026-10-15 00-55-58.downiepart/750BDC68-D45F-4BB5-A5A4-2051F2838647.mp4",
+          "bytes": 0
+        },
+        {
+          "name": "slow.mp4 -  - 2026-10-15 00-55-58.downiepart/750BDC68-D45F-4BB5-A5A4-2051F2838647.mp4.plist",
+          "bytes": 269
+        },
+        {
+          "name": "slow.mp4.downiepart/750BDC68-D45F-4BB5-A5A4-2051F2838647.mp4",
+          "bytes": 0
+        },
+        {
+          "name": "slow.mp4.downiepart/750BDC68-D45F-4BB5-A5A4-2051F2838647.mp4.plist",
+          "bytes": 269
+        }
+      ]
+    },
+    {
+      "elapsed_s": 104.7368,
+      "files": [
+        {
+          "name": "slow.mp4 -  - 2026-10-15 00-55-58.downiepart/750BDC68-D45F-4BB5-A5A4-2051F2838647.mp4",
+          "bytes": 2000000
+        },
+        {
+          "name": "slow.mp4 -  - 2026-10-15 00-55-58.downiepart/750BDC68-D45F-4BB5-A5A4-2051F2838647.mp4.plist",
+          "bytes": 266
+        },
+        {
+          "name": "slow.mp4.downiepart/750BDC68-D45F-4BB5-A5A4-2051F2838647.mp4",
+          "bytes": 0
+        },
+        {
+          "name": "slow.mp4.downiepart/750BDC68-D45F-4BB5-A5A4-2051F2838647.mp4.plist",
+          "bytes": 269
+        }
+      ]
+    }
+  ],
+  "resources": {
+    "sample_interval_s": 0.1,
+    "samples": 1019,
+    "observed_peak_family_rss_mib": 251.41,
+    "sampled_family_cpu_seconds": 0.75,
+    "limitations": [
+      "RSS is sampled aggregate resident memory, not unique/private memory; shared pages may be counted repeatedly.",
+      "Short-lived children or their final CPU/RSS peak between 100ms samples can be missed; CPU is an observed estimate.",
+      "Includes observed descendants of the Downie root; system-managed/reparented WebKit or translation services may be excluded; unrelated research Electron and fixture server are excluded."
+    ]
+  },
+  "outputs": [
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/runtime/downie-output/slow-pause-relaunch/slow.mp4 -  - 2026-10-15 00-55-58.downiepart/750BDC68-D45F-4BB5-A5A4-2051F2838647.mp4",
+      "bytes": 2000000,
+      "exit_code": 0,
+      "probe": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+            "profile": "High",
+            "codec_type": "video",
+            "codec_tag_string": "avc1",
+            "codec_tag": "0x31637661",
+            "mime_codec_string": "avc1.64001f",
+            "width": 1280,
+            "height": 720,
+            "coded_width": 1280,
+            "coded_height": 720,
+            "has_b_frames": 2,
+            "sample_aspect_ratio": "1:1",
+            "display_aspect_ratio": "16:9",
+            "pix_fmt": "yuv420p",
+            "level": 31,
+            "chroma_location": "left",
+            "field_order": "progressive",
+            "is_avc": "true",
+            "nal_length_size": "4",
+            "id": "0x1",
+            "r_frame_rate": "30/1",
+            "avg_frame_rate": "30/1",
+            "time_base": "1/15360",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 184320,
+            "duration": "12.000000",
+            "bit_rate": "1801451",
+            "bits_per_raw_sample": "8",
+            "nb_frames": "360",
+            "extradata_size": 45,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "VideoHandler",
+              "encoder": "Lavc62.28.102 libx264"
+            }
+          },
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_long_name": "AAC (Advanced Audio Coding)",
+            "profile": "LC",
+            "codec_type": "audio",
+            "codec_tag_string": "mp4a",
+            "codec_tag": "0x6134706d",
+            "mime_codec_string": "mp4a.40.2",
+            "sample_fmt": "fltp",
+            "sample_rate": "48000",
+            "channels": 1,
+            "channel_layout": "mono",
+            "bits_per_sample": 0,
+            "initial_padding": 0,
+            "id": "0x2",
+            "r_frame_rate": "0/0",
+            "avg_frame_rate": "0/0",
+            "time_base": "1/48000",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 576000,
+            "duration": "12.000000",
+            "bit_rate": "127538",
+            "nb_frames": "564",
+            "extradata_size": 5,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "SoundHandler"
+            }
+          }
+        ],
+        "chapters": [],
+        "format": {
+          "filename": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/runtime/downie-output/slow-pause-relaunch/slow.mp4 -  - 2026-10-15 00-55-58.downiepart/750BDC68-D45F-4BB5-A5A4-2051F2838647.mp4",
+          "nb_streams": 2,
+          "nb_programs": 0,
+          "nb_stream_groups": 0,
+          "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+          "format_long_name": "QuickTime / MOV",
+          "start_time": "0.000000",
+          "duration": "12.000000",
+          "size": "2000000",
+          "bit_rate": "1333333",
+          "probe_score": 100,
+          "tags": {
+            "major_brand": "isom",
+            "minor_version": "512",
+            "compatible_brands": "isomiso2avc1mp41",
+            "title": "REA synthetic 720p fixture",
+            "encoder": "Lavf62.12.102"
+          }
+        }
+      },
+      "stderr": ""
+    }
+  ],
+  "conditions": [
+    "Official documented downie:// URL scheme invoked by open -a exact installed app path.",
+    "Existing user profile, empty queue at start; research destination and temporary concurrency=1, connections=1, quality limit720p.",
+    "Output detection is a 100ms polled non-empty final-extension file, stable for800ms, with post-hoc ffprobe; not a UI completion milestone.",
+    "Warm already-running app. CPU is sampled estimate; RSS is summed process family; XPC WebKit processes reparented to launchd may not be captured."
+  ]
+}

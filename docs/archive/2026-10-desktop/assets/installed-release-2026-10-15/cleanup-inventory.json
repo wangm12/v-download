@@ -1,0 +1,226 @@
+[
+  {
+    "path": "/Users/mingjie/Library/Application Support/v-download/DawnGraphiteCache",
+    "kib": 548
+  },
+  {
+    "path": "/Users/mingjie/Library/Application Support/v-download/GPUCache",
+    "kib": 1608
+  },
+  {
+    "path": "/Users/mingjie/Library/Application Support/v-download/Cache",
+    "kib": 31504
+  },
+  {
+    "path": "/Users/mingjie/Library/Application Support/v-download/DawnWebGPUCache",
+    "kib": 548
+  },
+  {
+    "path": "/Users/mingjie/Library/Application Support/v-download/Code Cache",
+    "kib": 9764
+  },
+  {
+    "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-hydrate/DawnGraphiteCache",
+    "kib": 548
+  },
+  {
+    "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-hydrate/GPUCache",
+    "kib": 1608
+  },
+  {
+    "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-hydrate/Cache",
+    "kib": 1203372
+  },
+  {
+    "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-hydrate/DawnWebGPUCache",
+    "kib": 548
+  },
+  {
+    "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-hydrate/Code Cache",
+    "kib": 32564
+  },
+  {
+    "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-hydrate/Service Worker/CacheStorage",
+    "kib": 156
+  },
+  {
+    "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-hydrate/Service Worker/ScriptCache",
+    "kib": 84
+  },
+  {
+    "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-recovery/DawnGraphiteCache",
+    "kib": 548
+  },
+  {
+    "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-recovery/GPUCache",
+    "kib": 1608
+  },
+  {
+    "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-recovery/Cache",
+    "kib": 12980
+  },
+  {
+    "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-recovery/DawnWebGPUCache",
+    "kib": 548
+  },
+  {
+    "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-recovery/Code Cache",
+    "kib": 544
+  },
+  {
+    "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-recovery/Service Worker/CacheStorage",
+    "kib": 156
+  },
+  {
+    "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-recovery/Service Worker/ScriptCache",
+    "kib": 84
+  },
+  {
+    "path": "/Users/mingjie/Library/Application Support/v-download/cloak-douyin-profile/GrShaderCache",
+    "kib": 548
+  },
+  {
+    "path": "/Users/mingjie/Library/Application Support/v-download/cloak-douyin-profile/ShaderCache",
+    "kib": 548
+  },
+  {
+    "path": "/Users/mingjie/Library/Application Support/v-download/cloak-douyin-profile/Default/DawnGraphiteCache",
+    "kib": 548
+  },
+  {
+    "path": "/Users/mingjie/Library/Application Support/v-download/cloak-douyin-profile/Default/GPUCache",
+    "kib": 548
+  },
+  {
+    "path": "/Users/mingjie/Library/Application Support/v-download/cloak-douyin-profile/Default/DawnWebGPUCache",
+    "kib": 548
+  },
+  {
+    "path": "/Users/mingjie/Library/Application Support/v-download/cloak-douyin-profile/Default/Service Worker/ScriptCache",
+    "kib": 16
+  },
+  {
+    "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/DawnGraphiteCache",
+    "kib": 548
+  },
+  {
+    "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/GPUCache",
+    "kib": 1608
+  },
+  {
+    "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Cache",
+    "kib": 31504
+  },
+  {
+    "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/DawnWebGPUCache",
+    "kib": 548
+  },
+  {
+    "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Code Cache",
+    "kib": 9764
+  },
+  {
+    "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-hydrate/DawnGraphiteCache",
+    "kib": 548
+  },
+  {
+    "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-hydrate/GPUCache",
+    "kib": 1608
+  },
+  {
+    "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-hydrate/Cache",
+    "kib": 1203372
+  },
+  {
+    "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-hydrate/DawnWebGPUCache",
+    "kib": 548
+  },
+  {
+    "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-hydrate/Code Cache",
+    "kib": 32564
+  },
+  {
+    "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-hydrate/Service Worker/CacheStorage",
+    "kib": 156
+  },
+  {
+    "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-hydrate/Service Worker/ScriptCache",
+    "kib": 84
+  },
+  {
+    "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-recovery/DawnGraphiteCache",
+    "kib": 548
+  },
+  {
+    "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-recovery/GPUCache",
+    "kib": 1608
+  },
+  {
+    "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-recovery/Cache",
+    "kib": 12980
+  },
+  {
+    "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-recovery/DawnWebGPUCache",
+    "kib": 548
+  },
+  {
+    "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-recovery/Code Cache",
+    "kib": 544
+  },
+  {
+    "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-recovery/Service Worker/CacheStorage",
+    "kib": 156
+  },
+  {
+    "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-recovery/Service Worker/ScriptCache",
+    "kib": 84
+  },
+  {
+    "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/cloak-douyin-profile/GrShaderCache",
+    "kib": 548
+  },
+  {
+    "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/cloak-douyin-profile/ShaderCache",
+    "kib": 548
+  },
+  {
+    "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/cloak-douyin-profile/Default/DawnGraphiteCache",
+    "kib": 548
+  },
+  {
+    "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/cloak-douyin-profile/Default/GPUCache",
+    "kib": 548
+  },
+  {
+    "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/cloak-douyin-profile/Default/DawnWebGPUCache",
+    "kib": 548
+  },
+  {
+    "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/cloak-douyin-profile/Default/Service Worker/ScriptCache",
+    "kib": 16
+  },
+  {
+    "path": "/Users/mingjie/Documents/github/personal-projects/v-download/dist",
+    "kib": 1133264
+  },
+  {
+    "path": "/Users/mingjie/Documents/github/personal-projects/v-download/out",
+    "kib": 2396
+  },
+  {
+    "path": "/Users/mingjie/Documents/github/personal-projects/v-download/.release-staging",
+    "kib": 313732
+  },
+  {
+    "path": "/Users/mingjie/Documents/github/personal-projects/v-download/node_modules/.vite",
+    "kib": 7596
+  },
+  {
+    "path": "/Users/mingjie/Documents/github/personal-projects/v-download/packages/shared/dist",
+    "kib": 176
+  },
+  {
+    "path": "/Users/mingjie/Library/Application Support/v-download/logs",
+    "kib": 12
+  }
+]

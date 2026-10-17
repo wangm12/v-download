@@ -1,0 +1,242 @@
+[
+  {
+    "monotonic": 0.079849041,
+    "rss_kib": 153300,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 153300,
+        "cpu_s": 9.02,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 0.184897791,
+    "rss_kib": 153300,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 153300,
+        "cpu_s": 9.02,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 0.2893375,
+    "rss_kib": 153156,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 153156,
+        "cpu_s": 9.02,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 0.393542083,
+    "rss_kib": 156488,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 156368,
+        "cpu_s": 9.1,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      },
+      {
+        "pid": 69177,
+        "ppid": 41896,
+        "rss_kib": 120,
+        "cpu_s": 0.0,
+        "birth": "Thu Oct 15 00:51:03 2026",
+        "executable": "/Applications/Downie 4.app/Contents/Resources/ffmpeg"
+      }
+    ]
+  },
+  {
+    "monotonic": 0.498599458,
+    "rss_kib": 156488,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 156368,
+        "cpu_s": 9.11,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      },
+      {
+        "pid": 69177,
+        "ppid": 41896,
+        "rss_kib": 120,
+        "cpu_s": 0.0,
+        "birth": "Thu Oct 15 00:51:03 2026",
+        "executable": "/Applications/Downie 4.app/Contents/Resources/ffmpeg"
+      }
+    ]
+  },
+  {
+    "monotonic": 0.60365325,
+    "rss_kib": 156484,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 156364,
+        "cpu_s": 9.12,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      },
+      {
+        "pid": 69177,
+        "ppid": 41896,
+        "rss_kib": 120,
+        "cpu_s": 0.0,
+        "birth": "Thu Oct 15 00:51:03 2026",
+        "executable": "/Applications/Downie 4.app/Contents/Resources/ffmpeg"
+      }
+    ]
+  },
+  {
+    "monotonic": 0.706107541,
+    "rss_kib": 156484,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 156364,
+        "cpu_s": 9.12,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      },
+      {
+        "pid": 69177,
+        "ppid": 41896,
+        "rss_kib": 120,
+        "cpu_s": 0.0,
+        "birth": "Thu Oct 15 00:51:03 2026",
+        "executable": "/Applications/Downie 4.app/Contents/Resources/ffmpeg"
+      }
+    ]
+  },
+  {
+    "monotonic": 0.807052791,
+    "rss_kib": 156484,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 156364,
+        "cpu_s": 9.12,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      },
+      {
+        "pid": 69177,
+        "ppid": 41896,
+        "rss_kib": 120,
+        "cpu_s": 0.0,
+        "birth": "Thu Oct 15 00:51:03 2026",
+        "executable": "/Applications/Downie 4.app/Contents/Resources/ffmpeg"
+      }
+    ]
+  },
+  {
+    "monotonic": 0.912117041,
+    "rss_kib": 156740,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 156620,
+        "cpu_s": 9.14,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      },
+      {
+        "pid": 69177,
+        "ppid": 41896,
+        "rss_kib": 120,
+        "cpu_s": 0.0,
+        "birth": "Thu Oct 15 00:51:03 2026",
+        "executable": "/Applications/Downie 4.app/Contents/Resources/ffmpeg"
+      }
+    ]
+  },
+  {
+    "monotonic": 1.017182083,
+    "rss_kib": 156740,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 156620,
+        "cpu_s": 9.15,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      },
+      {
+        "pid": 69177,
+        "ppid": 41896,
+        "rss_kib": 120,
+        "cpu_s": 0.0,
+        "birth": "Thu Oct 15 00:51:03 2026",
+        "executable": "/Applications/Downie 4.app/Contents/Resources/ffmpeg"
+      }
+    ]
+  },
+  {
+    "monotonic": 1.122239208,
+    "rss_kib": 156740,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 156620,
+        "cpu_s": 9.16,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      },
+      {
+        "pid": 69177,
+        "ppid": 41896,
+        "rss_kib": 120,
+        "cpu_s": 0.0,
+        "birth": "Thu Oct 15 00:51:03 2026",
+        "executable": "/Applications/Downie 4.app/Contents/Resources/ffmpeg"
+      }
+    ]
+  },
+  {
+    "monotonic": 1.222722333,
+    "rss_kib": 156740,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 156620,
+        "cpu_s": 9.16,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      },
+      {
+        "pid": 69177,
+        "ppid": 41896,
+        "rss_kib": 120,
+        "cpu_s": 0.0,
+        "birth": "Thu Oct 15 00:51:03 2026",
+        "executable": "/Applications/Downie 4.app/Contents/Resources/ffmpeg"
+      }
+    ]
+  }
+]

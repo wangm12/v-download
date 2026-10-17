@@ -1,0 +1,120 @@
+Window: "V-Download", App: V-Download.
+0 standard window V-Download, Secondary Actions: Raise
+	1 container V-Download
+		2 container
+			3 HTML content V-Download, URL: file:///Applications/V-Download.app/Contents/Resources/app.asar/out/renderer/index.html
+				4 container
+					5 text V-Download
+					6 button Hide download details
+					7 pop up button Theme menu
+					8 text V-Download
+					9 text Downloads
+					10 button Collapse navigation
+					11 container Home
+						12 text WORKSPACE
+						13 button Downloads
+						14 text PREFERENCES
+						15 button General
+						16 button Downloads
+						17 button Browser
+						18 button Sites
+						19 button MCP
+						20 button Advanced
+					21 container
+						22 heading Downloads, Value: 1
+							23 text Downloads
+						24 text 4 items
+						25 toggle button All, Value: 1
+						26 toggle button Active, Value: 0
+						27 toggle button Done, Value: 0
+						28 toggle button Needs attention 2, Value: 0
+							29 text Needs attention
+							30 text 2
+						31 button Search downloads
+						32 text Drop a link here or press Cmd+V to paste from the clipboard 1 selected
+						33 button Clear selection
+						34 container
+							35 text Retrying that download.
+							36 button Dismiss
+								37 image
+						38 container
+							39 toggle button Review 404 Video · 360 Failed Retry More actions, Value: 0
+								40 text Review 404
+								41 text Video · 360
+								42 text Failed
+								43 container
+									44 button Retry
+									45 pop up button More actions
+							46 toggle button Review 401 Video · 360 Failed Retry More actions, Value: 0
+								47 text Review 401
+								48 text Video · 360
+								49 text Failed
+								50 container
+									51 button Retry
+									52 pop up button More actions
+							53 toggle button Review B Video · 360 Complete Reveal in Finder More actions, Value: 1
+								54 text Review B
+								55 text Video · 360
+								56 text Complete
+								57 container
+									58 button Reveal in Finder
+									59 pop up button More actions
+							60 toggle button Review A Video · 360 Complete Reveal in Finder More actions, Value: 0
+								61 text Review A
+								62 text Video · 360
+								63 text Complete
+								64 container
+									65 button Reveal in Finder
+									66 pop up button More actions
+						67 button Start all downloads
+						68 button (disabled) Pause all downloads
+						69 button Clear downloads
+						70 text 4 Downloads · 2 Complete
+						71 button Sync cookies from Chrome (all supported sites)
+						72 container Download details
+							73 heading Download details, Value: 2
+								74 text Download details
+							75 button Close download details
+							76 heading Review B, Value: 2
+								77 text Review B
+							78 text Complete
+							79 container
+								80 text Download plan  ·  Review 360p H264
+							81 text Select automatically using this plan · H264 · ≤ 30 fps
+							82 definition list
+								83 container Format
+									84 text Format
+								85 text Video · 360
+							86 container
+								87 button Open file
+								88 button Reveal in Finder
+							89 container Media details
+								90 text Media details
+								91 container
+									92 text Request document :  http://127.0.0.1:62867/embed/player?chapter=one%20two
+								93 disclosure triangle Current media URL
+									94 text Current media URL
+								95 text Source recaptured; this attempt downloads from the beginning.
+								96 button Inspect media
+							97 text Destination
+							98 text Review B [72ea52a3-2f77-4553-b96a-bfaf77b9a376].mp4
+							99 text capture-review-install-2026-10-15/frozen-output
+							100 text Source
+							101 button 127.0.0.1
+							102 disclosure triangle Show link details
+								103 text Show link details
+							104 disclosure triangle Create converted copy
+								105 text Create converted copy
+							106 pop up button More actions
+	107 close button
+	108 full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window
+	109 minimize button
+110 menu bar
+	111 V-Download
+	112 File
+	113 Edit
+	114 View
+	115 Window
+	116 Help
+
+The focused UI element is 3 HTML content V-Download, URL: file:///Applications/V-Download.app/Contents/Resources/app.asar/out/renderer/index.html

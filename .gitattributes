@@ -1,0 +1,3 @@
+# Retained research evidence is byte-preserved, including AX spacing, patch
+# context, log endings and captured line endings. Keep normal checks elsewhere.
+docs/archive/2026-10-desktop/assets/** -text -whitespace

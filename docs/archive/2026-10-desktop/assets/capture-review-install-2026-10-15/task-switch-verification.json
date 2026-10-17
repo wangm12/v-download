@@ -1,0 +1,5 @@
+{
+  "scenario": "edit A source, select B, expand B source",
+  "expected": "http://127.0.0.1:62867/watch?review=SECOND",
+  "passed": true
+}

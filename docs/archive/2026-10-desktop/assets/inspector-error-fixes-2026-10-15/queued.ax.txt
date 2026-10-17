@@ -1,0 +1,84 @@
+Window: "V-Download", App: V-Download.
+0 standard window V-Download, Secondary Actions: Raise
+	1 container V-Download
+		2 container
+			3 HTML content V-Download, URL: file:///Applications/V-Download.app/Contents/Resources/app.asar/out/renderer/index.html
+				4 container
+					5 text V-Download
+					6 button Hide download details
+					7 pop up button Theme menu
+					8 text V-Download
+					9 text Downloads
+					10 button Collapse navigation
+					11 container Home
+						12 text WORKSPACE
+						13 button Downloads
+						14 text PREFERENCES
+						15 button General
+						16 button Downloads
+						17 button Browser
+						18 button Sites
+						19 button MCP
+						20 button Advanced
+					21 container
+						22 heading Downloads, Value: 1
+							23 text Downloads
+						24 text 2 items
+						25 toggle button All, Value: 1
+						26 toggle button Active, Value: 0
+						27 toggle button Done, Value: 0
+						28 toggle button Needs attention, Value: 0
+						29 search text field (settable) Description: Search downloads, Value: E2E, Placeholder: Search downloads…
+						30 text Drop a link here or press Cmd+V to paste from the clipboard 1 selected
+						31 button Clear selection
+						32 container
+							33 toggle button E2E destination Video · best Queued Cancel, Value: 1
+								34 text E2E destination
+								35 text Video · best
+								36 text Queued
+								37 button Cancel
+							38 toggle button E2E blocker Video · best Video · Starting… · 586.18KiB Pause More actions, Value: 0
+								39 text E2E blocker
+								40 text Video · best
+								41 text Video · Starting… · 586.18KiB
+								42 container
+									43 button Pause
+									44 pop up button More actions
+						45 button Start all downloads
+						46 button Pause all downloads
+						47 button Clear downloads
+						48 text 4 Downloads · 2 Complete
+						49 button Sync cookies from Chrome (all supported sites)
+						50 container Download details
+							51 heading Download details, Value: 2
+								52 text Download details
+							53 button Close download details
+							54 heading E2E destination, Value: 2
+								55 text E2E destination
+							56 text Queued
+							57 container
+								58 text Download plan  ·  E2E destination
+							59 text Select automatically using this plan
+							60 definition list
+								61 container Format
+									62 text Format
+								63 text Video · best
+							64 button Cancel
+							65 text Destination
+							66 text inspector-error-fixes-2026-10-15/output
+							67 text Source
+							68 button 127.0.0.1
+							69 disclosure triangle Show link details
+								70 text Show link details
+	71 close button
+	72 full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window
+	73 minimize button
+74 menu bar
+	75 V-Download
+	76 File
+	77 Edit
+	78 View
+	79 Window
+	80 Help
+
+The focused UI element is 29 search text field (settable) Description: Search downloads, Value: E2E, Placeholder: Search downloads…

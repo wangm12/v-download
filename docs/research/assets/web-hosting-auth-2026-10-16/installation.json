@@ -1,0 +1,8 @@
+{
+  "app_version": "1.1.7",
+  "build": "1.1.10",
+  "bundle_id": "com.ytdownload.app",
+  "app_asar_sha256": "406d482231e4911c9c8704ad2a60124357970b5352a1f79ff3317ee3bb45309c",
+  "machine": "arm64",
+  "os": "27.0.1"
+}

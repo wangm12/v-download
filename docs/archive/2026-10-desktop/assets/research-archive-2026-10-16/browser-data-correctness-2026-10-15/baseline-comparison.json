@@ -1,0 +1,58 @@
+{
+  "before": {
+    "wireUrl": "https://cdn.fixture.test/media.m3u8?token=a%2Fb&label=hello+world",
+    "mergeScores": [
+      39,
+      78,
+      100,
+      100
+    ],
+    "roles": [
+      {
+        "url": "https://cdn.fixture.test/episode-1/master.m3u8",
+        "role": "main"
+      },
+      {
+        "url": "https://cdn.fixture.test/episode-2/master.m3u8",
+        "role": "variant"
+      },
+      {
+        "url": "https://cdn.fixture.test/episode-3/master.m3u8",
+        "role": "variant"
+      },
+      {
+        "url": "https://cdn.fixture.test/independent.mp4",
+        "role": "preview"
+      }
+    ],
+    "smartCount": 2
+  },
+  "after": {
+    "wireUrl": "https://cdn.fixture.test/media.m3u8?token=a%2fb&label=hello%20world&utm_source=capture",
+    "mergeScores": [
+      39,
+      39,
+      39,
+      39
+    ],
+    "roles": [
+      {
+        "url": "https://cdn.fixture.test/episode-1/master.m3u8",
+        "role": "main"
+      },
+      {
+        "url": "https://cdn.fixture.test/episode-2/master.m3u8",
+        "role": "unknown"
+      },
+      {
+        "url": "https://cdn.fixture.test/episode-3/master.m3u8",
+        "role": "unknown"
+      },
+      {
+        "url": "https://cdn.fixture.test/independent.mp4",
+        "role": "unknown"
+      }
+    ],
+    "smartCount": 4
+  }
+}

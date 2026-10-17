@@ -1,0 +1,13 @@
+The following is a diff from the previous accessibility tree for Window: "V-Download" with ~ and + representing changed and added elements, respectively. Removed elements are summarized by ID range.
+Removed element IDs: 167-168
++								178 container
++									179 disclosure triangle Source page for recapture
++										180 text Source page for recapture
++									181 text Source page for recapture
++									182 url (settable) Source page for recapture, Value: http://127.0.0.1:62867/watch?review=SECOND
++									183 text If this task only has a CDN link, enter the page where you can play the media. The original task URL stays unchanged.
+Selected text: ```
+￼
+```
+
+Note: Pay special attention to the content selected by the user. If the user asks a question or refers to the content they are looking at on-screen, they might be referring to the selected content (but they might be referring to something else that's visible, too).

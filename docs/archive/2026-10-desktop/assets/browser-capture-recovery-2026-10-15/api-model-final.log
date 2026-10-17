@@ -1,0 +1,5 @@
+
+> v-download@1.1.7 test:api-jobs
+> npx tsx scripts/test-api-jobs.ts
+
+api jobs model tests passed

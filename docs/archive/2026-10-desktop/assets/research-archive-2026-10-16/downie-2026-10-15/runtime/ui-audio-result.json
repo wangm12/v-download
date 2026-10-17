@@ -1,0 +1,95 @@
+{
+  "task": {
+    "id": "2c663f66-e299-4264-9696-5db553a76e50",
+    "url": "http://127.0.0.1:55661/watch/dash",
+    "title": "Local synthetic download fixture (1)",
+    "format": "mp3",
+    "quality": "128",
+    "status": "complete",
+    "progress": 100.0,
+    "file_path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/runtime/output/Local synthetic download fixture (1) [dash-1].mp3",
+    "file_size": 109944,
+    "thumbnail": "",
+    "duration": 0,
+    "channel": "",
+    "playlist_id": null,
+    "playlist_index": null,
+    "error": null,
+    "error_code": null,
+    "created_at": "2026-10-15T07:39:44.380Z",
+    "updated_at": "2026-10-15T07:40:11.348Z",
+    "extras": "{\"ownedOutputPublishJournal\":[{\"sourcePath\":\".vdl-staging/2c663f66-e299-4264-9696-5db553a76e50/Local synthetic download fixture (1) [dash-1].mp3\",\"destinationPath\":\"Local synthetic download fixture (1) [dash-1].mp3\",\"sourceDev\":\"16777234\",\"sourceIno\":\"112276762\",\"sourceSize\":\"109944\",\"sourceBirthtimeNs\":\"1792050011071954011\",\"destinationDev\":\"16777234\",\"destinationIno\":\"112276762\",\"destinationSize\":\"109944\",\"destinationBirthtimeNs\":\"1792050011071954011\"}],\"ownedOutputFiles\":[{\"path\":\"Local synthetic download fixture (1) [dash-1].mp3\",\"dev\":\"16777234\",\"ino\":\"112276762\",\"size\":\"109944\",\"birthtimeNs\":\"1792050011071954011\"}],\"ytdlpId\":\"dash-1\",\"ownedOutputRoot\":\"/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/runtime/output\",\"noteTitle\":\"Local synthetic download fixture (1)\",\"noteAuthor\":\"\",\"noteUrl\":\"http://127.0.0.1:55661/watch/dash\",\"noteDescription\":\"\"}"
+  },
+  "ffprobe_exit": 0,
+  "ffprobe": {
+    "streams": [
+      {
+        "index": 0,
+        "codec_name": "mp3",
+        "codec_long_name": "MP3 (MPEG audio layer 3)",
+        "codec_type": "audio",
+        "codec_tag_string": "[0][0][0][0]",
+        "codec_tag": "0x0000",
+        "mime_codec_string": "mp4a.40.34",
+        "sample_fmt": "fltp",
+        "sample_rate": "48000",
+        "channels": 1,
+        "channel_layout": "mono",
+        "bits_per_sample": 0,
+        "initial_padding": 0,
+        "r_frame_rate": "0/0",
+        "avg_frame_rate": "0/0",
+        "time_base": "1/14112000",
+        "start_pts": 324870,
+        "start_time": "0.023021",
+        "duration_ts": 169494528,
+        "duration": "12.010667",
+        "bit_rate": "72908",
+        "disposition": {
+          "default": 0,
+          "dub": 0,
+          "original": 0,
+          "comment": 0,
+          "lyrics": 0,
+          "karaoke": 0,
+          "forced": 0,
+          "hearing_impaired": 0,
+          "visual_impaired": 0,
+          "clean_effects": 0,
+          "attached_pic": 0,
+          "timed_thumbnails": 0,
+          "non_diegetic": 0,
+          "captions": 0,
+          "descriptions": 0,
+          "metadata": 0,
+          "dependent": 0,
+          "still_image": 0,
+          "multilayer": 0
+        }
+      }
+    ],
+    "format": {
+      "filename": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/runtime/output/Local synthetic download fixture (1) [dash-1].mp3",
+      "nb_streams": 1,
+      "nb_programs": 0,
+      "nb_stream_groups": 0,
+      "format_name": "mp3",
+      "format_long_name": "MP2/3 (MPEG audio layer 2/3)",
+      "start_time": "0.023021",
+      "duration": "12.010667",
+      "size": "109944",
+      "bit_rate": "73230",
+      "probe_score": 51,
+      "tags": {
+        "major_brand": "M4A ",
+        "minor_version": "512",
+        "compatible_brands": "M4A isomiso2",
+        "encoder": "Lavf62.12.100"
+      }
+    }
+  },
+  "stderr": "",
+  "settings": {
+    "showFormatDialog": false
+  }
+}

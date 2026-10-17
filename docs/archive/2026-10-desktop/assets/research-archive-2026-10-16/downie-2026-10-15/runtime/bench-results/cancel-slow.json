@@ -1,0 +1,74 @@
+{
+  "label": "cancel-slow",
+  "input_url": "http://127.0.0.1:55661/slow.mp4",
+  "started_epoch": 1792048989.175842,
+  "elapsed_s": 3.0503,
+  "http_create_status": 202,
+  "final": {
+    "id": "0138da5cffa33610",
+    "status": "cancelled"
+  },
+  "trace": [
+    {
+      "elapsed_s": 0,
+      "http_status": 202,
+      "job": {
+        "id": "0138da5cffa33610",
+        "status": "queued",
+        "url": "http://127.0.0.1:55661/slow.mp4"
+      }
+    },
+    {
+      "elapsed_s": 0.00152699999999939,
+      "http_status": 200,
+      "job": {
+        "id": "0138da5cffa33610",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 0,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 2.8370127079999996,
+      "http_status": 200,
+      "job": {
+        "id": "0138da5cffa33610",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/slow.mp4",
+        "title": "Direct media",
+        "progress": 1,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 3.0478734999999997,
+      "http_status": 200,
+      "job": {
+        "id": "0138da5cffa33610",
+        "status": "cancelled"
+      }
+    }
+  ],
+  "resources": {
+    "sample_interval_s": 0.1,
+    "samples": 31,
+    "observed_peak_family_rss_mib": 534.12,
+    "sampled_family_cpu_seconds": 0.23,
+    "limitations": [
+      "RSS is sampled aggregate resident memory, not unique/private memory; shared pages may be counted repeatedly.",
+      "Short-lived children or their final CPU/RSS peak between 100ms samples can be missed; CPU is an observed estimate.",
+      "Measurements include Electron root/renderers/GPU and observed descendant engines, but not the fixture server or unrelated original app."
+    ]
+  },
+  "outputs": []
+}

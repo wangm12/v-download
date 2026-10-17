@@ -1,0 +1,1844 @@
+[
+  {
+    "monotonic": 20.004727708,
+    "rss_kib": 163444,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 163444,
+        "cpu_s": 11.0,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 20.108701541,
+    "rss_kib": 163444,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 163444,
+        "cpu_s": 11.0,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 20.212890125,
+    "rss_kib": 163444,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 163444,
+        "cpu_s": 11.0,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 20.317957041,
+    "rss_kib": 164324,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164324,
+        "cpu_s": 11.05,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 20.421265625,
+    "rss_kib": 164324,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164324,
+        "cpu_s": 11.06,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 20.521659375,
+    "rss_kib": 164324,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164324,
+        "cpu_s": 11.07,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 20.624012583,
+    "rss_kib": 164328,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164328,
+        "cpu_s": 11.07,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 20.728191041,
+    "rss_kib": 164332,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164332,
+        "cpu_s": 11.08,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 20.83150125,
+    "rss_kib": 164356,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164356,
+        "cpu_s": 11.08,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 20.933729083,
+    "rss_kib": 164356,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164356,
+        "cpu_s": 11.08,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 21.03522625,
+    "rss_kib": 164356,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164356,
+        "cpu_s": 11.09,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 21.136421166,
+    "rss_kib": 164356,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164356,
+        "cpu_s": 11.09,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 21.239717916,
+    "rss_kib": 164356,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164356,
+        "cpu_s": 11.09,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 21.343784083,
+    "rss_kib": 164356,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164356,
+        "cpu_s": 11.09,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 21.448847833,
+    "rss_kib": 164356,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164356,
+        "cpu_s": 11.09,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 21.549986333,
+    "rss_kib": 164356,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164356,
+        "cpu_s": 11.09,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 21.6550555,
+    "rss_kib": 164356,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164356,
+        "cpu_s": 11.1,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 21.760115958,
+    "rss_kib": 164356,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164356,
+        "cpu_s": 11.1,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 21.860864583,
+    "rss_kib": 164356,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164356,
+        "cpu_s": 11.1,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 21.965913416,
+    "rss_kib": 164356,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164356,
+        "cpu_s": 11.1,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 22.067095125,
+    "rss_kib": 164356,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164356,
+        "cpu_s": 11.1,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 22.168363083,
+    "rss_kib": 164356,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164356,
+        "cpu_s": 11.1,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 22.269619166,
+    "rss_kib": 164356,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164356,
+        "cpu_s": 11.1,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 22.372080333,
+    "rss_kib": 164356,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164356,
+        "cpu_s": 11.11,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 22.477145,
+    "rss_kib": 164356,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164356,
+        "cpu_s": 11.11,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 22.579608166,
+    "rss_kib": 164356,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164356,
+        "cpu_s": 11.11,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 22.684664291,
+    "rss_kib": 164356,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164356,
+        "cpu_s": 11.11,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 22.789717916,
+    "rss_kib": 164356,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164356,
+        "cpu_s": 11.11,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 22.894769208,
+    "rss_kib": 164356,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164356,
+        "cpu_s": 11.12,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 22.999373875,
+    "rss_kib": 164356,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164356,
+        "cpu_s": 11.12,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 23.104136666,
+    "rss_kib": 164356,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164356,
+        "cpu_s": 11.12,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 23.209184125,
+    "rss_kib": 164356,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164356,
+        "cpu_s": 11.12,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 23.314237041,
+    "rss_kib": 164356,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164356,
+        "cpu_s": 11.12,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 23.417126875,
+    "rss_kib": 164356,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164356,
+        "cpu_s": 11.12,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 23.521303708,
+    "rss_kib": 164356,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164356,
+        "cpu_s": 11.12,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 23.625980416,
+    "rss_kib": 164356,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164356,
+        "cpu_s": 11.13,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 23.731074375,
+    "rss_kib": 164356,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164356,
+        "cpu_s": 11.13,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 23.835924125,
+    "rss_kib": 164276,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164276,
+        "cpu_s": 11.13,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 23.940993208,
+    "rss_kib": 164220,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164220,
+        "cpu_s": 11.13,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 24.045839333,
+    "rss_kib": 164160,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164160,
+        "cpu_s": 11.13,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 24.150893791,
+    "rss_kib": 164160,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164160,
+        "cpu_s": 11.13,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 24.251945125,
+    "rss_kib": 164160,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164160,
+        "cpu_s": 11.14,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 24.357013333,
+    "rss_kib": 164144,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164144,
+        "cpu_s": 11.14,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 24.458823833,
+    "rss_kib": 164144,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164144,
+        "cpu_s": 11.14,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 24.563505875,
+    "rss_kib": 164144,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164144,
+        "cpu_s": 11.14,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 24.667227,
+    "rss_kib": 164144,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164144,
+        "cpu_s": 11.14,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 24.77228525,
+    "rss_kib": 164144,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164144,
+        "cpu_s": 11.14,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 24.877362166,
+    "rss_kib": 164144,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164144,
+        "cpu_s": 11.15,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 24.978729458,
+    "rss_kib": 164144,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164144,
+        "cpu_s": 11.15,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 25.083795708,
+    "rss_kib": 164144,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164144,
+        "cpu_s": 11.15,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 25.188260458,
+    "rss_kib": 164144,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164144,
+        "cpu_s": 11.15,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 25.293310291,
+    "rss_kib": 164144,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164144,
+        "cpu_s": 11.15,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 25.398376291,
+    "rss_kib": 164144,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164144,
+        "cpu_s": 11.15,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 25.500856333,
+    "rss_kib": 164144,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164144,
+        "cpu_s": 11.15,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 25.605910375,
+    "rss_kib": 164144,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164144,
+        "cpu_s": 11.16,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 25.707258458,
+    "rss_kib": 164144,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164144,
+        "cpu_s": 11.16,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 25.8088515,
+    "rss_kib": 164072,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164072,
+        "cpu_s": 11.16,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 25.913908625,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.16,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 26.018783916,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.16,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 26.123843375,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.16,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 26.225590958,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.17,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 26.330645708,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.17,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 26.433886,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.17,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 26.538974375,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.17,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 26.642231916,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.17,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 26.747283583,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.17,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 26.852349875,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.18,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 26.955121458,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.18,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 27.05889125,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.18,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 27.163964708,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.18,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 27.268833625,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.18,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 27.373054833,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.18,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 27.477195791,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.19,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 27.582263208,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.19,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 27.683933125,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.19,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 27.788093791,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.19,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 27.892269416,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.19,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 27.993489958,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.19,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 28.094340458,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.2,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 28.196437416,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.2,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 28.300649791,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.2,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 28.405718375,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.2,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 28.510780458,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.2,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 28.612566541,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.2,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 28.715869791,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.21,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 28.817269333,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.21,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 28.922337833,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.21,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 29.025606041,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.21,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 29.125691375,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.22,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 29.229103333,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.23,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 29.330905458,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.23,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 29.4355705,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.23,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 29.538110708,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.23,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 29.642295083,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.24,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 29.74241225,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.24,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 29.847472541,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.24,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 29.950633875,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.24,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 30.054792333,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.24,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 30.159471708,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.24,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 30.264526708,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.24,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 30.369590041,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.24,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 30.474665875,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.25,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 30.575510166,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.25,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 30.67565675,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.25,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 30.776565083,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.25,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 30.8816215,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.25,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 30.986686583,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.25,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 31.091747291,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.26,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 31.196800041,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.26,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 31.301868791,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.26,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 31.403760041,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.26,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 31.504841541,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.26,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 31.609000875,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.27,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 31.713597875,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.27,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 31.817342041,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.27,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 31.922404125,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.27,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 32.024647,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.27,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 32.127448583,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.27,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 32.227813458,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.27,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 32.332471125,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.28,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 32.434044708,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.28,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 32.536690583,
+    "rss_kib": 164064,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164064,
+        "cpu_s": 11.28,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 32.641754875,
+    "rss_kib": 184976,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 165284,
+        "cpu_s": 11.35,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      },
+      {
+        "pid": 70184,
+        "ppid": 41896,
+        "rss_kib": 19692,
+        "cpu_s": 0.05,
+        "birth": "Thu Oct 15 00:52:33 2026",
+        "executable": "(ffmpeg)"
+      }
+    ]
+  },
+  {
+    "monotonic": 32.742363125,
+    "rss_kib": 164196,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164196,
+        "cpu_s": 11.36,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 32.845811833,
+    "rss_kib": 164192,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164192,
+        "cpu_s": 11.36,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 32.946537208,
+    "rss_kib": 164204,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164204,
+        "cpu_s": 11.4,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 33.051593125,
+    "rss_kib": 164204,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164204,
+        "cpu_s": 11.4,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 33.154332625,
+    "rss_kib": 164204,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164204,
+        "cpu_s": 11.41,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 33.259336208,
+    "rss_kib": 164204,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164204,
+        "cpu_s": 11.42,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 33.361792958,
+    "rss_kib": 164204,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164204,
+        "cpu_s": 11.42,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  },
+  {
+    "monotonic": 33.46685225,
+    "rss_kib": 164204,
+    "processes": [
+      {
+        "pid": 41896,
+        "ppid": 1,
+        "rss_kib": 164204,
+        "cpu_s": 11.43,
+        "birth": "Thu Oct 15 00:17:36 2026",
+        "executable": "/Applications/Downie 4.app/Contents/MacOS/Downie 4"
+      }
+    ]
+  }
+]

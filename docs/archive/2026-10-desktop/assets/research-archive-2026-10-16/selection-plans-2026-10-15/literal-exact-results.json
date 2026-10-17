@@ -1,0 +1,31 @@
+[
+  {
+    "case": "numeric-pair",
+    "id": "e2d7c7f5-8480-4a84-bef7-54150d8cf9fb",
+    "height": 360,
+    "fps": 30,
+    "audio": true,
+    "decode": "PASS"
+  },
+  {
+    "case": "hls30",
+    "id": "21cbac1e-4505-43a1-8652-0e459c13f1ec",
+    "height": 360,
+    "fps": 30,
+    "audio": true,
+    "decode": "PASS"
+  },
+  {
+    "case": "hls60",
+    "id": "2fbd0fb8-91e0-4014-bf81-f400b7be7b2b",
+    "height": 360,
+    "fps": 60,
+    "audio": true,
+    "decode": "PASS"
+  },
+  {
+    "case": "reserved-best",
+    "id": "d31be86a-cff3-44e1-b541-bfbc5a0211e7",
+    "result": "literal ID absent; no automatic fallback"
+  }
+]

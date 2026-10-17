@@ -1,0 +1,22 @@
+{
+  "id": "13aa58cc-0a46-492c-9d21-4d9c9204582a",
+  "url": "http://127.0.0.1:50711/missing.mp4?test=history-failure",
+  "title": "installed-history-failure",
+  "format": "video",
+  "quality": "best",
+  "status": "error",
+  "progress": 0.0,
+  "file_path": null,
+  "file_size": null,
+  "thumbnail": null,
+  "duration": null,
+  "channel": null,
+  "playlist_id": null,
+  "playlist_index": null,
+  "error": "ERROR: [generic] missing: Unable to download webpage: HTTP Error 404: Not Found (caused by <HTTPError 404: Not Found>) \u2014 Check the URL and try again.",
+  "created_at": "2026-10-16T03:16:28.481Z",
+  "updated_at": "2026-10-16T03:16:29.319Z",
+  "extras": "{\"downloadRequest\":{\"version\":1,\"selection\":{\"version\":1,\"target\":\"video\",\"maxHeight\":\"best\",\"videoCodec\":\"any\",\"dynamicRange\":\"any\",\"output\":\"original\",\"postprocess\":\"none\"},\"plan\":{\"id\":\"a2cc8c75-f7b2-4d1c-ad96-c5ffc9f891d5\",\"name\":\"Installed E2E 360p\",\"revision\":1},\"outputDir\":\"/Users/mingjie/Documents/github/personal-projects/v-download-research/installed-release-2026-10-15/output\",\"filenameTemplate\":\"{title} [{id}]\",\"includeNote\":true,\"archiveByAuthor\":false,\"folderNameTemplate\":\"{author}\",\"playlistSubfolder\":true},\"mediaType\":\"mp4\",\"outputDir\":\"/Users/mingjie/Documents/github/personal-projects/v-download-research/installed-release-2026-10-15/output\",\"ownedOutputRoot\":\"/Users/mingjie/Documents/github/personal-projects/v-download-research/installed-release-2026-10-15/output\",\"includeNote\":true}",
+  "error_code": "ENGINE_MISSING",
+  "selection_key": "3d7c5170cc099607e8e6ebecd32df400a25dcd0c873c8a06265419c56f12b46d"
+}

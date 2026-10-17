@@ -1,0 +1,22 @@
+{
+  "status": "PASS",
+  "promotion": {
+    "id": "82035785-149f-49fc-a4a4-214d2ba15773",
+    "status": "queued",
+    "progress": 0,
+    "speed": "",
+    "eta": "",
+    "totalSize": null,
+    "phase": null,
+    "filePath": null,
+    "title": "Local synthetic download fixture (1)",
+    "format": "mp3",
+    "quality": "128",
+    "error": null,
+    "errorCode": null,
+    "thumbnail": "",
+    "duration": 0,
+    "channel": null
+  },
+  "slim_tick_count": 1
+}

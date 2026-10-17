@@ -1,0 +1,21 @@
+{
+  "baselineGetMissingOrigin403": true,
+  "postHasOrigin200": true,
+  "staleCredentialRecovery": [
+    [
+      "POST",
+      "/download-plans",
+      403
+    ],
+    [
+      "POST",
+      "/pair",
+      200
+    ],
+    [
+      "POST",
+      "/download-plans",
+      200
+    ]
+  ]
+}

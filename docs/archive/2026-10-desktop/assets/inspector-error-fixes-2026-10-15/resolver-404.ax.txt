@@ -1,0 +1,109 @@
+Window: "V-Download", App: V-Download.
+0 standard window V-Download, Secondary Actions: Raise
+	1 container V-Download
+		2 container
+			3 HTML content V-Download, URL: file:///Applications/V-Download.app/Contents/Resources/app.asar/out/renderer/index.html
+				4 container
+					5 text V-Download
+					6 button Hide download details
+					7 pop up button Theme menu
+					8 text V-Download
+					9 text Downloads
+					10 button Collapse navigation
+					11 container Home
+						12 text WORKSPACE
+						13 button Downloads
+						14 text PREFERENCES
+						15 button General
+						16 button Downloads
+						17 button Browser
+						18 button Sites
+						19 button MCP
+						20 button Advanced
+					21 container
+						22 heading Downloads, Value: 1
+							23 text Downloads
+						24 text 4 items
+						25 toggle button All, Value: 1
+						26 toggle button Active, Value: 0
+						27 toggle button Done, Value: 0
+						28 toggle button Needs attention 2, Value: 0
+							29 text Needs attention
+							30 text 2
+						31 button Search downloads
+						32 text Drop a link here or press Cmd+V to paste from the clipboard 1 selected
+						33 button Clear selection
+						34 text yt-dlp exited with code 1: ERROR: [generic] missing-page?case=resolver: Unable to download webpage: HTTP Error 404: Not Found (caused by <HTTPError 404: Not Found>)
+						35 container
+							36 toggle button E2E resolve 404 Video · best Failed Retry More actions, Value: 1
+								37 text E2E resolve 404
+								38 text Video · best
+								39 text Failed
+								40 container
+									41 button Retry
+									42 pop up button More actions
+							43 toggle button E2E HTTP 404 Video · best Failed Retry More actions, Value: 0
+								44 text E2E HTTP 404
+								45 text Video · best
+								46 text Failed
+								47 container
+									48 button Retry
+									49 pop up button More actions
+							50 toggle button E2E destination Video · best Complete Reveal in Finder More actions, Value: 0
+								51 text E2E destination
+								52 text Video · best
+								53 text Complete
+								54 container
+									55 button Reveal in Finder
+									56 pop up button More actions
+							57 toggle button E2E blocker Video · best Complete Reveal in Finder More actions, Value: 0
+								58 text E2E blocker
+								59 text Video · best
+								60 text Complete
+								61 container
+									62 button Reveal in Finder
+									63 pop up button More actions
+						64 button Start all downloads
+						65 button (disabled) Pause all downloads
+						66 button Clear downloads
+						67 text 6 Downloads · 4 Complete
+						68 button Sync cookies from Chrome (all supported sites)
+						69 container Download details
+							70 heading Download details, Value: 2
+								71 text Download details
+							72 button Close download details
+							73 heading E2E resolve 404, Value: 2
+								74 text E2E resolve 404
+							75 text Failed
+							76 container
+								77 text Download plan  ·  E2E destination
+							78 text Select automatically using this plan
+							79 definition list
+								80 container Format
+									81 text Format
+								82 text Video · best
+							83 text Open the source page in your browser to check availability.
+							84 container
+								85 button Open source
+								86 button Retry now
+							87 disclosure triangle Technical error details
+								88 text Technical error details
+							89 text Destination
+							90 text inspector-error-fixes-2026-10-15/output
+							91 text Source
+							92 button 127.0.0.1
+							93 disclosure triangle Show link details
+								94 text Show link details
+							95 pop up button More actions
+	96 close button
+	97 full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window
+	98 minimize button
+99 menu bar
+	100 V-Download
+	101 File
+	102 Edit
+	103 View
+	104 Window
+	105 Help
+
+The focused UI element is 69 container Download details

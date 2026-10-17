@@ -1,0 +1,446 @@
+{
+  "head": "a3d0bfbb444045e034b0fdfc611e4f2a9888c464",
+  "sourceChangesRetained": true,
+  "packaged": true,
+  "testBundleId": "com.ytdownload.app.capture-test",
+  "testAsarSha256": "867186bfc85fa44cf554e0ff4c28c2cac2a1d33e29a4ef3e3f52f8cb5e693892",
+  "engines": {
+    "yt-dlp": {
+      "path": "/Applications/V-Download.app/Contents/Resources/engines/darwin-arm64/yt-dlp",
+      "sha256": "c0cac6d1cf9aafdd2d08e524f50a53162682173e480a0ca47040e9d7d54e86d9",
+      "version": "2026.07.04"
+    },
+    "ffmpeg": {
+      "path": "/Applications/V-Download.app/Contents/Resources/engines/darwin-arm64/ffmpeg",
+      "sha256": "6a17d3648c15dbe217cbfcad63698a67d74cfe67d0a214903c378c109bc3d6c2",
+      "version": "ffmpeg version 8.1.2-https://www.martin-riedl.de Copyright (c) 2000-2026 the FFmpeg developers"
+    },
+    "ffprobe": {
+      "path": "/Applications/V-Download.app/Contents/Resources/engines/darwin-arm64/ffprobe",
+      "sha256": "75b506ca2ca354c0a83c4055027456378d3424263d5d5b1376d206aa4f162fc7",
+      "version": "ffprobe version 8.1.2-https://www.martin-riedl.de Copyright (c) 2007-2026 the FFmpeg developers"
+    }
+  },
+  "files": [
+    {
+      "file": "out/main/index.js",
+      "sha256": "b73222cd1f753099c552999e8f4e2388429c13e9f77b4c7fe0d5310285e7c101",
+      "packagedMatch": true
+    },
+    {
+      "file": "out/preload/index.js",
+      "sha256": "373d5d687808069159acaf6c15575960fd026992c43f6176440a2cb8e194664b",
+      "packagedMatch": true
+    },
+    {
+      "file": "out/renderer/app-icon.png",
+      "sha256": "d2685d7b17d243a7bfb1d03ec63e207212f4b3dc4bb6c94a54f48a132680f75f",
+      "packagedMatch": true
+    },
+    {
+      "file": "out/renderer/assets/index-CmLDtm24.js",
+      "sha256": "f0105807ed012996b94c346d6c2e740ec83160dbd4a44375567693c04278ffdd",
+      "packagedMatch": true
+    },
+    {
+      "file": "out/renderer/assets/index-DNab4IiG.css",
+      "sha256": "6f1f999759b2793573ca975095804c959181bca154d781136bb2ada840aeb515",
+      "packagedMatch": true
+    },
+    {
+      "file": "out/renderer/index.html",
+      "sha256": "71cb9a934cae12e5a21ced04d31c5c483705358ff7a0f33ae343558bde51cc51",
+      "packagedMatch": true
+    },
+    {
+      "file": "out/tsconfig.node.tsbuildinfo",
+      "sha256": "2464995a1ac81e3fc5761e406945952b75be0f69ff77ed5aeb15aec1e8325cd9",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/cookie-sync-domains.d.ts",
+      "sha256": "d3fa55eca80b55c489eb3a70798a1eac4a354e084ceeeecb73604c72734e2b45",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/cookie-sync-domains.d.ts.map",
+      "sha256": "962925f043d6e208b273bc541c7c121ec78abd6d2618564f7c8e8330683aa5f3",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/cookie-sync-domains.js",
+      "sha256": "cba4dd299a2d7b30c47cb7b3bac61e4cc04c27bc1ef5dd0a203fb7d8478fe90a",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/douyin-url.d.ts",
+      "sha256": "477970b1c4a0d00fe161d330fd2984539c4eefbe28625a0358496cf3f3ebd57f",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/douyin-url.d.ts.map",
+      "sha256": "6ea7188ab4b3d44218c518f69c1262a094dbea06631429b5d09e873905236fe5",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/douyin-url.js",
+      "sha256": "6d4de7429a18b56e0f267aa9039bf73156a0c66c07d2534dda79ece39a21b31e",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/download-errors.d.ts",
+      "sha256": "7e90d2e3dd9b228077de3c43be729dae60e534c7f183eedafb423cd3f5c76e59",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/download-errors.d.ts.map",
+      "sha256": "35e77efae62f4608ff68875a2e702a9883daccb2748f50dc54c7bef6d2371595",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/download-errors.js",
+      "sha256": "d43aa81f5bc89faa359e0f97c814ba25155591ff078fbb9bfd40f8c7c9683230",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/download-selection.d.ts",
+      "sha256": "2bf261c80094b974bcf4fa62e615fe2c887d21df52746ea67116b09c8f042ac1",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/download-selection.d.ts.map",
+      "sha256": "a6dc33a55565571e6e8b4f5103c5d18004e345de95e172ad08849cd059b1ac19",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/download-selection.js",
+      "sha256": "ea8d426ff5a915fc2745d7eddd0a37c7ece067b67900f089e7c257110b034a3c",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/esm/cookie-sync-domains.js",
+      "sha256": "e2107bcfe689bb14f2c775c76d745a80de37292a58aa700b010577958b018b32",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/esm/cookie-sync-domains.js.map",
+      "sha256": "c9861c4e70029c1b0523dcde87f55dfa6e5ceb8ff11824c395493e67fb586296",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/esm/douyin-url.js",
+      "sha256": "75b3ddc0dce0d49ffc2fca393a0bba2f5bdfb9b306c17fd456adfed6dd20d20b",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/esm/douyin-url.js.map",
+      "sha256": "f687f46a8685f7f3d31f22366a59edd42063c186d6e33b0934b2254230876915",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/esm/download-errors.js",
+      "sha256": "52a142e1e3a3e54d6265a84d608abf62633c29a2150c1276bc018c79a5506425",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/esm/download-errors.js.map",
+      "sha256": "f2d02ae58cbae8fe693c8680a773ac2781b48c431fe492e9dce57caaad2b02e9",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/esm/download-selection.js",
+      "sha256": "eacd01d3f935907138823676d8ca756e626e29b9f5f1fe834d63a3d1e43e668c",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/esm/download-selection.js.map",
+      "sha256": "3f86c6d715070d3a2684fd624b8abfd0e84f2334f74c13f529de143175650805",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/esm/index.js",
+      "sha256": "6542d2949dcc1a4e1096be2c4377f4b395d098b62ee6e450193098f77b07827c",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/esm/index.js.map",
+      "sha256": "8cce164491ad6331a61ed9cf78d0e5aadb167382b909ec5cfc847e99f504eb4a",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/esm/media-inspection.js",
+      "sha256": "efa115290462503058b6d57c417551e7859077d4174df17d2550c33783136305",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/esm/media-inspection.js.map",
+      "sha256": "3dba7c17276418ee48068c070d68961e70baf93461a58806c515bb4c889a454b",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/esm/media-source-context.js",
+      "sha256": "aa57ee56201f4bdb6dbe3fd6f30e47c35285536d88eb4e3238ce14f626a16281",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/esm/media-source-context.js.map",
+      "sha256": "fc42b4bf2bf3fd93c548884b4faf83abd5e28c4358ac00940a8b031e88e87765",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/esm/netscape-cookies.js",
+      "sha256": "9df9bb9174e273747322a3c09885f9d87b6f812f707d1f3814486cd22e403965",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/esm/netscape-cookies.js.map",
+      "sha256": "fdf0ba398f6de1801ac6ef7e06dcb390804d845f88596df2ad3c9c93684d3c46",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/esm/package.json",
+      "sha256": "3ca9d4afd21425087cf31893b8f9f63c81b0b8408db5e343ca76e5f8aa26ab9a",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/index.d.ts",
+      "sha256": "e47f747e7c9a1f1e56ea0d13a9bcee6108c5d1a67bd66dfbd4e1b202135c3833",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/index.d.ts.map",
+      "sha256": "93cd7ca5ebe7dc1a305dd9d1a32bd229cac57aab5ccab7a9db68b588c6f132d4",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/index.js",
+      "sha256": "b807377d7bc014495dd6172e58d53aaa3bfc5dbc413ae7512c821cacd3b1fbf9",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/media-inspection.d.ts",
+      "sha256": "27ae1e65589444d573c6031b129429531e9513208d2487a5ab27cba8960ec832",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/media-inspection.d.ts.map",
+      "sha256": "658f221fe8f021564fe51fe8f1a470b416ef27e3a6d509b031afaebeb064dce3",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/media-inspection.js",
+      "sha256": "d43aa81f5bc89faa359e0f97c814ba25155591ff078fbb9bfd40f8c7c9683230",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/media-source-context.d.ts",
+      "sha256": "975af0522e9ed0dc2485580a517eb1eeaf4d09a832aa6b05d05c3ed4f7c37dd7",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/media-source-context.d.ts.map",
+      "sha256": "7ad1e80196d533629caf3b12bba749bdba9a1cb227121e05a88c09f9a73ca433",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/media-source-context.js",
+      "sha256": "65a5d69852fe2e17d5c8f8a96c883478d1320a323b55e3a28705c0822d3ced80",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/netscape-cookies.d.ts",
+      "sha256": "1359b021e1bae9cc6f60f807005485488ef27029032f13b26259a4178d3bb3b7",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/netscape-cookies.d.ts.map",
+      "sha256": "d105132c8327bbb346214722617c96114c89cdf7898845ac7d830e38c9c622df",
+      "packagedMatch": true
+    },
+    {
+      "file": "shared/dist/netscape-cookies.js",
+      "sha256": "967b62a588647f02e5b9a735eddae55fa2124c5d0789bbb7045d71f4ba232d68",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/background.js",
+      "sha256": "ae69dc0f7d0bc9698083b8d2856c8f498f47b9a92e9559b8e22b9dc19b659435",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/content-cookie-sync-landing.js",
+      "sha256": "7441b2b2eb693f0484b19ed901ffc839f40c01f6cee5b6c11ae7e003f7c9fa0a",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/content-douyin-bridge.js",
+      "sha256": "34ef7cdb0deecfc7577a0f2d998e13a1bc89311c54ba9a56cb1f0ed87604d6ca",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/content-douyin-profile-import-landing.js",
+      "sha256": "2e11e308518e911450e496e026919c57007ec58262bc52f5720bed3ada35fe99",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/content-douyin.css",
+      "sha256": "456b91d24daf9dd64e1cd5b2c8258c81c00ab36f5ef83024f7c465f4188e4b66",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/content-douyin.js",
+      "sha256": "46dfcddd56bbe47758c8f06790df62ad3cbffa664e967eeea3c9d54b05ae145e",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/content-media-capture-landing.js",
+      "sha256": "af8389967a153ad2de06f4159e87a9dd57491e3cd5089f6ea74abe5c2a6e1b5d",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/content-media-capture.js",
+      "sha256": "46f6f3861cae443480bd1257a43a0529a218e7de6260569871c51ab26d4b4a48",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/content-tiktok.css",
+      "sha256": "bebca9ffd46c87a3d296833317459aa404d2865f4678c357b2d4bf8fc923af6a",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/content-tiktok.js",
+      "sha256": "3039af75c3cec5997f5f4e925ad6fd62815bff4567b57587be073ac468391f9b",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/content-video-overlay.css",
+      "sha256": "5d4d9251dedfbbae5fadd37a06dcc9ff974908bc73e78c1f6cf37aa7434b070c",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/content-video-overlay.js",
+      "sha256": "fdc51536aa9dd8bbaa08a91e4c157571767687158e73d0dc96a3ea05854f3808",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/content-x.css",
+      "sha256": "364c747c7e58b23d62d59b2c3aded2a73284f393815d11915b9c37e8cece03e1",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/content-x.js",
+      "sha256": "73cf7f6a3b466b32610be50a7e2404c4809f270567ea4a344ae6090aadc02b54",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/content.css",
+      "sha256": "313e879514ada909c14537eb888ce777850d2eca94333b37b514577ff3b1558f",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/content.js",
+      "sha256": "2a2e367640a99a76dbb1f23a76cb55e924f8148692d4be33a2735bd9c154782c",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/cookie-sync-domains.js",
+      "sha256": "176e5cc5527eacfd451ba4832122a3a1bcae78ca34dace5b2c51ad3c7f8bae36",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/douyin-policy.js",
+      "sha256": "92b63024bd8a653c44a218f59b3eadfb247c227e77dbc3e29eeba5e9787deffd",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/douyin-resolve.html",
+      "sha256": "bb1e692555ecbb5ae5824d9703694a0c448a9f62cf6c037c962b1eeeac891561",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/douyin-resolve.js",
+      "sha256": "201cb9acdc9accc4d109527e659f6304a55d2f6082c48af7ef5f1319838003c5",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/download-selection.js",
+      "sha256": "5e25428891da3c1d4c187a0e27aa3b6fe4ed5b6dca74890539208845149faeef",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/download-transport.js",
+      "sha256": "7380490e60ed09594fe47d6b0692692f648470bfac73c21c7a4c9cd5d42fba64",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/icons/icon128.png",
+      "sha256": "d8048c32c69d8112d40595ff5e4b3195671b37e59b6ff981132e029bce5681ed",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/icons/icon16-gray.png",
+      "sha256": "0315cc32e920115dc66e8fa125a1c83f2df09e4d1c9ab4ef8f8332f76ceb4a11",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/icons/icon16.png",
+      "sha256": "60bf481f9da614485e17801af0cf6ed7a33982e660c78d29aba88494b157667a",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/icons/icon48-gray.png",
+      "sha256": "7efaf7026565f3541fd25b9c3a095792c29844064e79c036011f025092dfc9d6",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/icons/icon48.png",
+      "sha256": "ddd2f111d50f4caaea0c6cb96655277ffb9ed0d4ad65dbce7113ea6739d73918",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/manifest.json",
+      "sha256": "a3a027b45ea8ede510758a45fcff7ee928159a4e93d2e9830d61a1347123690a",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/media-patterns.js",
+      "sha256": "5edd8cf62613d0a90ad687dbf014564b0a037de4e77c5028f4fe6a20ad7fc120",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/media-source-context.js",
+      "sha256": "33890aa495bda8dc947e98ab304cb4485ea5955203921cbb7b654ebd2a62365b",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/overlay-placement.js",
+      "sha256": "123d04a6c56e7899ec4e449eb65ec661a5f850e0ba27c8d44df1a69091aae69a",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/popup.css",
+      "sha256": "9c9067cf1972b812a9fe73085690d9aaa967c5bc6b4992a3049b1e88a25b9c5e",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/popup.html",
+      "sha256": "75be039a75b586f484b451ef807dcd37609d94f2a540d6588fbd8a680d19de44",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/popup.js",
+      "sha256": "b0502f61334c1d4c14b506085c0e7af7549215404b0f13cdebb36ab46e47de16",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/theme.css",
+      "sha256": "22b5e4e88646d2831e68a84c1551fe623d1717b1f73525c97e65efb9aa4f2add",
+      "packagedMatch": true
+    },
+    {
+      "file": "extension/wake-sync.js",
+      "sha256": "3081600db46c36e6ada746049b912dd3f651c0a857acc607042c1148ca0a4ea8",
+      "packagedMatch": true
+    }
+  ]
+}

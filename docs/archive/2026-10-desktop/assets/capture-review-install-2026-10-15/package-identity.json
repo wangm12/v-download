@@ -1,0 +1,19 @@
+{
+  "version": "1.1.7",
+  "build": "1.1.10",
+  "bundleId": "com.ytdownload.app",
+  "arch": "arm64",
+  "installedPath": "/Applications/V-Download.app",
+  "artifact": "/Users/mingjie/Downloads/V-Download-1.1.7-local-20261015-r3-arm64.dmg",
+  "artifactSha256": "cfd6d125be85711c6c91d8686485d559e68a9202bf72b34f2a6a024d380cbb97",
+  "installedAppAsarSha256": "406d482231e4911c9c8704ad2a60124357970b5352a1f79ff3317ee3bb45309c",
+  "signatureVerified": true,
+  "hardenedRuntime": true,
+  "notarized": false,
+  "compiledAndExtensionFilesMatched": 59,
+  "engines": {
+    "yt-dlp": "ff7d4fc44b8fbf42da021c1bca950da0326cdb0cdb84992fdc7fb7ec215df435",
+    "ffmpeg": "eaf91238e104dd0e262bc6510e25061855cc99a6955a721b0ac99660d58c473d",
+    "ffprobe": "ed9dc5871914b466b96b402c9ec0ba68ce4f836e72faa464b1b4e279835bd4a6"
+  }
+}

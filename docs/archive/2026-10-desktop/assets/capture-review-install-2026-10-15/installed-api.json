@@ -1,0 +1,184 @@
+[
+  {
+    "name": "admit A",
+    "passed": true,
+    "details": {
+      "ok": true,
+      "accepted": true
+    }
+  },
+  {
+    "name": "classify A",
+    "passed": true,
+    "details": {
+      "status": "error",
+      "code": "ACCESS_DENIED"
+    }
+  },
+  {
+    "name": "admit B",
+    "passed": true,
+    "details": {
+      "ok": true,
+      "accepted": true
+    }
+  },
+  {
+    "name": "classify B",
+    "passed": true,
+    "details": {
+      "status": "error",
+      "code": "ACCESS_DENIED"
+    }
+  },
+  {
+    "name": "admit 401",
+    "passed": true,
+    "details": {
+      "ok": true,
+      "accepted": true
+    }
+  },
+  {
+    "name": "classify 401",
+    "passed": true,
+    "details": {
+      "status": "error",
+      "code": "AUTH_REQUIRED"
+    }
+  },
+  {
+    "name": "admit 404",
+    "passed": true,
+    "details": {
+      "ok": true,
+      "accepted": true
+    }
+  },
+  {
+    "name": "classify 404",
+    "passed": true,
+    "details": {
+      "status": "error",
+      "code": "UNSUPPORTED"
+    }
+  },
+  {
+    "name": "installed HLS relationships",
+    "passed": true,
+    "details": {
+      "data": {
+        "version": 1,
+        "inspectedAt": "2026-10-16T06:39:10.940Z",
+        "url": "http://127.0.0.1:62867/media/master.m3u8?token=a%2fb&label=hello%20world",
+        "kind": "hls-master",
+        "streams": [
+          {
+            "index": 0,
+            "kind": "video",
+            "codec": "h264",
+            "width": 640,
+            "height": 360,
+            "fps": 30
+          },
+          {
+            "index": 1,
+            "kind": "audio",
+            "codec": "aac",
+            "language": "eng"
+          },
+          {
+            "index": 2,
+            "kind": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "fps": 30
+          },
+          {
+            "index": 3,
+            "kind": "audio",
+            "codec": "aac",
+            "language": "eng"
+          }
+        ],
+        "resources": [
+          {
+            "url": "http://127.0.0.1:62867/media/360/index.m3u8",
+            "relation": "variant",
+            "width": 640,
+            "height": 360,
+            "fps": 30,
+            "bandwidth": 650000,
+            "codecs": "avc1.42c01e,mp4a.40.2"
+          },
+          {
+            "url": "http://127.0.0.1:62867/media/720/index.m3u8",
+            "relation": "variant",
+            "width": 1280,
+            "height": 720,
+            "fps": 30,
+            "bandwidth": 2000000,
+            "codecs": "avc1.42c01f,mp4a.40.2"
+          }
+        ],
+        "warnings": [],
+        "duration": 8
+      }
+    }
+  },
+  {
+    "name": "installed DASH stream facts",
+    "passed": true,
+    "details": {
+      "data": {
+        "version": 1,
+        "inspectedAt": "2026-10-16T06:39:10.999Z",
+        "url": "http://127.0.0.1:62867/media/dash/manifest.mpd",
+        "kind": "dash",
+        "streams": [
+          {
+            "index": 0,
+            "kind": "video",
+            "codec": "h264",
+            "width": 640,
+            "height": 360,
+            "fps": 30
+          },
+          {
+            "index": 1,
+            "kind": "audio",
+            "codec": "aac",
+            "language": "eng"
+          }
+        ],
+        "resources": [],
+        "warnings": [
+          "DASH tracks are probed; representation relationships are not inferred from URLs."
+        ],
+        "duration": 8
+      }
+    }
+  },
+  {
+    "name": "missing capability rejected",
+    "passed": true,
+    "details": {
+      "error": "Pairing required"
+    }
+  },
+  {
+    "name": "foreign Origin rejected",
+    "passed": true,
+    "details": {
+      "error": "Pairing required"
+    }
+  },
+  {
+    "name": "selection injection rejected",
+    "passed": true,
+    "details": {
+      "error": "Invalid download selection"
+    }
+  }
+]

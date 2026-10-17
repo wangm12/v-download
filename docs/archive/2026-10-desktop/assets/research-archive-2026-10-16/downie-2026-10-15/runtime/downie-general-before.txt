@@ -1,0 +1,107 @@
+Window: "Settings", App: Downie 4.
+0 standard window Settings – General, Secondary Actions: Raise
+	1 scroll area Secondary Actions: Scroll Up, Scroll Down
+		2 table
+			3 row (selected)
+				4 cell (selected)
+					5 text General
+			6 row (selectable)
+				7 cell
+					8 text Appearance
+			9 row (selectable)
+				10 cell
+					11 text Destination
+			12 row (selectable)
+				13 cell
+					14 text History
+			15 row (selectable)
+				16 cell
+					17 text Browser Extensions
+			18 row (selectable)
+				19 cell
+					20 text Postprocessing
+			21 row (selectable)
+				22 cell
+					23 text Subtitles & Audio
+			24 row (selectable)
+				25 cell
+					26 text Proxy Server
+			27 row (selectable)
+				28 cell
+					29 text Supported Sites
+			30 row (selectable)
+				31 cell
+					32 text Custom Integrations
+			33 row (selectable)
+				34 cell
+					35 text Search Engines
+			36 row (selectable)
+				37 cell
+					38 text Privacy
+			39 row (selectable)
+				40 cell
+					41 text Advanced
+			42 row (selectable)
+				43 cell
+					44 text Updates
+			45 row (selectable)
+				46 cell
+					47 text Experimental
+		48 scroll bar (settable, float) 0
+			49 value indicator (settable, float) 0
+			50 increment arrow button
+			51 decrement arrow button
+			52 increment page button
+			53 decrement page button
+	54 scroll area Secondary Actions: Scroll Left, Scroll Right, Scroll Up, Scroll Down
+		55 text Queue Behavior Post-Download Actions When Multiple Qualities Are Available:
+		56 checkbox Automatically Start Download, Value: 1
+		57 text Max Number of Concurrent Downloads:
+		58 text field (settable) 3
+		59 pop up button Automatically Select Best Quality
+		60 button Reset All Warnings
+		61 checkbox Remove Completed Downloads from Queue, Value: 0
+		62 checkbox Per-download throttle (kB/s), Value: 0
+		63 checkbox Prefer MP4 Format, Value: 1
+		64 text If you limit the downloads to e.g. 480p and only larger videos are available, then the smallest available video will be chosen. If enabled and multiple renditions with the same resolution are available, Downie will try to select the MP4 rendition, even if there are non-MP4 renditions that have higher framerate, bitrate and other attributes. Maximum Number of Connections Per Download
+		65 text field (settable) 4
+		66 button Manage Website Data...
+		67 text Website Data: Cookies, local storage and session storage are tiny pieces of information that sites store locally and they contain information about your session on that particular site (e.g. being logged in).
+		68 checkbox Post Notification, Value: 1
+		69 checkbox Play Sound, Value: 1
+		70 checkbox Quit When All Downloads Are Completed, Value: 0
+		71 checkbox Force MP4 Format, Value: 0
+		72 text If enabled, Downie will try to select an MP4 rendition, even if there are non-MP4 renditions that have higher resolution. In other words, it will select the top MP4 download (if available), ignoring all other formats.
+		73 checkbox Put computer to sleep, Value: 0
+		74 text This option allows you to set a per-download bandwidth throttle. Please note that this is not global, it is per download.
+		75 scroll bar (settable, float) 0
+			76 value indicator (settable, float) 0
+			77 increment arrow button
+			78 decrement arrow button
+			79 increment page button
+			80 decrement page button
+		81 scroll bar (settable, float) 0.3190184049079755
+			82 value indicator (settable, float) 0.3190184049079755
+			83 increment arrow button
+			84 decrement arrow button
+			85 increment page button
+			86 decrement page button
+	87 toolbar
+		88 search text field (settable)
+			89 button search
+	90 close button
+	91 zoom button (disabled)
+	92 text Settings General
+93 menu bar
+	94 Downie 4
+	95 File
+	96 Edit
+	97 Browser
+	98 Settings
+	99 Window
+	100 Help
+
+Selected:
+	3 row (selected)
+
+Note: Pay special attention to the content selected by the user. If the user asks a question or refers to the content they are looking at on-screen, they might be referring to the selected content (but they might be referring to something else that's visible, too).

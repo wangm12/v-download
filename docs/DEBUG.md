@@ -22,9 +22,11 @@ In **packaged** apps (`app.isPackaged === true`), structured JSON lines are appe
 
 | OS | Path |
 |----|------|
-| macOS | `~/Library/Application Support/V-Download/logs/worklog.txt` |
-| Windows | `%APPDATA%\V-Download\logs\worklog.txt` (typical) |
-| Linux | `~/.config/V-Download/logs/worklog.txt` (typical) |
+| macOS | `~/Library/Application Support/v-download/logs/worklog.txt` (canonical profile) |
+| Windows | `%APPDATA%\v-download\logs\worklog.txt` (typical) |
+| Linux | `~/.config/v-download/logs/worklog.txt` (typical) |
+
+The owning path is `app.getPath('userData')/logs/worklog.txt`; isolated test profiles may use another explicitly configured root. Do not infer the active data directory from the display name alone.
 
 Also written on rotation when the file exceeds ~4 MiB:
 
@@ -49,6 +51,8 @@ The main process registers a **one-time `webRequest` listener** on the dedicated
 
 ## Related docs
 
-- [MANUAL_TESTING.md](./MANUAL_TESTING.md) — regression checklist
-- [download-engines.md](./download-engines.md) — download routing
-- [download-reliability.md](./download-reliability.md) — runbook and Douyin fallback
+Cleanup must use known, owned runtime paths. Do not recursively delete every directory named `cache`: dependencies such as `node_modules/undici/lib/web/cache` contain executable source, not disposable cache. Restore a damaged development dependency tree with the locked install (`npm ci`) and rerun checks; this does not repair or replace an installed App bundle. Preserve site sessions, Cookie stores, databases and retained evidence unless their removal was explicitly requested.
+
+- [MANUAL_TESTING.md](MANUAL_TESTING.md) — regression checklist
+- [download-engines.md](download-engines.md) — download routing
+- [download-reliability.md](download-reliability.md) — runbook and Douyin fallback

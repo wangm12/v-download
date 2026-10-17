@@ -1,0 +1,11 @@
+{
+  "checks": {
+    "settings.json": true,
+    "cookies.txt": true,
+    "extension-pairing.secret": true,
+    "remote-jobs.json": true,
+    "installed-app.asar": true
+  },
+  "allUnchanged": true,
+  "testUserData": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/profile"
+}

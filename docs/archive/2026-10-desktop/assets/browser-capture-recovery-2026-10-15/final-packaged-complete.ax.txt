@@ -1,0 +1,182 @@
+Window: "V-Download", App: V-Download.
+0 standard window V-Download, Secondary Actions: Raise
+	1 container V-Download
+		2 container
+			3 HTML content V-Download, URL: file:///Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/V-Download%20Capture%20Test.app/Contents/Resources/app.asar/out/renderer/index.html
+				4 container
+					5 text V-Download
+					6 button 隐藏下载详情
+					7 pop up button 主题菜单
+					8 text V-Download
+					9 text 下载
+					10 button 收起导航
+					11 container 主页
+						12 text 工作区
+						13 button 下载
+						14 text 偏好设置
+						15 button 通用
+						16 button 下载
+						17 button 浏览器
+						18 button 站点
+						19 button MCP
+						20 button 高级
+					21 container
+						22 heading 下载, Value: 1
+							23 text 下载
+						24 text 18 项
+						25 toggle button 全部, Value: 1
+						26 toggle button 进行中, Value: 0
+						27 toggle button 已完成, Value: 0
+						28 toggle button 需要关注 6, Value: 0
+							29 text 需要关注
+							30 text 6
+						31 button 搜索下载
+						32 text 将链接拖到这里，或按 Cmd+V 从剪贴板粘贴 已选 1 项
+						33 button 清除选择
+						34 container
+							35 toggle button 最终验收原方案 视频 · 360 已完成 在 Finder 中显示 更多操作, Value: 1
+								36 text 最终验收原方案
+								37 text 视频 · 360
+								38 text 已完成
+								39 container
+									40 button 在 Finder 中显示
+									41 pop up button 更多操作
+							42 toggle button 补充原网页后恢复 视频 · 360 已完成 在 Finder 中显示 更多操作, Value: 0
+								43 text 补充原网页后恢复
+								44 text 视频 · 360
+								45 text 已完成
+								46 container
+									47 button 在 Finder 中显示
+									48 pop up button 更多操作
+							49 toggle button 原音频方案恢复 mp3 · 192 已完成 在 Finder 中显示 更多操作, Value: 0
+								50 text 原音频方案恢复
+								51 text mp3 · 192
+								52 text 已完成
+								53 container
+									54 button 在 Finder 中显示
+									55 pop up button 更多操作
+							56 toggle button HEVC不可伪装成H264来源 视频 · 360 已完成 在 Finder 中显示 更多操作, Value: 0
+								57 text HEVC不可伪装成H264来源
+								58 text 视频 · 360
+								59 text 已完成
+								60 container
+									61 button 在 Finder 中显示
+									62 pop up button 更多操作
+							63 toggle button 取消识别1 mp3 · 192 已暂停 · 0% 继续 更多操作, Value: 0
+								64 text 取消识别1
+								65 text mp3 · 192
+								66 text 已暂停
+								67 text  · 
+								68 text 0
+								69 text %
+								70 container
+									71 button 继续
+									72 pop up button 更多操作
+							73 toggle button 取消识别0 mp3 · 192 已暂停 · 0% 继续 更多操作, Value: 0
+								74 text 取消识别0
+								75 text mp3 · 192
+								76 text 已暂停
+								77 text  · 
+								78 text 0
+								79 text %
+								80 container
+									81 button 继续
+									82 pop up button 更多操作
+							83 toggle button 重新捕获仍验证360上限 视频 · 360 已完成 在 Finder 中显示 更多操作, Value: 0
+								84 text 重新捕获仍验证360上限
+								85 text 视频 · 360
+								86 text 已完成
+								87 container
+									88 button 在 Finder 中显示
+									89 pop up button 更多操作
+							90 toggle button 精确来源不可静默放宽 视频 · 360 失败 重试 更多操作, Value: 0
+								91 text 精确来源不可静默放宽
+								92 text 视频 · 360
+								93 text 失败
+								94 container
+									95 button 重试
+									96 pop up button 更多操作
+							97 toggle button 解析被拒绝403 视频 · 360 已完成 在 Finder 中显示 更多操作, Value: 0
+								98 text 解析被拒绝403
+								99 text 视频 · 360
+								100 text 已完成
+								101 container
+									102 button 在 Finder 中显示
+									103 pop up button 更多操作
+							104 toggle button 来源不存在404 视频 · 360 失败 重试 更多操作, Value: 0
+								105 text 来源不存在404
+								106 text 视频 · 360
+								107 text 失败
+								108 container
+									109 button 重试
+									110 pop up button 更多操作
+							111 toggle button 明确需要认证401 视频 · 360 失败 重试 更多操作, Value: 0
+								112 text 明确需要认证401
+								113 text 视频 · 360
+								114 text 失败
+								115 container
+									116 button 重试
+									117 pop up button 更多操作
+							118 toggle button 原方案恢复360 视频 · 360 已完成 在 Finder 中显示 更多操作, Value: 0
+								119 text 原方案恢复360
+								120 text 视频 · 360
+								121 text 已完成
+								122 container
+									123 button 在 Finder 中显示
+									124 pop up button 更多操作
+						125 button 开始全部下载
+						126 button (disabled) 暂停全部下载
+						127 button 清除下载
+						128 text 18 个下载 · 10 已完成
+						129 button 从 Chrome 同步 Cookie（所有支持的网站）
+						130 container 下载详情
+							131 heading 下载详情, Value: 2
+								132 text 下载详情
+							133 button 关闭下载详情
+							134 heading 最终验收原方案, Value: 2
+								135 text 最终验收原方案
+							136 text 已完成
+							137 container
+								138 text 下载方案  ·  最终原方案
+							139 text 按方案自动选择来源 · H264 · ≤ 30 fps
+							140 definition list
+								141 container 格式
+									142 text 格式
+								143 text 视频 · 360
+							144 container
+								145 button 打开文件
+								146 button 在 Finder 中显示
+							147 container 资源详情
+								148 text 资源详情
+								149 container
+									150 text 请求文档 :  http://127.0.0.1:62438/embed/player?chapter=one%20two
+								151 container
+									152 disclosure triangle 当前媒体地址
+										153 text 当前媒体地址
+									154 text http://127.0.0.1:62438/media/iframe.m3u8?token=a%2fb
+								155 text 已重新捕获资源；本次从头下载。
+								156 button 识别资源
+								157 container
+									158 text hls-media  · 8.0s video  ·  h264  · 640×360  · 30.00 fps audio  ·  aac  · eng 仅验证当前资源；链接可能过期，浏览器已登录不代表下载引擎可以访问。
+							159 text 保存位置
+							160 text 最终验收原方案.mp4
+							161 text browser-recovery-2026-10-15/frozen-output
+							162 text 来源
+							163 button 127.0.0.1
+							164 disclosure triangle 显示链接详情
+								165 text 显示链接详情
+							166 disclosure triangle 创建转换副本
+								167 text 创建转换副本
+							168 pop up button 更多操作
+	169 close button
+	170 full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window
+	171 minimize button
+172 menu bar
+	173 V-Download
+	174 文件
+	175 编辑
+	176 显示
+	177 窗口
+	178 帮助
+
+The focused UI element is 3 HTML content V-Download, URL: file:///Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/V-Download%20Capture%20Test.app/Contents/Resources/app.asar/out/renderer/index.html

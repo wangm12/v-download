@@ -1,0 +1,30 @@
+Executable=/Users/mingjie/Documents/github/personal-projects/v-download/dist/mac-arm64/V-Download.app/Contents/MacOS/V-Download
+Identifier=com.ytdownload.app
+Format=app bundle with Mach-O thin (arm64)
+CodeDirectory v=20500 size=446 flags=0x10000(runtime) hashes=3+7 location=embedded
+VersionPlatform=1
+VersionMin=786432
+VersionSDK=1705216
+Hash type=sha256 size=32
+CandidateCDHash sha256=bbe72a29c68cc9f50d4975fae1b1ccdaf30d7c76
+CandidateCDHashFull sha256=bbe72a29c68cc9f50d4975fae1b1ccdaf30d7c76ebad9cb9f0a39c661d6b8e8b
+Hash choices=sha256
+CMSDigest=bbe72a29c68cc9f50d4975fae1b1ccdaf30d7c76ebad9cb9f0a39c661d6b8e8b
+CMSDigestType=2
+Executable Segment base=0
+Executable Segment limit=16384
+Executable Segment flags=0x1
+Page size=16384
+CDHash=bbe72a29c68cc9f50d4975fae1b1ccdaf30d7c76
+Signature size=4792
+Authority=Apple Development: frank19970907@gmail.com (777BPJR98D)
+Authority=Apple Worldwide Developer Relations Certification Authority
+Authority=Apple Root CA
+Signed Time=Oct 15, 2026 at 11:34:57 PM
+Info.plist entries=33
+TeamIdentifier=2N55H39FC4
+Runtime Version=26.5.0
+Sealed Resources version=2 rules=13 files=265
+Internal requirements count=1 size=192
+Total signatures=1
+Chosen signature=1

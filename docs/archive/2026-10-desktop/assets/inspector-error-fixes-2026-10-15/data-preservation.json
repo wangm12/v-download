@@ -1,0 +1,24 @@
+{
+  "originalRows": 2,
+  "allColumnsByteEquivalentValues": true,
+  "databaseIntegrity": "ok",
+  "byteIdenticalFiles": {
+    "settings.json": true,
+    "cookies.txt": true,
+    "extension-pairing.secret": true,
+    "remote-jobs.json": true
+  },
+  "loginStorageFilesCompared": 45,
+  "differences": [],
+  "testTasksRemoved": 5,
+  "testPlanRemoved": true,
+  "backup": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-inspector-error-update",
+  "afterRestoredLaunch": {
+    "runningExecutable": "/Applications/V-Download.app/Contents/MacOS/V-Download",
+    "pid": 21364,
+    "bridgeReachable": true,
+    "originalRowsUnchanged": true,
+    "settingsCookiesPairingByteIdentical": true,
+    "fixturePortClosed": true
+  }
+}

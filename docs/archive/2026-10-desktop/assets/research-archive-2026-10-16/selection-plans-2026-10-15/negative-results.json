@@ -1,0 +1,60 @@
+[
+  {
+    "case": "missing plan",
+    "result": "rejected before admission",
+    "reason": "The selected download plan no longer exists. Choose another plan."
+  },
+  {
+    "case": "stale revision",
+    "result": "rejected before admission",
+    "reason": "The download plan changed. Refresh and select it again."
+  },
+  {
+    "case": "wrong source exact ID",
+    "result": "rejected before admission",
+    "reason": "This exact format belongs to another video. Select its format again."
+  },
+  {
+    "case": "height",
+    "id": "3aff5bf9-c3bb-4517-9b06-9cada0acd1ff",
+    "result": "no final output",
+    "reason": "Source selection not satisfied. Requested: height \u2264 240p. Observed: 720p / h264 / 30 FPS / unknown HDR."
+  },
+  {
+    "case": "fps",
+    "id": "97995efc-a264-40cd-951c-e850f8e635e2",
+    "result": "no final output",
+    "reason": "Source selection not satisfied. Requested: height \u2264 360p, FPS \u2264 30. Observed: 360p / h264 / 60 FPS / unknown HDR."
+  },
+  {
+    "case": "codec",
+    "id": "a2cdea9a-e408-4e7d-bc91-db5abc676d68",
+    "result": "no final output",
+    "reason": "Source selection not satisfied. Requested: height \u2264 1080p, av1. Observed: 720p / h264 / 30 FPS / unknown HDR."
+  },
+  {
+    "case": "exact-missing",
+    "id": "1e770871-df0f-4689-a7ef-fe4d5d37fd5c",
+    "result": "no final output",
+    "reason": "ERROR: [html5] precision?negative=exact-1: Requested format is not available. Use --list-formats for a list of available formats \u2014 Check the URL and try again."
+  },
+  {
+    "case": "HDR-unknown",
+    "id": "e17f0199-0807-45df-96d9-7deb2e410d72",
+    "result": "no final output",
+    "reason": "Source selection not satisfied. Requested: height \u2264 1080p, HDR. Observed: 720p / h264 / 30 FPS / unknown HDR."
+  },
+  {
+    "case": "FFmpeg selected rendition",
+    "id": "bf009ed0-49c3-4169-b5a0-f336ccc9f46a",
+    "height": 360,
+    "fps": 30,
+    "decode": "PASS"
+  },
+  {
+    "case": "conversion cancellation + next task",
+    "cancelledId": "d4b46afe-3836-49ae-b800-8dafb3c74e80",
+    "nextId": "9895e175-0cf4-4b23-8e3b-aabcb5e88d04",
+    "result": "PASS"
+  }
+]

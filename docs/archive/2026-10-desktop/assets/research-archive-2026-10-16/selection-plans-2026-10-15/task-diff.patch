@@ -1,0 +1,3092 @@
+--- before/src/i18n/catalog.ts
++++ after/src/i18n/catalog.ts
+@@ -69,6 +69,48 @@
+ }
+ 
+ const en = {
++  plans: {
++    companionAudio: "Companion audio source",
++    unavailable: "Saved plan unavailable — choose another",
++    automatic: "Select automatically using this plan",
++    selectSource: "Choose source {{quality}} · {{container}}",
++    sourceAudio: "Source audio · {{quality}} kbps",
++    sourceVideo: "Source video · {{quality}}p",
++    "title": "Download plan",
++    "custom": "Current selection",
++    "archive": "Original archive",
++    "compatible": "Compatible MP4",
++    "audio": "Audio only",
++    "default": "Default",
++    "media": "Content",
++    "output": "Output format",
++    "original": "Keep source codecs",
++    "height": "Maximum video height",
++    "best": "Best available",
++    "bitrate": "Output audio bitrate",
++    "vbr": "High quality (variable bitrate)",
++    "convert": "Convert to H.264 + AAC for compatible playback",
++    "exact": "This source format is locked for this video.",
++    "unlock": "Use automatic selection",
++    "advanced": "More output options",
++    "codec": "Source video codec",
++    "fps": "Maximum frame rate",
++    "any": "No preference",
++    "language": "Audio language",
++    "folder": "Save folder",
++    "defaultFolder": "Application download folder",
++    "filename": "Filename template",
++    "noFallback": "If a selected source format or constraint is unavailable, the task fails instead of choosing a different source.",
++    "save": "Save or manage plans",
++    "name": "Plan name",
++    "saveNew": "Save as new",
++    "update": "Update this plan",
++    "delete": "Delete plan",
++    "makeDefault": "Use as app default",
++    "resetDefault": "Use existing default settings",
++    "snapshotHint": "Plans are shared by single downloads, collections and the extension. Queued tasks keep their saved choices.",
++    "saveFailed": "Could not save download plan"
++},
+   ui: {
+     loadedEmpty: "No items found",
+     loadFailed: "Could not load this list",
+@@ -358,6 +400,7 @@
+     inProgress: 'In progress',
+     starting: 'Starting…',
+     merging: 'Merging',
++    transcoding: 'Converting to H.264 MP4',
+     audio: 'Audio',
+     video: 'Video'
+   },
+@@ -812,6 +855,48 @@
+ } as const
+ 
+ const zhCN: DeepString<typeof en> = {
++  plans: {
++    companionAudio: "配对音频来源",
++    unavailable: "方案已移除，请重新选择",
++    automatic: "按方案自动选择来源",
++    selectSource: "选择来源 {{quality}} · {{container}}",
++    sourceAudio: "来源音频 · {{quality}} kbps",
++    sourceVideo: "来源视频 · {{quality}}p",
++    "title": "下载方案",
++    "custom": "当前自定义选择",
++    "archive": "原画归档",
++    "compatible": "兼容 MP4",
++    "audio": "仅音频",
++    "default": "默认",
++    "media": "内容类型",
++    "output": "输出格式",
++    "original": "保留来源编码",
++    "height": "视频清晰度上限",
++    "best": "最佳可用画质",
++    "bitrate": "输出音频码率",
++    "vbr": "高质量（可变码率）",
++    "convert": "转换为 H.264 + AAC，便于兼容播放",
++    "exact": "已为此视频锁定所选来源格式。",
++    "unlock": "改为自动选择",
++    "advanced": "更多输出选项",
++    "codec": "来源视频编码",
++    "fps": "帧率上限",
++    "any": "不限制",
++    "language": "音轨语言",
++    "folder": "保存目录",
++    "defaultFolder": "应用默认下载目录",
++    "filename": "文件命名模板",
++    "noFallback": "所选来源格式或限制无法满足时，任务会明确失败，不会自动换成其他来源。",
++    "save": "保存或管理方案",
++    "name": "方案名称",
++    "saveNew": "另存为新方案",
++    "update": "更新此方案",
++    "delete": "删除方案",
++    "makeDefault": "设为应用默认",
++    "resetDefault": "使用原有默认设置",
++    "snapshotHint": "单条、合集和扩展共用方案。已入队任务保留入队时的选择。",
++    "saveFailed": "未能保存下载方案"
++},
+   ui: {
+     loadedEmpty: "未找到内容",
+     loadFailed: "未能加载列表",
+@@ -1101,6 +1186,7 @@
+     inProgress: '进行中',
+     starting: '正在开始…',
+     merging: '合并中',
++    transcoding: '正在转换为 H.264 MP4',
+     audio: '音频',
+     video: '视频'
+   },
+@@ -1555,6 +1641,48 @@
+ }
+ 
+ const zhTW: DeepString<typeof en> = {
++  plans: {
++    companionAudio: "配對音訊來源",
++    unavailable: "方案已移除，請重新選擇",
++    automatic: "依方案自動選擇來源",
++    selectSource: "選擇來源 {{quality}} · {{container}}",
++    sourceAudio: "來源音訊 · {{quality}} kbps",
++    sourceVideo: "來源影片 · {{quality}}p",
++    "title": "下載方案",
++    "custom": "目前自訂選擇",
++    "archive": "原畫歸檔",
++    "compatible": "相容 MP4",
++    "audio": "僅音訊",
++    "default": "預設",
++    "media": "內容類型",
++    "output": "輸出格式",
++    "original": "保留來源編碼",
++    "height": "影片畫質上限",
++    "best": "最佳可用畫質",
++    "bitrate": "輸出音訊位元率",
++    "vbr": "高品質（可變位元率）",
++    "convert": "轉換為 H.264 + AAC，方便相容播放",
++    "exact": "已為此影片鎖定所選來源格式。",
++    "unlock": "改為自動選擇",
++    "advanced": "更多輸出選項",
++    "codec": "來源影片編碼",
++    "fps": "影格率上限",
++    "any": "不限制",
++    "language": "音軌語言",
++    "folder": "儲存資料夾",
++    "defaultFolder": "應用程式預設下載資料夾",
++    "filename": "檔案命名範本",
++    "noFallback": "所選來源格式或限制無法滿足時，工作會明確失敗，不會自動改用其他來源。",
++    "save": "儲存或管理方案",
++    "name": "方案名稱",
++    "saveNew": "另存為新方案",
++    "update": "更新此方案",
++    "delete": "刪除方案",
++    "makeDefault": "設為應用程式預設",
++    "resetDefault": "使用原有預設設定",
++    "snapshotHint": "單筆、合集和擴充功能共用方案。已排入佇列的工作會保留當時的選擇。",
++    "saveFailed": "無法儲存下載方案"
++},
+   ui: {
+     loadedEmpty: "未找到內容",
+     loadFailed: "未能載入列表",
+@@ -1844,6 +1972,7 @@
+     inProgress: '進行中',
+     starting: '正在開始…',
+     merging: '合併中',
++    transcoding: '正在轉換為 H.264 MP4',
+     audio: '音訊',
+     video: '影片'
+   },
+--- before/src/main/database.ts
++++ after/src/main/database.ts
+@@ -9,6 +9,7 @@
+ const DB_PATH = join(app.getPath('userData'), 'downloads.db')
+ 
+ export interface DownloadRecord {
++  selection_key?: string | null
+   id: string
+   url: string
+   title: string
+@@ -32,6 +33,7 @@
+ }
+ 
+ export interface DownloadAdmissionRecord {
++  selection_key?: string | null
+   id: string
+   url: string
+   status: string
+@@ -109,8 +111,8 @@
+ ): void {
+   if (!db) throw new Error('Database not initialized')
+   const stmt = db.prepare(`
+-    INSERT INTO downloads (id, url, title, format, quality, status, progress, file_path, file_size, thumbnail, duration, channel, playlist_id, playlist_index, extras, error, created_at, updated_at)
+-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
++    INSERT INTO downloads (id, url, title, format, quality, status, progress, file_path, file_size, thumbnail, duration, channel, playlist_id, playlist_index, extras, error, created_at, updated_at, selection_key)
++    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+   `)
+   stmt.run(
+     record.id,
+@@ -130,7 +132,8 @@
+     record.extras ?? null,
+     record.error ?? null,
+     createdAt,
+-    createdAt
++    createdAt,
++    record.selection_key ?? null
+   )
+ }
+ 
+@@ -151,7 +154,7 @@
+ export function updateDownload(
+   id: string,
+   updates: Partial<
+-    Pick<DownloadRecord, 'url' | 'title' | 'format' | 'quality' | 'status' | 'progress' | 'file_path' | 'file_size' | 'error' | 'error_code' | 'thumbnail' | 'duration' | 'channel' | 'extras'>
++    Pick<DownloadRecord, 'url' | 'title' | 'format' | 'quality' | 'selection_key' | 'status' | 'progress' | 'file_path' | 'file_size' | 'error' | 'error_code' | 'thumbnail' | 'duration' | 'channel' | 'extras'>
+   >
+ ): void {
+   if (!db) throw new Error('Database not initialized')
+@@ -274,13 +277,14 @@
+ }
+ 
+ /** Small projection used to preserve URL de-duplication without loading large extras blobs. */
+-export function getDownloadAdmissionCandidates(): DownloadAdmissionRecord[] {
++export function getDownloadAdmissionCandidates(selectionKey?: string | null): DownloadAdmissionRecord[] {
+   if (!db) throw new Error('Database not initialized')
+   return db.prepare(`
+-    SELECT id, url, status, file_path, created_at
++    SELECT id, url, status, file_path, created_at, selection_key
+     FROM downloads
++    ${selectionKey === undefined ? '' : 'WHERE selection_key IS @selectionKey'}
+     ORDER BY created_at DESC
+-  `).all() as DownloadAdmissionRecord[]
++  `).all(...(selectionKey === undefined ? [] : [{ selectionKey }])) as DownloadAdmissionRecord[]
+ }
+ 
+ export interface DownloadProgressSummary {
+--- before/src/main/databaseMigrations.ts
++++ after/src/main/databaseMigrations.ts
+@@ -1,6 +1,6 @@
+ import type Database from 'better-sqlite3'
+ 
+-export const CURRENT_SCHEMA_VERSION = 3
++export const CURRENT_SCHEMA_VERSION = 4
+ 
+ /** Apply all database migrations exactly once, preserving existing rows. */
+ export function migrateDatabase(database: Database.Database): void {
+@@ -35,6 +35,13 @@
+       if (!columns.some(({ name }) => name === 'error_code')) database.exec('ALTER TABLE downloads ADD COLUMN error_code TEXT')
+       database.prepare('INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)').run(3, new Date().toISOString())
+     }
++    if (!applied.has(4)) {
++      const columns = database.prepare('PRAGMA table_info(downloads)').all() as { name: string }[]
++      if (!columns.some(({ name }) => name === 'selection_key')) database.exec('ALTER TABLE downloads ADD COLUMN selection_key TEXT')
++      database.exec('CREATE INDEX IF NOT EXISTS idx_downloads_selection_key ON downloads(selection_key)')
++      database.prepare('INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)').run(4, new Date().toISOString())
++    }
++
+   })
+   migrate()
+ 
+--- before/src/main/downloadManager.ts
++++ after/src/main/downloadManager.ts
+@@ -1,3 +1,6 @@
++import { prepareSelectedOutput } from './selectedOutput'
++import type { DownloadSelectionRequest } from '@v-download/shared'
++import { assertGallerySelection, supportsDirectSiteVideoSelection, prepareDownloadRequest, readDownloadRequestSnapshot, admissionIdentity, type DownloadRequestSnapshot } from './downloadPlans'
+ import { v4 as uuidv4 } from 'uuid'
+ import { BrowserWindow } from 'electron'
+ import type { ChildProcess } from 'child_process'
+@@ -59,7 +62,6 @@
+   bulkQueueNotice,
+   decideQueueAdmission,
+   findReusableDownload,
+-  indexReusableDownloads,
+   localizeQueueNotice,
+   queueIdentityKey,
+   type QueueNotice
+@@ -559,15 +561,16 @@
+     return resolvePath(persistedOutputDir.trim())
+   }
+   const taskMeta = task.metadata as Record<string, unknown> | undefined
+-  const playlistSubfolder = settings.get('playlistSubfolder')
+-  const archiveByAuthor = settings.get('archiveByAuthor')
++  const snapshot = taskMeta?.downloadRequest ? readDownloadRequestSnapshot(taskMeta.downloadRequest) : undefined
++  const playlistSubfolder = snapshot?.playlistSubfolder ?? settings.get('playlistSubfolder')
++  const archiveByAuthor = snapshot?.archiveByAuthor ?? settings.get('archiveByAuthor')
+   const isProfilePick = taskMeta?.douyinProfilePick === true
+   const sanitizedPlaylistId = task.playlistId?.replace(/[/\\?*:|"<>]/g, '-') ?? null
+   const resolved = resolveTaskNetworkOverrides(task, remoteOutputDir)
+   return resolvePath(composeDownloadOutputDir({
+     downloadDir: isRemoteJobTask(taskMeta) ? settings.get('downloadDir') : resolved.outputDir,
+     archiveByAuthor,
+-    folderNameTemplate: settings.get('folderNameTemplate'),
++    folderNameTemplate: snapshot?.folderNameTemplate ?? settings.get('folderNameTemplate'),
+     playlistSubfolder,
+     playlistFolder: sanitizedPlaylistId,
+     remoteOutputDir: remoteOutputDir || null,
+@@ -579,7 +582,7 @@
+ function writerOutputNameForTask(task: { id: string; url: string; title: string; metadata?: Record<string, unknown> }, ext: string): string {
+   const values = templateValuesForTask(task)
+   return resolveWriterOutputName({
+-    filenameTemplate: settings.get('filenameTemplate'),
++    filenameTemplate: task.metadata?.downloadRequest ? readDownloadRequestSnapshot(task.metadata.downloadRequest).filenameTemplate : settings.get('filenameTemplate'),
+     title: values.title,
+     id: values.id,
+     author: values.author,
+@@ -670,7 +673,8 @@
+   updatedAt: string
+ }
+ 
+-interface AddTaskOptions {
++interface AddTaskOptions extends DownloadSelectionRequest {
++  selectionKey?: string | null
+   url: string
+   title: string
+   format: string
+@@ -1109,8 +1113,10 @@
+       return false
+     }
+ 
++    const selection = task.metadata?.downloadRequest ? readDownloadRequestSnapshot(task.metadata.downloadRequest).selection : undefined
+     let filePath: string
+     if (isDouyinGallery(douyinInfo)) {
++      assertGallerySelection(selection)
+       galleryOutputDir = await chooseSafeOutputPath(join(dirname(safeVideoPath), basename(safeVideoPath, '.mp4')), task.id, true)
+       galleryOutputDir = await claimExclusiveOutputDirectory(galleryOutputDir, task.id, outDir)
+       filePath = await downloadDouyinImageGallery(
+@@ -1166,9 +1172,15 @@
+     } else if (!st.isFile() || st.size < MIN_DOUYIN_OUTPUT_BYTES) {
+       throw new Error('Douyin media response produced an empty or incomplete file')
+     }
++    if (st.isFile()) await persistTaskOutputOwnership(task.id, outDir, 'ownedOutputFiles', [filePath])
++    if (!isGalleryOutput && selection) await prepareSelectedOutput(filePath, selection, getTaskAbortSignal(task.id))
++    if (isTaskAborted(task.id)) {
++      if (galleryOutputDir) await removeTaskOwnedOutput(task.id, outDir, 'ownedOutputDirs', galleryOutputDir)
++      if (claimedVideoPath) await removeTaskOwnedOutput(task.id, outDir, 'ownedOutputFiles', claimedVideoPath)
++      return true
++    }
+     const fileSize: number | null = st.isFile() ? st.size : null
+     task.filePath = filePath
+-    if (st.isFile()) await persistTaskOutputOwnership(task.id, outDir, 'ownedOutputFiles', [filePath])
+     const note = writeTaskNote(task, 'sidecar', filePath)
+     if (note) await persistTaskOutputIdentity(task.id, outDir, 'ownedOutputFiles', note.path, note.identity)
+     task.status = 'complete'
+@@ -1273,9 +1285,9 @@
+   return task
+ }
+ 
+-function admitExistingTask(url: string, forceNew?: boolean): AdmitResult | null {
++function admitExistingTask(url: string, forceNew?: boolean, selectionKey?: string | null): AdmitResult | null {
+   if (forceNew) return null
+-  const candidate = findReusableDownload(db.getDownloadAdmissionCandidates(), url)
++  const candidate = findReusableDownload(db.getDownloadAdmissionCandidates(selectionKey), url)
+   const reusable = candidate ? db.getDownload(candidate.id) : undefined
+   if (!reusable) return null
+   const decision = decideQueueAdmission({
+@@ -1298,8 +1310,9 @@
+   return { task: taskFromRecord(reusable), outcome: 'focused', notice: localizedNotice(decision.notice) }
+ }
+ 
+-export function addTaskAdmitted(options: AddTaskOptions): AdmitResult {
+-  const admitted = admitExistingTask(options.url, options.forceNew)
++export function addTaskAdmitted(options: AddTaskOptions, inherited?: DownloadRequestSnapshot): AdmitResult {
++  options = prepareDownloadRequest(options, inherited)
++  const admitted = admitExistingTask(options.url, options.forceNew, options.selectionKey)
+   if (admitted) return admitted
+   return { task: insertQueuedTask(options), outcome: 'created' }
+ }
+@@ -1310,7 +1323,7 @@
+ 
+ /** Add a resolver-confirmed multi-entry page as one yt-dlp playlist task. */
+ export function addResolvedMultiOutputTask(options: AddTaskOptions): DownloadTask {
+-  return insertQueuedTask(options, true)
++  return insertQueuedTask(prepareDownloadRequest(options), true)
+ }
+ 
+ function insertQueuedTask(options: AddTaskOptions, resolvedMultiOutput = false): DownloadTask {
+@@ -1360,6 +1373,7 @@
+ 
+   db.insertDownload({
+     id: task.id,
++    selection_key: options.selectionKey,
+     url: task.url,
+     title: task.title,
+     format: task.format,
+@@ -1400,7 +1414,7 @@
+   return task
+ }
+ 
+-export interface InfoResolveTaskOptions {
++export interface InfoResolveTaskOptions extends DownloadSelectionRequest {
+   url: string
+   title?: string
+   format?: string
+@@ -1413,7 +1427,7 @@
+   forceNew?: boolean
+ }
+ 
+-export interface PromoteInfoResolveOptions {
++export interface PromoteInfoResolveOptions extends DownloadSelectionRequest {
+   url?: string
+   title?: string
+   format: string
+@@ -1784,6 +1798,7 @@
+   delete metadata.remoteOutputDir
+   delete metadata.remoteResolvedPlaylist
+ 
++  const inherited = metadata.downloadRequest ? readDownloadRequestSnapshot(metadata.downloadRequest) : undefined
+   const mediaType = typeof metadata.mediaType === 'string' ? metadata.mediaType : undefined
+   const referer = typeof metadata.referer === 'string' ? metadata.referer : undefined
+   const customHeaders =
+@@ -1808,7 +1823,7 @@
+       proxyUrl,
+       forceNew: true,
+       metadata
+-    })
++    }, inherited)
+   }
+ 
+   return createInfoResolveTask({
+@@ -1822,12 +1837,13 @@
+     customHeaders,
+     forceNew: true,
+     metadata
+-  })
++  }, inherited)
+ }
+ 
+ /** Create the durable placeholder shown while the main-process resolver works. */
+-export function createInfoResolveTask(options: InfoResolveTaskOptions): AdmitResult {
+-  const admitted = admitExistingTask(options.url, options.forceNew)
++export function createInfoResolveTask(input: InfoResolveTaskOptions, inherited?: DownloadRequestSnapshot): AdmitResult {
++  const options = prepareDownloadRequest(input, inherited)
++  const admitted = admitExistingTask(options.url, options.forceNew, options.selectionKey)
+   if (admitted) return admitted
+ 
+   const id = uuidv4()
+@@ -1862,6 +1878,7 @@
+ 
+   db.insertDownload({
+     id: task.id,
++    selection_key: options.selectionKey,
+     url: task.url,
+     title: task.title,
+     format: task.format,
+@@ -1935,6 +1952,9 @@
+   if (!record || !isInfoResolveTaskRecord(record) || record.status === 'cancelled') return null
+ 
+   const previous = metadataFromRecord(record)
++  const prepared = prepareDownloadRequest({ ...options, url: options.url || record.url },
++    previous.downloadRequest ? readDownloadRequestSnapshot(previous.downloadRequest) : undefined)
++  options = prepared
+   const metadata: Record<string, unknown> = {
+     ...previous,
+     ...(options.metadata ?? {}),
+@@ -1958,6 +1978,7 @@
+     title,
+     format: options.format,
+     quality,
++    selection_key: prepared.selectionKey,
+     status: 'queued',
+     progress: 0,
+     file_path: null,
+@@ -2047,6 +2068,7 @@
+     throw new Error(`Too many tasks (max ${MAX_BULK_TASKS})`)
+   }
+ 
++  optionsList = optionsList.map((options) => prepareDownloadRequest(options))
+   const batchSize = optionsList.length
+   const isProfileBatch =
+     batchSize >= 2 && optionsList.every((o) => o.metadata?.douyinProfilePick === true)
+@@ -2058,11 +2080,15 @@
+   const staleComplete: db.DownloadRecord[] = []
+   const retryRecords: db.DownloadRecord[] = []
+   const seenKeys = new Set<string>()
+-  const existingByKey = indexReusableDownloads(db.getDownloadAdmissionCandidates())
++  const existingByKey = new Map<string, db.DownloadAdmissionRecord>()
++  for (const row of db.getDownloadAdmissionCandidates()) {
++    const key = admissionIdentity(queueIdentityKey(row.url), row.selection_key)
++    if (!existingByKey.has(key)) existingByKey.set(key, row)
++  }
+   let skipped = 0
+ 
+   for (const options of optionsList) {
+-    const key = queueIdentityKey(options.url)
++    const key = admissionIdentity(queueIdentityKey(options.url), options.selectionKey)
+     if (key && seenKeys.has(key)) {
+       skipped += 1
+       continue
+@@ -2103,6 +2129,7 @@
+ 
+     records.push({
+       id: task.id,
++      selection_key: options.selectionKey,
+       url: task.url,
+       title: task.title,
+       format: task.format,
+@@ -2196,6 +2223,8 @@
+   const sleepInterval = settings.get('sleepInterval')
+   const ytdlpPath = settings.get('ytdlpPath')
+   const taskMeta = task.metadata as Record<string, unknown> | undefined
++  const selection = taskMeta?.downloadRequest ? readDownloadRequestSnapshot(taskMeta.downloadRequest).selection : undefined
++  const prepareOutput = (path: string) => prepareSelectedOutput(path, selection, getTaskAbortSignal(task.id), () => emitProgress(task, { phase: 'transcoding' }, { force: true }))
+ 
+   const quality = normalizeDownloadQuality(task.quality)
+   const remoteOutputDir = typeof taskMeta?.remoteOutputDir === 'string' ? taskMeta.remoteOutputDir.trim() : ''
+@@ -2226,7 +2255,7 @@
+   const customHeaders = resolvedNetwork.customHeaders
+   const taskProxyUrl = resolvedNetwork.proxyUrl
+ 
+-  const skipAdoptExisting = taskMeta?.skipAdoptExisting === true
++  const skipAdoptExisting = taskMeta?.skipAdoptExisting === true || Boolean(taskMeta?.downloadRequest)
+ 
+   if (!skipAdoptExisting && await tryAdoptExistingDouyinOutput(task, outDir)) {
+     if (stopIfAborted()) return
+@@ -2373,7 +2402,7 @@
+   const playlistSleep = useNativePlaylist ? settings.get('youtubePlaylistSleepRequests') : 0
+   const playlistMax = useNativePlaylist ? settings.get('youtubePlaylistMaxDownloads') : 0
+ 
+-  const outputExtGuess =
++  const outputExtGuess = selection?.target === 'audio' ? (selection.output === 'original' ? 'mka' : selection.output) :
+     task.format === 'audio' || task.format === 'mp3' || mediaType === 'mp3'
+       ? 'mp3'
+       : mediaType === 'jpeg'
+@@ -2413,7 +2442,7 @@
+     Boolean(mediaType) &&
+     (directEngine === 'auto' || directEngine === 'ffmpeg') &&
+     ffmpegDownload.isFfmpegDirectMediaEligible(mediaType, effectiveUrl) &&
+-    !(directEngine === 'auto' && isAdaptiveMediaInput(mediaType, effectiveUrl))
++    !(directEngine === 'auto' && (selection || isAdaptiveMediaInput(mediaType, effectiveUrl)))
+ 
+   if (tryFfmpegFirst) {
+     await mkdir(taskStagingDir, { recursive: true })
+@@ -2421,20 +2450,20 @@
+     const stagedPartPath = join(taskStagingDir, `${stagedRelativePath}.part`)
+     await mkdir(dirname(stagedPartPath), { recursive: true })
+     let streamMaps: number[] | undefined
+-    if (isAdaptiveMediaInput(mediaType, effectiveUrl) && task.format !== 'audio' && task.format !== 'mp3') {
+-      const selection = await ffmpegDownload.probeAdaptiveVideoStreams({
+-        url: effectiveUrl, referer, customHeaders, proxyUrl: taskProxyUrl, quality,
++    if (selection || (isAdaptiveMediaInput(mediaType, effectiveUrl) && task.format !== 'audio' && task.format !== 'mp3')) {
++      const streamSelection = await ffmpegDownload.probeAdaptiveVideoStreams({
++        url: effectiveUrl, referer, customHeaders, proxyUrl: taskProxyUrl, quality, selection,
+         signal: getTaskAbortSignal(task.id)
+       })
+       if (stopIfAborted()) return
+-      if (!selection.ok) {
+-        setTaskError(task, selection.error)
++      if (!streamSelection.ok) {
++        setTaskError(task, streamSelection.error)
+         emitProgress(task)
+         releaseSlot()
+         processQueue()
+         return
+       }
+-      streamMaps = selection.streamMaps
++      streamMaps = streamSelection.streamMaps
+     }
+     const fdp = ffmpegDownload.downloadDirectMediaWithFfmpeg({
+       url: effectiveUrl,
+@@ -2445,7 +2474,7 @@
+       customHeaders,
+       proxyUrl: taskProxyUrl,
+       durationSec: task.duration,
+-      streamMaps
++      streamMaps, selection
+     })
+     workerCancel = fdp.cancel
+     activeDownloads.set(task.id, {
+@@ -2538,10 +2567,12 @@
+           if (!validation.valid) {
+             ffmpegOutputValidationError = validation.error || 'FFmpeg output failed integrity validation'
+           } else {
++            const preparedPath = await prepareOutput(stagedPartPath)
++            if (stopIfAborted()) return
+             let publishSourceIdentity: PersistedOutputIdentity | null = null
+             const published = await publishStagedFile(
+               taskStagingDir,
+-              stagedPartPath,
++              preparedPath,
+               outDir,
+               task.id,
+               MIN_OUTPUT_BYTES,
+@@ -2552,7 +2583,7 @@
+                   if (!persistOutputPublishEntry(
+                     task.id,
+                     outDir,
+-                    relative(outDir, stagedPartPath),
++                    relative(outDir, preparedPath),
+                     destinationPath,
+                     sourceIdentity
+                   )) throw new Error('Output ownership journal could not be persisted')
+@@ -2561,7 +2592,7 @@
+                   if (!persistOutputPublishEntry(
+                     task.id,
+                     outDir,
+-                    relative(outDir, stagedPartPath),
++                    relative(outDir, preparedPath),
+                     destinationPath,
+                     sourceIdentity,
+                     destinationIdentity
+@@ -2575,7 +2606,7 @@
+             if (!persistOutputPublishEntry(
+               task.id,
+               outDir,
+-              relative(outDir, stagedPartPath),
++              relative(outDir, preparedPath),
+               relative(outDir, actualFinalPath),
+               publishSourceIdentity ?? published.identity,
+               published.identity
+@@ -2608,6 +2639,7 @@
+               error_code: null
+             })
+             emitProgress(task)
++            await rm(taskStagingDir, { recursive: true, force: true }).catch(() => {})
+             releaseSlot()
+             processQueue()
+             return
+@@ -2654,7 +2686,7 @@
+   const retrySleeps = ytdlpRetrySleepsForSpeedMode(speedMode)
+ 
+   const isProfilePick = taskMeta?.douyinProfilePick === true
+-  if (isProfilePick && isDouyinUrl(task.url)) {
++  if (isProfilePick && supportsDirectSiteVideoSelection(selection) && isDouyinUrl(task.url)) {
+     await runDouyinDirectDownload(task, outDir, cookiesPath || undefined, { profilePick: true })
+     releaseSlot()
+     processQueue()
+@@ -2680,6 +2712,8 @@
+       url: effectiveUrl,
+       format: task.format,
+       quality,
++      selection,
++      entryIndex: taskMeta?.downloadRequest ? readDownloadRequestSnapshot(taskMeta.downloadRequest).entryIndex : undefined,
+       outputDir: ytdlpStagingDir,
+       tempDir: ytdlpTempDir,
+       cookiesPath: cookiesPath || undefined,
+@@ -2700,7 +2734,7 @@
+       extractorArgs: poToken.provider?.extractorArgs,
+       pluginDir: poToken.provider?.pluginDir,
+       proxyUrl: taskProxyUrl,
+-      filenameTemplate: settings.get('filenameTemplate'),
++      filenameTemplate: task.metadata?.downloadRequest ? readDownloadRequestSnapshot(task.metadata.downloadRequest).filenameTemplate : settings.get('filenameTemplate'),
+       limitRate: ytdlpLimitRateArgs(speedMode)[1]
+     },
+       ytdlpPath
+@@ -2812,7 +2846,7 @@
+         }
+         const isAudio = task.format === 'audio' || task.format === 'mp3'
+         let recovered = false
+-        if (!isAudio && isDouyinUrl(task.url)) {
++        if (supportsDirectSiteVideoSelection(selection) && !isAudio && isDouyinUrl(task.url)) {
+           console.log('[runTask] yt-dlp failed for Douyin; trying mobile share fallback')
+           await runDouyinDirectDownload(task, outDir, cookiesPath || undefined)
+           recovered = task.status === 'complete'
+@@ -2875,9 +2909,11 @@
+         const planned: Array<{ sourcePath: string; sourceRelative: string; entry: NativePlaylistPublishEntry }> = []
+         const seenReportedPaths = new Set<string>()
+         for (const reportedPath of reportedOutputs) {
+-          const outputPath = resolveReportedPath(ytdlpStagingDir, reportedPath)
++          let outputPath = resolveReportedPath(ytdlpStagingDir, reportedPath)
+           if (!outputPath || seenReportedPaths.has(outputPath)) continue
+           seenReportedPaths.add(outputPath)
++          const requestedRelative = relative(resolvePath(ytdlpStagingDir), resolvePath(outputPath))
++          outputPath = await prepareOutput(outputPath)
+           const sourceRelative = relative(resolvePath(ytdlpStagingDir), resolvePath(outputPath))
+           if (!sourceRelative || sourceRelative.startsWith('..') || isAbsolute(sourceRelative)) {
+             publishFailed = true
+@@ -2919,7 +2955,7 @@
+           let journalEntry = journaledEntries.find((entry) =>
+             outputIdentityMatches(sourceStat!, sourceIdentityForEntry(entry), true)
+           )
+-          const requestedPath = resolvePath(outDir, sourceRelative)
++          const requestedPath = resolvePath(outDir, selection?.postprocess === 'h264-mp4' ? requestedRelative.replace(/\.[^/.]+$/, '.mp4') : requestedRelative)
+           if (!isPathInside(outDir, requestedPath)) {
+             publishFailed = true
+             continue
+@@ -3290,6 +3326,10 @@
+       }
+ 
+       if (filePath) {
++        const originalRelative = relative(ytdlpStagingDir, filePath)
++        filePath = await prepareOutput(filePath)
++        fileSize = (await stat(filePath)).size
++        const requestedPath = resolvePath(outDir, selection?.postprocess === 'h264-mp4' ? originalRelative.replace(/\.[^/.]+$/, '.mp4') : originalRelative)
+         const stagedSourcePath = filePath
+         let publishSourceIdentity: PersistedOutputIdentity | null = null
+         const published = await publishStagedFile(
+@@ -3299,6 +3339,7 @@
+           task.id,
+           MIN_OUTPUT_BYTES,
+           {
++            requestedPath,
+             beforePublish: async (destinationPath, sourceIdentity) => {
+               publishSourceIdentity = sourceIdentity
+               const sourceRelative = relative(outDir, stagedSourcePath)
+@@ -4113,11 +4154,12 @@
+ function outputDirForRecord(record: db.DownloadRecord, extras: Record<string, unknown>): string {
+   const persistedOutputDir = typeof extras.ownedOutputRoot === 'string' ? extras.ownedOutputRoot.trim() : ''
+   if (persistedOutputDir) return persistedOutputDir
++  const snapshot = extras.downloadRequest ? readDownloadRequestSnapshot(extras.downloadRequest) : undefined
+   return composeDownloadOutputDir({
+-    downloadDir: settings.get('downloadDir'),
+-    archiveByAuthor: settings.get('archiveByAuthor'),
+-    folderNameTemplate: settings.get('folderNameTemplate'),
+-    playlistSubfolder: settings.get('playlistSubfolder'),
++    downloadDir: snapshot?.outputDir ?? settings.get('downloadDir'),
++    archiveByAuthor: snapshot?.archiveByAuthor ?? settings.get('archiveByAuthor'),
++    folderNameTemplate: snapshot?.folderNameTemplate ?? settings.get('folderNameTemplate'),
++    playlistSubfolder: snapshot?.playlistSubfolder ?? settings.get('playlistSubfolder'),
+     playlistFolder: record.playlist_id?.replace(/[/\\?*:|"<>]/g, '-') ?? null,
+     remoteOutputDir: typeof extras.remoteOutputDir === 'string' ? extras.remoteOutputDir : null,
+     skipPlaylistFolder: extras.douyinProfilePick === true && settings.get('archiveByAuthor'),
+--- before/src/main/downloadPlans.ts
++++ after/src/main/downloadPlans.ts
+@@ -0,0 +1,57 @@
++import { allDownloadPlans, readDownloadSelection, readDownloadPlanLibrary, type DownloadSelection, type DownloadSelectionRequest } from '@v-download/shared'
++import { isAbsolute, resolve } from 'path'
++import * as settings from './settings'
++import { validateOutputTemplate } from './outputTemplateModel'
++import { selectionKey, type DownloadRequestSnapshot } from './downloadRequestSnapshot'
++export { readDownloadRequestSnapshot, selectionKey, admissionIdentity, type DownloadRequestSnapshot } from './downloadRequestSnapshot'
++
++type Request = DownloadSelectionRequest & {
++  url: string; format?: string; quality?: string; outputDir?: string; metadata?: Record<string, unknown>
++}
++
++/** Sole policy boundary: explicit request > selected plan > default plan > legacy request. */
++export function prepareDownloadRequest<T extends Request>(options: T, inherited?: DownloadRequestSnapshot): T & { selectionKey: string | null } {
++  const library = readDownloadPlanLibrary(settings.get('downloadPlanLibrary'))
++  const planId = options.planId ?? (options.selection || inherited || options.metadata?.remoteJobId ? null : library.defaultId)
++  if (options.planId !== undefined && (typeof options.planId !== 'string' || !options.planId)) throw new Error('Invalid download plan ID')
++  const plan = planId ? allDownloadPlans(library).find((p) => p.id === planId) : undefined
++  if (planId && !plan) throw new Error('The selected download plan no longer exists. Choose another plan.')
++  if (options.planRevision !== undefined && (!plan || options.planRevision !== plan.revision)) throw new Error('The download plan changed. Refresh and select it again.')
++  const raw = options.selection ?? plan?.selection ?? inherited?.selection
++  const metadata = { ...(options.metadata ?? {}) }
++  delete metadata.downloadRequest
++  if (!raw) return { ...options, metadata, selectionKey: null }
++  const entryIndex = options.entryIndex ?? inherited?.entryIndex
++  if (entryIndex !== undefined && (!Number.isInteger(entryIndex) || entryIndex < 1)) throw new Error('Invalid collection entry index')
++  const selection = readDownloadSelection(raw)
++  if (selection.exact && selection.exact.sourceUrl !== options.url) throw new Error('This exact format belongs to another video. Select its format again.')
++  const gallery = metadata.douyinImageUrls || metadata.xhsImageUrls || metadata.douyinMediaType === 'image' || metadata.mediaType === 'note'
++  if (gallery) assertGallerySelection(selection)
++  const outputDir = options.outputDir ?? plan?.outputDir ?? inherited?.outputDir ?? settings.get('downloadDir')
++  if (!isAbsolute(outputDir)) throw new Error('The download plan requires an absolute output folder')
++  const filenameTemplate = options.filenameTemplate ?? plan?.filenameTemplate ?? inherited?.filenameTemplate ?? settings.get('filenameTemplate')
++  const validTemplate = validateOutputTemplate(filenameTemplate, 'filename')
++  if (!validTemplate.ok) throw new Error('Invalid download plan filename template')
++  const snapshot: DownloadRequestSnapshot = {
++    version: 1, ...(entryIndex !== undefined ? { entryIndex } : {}), selection, ...(plan ? { plan: { id: plan.id, name: plan.name, revision: plan.revision } } : inherited?.plan ? { plan: { ...inherited.plan } } : {}),
++    outputDir: resolve(outputDir), filenameTemplate,
++    includeNote: options.includeNote ?? plan?.includeNote ?? inherited?.includeNote ?? metadata.includeNote === true,
++    archiveByAuthor: inherited?.archiveByAuthor ?? settings.get('archiveByAuthor'),
++    folderNameTemplate: inherited?.folderNameTemplate ?? settings.get('folderNameTemplate'),
++    playlistSubfolder: inherited?.playlistSubfolder ?? settings.get('playlistSubfolder')
++  }
++  metadata.downloadRequest = snapshot
++  metadata.includeNote = snapshot.includeNote
++  metadata.outputDir = snapshot.outputDir
++  return { ...options, format: selection.target === 'audio' ? (selection.output === 'original' ? 'audio' : selection.output) : 'video',
++    quality: String(selection.target === 'video' ? selection.maxHeight : selection.audioBitrate ?? 'best'),
++    outputDir: snapshot.outputDir, metadata, selectionKey: selectionKey(snapshot) }
++}
++
++/** Native site video fallbacks must validate intent too; provider IDs and conversion stay in yt-dlp. */
++export function supportsDirectSiteVideoSelection(selection: DownloadSelection | undefined): boolean {
++  return !selection || (selection.target === 'video' && !selection.exact && !selection.audioLanguage && selection.postprocess === 'none')
++}
++export function assertGallerySelection(selection: DownloadSelection | undefined): void {
++  if (selection && (selection.target === 'audio' || selection.exact || selection.videoCodec !== 'any' || selection.maxFps !== undefined || selection.dynamicRange !== 'any' || selection.output !== 'original' || selection.postprocess !== 'none')) throw new Error('This media selection requires video or audio. Choose Original archive for image galleries or notes.')
++}
+--- before/src/main/downloadProgress.ts
++++ after/src/main/downloadProgress.ts
+@@ -1,3 +1,4 @@
++import type { DownloadRequestSnapshot } from './downloadRequestSnapshot'
+ import type { DownloadTask } from './downloadManager'
+ 
+ export type ProgressExtras = {
+@@ -9,6 +10,7 @@
+ 
+ /** Slim IPC payload — avoids shipping full task metadata/thumbnails on every progress tick. */
+ export function downloadProgressPayload(task: DownloadTask, extras?: ProgressExtras, taskChanged = false): Record<string, unknown> {
++  const request = task.metadata.downloadRequest as DownloadRequestSnapshot | undefined
+   const stateChange = taskChanged || ['resolving', 'ready', 'complete', 'error', 'cancelled', 'paused', 'interrupted'].includes(task.status)
+   return {
+     id: task.id,
+@@ -24,6 +26,9 @@
+       ? {
+           format: task.format,
+           quality: task.quality,
++          selection: request?.selection ?? null,
++          planName: request?.plan?.name ?? null,
++          planId: request?.plan?.id ?? null,
+           error: task.error,
+           errorCode: task.errorCode ?? null,
+           thumbnail: task.thumbnail,
+--- before/src/main/downloadQuality.ts
++++ after/src/main/downloadQuality.ts
+@@ -1,3 +1,5 @@
++import { audioLanguageMatches, sourceVideoMatches, type DownloadSelection } from '@v-download/shared'
++import { videoFacts, type ProbeStreamFacts } from './probeStreamFacts'
+ export type DownloadQuality = number | 'best'
+ 
+ /** Keep "best" distinct from a numeric height limit across engine adapters. */
+@@ -7,20 +9,26 @@
+   return Number.isFinite(height) && height >= 1 ? Math.floor(height) : 1080
+ }
+ 
+-type ProbeStream = { index: number; codec_type: string; height?: number; bit_rate?: string }
++type ProbeStream = ProbeStreamFacts & { index: number; codec_type: string; bit_rate?: string; tags?: { language?: string } }
+ type StreamSelection = { ok: true; streamMaps: number[] } | { ok: false; error: string }
+ 
+ /** Select one rendition and its associated audio, never all HLS programs. */
+-export function selectAdaptiveVideoStreams(metadata: unknown, quality: DownloadQuality): StreamSelection {
++export function selectAdaptiveVideoStreams(metadata: unknown, quality: DownloadQuality, selection?: DownloadSelection): StreamSelection {
+   const record = metadata as { streams?: unknown; programs?: unknown } | null
+   const streamsFrom = (value: unknown): ProbeStream[] => Array.isArray(value)
+     ? value.filter((s): s is ProbeStream => s != null && typeof s === 'object' &&
+       Number.isInteger(s.index) && s.index >= 0 && typeof s.codec_type === 'string')
+     : []
++  if (selection?.exact) return { ok: false, error: 'Exact provider format IDs require the Auto or yt-dlp engine.' }
+   const streams = streamsFrom(record?.streams)
+   const limit = normalizeDownloadQuality(quality)
++  const matchingAudio = (pool: ProbeStream[]) => pool.filter((s) => s.codec_type === 'audio' && (!selection?.audioLanguage || audioLanguageMatches(selection.audioLanguage, s.tags?.language)))
++  if (selection?.target === 'audio') {
++    const audio = matchingAudio(streams).sort((a, b) => (Number(b.bit_rate) || 0) - (Number(a.bit_rate) || 0))[0]
++    return audio ? { ok: true, streamMaps: [audio.index] } : { ok: false, error: 'No audio stream satisfies the selected language.' }
++  }
+   const videos = streams.filter((s) => s.codec_type === 'video' &&
+-    typeof s.height === 'number' && s.height > 0 && (limit === 'best' || s.height <= limit))
++    typeof s.height === 'number' && s.height > 0 && (selection ? sourceVideoMatches(selection, videoFacts(s)) : (limit === 'best' || s.height <= limit)))
+     .sort((a, b) => (b.height! - a.height!) || (Number(b.bit_rate) || 0) - (Number(a.bit_rate) || 0))
+   const video = videos[0]
+   if (!video) return { ok: false, error: `No video rendition satisfies the selected quality (${limit === 'best' ? 'best' : `${limit}p maximum`}).` }
+@@ -28,8 +36,9 @@
+   const associated = programs.map((p) => streamsFrom(p?.streams))
+     .find((group) => group.some((s) => s.index === video.index))
+   const audioPool = associated?.some((s) => s.codec_type === 'audio') ? associated : streams
+-  const audio = audioPool.filter((s) => s.codec_type === 'audio')
++  const audio = matchingAudio(audioPool)
+     .sort((a, b) => (Number(b.bit_rate) || 0) - (Number(a.bit_rate) || 0))[0]
++  if (selection?.audioLanguage && !audio) return { ok: false, error: 'No audio stream satisfies the selected language.' }
+   const subtitles = (associated ?? streams).filter((s) => s.codec_type === 'subtitle')
+   return { ok: true, streamMaps: [...new Set([video.index, ...(audio ? [audio.index] : []), ...subtitles.map((s) => s.index)])] }
+ }
+--- before/src/main/downloadRequestSnapshot.ts
++++ after/src/main/downloadRequestSnapshot.ts
+@@ -0,0 +1,45 @@
++import { createHash } from 'crypto'
++import { isAbsolute } from 'path'
++import {
++  readDownloadSelection,
++  type DownloadPlan, type DownloadSelection
++} from '@v-download/shared'
++import { validateOutputTemplate } from './outputTemplateModel'
++
++export interface DownloadRequestSnapshot {
++  version: 1
++  entryIndex?: number
++  selection: DownloadSelection
++  plan?: Pick<DownloadPlan, 'id' | 'name' | 'revision'>
++  outputDir: string
++  filenameTemplate: string
++  includeNote: boolean
++  archiveByAuthor: boolean
++  folderNameTemplate: string
++  playlistSubfolder: boolean
++}
++
++
++export function readDownloadRequestSnapshot(value: unknown): DownloadRequestSnapshot {
++  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid saved download request')
++  const v = value as DownloadRequestSnapshot
++  if (v.version !== 1 || typeof v.outputDir !== 'string' || !isAbsolute(v.outputDir) ||
++    typeof v.filenameTemplate !== 'string' || !validateOutputTemplate(v.filenameTemplate, 'filename').ok ||
++    typeof v.includeNote !== 'boolean' || typeof v.archiveByAuthor !== 'boolean' ||
++    typeof v.playlistSubfolder !== 'boolean' || typeof v.folderNameTemplate !== 'string') throw new Error('Invalid saved download output settings')
++  if (v.entryIndex !== undefined && (!Number.isInteger(v.entryIndex) || v.entryIndex < 1)) throw new Error('Invalid collection entry index')
++  if (v.plan && (typeof v.plan.id !== 'string' || typeof v.plan.name !== 'string' || !Number.isInteger(v.plan.revision) || v.plan.revision < 1)) throw new Error('Invalid saved download plan identity')
++  return { version: 1, ...(v.entryIndex !== undefined ? { entryIndex: v.entryIndex } : {}), selection: readDownloadSelection(v.selection),
++    ...(v.plan ? { plan: { id: v.plan.id, name: v.plan.name, revision: v.plan.revision } } : {}),
++    outputDir: v.outputDir, filenameTemplate: v.filenameTemplate, includeNote: v.includeNote,
++    archiveByAuthor: v.archiveByAuthor, folderNameTemplate: v.folderNameTemplate, playlistSubfolder: v.playlistSubfolder }
++}
++export function selectionKey(snapshot?: DownloadRequestSnapshot): string | null {
++  if (!snapshot) return null
++  const { plan: _plan, ...intent } = readDownloadRequestSnapshot(snapshot)
++  return createHash('sha256').update(JSON.stringify(intent)).digest('hex')
++}
++export function admissionIdentity(urlKey: string, key: string | null | undefined): string {
++  return key ? `${urlKey}|selection:${key}` : urlKey
++}
++
+--- before/src/main/ffmpegDownload.ts
++++ after/src/main/ffmpegDownload.ts
+@@ -1,3 +1,4 @@
++import type { DownloadSelection } from '@v-download/shared'
+ import type { ChildProcess } from 'child_process'
+ import { randomBytes } from 'crypto'
+ import { mkdirSync, existsSync } from 'fs'
+@@ -149,6 +150,7 @@
+   mediaType?: string
+   /** Explicit input stream indices selected from an adaptive manifest. */
+   streamMaps?: number[]
++  selection?: DownloadSelection
+   /** Task format: `audio` / `mp3` / `video` etc. */
+   format: string
+   referer?: string
+@@ -191,13 +193,13 @@
+ 
+ function expectedStreamClass(format: string, mediaType: string | undefined): 'audio' | 'video' {
+   const type = (mediaType ?? '').toLowerCase()
+-  if (format === 'audio' || format === 'mp3' || /^audio(?:\/|$)/.test(type) || /^(?:mp3|m4a|aac|opus|ogg|oga|wav|flac)$/.test(type)) {
++  if (['audio','mp3','m4a','opus'].includes(format) || /^audio(?:\/|$)/.test(type) || /^(?:mp3|m4a|aac|opus|ogg|oga|wav|flac)$/.test(type)) {
+     return 'audio'
+   }
+   return 'video'
+ }
+ 
+-function ffprobeExecutable(ffmpegPath: string): string {
++export function ffprobeExecutable(ffmpegPath: string): string {
+   const executable = process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe'
+   const sibling = join(dirname(ffmpegPath), executable)
+   return existsSync(sibling) ? sibling : executable
+@@ -206,16 +208,16 @@
+ /** Respect a height limit without overriding a caller's FFmpeg engine choice. */
+ export async function probeAdaptiveVideoStreams(options: {
+   url: string; quality: DownloadQuality; referer?: string; customHeaders?: Record<string, string>
+-  proxyUrl?: string; signal?: AbortSignal
++  proxyUrl?: string; signal?: AbortSignal; selection?: DownloadSelection
+ }): Promise<ReturnType<typeof selectAdaptiveVideoStreams>> {
+   const args = ['-v', 'error', '-rw_timeout', String(HTTP_READ_IDLE_TIMEOUT_US),
+     '-headers', headersToFfmpegArg(buildHeaderMap(options.referer, options.customHeaders))]
+   if (options.proxyUrl?.trim()) args.push('-http_proxy', options.proxyUrl.trim())
+-  args.push('-show_entries', 'stream=index,codec_type,height,bit_rate:program=program_id:program_stream=index,codec_type,height,bit_rate', '-of', 'json', options.url)
++  args.push('-show_entries', 'stream=index,codec_type,codec_name,height,bit_rate,avg_frame_rate,r_frame_rate,color_transfer:stream_tags=language:program=program_id:program_stream=index,codec_type,codec_name,height,bit_rate,avg_frame_rate,r_frame_rate,color_transfer', '-of', 'json', options.url)
+   const probe = await probeMediaMetadata(ffprobeExecutable(settings.get('ffmpegPath')), args, {
+     stdio: ['ignore', 'pipe', 'pipe'], env: buildSpawnEnv(), detached: process.platform !== 'win32'
+   }, options.signal)
+-  return probe.ok ? selectAdaptiveVideoStreams(probe.metadata, options.quality) : { ok: false, error: probe.error }
++  return probe.ok ? selectAdaptiveVideoStreams(probe.metadata, options.quality, options.selection) : { ok: false, error: probe.error }
+ }
+ 
+ /**
+@@ -239,10 +241,10 @@
+   let onProgress: (progress: DownloadProgress) => void = progressCb ?? (() => {})
+ 
+   const wantsMp3 =
+-    format === 'audio' || format === 'mp3' || mediaType === 'mp3'
++    options.selection?.target === 'audio' || format === 'audio' || format === 'mp3' || mediaType === 'mp3'
+   const muxerInputPath = outputPath.replace(/\.part$/i, '')
+   const outExt = extname(muxerInputPath).slice(1).toLowerCase() || 'mp4'
+-  const outputMuxer = outExt === 'mp3' ? 'mp3' : outExt === 'mp4' ? 'mp4' : ''
++  const outputMuxer = ({ mp3: 'mp3', mp4: 'mp4', m4a: 'ipod', opus: 'opus', mka: 'matroska' } as Record<string,string>)[outExt] ?? ''
+ 
+   const isHls = mediaType === 'hls' || /\.m3u8(\?|#|$)/i.test(url)
+ 
+@@ -297,7 +299,12 @@
+ 
+   args.push('-i', url)
+ 
+-  if (wantsMp3 && outExt === 'mp3') {
++  if (options.selection?.target === 'audio') {
++    for (const index of options.streamMaps ?? []) args.push('-map', `0:${index}`)
++    const codec = { mp3: 'libmp3lame', m4a: 'aac', opus: 'libopus', original: 'copy', mp4: 'aac' }[options.selection.output]
++    args.push('-vn', '-c:a', codec)
++    if (options.selection.audioBitrate && codec !== 'copy') args.push('-b:a', `${options.selection.audioBitrate}k`)
++  } else if (wantsMp3 && outExt === 'mp3') {
+     args.push('-vn', '-c:a', 'libmp3lame', '-q:a', '0', '-threads', '0')
+   } else {
+     if (options.streamMaps) {
+--- before/src/main/index.ts
++++ after/src/main/index.ts
+@@ -3,7 +3,7 @@
+ import { optimizer, is } from '@electron-toolkit/utils'
+ import * as database from './database'
+ import * as downloadManager from './downloadManager'
+-import { initializeInfoResolutionManager, stopInfoResolutionManager } from './infoResolutionManager'
++import { initializeInfoResolutionManager, enqueueInfoResolve, stopInfoResolutionManager } from './infoResolutionManager'
+ import { stopManagedChildProcesses } from './managedChildProcesses'
+ import * as dockProgress from './dockProgress'
+ import { initializePoTokenServer, stopPoTokenServer } from './poTokenServer'
+@@ -202,16 +202,21 @@
+ }
+ 
+ function handleDownloadRequest(request: DownloadRequest): DownloadDispatchResult {
+-  const params = new URLSearchParams({ url: request.url })
+-  if (request.type) params.set('type', request.type)
+-  if (request.quality) params.set('quality', request.quality)
+-  params.set('autoStart', '1')
+-  if (request.referer) params.set('referer', request.referer)
+-  if (request.title) params.set('title', request.title)
+-  if (request.headers) params.set('headers', JSON.stringify(request.headers))
+-  const ytdlUrl = `ytdl://download?${params.toString()}`
+-  handleYtdlUrl(ytdlUrl)
+-  return { ok: true, accepted: true }
++  try {
++    const shared = { url: request.url, title: request.title || 'download',
++      quality: request.quality, selection: request.selection, planId: request.planId, planRevision: request.planRevision,
++      referer: request.referer, customHeaders: request.headers }
++    const admitted = request.type
++      ? downloadManager.addTaskAdmitted({ ...shared, format: 'video', mediaType: request.type })
++      : downloadManager.createInfoResolveTask({ ...shared, metadata: { resolveAutoStart: request.autoStart !== false } })
++    if (!request.type && admitted.task.status === 'resolving') initializeInfoResolutionManager()
++    if (!request.type && admitted.outcome === 'created') enqueueInfoResolve(admitted.task.id)
++    downloadManager.emitQueueAdmission(admitted)
++    if (mainWindow && !mainWindow.isDestroyed()) { mainWindow.show(); mainWindow.focus() }
++    return { ok: true, accepted: true }
++  } catch (error) {
++    return { ok: false, accepted: false, status: 400, error: error instanceof Error ? error.message : 'Invalid download request' }
++  }
+ }
+ 
+ function isMainWindowFocused(): boolean {
+@@ -442,24 +447,7 @@
+   initializeInfoResolutionManager()
+   initializePoTokenServer()
+   setDownloadHandler((request) => handleDownloadRequest(request))
+-  setMediaDownloadHandler((request) => {
+-    const quality = settings.get('defaultVideoQuality')
+-    const admitted = downloadManager.addTaskAdmitted({
+-      url: request.url,
+-      title: request.title || 'download',
+-      format: 'video',
+-      quality,
+-      mediaType: request.type,
+-      referer: request.referer,
+-      customHeaders: request.headers
+-    })
+-    downloadManager.emitQueueAdmission(admitted)
+-    if (mainWindow && !mainWindow.isDestroyed()) {
+-      mainWindow.show()
+-      mainWindow.focus()
+-    }
+-    return { ok: true, accepted: true }
+-  })
++  setMediaDownloadHandler((request) => handleDownloadRequest(request))
+   // Register handlers before opening the port. The extension uses /ping as a
+   // readiness check during cold start, so a successful probe must mean that
+   // /download can already enqueue work instead of briefly returning 503.
+--- before/src/main/ipc/downloads.ts
++++ after/src/main/ipc/downloads.ts
+@@ -1,3 +1,4 @@
++import type { DownloadSelectionRequest, StartDownloadOptions } from '@v-download/shared'
+ import { ipcMain } from 'electron'
+ import * as downloadManager from '../downloadManager'
+ import * as ytdlp from '../ytdlp'
+@@ -39,7 +40,7 @@
+ }
+ 
+ export function registerDownloadHandlers(): void {
+-  ipcMain.handle('start-info-resolve', async (_event, options: {
++  ipcMain.handle('start-info-resolve', async (_event, options: DownloadSelectionRequest & {
+     url: string
+     title?: string
+     format?: string
+@@ -101,7 +102,7 @@
+     return ok ? { ok: true } : { ok: false, error: 'Resolver task is no longer available' }
+   })
+ 
+-  ipcMain.handle('promote-info-resolve', async (_event, payload: {
++  ipcMain.handle('promote-info-resolve', async (_event, payload: DownloadSelectionRequest & {
+     id: string
+     url?: string
+     title?: string
+@@ -130,7 +131,7 @@
+     }
+   })
+ 
+-  ipcMain.handle('mark-info-resolve-ready', async (_event, payload: {
++  ipcMain.handle('mark-info-resolve-ready', async (_event, payload: DownloadSelectionRequest & {
+     id: string
+     title?: string
+     thumbnail?: string | null
+@@ -184,7 +185,7 @@
+     }
+   )
+ 
+-  ipcMain.handle('start-download', async (_event, options: {
++  ipcMain.handle('start-download', async (_event, options: DownloadSelectionRequest & {
+     url: string
+     title: string
+     format: string
+@@ -316,7 +317,7 @@
+     'start-downloads-bulk',
+     async (
+       _event,
+-      tasks: Array<{
++      tasks: Array<StartDownloadOptions & {
+         url: string
+         title: string
+         format?: string
+@@ -343,6 +344,8 @@
+               title: (t.title && t.title.trim()) || 'Download',
+               format: t.format ?? 'mp4',
+               quality: t.quality ?? defaultQ,
++              selection: t.selection, entryIndex: t.entryIndex, planId: t.planId, planRevision: t.planRevision,
++              includeNote: t.includeNote, outputDir: t.outputDir, filenameTemplate: t.filenameTemplate,
+               thumbnail: t.thumbnail,
+               duration: t.duration,
+               playlistId: t.playlistId,
+--- before/src/main/ipc/settings.ts
++++ after/src/main/ipc/settings.ts
+@@ -1,3 +1,6 @@
++import { mutateDownloadPlanLibrary, allDownloadPlans, type DownloadPlanMutation } from '@v-download/shared'
++import { isAbsolute } from 'path'
++import { validateOutputTemplate } from '../outputTemplateModel'
+ import { ipcMain, clipboard, shell, BrowserWindow } from 'electron'
+ import { setCookieSyncRequested } from '../localServer'
+ import * as settings from '../settings'
+@@ -19,6 +22,20 @@
+ }
+ 
+ export function registerSettingsHandlers(): void {
++  ipcMain.handle('get-download-plans', () => ({ data: settings.get('downloadPlanLibrary') }))
++  ipcMain.handle('mutate-download-plan', (_event, mutation: DownloadPlanMutation) => {
++    try {
++      const library = mutateDownloadPlanLibrary(settings.get('downloadPlanLibrary'), mutation)
++      for (const plan of allDownloadPlans(library)) {
++        if (plan.outputDir && !isAbsolute(plan.outputDir)) throw new Error('Download plan folder must be an absolute path')
++        if (plan.filenameTemplate && !validateOutputTemplate(plan.filenameTemplate, 'filename').ok) throw new Error('Invalid download plan filename template')
++      }
++      settings.set('downloadPlanLibrary', library)
++      broadcastSettingsChanged()
++      return { data: library }
++    } catch (error) { return { error: settingWriteError(error) } }
++  })
++
+   ipcMain.handle('get-settings', async () => {
+     const all = settings.getAll()
+     return { data: all }
+@@ -26,7 +43,7 @@
+ 
+   ipcMain.handle('update-settings', async (_event, key: string, value: unknown) => {
+     const all = settings.getAll()
+-    const allowed = new Set<keyof SettingsSchema>(Object.keys(all).filter((k) => k !== 'cookiesPath') as Array<keyof SettingsSchema>)
++    const allowed = new Set<keyof SettingsSchema>(Object.keys(all).filter((k) => k !== 'cookiesPath' && k !== 'downloadPlanLibrary') as Array<keyof SettingsSchema>)
+     if (allowed.has(key as keyof SettingsSchema) && settings.validateSettingUpdate(key, value)) {
+       try {
+         settings.set(key as keyof SettingsSchema, value as never)
+--- before/src/main/localServer.ts
++++ after/src/main/localServer.ts
+@@ -1,3 +1,4 @@
++import { allDownloadPlans, type DownloadSelectionRequest } from '@v-download/shared'
+ import { createServer, IncomingMessage, ServerResponse } from 'http'
+ import { app, BrowserWindow, dialog } from 'electron'
+ import { writeFileSync, mkdirSync, existsSync, chmodSync, readFileSync, realpathSync, renameSync, unlinkSync } from 'fs'
+@@ -125,7 +126,7 @@
+   }
+ }
+ 
+-export interface DownloadRequest {
++export interface DownloadRequest extends DownloadSelectionRequest {
+   url: string
+   type?: string
+   quality?: string
+@@ -138,6 +139,7 @@
+ export interface DownloadDispatchResult {
+   ok: boolean
+   accepted?: boolean
++  status?: number
+   error?: string
+ }
+ 
+@@ -421,6 +423,14 @@
+       return
+     }
+ 
++    if (req.method === 'GET' && pathname === '/download-plans') {
++      if (!authorized(req)) { json(res, 403, { error: 'Pairing required' }); return }
++      const library = settings.get('downloadPlanLibrary')
++      json(res, 200, { version: 1, defaultId: library.defaultId,
++        plans: allDownloadPlans(library).map(({ id, name, revision, selection }) => ({ id, name, revision, selection })) })
++      return
++    }
++
+     if (req.method === 'POST' && pathname === '/download') {
+       try {
+         if (!authorized(req)) { json(res, 403, { error: 'Pairing required' }); return }
+@@ -439,7 +449,7 @@
+           accepted
+         })
+         if (!accepted) {
+-          json(res, 503, { error: result?.error || 'Download request was not accepted' })
++          json(res, result?.status ?? 503, { error: result?.error || 'Download request was not accepted' })
+           return
+         }
+         json(res, 200, { ok: true, accepted: true })
+--- before/src/main/persistedExtras.ts
++++ after/src/main/persistedExtras.ts
+@@ -1,3 +1,4 @@
++import { readDownloadRequestSnapshot } from './downloadRequestSnapshot'
+ import { filterPersistedHeaders } from './mediaResolver'
+ 
+ function isSerializedIdentity(value: unknown): value is string {
+@@ -26,6 +27,7 @@
+ export function pickPersistedExtras(metadata?: Record<string, unknown>): Record<string, unknown> {
+   const out: Record<string, unknown> = {}
+   if (!metadata) return out
++  if (metadata.downloadRequest !== undefined) out.downloadRequest = readDownloadRequestSnapshot(metadata.downloadRequest)
+   if (metadata.infoResolve === true) out.infoResolve = true
+   if (metadata.resolveAutoStart === true) out.resolveAutoStart = true
+   if (typeof metadata.resolveTitle === 'string' && metadata.resolveTitle.trim()) out.resolveTitle = metadata.resolveTitle.trim()
+--- before/src/main/probeStreamFacts.ts
++++ after/src/main/probeStreamFacts.ts
+@@ -0,0 +1,13 @@
++export interface ProbeStreamFacts {
++  height?: number; codec_name?: string; avg_frame_rate?: string; r_frame_rate?: string; color_transfer?: string
++}
++export function frameRate(value: string | undefined): number | undefined {
++  const [n, d = '1'] = (value ?? '').split('/')
++  const fps = Number(n) / Number(d)
++  return Number.isFinite(fps) && fps > 0 ? fps : undefined
++}
++export function videoFacts(stream: ProbeStreamFacts) {
++  return { height: stream.height, fps: frameRate(stream.avg_frame_rate) ?? frameRate(stream.r_frame_rate), codec: stream.codec_name,
++    dynamicRange: /^(smpte2084|arib-std-b67)$/.test(stream.color_transfer ?? '') ? 'hdr' as const :
++      /^(bt709|gamma22|gamma28|smpte170m|smpte240m|linear|log|log_sqrt|iec61966-2-4|bt1361e|iec61966-2-1|bt2020-10|bt2020-12)$/.test(stream.color_transfer ?? '') ? 'sdr' as const : undefined }
++}
+--- before/src/main/securityValidation.ts
++++ after/src/main/securityValidation.ts
+@@ -1,3 +1,4 @@
++import { readDownloadSelection } from '@v-download/shared'
+ import { COOKIE_SYNC_DOMAINS, type ChromeSyncedCookie } from '@v-download/shared'
+ import { timingSafeEqual } from 'node:crypto'
+ 
+@@ -77,10 +78,13 @@
+ export function validateDownloadPayload(payload: unknown): { ok: true; value: Record<string, unknown> } | { ok: false; error: string } {
+   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return { ok: false, error: 'Invalid payload' }
+   const p = payload as Record<string, unknown>
+-  const keys = new Set(['url', 'type', 'quality', 'autoStart', 'referer', 'headers', 'title', 'filename'])
++  const keys = new Set(['url', 'type', 'quality', 'autoStart', 'referer', 'headers', 'title', 'filename', 'selection', 'planId', 'planRevision'])
+   if (Object.keys(p).some((k) => !keys.has(k)) || typeof p.url !== 'string' || p.url.length < 1 || p.url.length > 8192) return { ok: false, error: 'Invalid download payload' }
+   try { const u = new URL(p.url); if (u.protocol !== 'http:' && u.protocol !== 'https:') return { ok: false, error: 'Invalid download URL' } } catch { return { ok: false, error: 'Invalid download URL' } }
+   for (const key of ['referer', 'title', 'filename']) if (p[key] !== undefined && (typeof p[key] !== 'string' || p[key].length > 512)) return { ok: false, error: 'Invalid download field' }
++  if (p.selection !== undefined) { try { readDownloadSelection(p.selection) } catch { return { ok: false, error: 'Invalid download selection' } } }
++  if (p.planId !== undefined && (typeof p.planId !== 'string' || !/^[A-Za-z0-9:_-]+$/.test(p.planId))) return { ok: false, error: 'Invalid download plan' }
++  if (p.planRevision !== undefined && (!Number.isInteger(p.planRevision) || Number(p.planRevision) < 1)) return { ok: false, error: 'Invalid download plan revision' }
+   if (p.quality !== undefined && (typeof p.quality !== 'string' || !/^(?:\d{1,4}|best)$/.test(p.quality))) return { ok: false, error: 'Invalid download quality' }
+   if (p.autoStart !== undefined && typeof p.autoStart !== 'boolean') return { ok: false, error: 'Invalid download option' }
+   if (p.referer !== undefined) { try { const r = new URL(p.referer as string); if (r.protocol !== 'http:' && r.protocol !== 'https:') return { ok: false, error: 'Invalid referer' } } catch { return { ok: false, error: 'Invalid referer' } } }
+--- before/src/main/selectedOutput.ts
++++ after/src/main/selectedOutput.ts
+@@ -0,0 +1,49 @@
++import { videoFacts } from './probeStreamFacts'
++import { basename, dirname, extname, join } from 'path'
++import { mkdir } from 'fs/promises'
++import { audioLanguageMatches, sourceVideoMatches, type DownloadSelection } from '@v-download/shared'
++import { probeMediaMetadata } from './ffprobe'
++import { ffprobeExecutable } from './ffmpegDownload'
++import * as settings from './settings'
++import { transcodeFile } from './transcodeManager'
++
++type Stream = { index: number; codec_type: string; codec_name?: string; height?: number; avg_frame_rate?: string; r_frame_rate?: string; color_transfer?: string; tags?: { language?: string } }
++async function probe(path: string, signal?: AbortSignal): Promise<Stream[]> {
++  const result = await probeMediaMetadata(ffprobeExecutable(settings.get('ffmpegPath')), [
++    '-v', 'error', '-show_entries', 'stream=index,codec_type,codec_name,height,avg_frame_rate,r_frame_rate,color_transfer:stream_tags=language', '-of', 'json', path
++  ], { stdio: ['ignore','pipe','pipe'], env: process.env, detached: process.platform !== 'win32' }, signal)
++  if (!result.ok) throw signal?.aborted ? new DOMException('Selection validation cancelled', 'AbortError') : new Error(result.error)
++  const streams = (result.metadata as { streams?: Stream[] } | null)?.streams
++  if (!Array.isArray(streams)) throw new Error('The output has no readable media streams')
++  return streams
++}
++/** Run before owned publication, for single and multi-output tasks alike. */
++export async function prepareSelectedOutput(inputPath: string, selection: DownloadSelection | undefined, signal?: AbortSignal, onConverting?: () => void): Promise<string> {
++  if (!selection) return inputPath
++  if (signal?.aborted) throw new DOMException('Selection validation cancelled', 'AbortError')
++  const streams = await probe(inputPath, signal)
++  const videos = streams.filter((s) => s.codec_type === 'video')
++  const audios = streams.filter((s) => s.codec_type === 'audio')
++  if (selection.target === 'video') {
++    if (!videos.some((s) => sourceVideoMatches(selection, videoFacts(s)))) {
++      const requested = [selection.maxHeight === 'best' ? 'best height' : `height ≤ ${selection.maxHeight}p`, selection.videoCodec !== 'any' ? selection.videoCodec : '', selection.maxFps ? `FPS ≤ ${selection.maxFps}` : '', selection.dynamicRange !== 'any' ? selection.dynamicRange.toUpperCase() : ''].filter(Boolean).join(', ')
++      const observed = videos.map((stream) => { const facts = videoFacts(stream); return `${facts.height ?? 'unknown'}p / ${facts.codec ?? 'unknown codec'} / ${facts.fps ?? 'unknown'} FPS / ${facts.dynamicRange?.toUpperCase() ?? 'unknown HDR'}` }).join('; ') || 'no video streams'
++      throw new Error(`Source selection not satisfied. Requested: ${requested}. Observed: ${observed}.`)
++    }
++  } else if (videos.length || !audios.length) throw new Error('The requested audio-only output contains no audio or still contains video')
++  if (selection.audioLanguage && !audios.some((s) => audioLanguageMatches(selection.audioLanguage!, s.tags?.language))) throw new Error(`The output cannot verify requested audio language ${selection.audioLanguage}. Available tags: ${audios.map((s) => s.tags?.language ?? 'unknown').join(', ') || 'none'}.`)
++  if (selection.target === 'audio' && selection.output !== 'original') {
++    const codec = { mp3: 'mp3', m4a: 'aac', opus: 'opus', mp4: '' }[selection.output]
++    if (!audios.some((s) => s.codec_name === codec)) throw new Error(`The output does not contain the requested ${selection.output} audio codec`)
++  }
++  if (selection.postprocess !== 'h264-mp4') return inputPath
++  const destination = join(dirname(inputPath), '.conversion', `${basename(inputPath.replace(/\.part$/i,''), extname(inputPath.replace(/\.part$/i,'')))}.mp4`)
++  await mkdir(dirname(destination), { recursive: true })
++  onConverting?.()
++  await transcodeFile({ inputPath, outputPath: destination, preset: 'mp4', signal })
++  const converted = await probe(destination, signal)
++  if (!converted.some((s) => s.codec_type === 'video' && s.codec_name === 'h264') ||
++    (audios.length > 0 && !converted.some((s) => s.codec_type === 'audio' && s.codec_name === 'aac')) ||
++    converted.filter((s) => s.codec_type === 'subtitle').length !== streams.filter((s) => s.codec_type === 'subtitle').length) throw new Error('The compatibility conversion did not preserve the expected media tracks')
++  return destination
++}
+--- before/src/main/settings.ts
++++ after/src/main/settings.ts
+@@ -1,3 +1,4 @@
++import { EMPTY_DOWNLOAD_PLAN_LIBRARY, readDownloadPlanLibrary, type DownloadPlanLibrary } from '@v-download/shared'
+ import { app } from 'electron'
+ import { join } from 'path'
+ import { randomBytes } from 'crypto'
+@@ -84,6 +85,7 @@
+    * Must be a short safe token; validated in normalizeLoadedSettings.
+    */
+   ytdlpExternalDownloader: string
++  downloadPlanLibrary: DownloadPlanLibrary
+   siteRules: SiteRule[]
+   /** Optional proxy applied to yt-dlp requests. */
+   proxyUrl: string
+@@ -192,6 +194,7 @@
+   downloadSpeedMode: 'balanced',
+   turboRiskAcknowledged: false,
+   ytdlpExternalDownloader: '',
++  downloadPlanLibrary: structuredClone(EMPTY_DOWNLOAD_PLAN_LIBRARY),
+   siteRules: [],
+   proxyUrl: '',
+   ...INTEGRATION_BOOLEAN_DEFAULTS,
+@@ -209,7 +212,7 @@
+ let cache: SettingsSchema | null = null
+ 
+ function cloneSettings(value: SettingsSchema): SettingsSchema {
+-  return { ...value, siteRules: value.siteRules.map((rule) => ({ ...rule })) }
++  return { ...value, downloadPlanLibrary: structuredClone(value.downloadPlanLibrary), siteRules: value.siteRules.map((rule) => ({ ...rule })) }
+ }
+ 
+ function getSettingsPath(): string {
+@@ -283,6 +286,8 @@
+   s.remoteApiMcpAllowWrite = Boolean(s.remoteApiMcpAllowWrite)
+   s.remoteApiMcpRequireConfirm = s.remoteApiMcpRequireConfirm !== false
+   s.uiLanguage = normalizeUiLanguagePreference(s.uiLanguage)
++  try { s.downloadPlanLibrary = readDownloadPlanLibrary(s.downloadPlanLibrary) }
++  catch { s.downloadPlanLibrary = structuredClone(EMPTY_DOWNLOAD_PLAN_LIBRARY) }
+   s.siteRules = Array.isArray(s.siteRules) ? s.siteRules.filter((rule): rule is SiteRule => {
+     return Boolean(rule && typeof rule.id === 'string' && typeof rule.domain === 'string' && rule.domain.trim() &&
+       ['best', 'video', 'audio'].includes(rule.format) && typeof rule.quality === 'string' &&
+@@ -430,6 +435,7 @@
+   if (key === 'directMediaEngine') return value === 'auto' || value === 'ffmpeg' || value === 'ytdlp'
+   if (key === 'uiLanguage') return value === 'system' || value === 'en' || value === 'zh-CN' || value === 'zh-TW'
+   if (key === 'youtubePlaylistMode') return value === 'native' || value === 'fanout'
++  if (key === 'downloadPlanLibrary') { try { readDownloadPlanLibrary(value); return true } catch { return false } }
+   if (key === 'siteRules') return Array.isArray(value) && value.length <= 100 && value.every((rule) => {
+     if (!rule || typeof rule !== 'object' || Array.isArray(rule)) return false
+     const r = rule as Record<string, unknown>; const allowed = new Set(['id', 'domain', 'format', 'quality', 'enabled'])
+--- before/src/main/transcodeModel.ts
++++ after/src/main/transcodeModel.ts
+@@ -51,7 +51,7 @@
+     label: 'H.264 MP4',
+     description: 'Broadly compatible H.264 video with AAC audio',
+     extension: 'mp4',
+-    args: ['-c:v', 'libx264', '-preset', 'medium', '-crf', '22', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart'],
++    args: ['-map', '0:v?', '-map', '0:a?', '-map', '0:s?', '-map_chapters', '0', '-c:s', 'mov_text', '-c:v', 'libx264', '-preset', 'medium', '-crf', '22', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart'],
+   },
+   {
+     id: 'h265',
+--- before/src/main/ytdlp.ts
++++ after/src/main/ytdlp.ts
+@@ -1,3 +1,4 @@
++import { readDownloadSelection, selectionFormatSelector, type DownloadSelection } from '@v-download/shared'
+ import { isAdaptiveMediaInput } from './mediaResolver'
+ import { ChildProcess, execFileSync } from 'child_process'
+ import { existsSync, mkdirSync } from 'fs'
+@@ -103,6 +104,10 @@
+ 
+ export interface FormatInfo {
+   format_id: string
++  fps?: number
++  dynamic_range?: string
++  language?: string
++  abr?: number
+   ext: string
+   height?: number
+   filesize?: number
+@@ -125,6 +130,8 @@
+ }
+ 
+ export interface DownloadOptions {
++  selection?: DownloadSelection
++  entryIndex?: number
+   url: string
+   format: string
+   quality?: DownloadQuality
+@@ -475,6 +482,9 @@
+       format_id: String(f.format_id),
+       ext: String(f.ext),
+       height: positiveNumber(f.height),
++      fps: positiveNumber(f.fps), abr: positiveNumber(f.abr),
++      dynamic_range: typeof f.dynamic_range === 'string' ? f.dynamic_range : undefined,
++      language: typeof f.language === 'string' ? f.language : undefined,
+       filesize: positiveNumber(f.filesize),
+       filesize_approx: positiveNumber(f.filesize_approx),
+       approximateSize: positiveNumber(f.filesize_approx),
+@@ -963,7 +973,8 @@
+   })
+ 
+   /** Direct CDN / sniffed URLs from the browser extension — not multi-format player pages. */
+-  const isDirectMedia = Boolean(mediaType)
++  const selection = options.selection ? readDownloadSelection(options.selection) : undefined
++  const isDirectMedia = Boolean(mediaType) || Boolean(selection && isMediaUrl(new URL(url).pathname))
+ 
+   let formatStr: string
+   let mergeOutputMp4 = false
+@@ -991,8 +1002,13 @@
+     mergeOutputMp4 = true
+   }
+ 
++  if (selection) {
++    formatStr = isDirectMedia && !isAdaptiveMediaInput(mediaType, url) && !selection.exact ? 'best' : selectionFormatSelector(selection)
++    mergeOutputMp4 = false
++  }
+   const args: string[] = [
+     '--newline',
++    ...(selection?.target === 'video' ? ['--merge-output-format', 'mkv'] : []),
+     '--continue',
+     ...(mergeOutputMp4 ? (['--merge-output-format', 'mp4'] as const) : []),
+     '-f', formatStr,
+@@ -1050,9 +1066,13 @@
+     }
+   }
+ 
+-  if (format === 'audio' || format === 'mp3' || mediaType === 'mp3') {
++  if (options.entryIndex !== undefined) args.push('--playlist-items', String(options.entryIndex))
++  if (selection?.target === 'audio') {
++    args.push('--extract-audio', '--audio-format', selection.output === 'original' ? 'best' : selection.output, '--audio-quality', selection.audioBitrate ? `${selection.audioBitrate}K` : '0')
++  } else if (!selection && (format === 'audio' || format === 'mp3' || mediaType === 'mp3')) {
+     args.push('--extract-audio', '--audio-format', 'mp3', '--audio-quality', '0')
+   }
++  if (selection?.output === 'mp4' && selection.postprocess === 'none') args.push('--remux-video', 'mp4')
+ 
+   if (referer) {
+     args.push('--referer', referer)
+--- before/src/preload/api.d.ts
++++ after/src/preload/api.d.ts
+@@ -1,3 +1,4 @@
++import type { DownloadSelectionRequest, DownloadPlanLibrary, DownloadPlanMutation } from '@v-download/shared'
+ import type { AppResult, MediaCandidate, QueueAdmissionOutcome, QueueNotice, StartDownloadOptions } from '@v-download/shared'
+ export type { AppResult, MediaCandidate, QueueAdmissionOutcome, QueueNotice, StartDownloadOptions } from '@v-download/shared'
+ 
+@@ -60,7 +61,9 @@
+ }
+ 
+ export interface WindowApi {
+-  startInfoResolve: (options: {
++  getDownloadPlans: () => Promise<{ data: DownloadPlanLibrary }>
++  mutateDownloadPlan: (mutation: DownloadPlanMutation) => Promise<{ data?: DownloadPlanLibrary; error?: string }>
++  startInfoResolve: (options: DownloadSelectionRequest & {
+     url: string
+     title?: string
+     format?: string
+@@ -73,7 +76,7 @@
+   getInfoResolveResults: () => Promise<{ data?: InfoResolveEvent[]; error?: string }>
+   downloadAgain: (id: string) => Promise<{ data?: unknown; error?: string; outcome?: QueueAdmissionOutcome; notice?: QueueNotice }>
+   ensureInfoResolveReady: (id: string) => Promise<{ ok: boolean; error?: string }>
+-  promoteInfoResolve: (options: {
++  promoteInfoResolve: (options: DownloadSelectionRequest & {
+     id: string
+     url?: string
+     title?: string
+@@ -185,7 +188,7 @@
+   ) => Promise<{ data?: unknown; error?: string }>
+   douyinProfileListPostsAbort?: (abortKey: string) => Promise<{ ok: boolean }>
+   startDownloadsBulk?: (
+-    tasks: Array<{
++    tasks: Array<StartDownloadOptions & {
+       url: string
+       title: string
+       format?: string
+--- before/src/preload/index.ts
++++ after/src/preload/index.ts
+@@ -1,3 +1,4 @@
++import type { DownloadSelectionRequest, DownloadPlanLibrary, DownloadPlanMutation } from '@v-download/shared'
+ import { contextBridge, ipcRenderer } from 'electron'
+ import type { StartDownloadOptions } from '@v-download/shared'
+ import { parseSessionInterrupted } from './sessionInterrupted'
+@@ -9,7 +10,9 @@
+ })
+ 
+ const api = {
+-  startInfoResolve: (options: {
++  getDownloadPlans: () => ipcRenderer.invoke('get-download-plans'),
++  mutateDownloadPlan: (mutation: DownloadPlanMutation) => ipcRenderer.invoke('mutate-download-plan', mutation),
++  startInfoResolve: (options: DownloadSelectionRequest & {
+     url: string
+     title?: string
+     format?: string
+@@ -22,7 +25,7 @@
+   getInfoResolveResults: () => ipcRenderer.invoke('get-info-resolve-results'),
+   downloadAgain: (id: string) => ipcRenderer.invoke('download-again', id),
+   ensureInfoResolveReady: (id: string) => ipcRenderer.invoke('ensure-info-resolve-ready', id),
+-  promoteInfoResolve: (options: {
++  promoteInfoResolve: (options: DownloadSelectionRequest & {
+     id: string
+     url?: string
+     title?: string
+--- before/src/renderer/src/App.tsx
++++ after/src/renderer/src/App.tsx
+@@ -1,3 +1,5 @@
++import { reusableSelection } from '@v-download/shared'
++import type { TaskDownloadOverrides } from './components/taskOverridesPresentation'
+ import { useEffect, useState, useCallback, useRef, useMemo, startTransition } from 'react'
+ import { Loader2, CheckCircle2, Info, X } from 'lucide-react'
+ import { TitleBar } from '@/components/TitleBar'
+@@ -393,15 +395,24 @@
+       format: string,
+       quality: string,
+       includeNote = true,
+-      overrides?: { outputDir?: string; proxyUrl?: string; customHeaders?: Record<string, string> }
++      overrides?: TaskDownloadOverrides
+     ) => {
+       if (!window.api) return
+       const taskFields = {
++        ...(overrides?.selection ? { selection: pendingEntries?.length ? reusableSelection(overrides.selection) : overrides.selection } : {}),
++        ...(overrides?.planId ? { planId: overrides.planId, planRevision: overrides.planRevision } : {}),
++        ...(overrides?.filenameTemplate ? { filenameTemplate: overrides.filenameTemplate } : {}),
++        ...(overrides?.includeNote !== undefined ? { includeNote: overrides.includeNote } : {}),
+         ...(overrides?.outputDir ? { outputDir: overrides.outputDir } : {}),
+         ...(overrides?.proxyUrl ? { proxyUrl: overrides.proxyUrl } : {}),
+         ...(overrides?.customHeaders ? { customHeaders: overrides.customHeaders } : {})
+       }
+ 
++      const startChecked = async (options: Parameters<typeof window.api.startDownload>[0]) => {
++        const result = await window.api.startDownload(options)
++        if (result?.error) throw new Error(result.error)
++        return result
++      }
+       let consumeResolver = true
+       try {
+         if (pendingResolverId && pendingVideoInfo) {
+@@ -431,7 +442,7 @@
+               includeNote
+             )
+           })
+-          if (promoted?.error) consumeResolver = false
++          if (promoted?.error) throw new Error(promoted.error)
+         } else if (pendingEntries && pendingEntries.length > 0) {
+           const playlistTitle = pendingPlaylistMeta?.title ?? 'Playlist'
+           const listUrl = pendingPlaylistMeta?.url ?? ''
+@@ -439,7 +450,7 @@
+             settings.youtubePlaylistMode === 'native' && listUrl && isPlaylistUrl(listUrl)
+ 
+           if (useNativePlaylist) {
+-            await window.api.startDownload({
++            await startChecked({
+               url: listUrl,
+               title: playlistTitle,
+               format,
+@@ -457,7 +468,7 @@
+             for (let i = 0; i < pendingEntries.length; i++) {
+               const entry = pendingEntries[i]
+               const videoUrl = entry.webpage_url || `https://www.youtube.com/watch?v=${entry.id}`
+-              await window.api.startDownload({
++              await startChecked({
+                 url: videoUrl,
+                 title: entry.title,
+                 format,
+@@ -482,7 +493,7 @@
+           const imageMetaKey = galleryType === 'xhs_gallery' ? 'xhsImageUrls' : 'douyinImageUrls'
+           const noteMeta = pendingVideoInfo ? noteMetadataFromVideoInfo(pendingVideoInfo) : {}
+ 
+-          await window.api.startDownload({
++          await startChecked({
+             url: pageUrl,
+             title,
+             format,
+@@ -506,8 +517,11 @@
+             )
+           })
+         }
++      } catch (error) {
++        consumeResolver = false
++        throw error
+       } finally {
+-        clearPending({ consumeResolver })
++        if (consumeResolver) clearPending({ consumeResolver })
+         loadSettings()
+       }
+     },
+--- before/src/renderer/src/components/CollectionPickerDialog.tsx
++++ after/src/renderer/src/components/CollectionPickerDialog.tsx
+@@ -1,3 +1,5 @@
++import { DownloadOptionsEditor } from './DownloadOptionsEditor'
++import { initialDownloadDraft } from './downloadOptionsModel'
+ import { useCallback, useEffect, useMemo, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
+ import { X, Loader2, Download, CheckSquare, Square, ExternalLink } from 'lucide-react'
+ import type { QueueNotice } from '@v-download/shared'
+@@ -20,6 +22,7 @@
+ 
+ export function CollectionPickerDialog({ sourceUrl, settings, onClose, onQueued }: CollectionPickerDialogProps) {
+   const { t } = useTranslation()
++  const [downloadOptions, setDownloadOptions] = useState(() => initialDownloadDraft(settings))
+   const [list, setList] = useState<PlaylistListResult | null>(null)
+   const [loading, setLoading] = useState(true)
+   const [busy, setBusy] = useState(false)
+@@ -70,7 +73,7 @@
+     }
+   }, [sourceUrl, loadList])
+ 
+-  const rowKey = (row: PlaylistEntryRow) => row.pageUrl || row.id
++  const rowKey = (row: PlaylistEntryRow) => [row.pageUrl, row.id, row.playlistIndex ?? ''].join('|')
+ 
+   const orderedKeys = items.map(rowKey)
+ 
+@@ -102,24 +105,28 @@
+   }
+ 
+   const handleDownload = async () => {
+-    const rows = items.filter((i) => selected.has(rowKey(i)))
++    const rows = items.map((row, index) => ({ row, position: row.playlistIndex ?? index + 1 })).filter(({ row }) => selected.has(rowKey(row)))
+     if (rows.length === 0 || !window.api?.startDownloadsBulk || !list) return
+     setBusy(true)
+     setError('')
+     try {
+       const folderName = list.playlistTitle.trim() || list.playlistChannel.trim() || 'Playlist'
+-      const tasks = rows.map((r, i) => ({
++      const tasks = rows.map(({ row: r, position }) => ({
+         url: r.pageUrl,
+         title: r.title.slice(0, 200),
+-        format: 'video' as const,
+-        quality: settings.defaultVideoQuality,
++        format: downloadOptions.selection.target,
++        selection: downloadOptions.selection,
++        ...(r.pageUrl === list.sourceUrl ? { entryIndex: position } : {}), planId: downloadOptions.planId, planRevision: downloadOptions.planRevision,
++        outputDir: downloadOptions.outputDir, filenameTemplate: downloadOptions.filenameTemplate, includeNote: downloadOptions.includeNote,
++        quality: String(downloadOptions.selection.maxHeight),
+         thumbnail: r.thumbnail || undefined,
+         duration: r.duration ?? 0,
+         playlistId: folderName,
+-        playlistIndex: r.playlistIndex ?? i + 1,
++        playlistIndex: position,
+         playlistTitle: folderName,
+         metadata: {
+-          channel: r.channel || list.playlistChannel || undefined
++          channel: r.channel || list.playlistChannel || undefined,
++          ytdlpId: r.id
+         }
+       }))
+       const res = await window.api.startDownloadsBulk(tasks)
+@@ -152,6 +159,7 @@
+           <div className="min-w-0"><p className="mb-1 text-xs text-muted-foreground">{platformLabel}</p><h2 id="collection-picker-title" className="line-clamp-2 text-base font-semibold">{headerTitle}</h2></div>
+           <button type="button" onClick={onClose} aria-label={t('collection.close')} className="v-button-ghost h-9 w-9 !p-0"><X className="h-4 w-4" aria-hidden /></button>
+         </header>
++        <div className="max-h-[260px] shrink-0 overflow-y-auto border-b border-divider-subtle px-5"><DownloadOptionsEditor value={downloadOptions} onChange={setDownloadOptions} settings={settings} /></div>
+         <div className="flex min-h-0 flex-1 flex-col px-5 py-3">
+           {loading ? <div role="status" className="flex min-h-0 flex-1 items-center justify-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" aria-hidden />{t('collection.loading')}</div> : <>
+             {error && <div role="alert" className="mb-3 shrink-0 text-xs text-error">{error}</div>}
+--- before/src/renderer/src/components/DouyinProfilePickerDialog.tsx
++++ after/src/renderer/src/components/DouyinProfilePickerDialog.tsx
+@@ -1,3 +1,5 @@
++import { DownloadOptionsEditor } from './DownloadOptionsEditor'
++import { initialDownloadDraft } from './downloadOptionsModel'
+ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+ import { Check, CheckSquare, ChevronDown, Download, ExternalLink, Info, Loader2, Square, X } from 'lucide-react'
+ import type { QueueNotice } from '@v-download/shared'
+@@ -28,6 +30,7 @@
+ 
+ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose, onQueued }: DouyinProfilePickerDialogProps) {
+   const { t } = useTranslation()
++  const [downloadOptions, setDownloadOptions] = useState(() => initialDownloadDraft(settings))
+   const [items, setItems] = useState<DouyinProfilePostRow[]>([])
+   const [nextCursor, setNextCursor] = useState<string | null>(null)
+   const [hasMore, setHasMore] = useState(false)
+@@ -313,8 +316,10 @@
+       const tasks = rows.map((r, i) => ({
+         url: r.pageUrl,
+         title: r.title.slice(0, 200),
+-        format: 'video' as const,
+-        quality: settings.defaultVideoQuality,
++        format: downloadOptions.selection.target,
++        selection: downloadOptions.selection, planId: downloadOptions.planId, planRevision: downloadOptions.planRevision,
++        outputDir: downloadOptions.outputDir, filenameTemplate: downloadOptions.filenameTemplate, includeNote: downloadOptions.includeNote,
++        quality: String(downloadOptions.selection.maxHeight),
+         thumbnail: r.cover || undefined,
+         duration: r.mediaType === 'video' ? r.durationSec ?? 0 : 0,
+         ...(archiveByAuthor
+@@ -414,6 +419,7 @@
+           )}
+         </div>
+ 
++        <div className="max-h-[260px] shrink-0 overflow-y-auto border-t border-divider-subtle px-5"><DownloadOptionsEditor value={downloadOptions} onChange={setDownloadOptions} settings={settings} /></div>
+         <footer className="shrink-0 border-t border-divider-subtle bg-surface px-5 py-3">
+           <div className="flex flex-wrap items-center justify-between gap-2">
+             <p className="text-xs text-muted-foreground">{selectedCount === 0 ? t('ui.selectPrompt') : t('ui.keyboardHint')}</p>
+--- before/src/renderer/src/components/DownloadInspector.tsx
++++ after/src/renderer/src/components/DownloadInspector.tsx
+@@ -189,6 +189,8 @@
+     <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">
+       <div className="aspect-video w-full shrink-0 overflow-hidden rounded-card bg-control"><ThumbnailImage src={thumbnail} referer={url || undefined} /></div>
+       <div className="min-w-0"><h2 className="break-words text-sm font-semibold leading-snug">{title}</h2>{channel && <p className="mt-1 text-xs text-muted-foreground">{channel}</p>}<div className="mt-2"><InspectorStatusPill status={status} /></div></div>
++      {download.planName && <p className="text-xs text-muted-foreground">{t('plans.title')} · {download.planId?.startsWith('builtin:') ? t(`plans.${download.planId.slice(8)}`) : download.planName}</p>}
++      {download.selection && <p className="text-xs text-muted-foreground">{[download.selection.exact ? t('plans.exact') : t('plans.automatic'), download.selection.videoCodec !== 'any' ? download.selection.videoCodec.toUpperCase() : '', download.selection.maxFps ? `≤ ${download.selection.maxFps} fps` : ''].filter(Boolean).join(' · ')}</p>}
+       {statCells.length > 0 && <dl className="flex flex-wrap gap-x-5 gap-y-2">
+         {statCells.map((cell) => <div key={cell.label}><dt className="text-xs text-muted-foreground">{t(cell.label === 'Duration' ? 'inspector.duration' : cell.label === 'Size' ? 'inspector.size' : 'inspector.format')}</dt><dd className="mt-1 text-xs font-medium tabular-nums">{cell.value}</dd></div>)}
+       </dl>}
+--- before/src/renderer/src/components/DownloadItem.tsx
++++ after/src/renderer/src/components/DownloadItem.tsx
+@@ -51,6 +51,7 @@
+         const phaseLabel =
+           phase === 'audio' ? t('status.audio') :
+           phase === 'merging' ? t('status.merging') :
++          phase === 'transcoding' ? t('status.transcoding') :
+           phase === 'video' ? t('status.video') : ''
+         const leftParts: string[] = []
+         if (phaseLabel) leftParts.push(phaseLabel)
+@@ -59,7 +60,7 @@
+         if (speed) leftParts.push(speed)
+ 
+         const showEta = eta && eta !== '00:00' && eta !== '0:00'
+-        const isMerging = phase === 'merging'
++        const isMerging = phase === 'merging' || phase === 'transcoding'
+ 
+         return (
+           <div className="flex flex-col gap-1 w-full min-w-0 self-stretch">
+--- before/src/renderer/src/components/DownloadOptionsEditor.tsx
++++ after/src/renderer/src/components/DownloadOptionsEditor.tsx
+@@ -0,0 +1,93 @@
++import { useEffect, useState } from 'react'
++import { useTranslation } from 'react-i18next'
++import {
++  allDownloadPlans, EMPTY_DOWNLOAD_PLAN_LIBRARY, reusableSelection,
++  type DownloadPlanLibrary, type DownloadPlanMutation, type DownloadSelection
++} from '@v-download/shared'
++import type { SettingsData } from '@/types'
++import { draftFromPlan, legacyDownloadDraft, initialDownloadDraft, type DownloadOptionsDraft } from './downloadOptionsModel'
++
++export function DownloadOptionsEditor({ value, onChange, settings, showFolder = true, showNote = true }: {
++  value: DownloadOptionsDraft; onChange: (value: DownloadOptionsDraft) => void; settings: SettingsData; showFolder?: boolean; showNote?: boolean
++}) {
++  const { t } = useTranslation()
++  const [localLibrary, setLibrary] = useState<DownloadPlanLibrary | null>(null)
++  const [name, setName] = useState('')
++  const [error, setError] = useState('')
++  const [busy, setBusy] = useState(false)
++  const library = localLibrary ?? settings.downloadPlanLibrary ?? EMPTY_DOWNLOAD_PLAN_LIBRARY
++  useEffect(() => setLibrary(null), [settings.downloadPlanLibrary])
++  const plans = allDownloadPlans(library)
++  const chosen = plans.find((p) => p.id === value.planId)
++  const selectClass = 'v-input min-h-8 w-full rounded-md border border-border-strong bg-control px-2 py-1 text-[13px]'
++  const change = (patch: Partial<DownloadSelection>) => onChange({ ...value, selection: { ...reusableSelection(value.selection), ...patch } })
++  const mutate = async (mutation: DownloadPlanMutation, selectSaved = false) => {
++    if (!window.api?.mutateDownloadPlan) return
++    setBusy(true); setError('')
++    try {
++      const result = await window.api.mutateDownloadPlan(mutation)
++      if (!result.data) throw new Error(result.error || t('plans.saveFailed'))
++      setLibrary(result.data)
++      if (selectSaved && mutation.action === 'save') {
++        const saved = result.data.custom.find((p) => p.id === mutation.plan.id)
++        if (saved) { onChange(draftFromPlan(saved, settings)); setName('') }
++      }
++      if (mutation.action === 'delete') onChange({ ...value, planId: undefined, planRevision: undefined })
++    } catch (e) { setError(e instanceof Error ? e.message : String(e)) }
++    finally { setBusy(false) }
++  }
++  const save = (update: boolean) => {
++    const current = update ? chosen : undefined
++    const plan = { id: current?.id ?? crypto.randomUUID(), name: update ? name.trim() || current!.name : name.trim(), revision: current?.revision ?? 1,
++      selection: reusableSelection(value.selection), outputDir: value.outputDir || undefined, filenameTemplate: value.filenameTemplate || undefined, includeNote: value.includeNote }
++    void mutate({ action: 'save', plan, expectedRevision: current ? value.planRevision ?? current.revision : 0 }, true)
++  }
++  return <section className="space-y-3 py-3" aria-label={t('plans.title')}>
++    <label className="block text-xs font-medium">{t('plans.title')}
++      <select aria-label={t('plans.title')} value={value.planId ?? ''} disabled={busy} onChange={(e) => {
++        const plan = plans.find((p) => p.id === e.target.value)
++        onChange(plan ? draftFromPlan(plan, settings) : legacyDownloadDraft(settings)); setName(''); setError('')
++      }} className={`${selectClass} mt-1`}>
++        <option value="">{t('plans.custom')}</option>
++        {value.planId && !chosen && <option value={value.planId}>{t('plans.unavailable')}</option>}
++        {plans.map((plan) => <option key={plan.id} value={plan.id}>{plan.id.startsWith('builtin:') ? t(`plans.${plan.id.slice(8)}`) : plan.name}{library.defaultId === plan.id ? ` · ${t('plans.default')}` : ''}</option>)}
++      </select>
++    </label>
++    <div className="grid grid-cols-2 gap-3">
++      <label className="text-xs">{t('plans.media')}<select aria-label={t('plans.media')} className={`${selectClass} mt-1`} value={value.selection.target} onChange={(e) => change({ target: e.target.value as 'video' | 'audio', output: e.target.value === 'audio' ? 'mp3' : 'original', audioBitrate: e.target.value === 'audio' ? Number(settings.defaultAudioQuality) || undefined : undefined, postprocess: 'none' })}><option value="video">{t('format.video')}</option><option value="audio">{t('format.audio')}</option></select></label>
++      <label className="text-xs">{t('plans.output')}<select aria-label={t('plans.output')} className={`${selectClass} mt-1`} value={value.selection.output} onChange={(e) => change({ output: e.target.value as DownloadSelection['output'], postprocess: 'none' })}>
++        <option value="original">{t('plans.original')}</option>{(value.selection.target === 'video' ? ['mp4'] : ['mp3','m4a','opus']).map((f) => <option key={f} value={f}>{f.toUpperCase()}</option>)}
++      </select></label>
++    </div>
++    {value.selection.target === 'video' ? <label className="block text-xs">{t('plans.height')}<select aria-label={t('plans.height')} className={`${selectClass} mt-1`} value={String(value.selection.maxHeight)} onChange={(e) => change({ maxHeight: e.target.value === 'best' ? 'best' : Number(e.target.value) })}>
++      {[...new Set(['best','2160','1440','1080','720','480','360','240',String(value.selection.maxHeight)])].map((h) => <option key={h} value={h}>{h === 'best' ? t('plans.best') : `${h}p`}</option>)}
++    </select></label> : value.selection.output !== 'original' && <label className="block text-xs">{t('plans.bitrate')}<select aria-label={t('plans.bitrate')} className={`${selectClass} mt-1`} value={value.selection.audioBitrate ?? ''} onChange={(e) => change({ audioBitrate: e.target.value ? Number(e.target.value) : undefined })}><option value="">{t('plans.vbr')}</option>{[128,192,256,320].map((b) => <option key={b} value={b}>{b} kbps</option>)}</select></label>}
++    {value.selection.target === 'video' && value.selection.output === 'mp4' && <label className="flex items-start gap-2 text-xs leading-5"><input type="checkbox" checked={value.selection.postprocess === 'h264-mp4'} disabled={value.selection.dynamicRange === 'hdr'} onChange={(e) => change({ postprocess: e.target.checked ? 'h264-mp4' : 'none' })} />{t('plans.convert')}</label>}
++    {value.selection.exact && <p className="text-xs text-muted-foreground">{t('plans.exact')} <button type="button" className="underline" onClick={() => change({})}>{t('plans.unlock')}</button></p>}
++    {showNote && <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={value.includeNote} onChange={(e) => onChange({ ...value, includeNote: e.target.checked })} />{t('format.includeNote')}</label>}
++    <details className="v-disclosure"><summary>{t('plans.advanced')}</summary><div className="space-y-3 py-3">
++      {value.selection.target === 'video' && <div className="grid grid-cols-2 gap-3">
++        <label className="text-xs">{t('plans.codec')}<select aria-label={t('plans.codec')} className={`${selectClass} mt-1`} value={value.selection.videoCodec} onChange={(e) => change({ videoCodec: e.target.value as DownloadSelection['videoCodec'] })}>{['any','h264','hevc','vp9','av1'].map((c) => <option key={c} value={c}>{c === 'any' ? t('plans.any') : c.toUpperCase()}</option>)}</select></label>
++        <label className="text-xs">{t('plans.fps')}<select aria-label={t('plans.fps')} className={`${selectClass} mt-1`} value={value.selection.maxFps ?? ''} onChange={(e) => change({ maxFps: e.target.value ? Number(e.target.value) : undefined })}><option value="">{t('plans.any')}</option>{[24,25,30,50,60,120].map((f) => <option key={f} value={f}>{f} fps</option>)}</select></label>
++        <label className="text-xs">HDR<select aria-label="HDR" className={`${selectClass} mt-1`} value={value.selection.dynamicRange} onChange={(e) => change({ dynamicRange: e.target.value as DownloadSelection['dynamicRange'] })}><option value="any">{t('plans.any')}</option><option value="sdr">SDR</option><option value="hdr" disabled={value.selection.postprocess === 'h264-mp4'}>HDR</option></select></label>
++      </div>}
++      <label className="block text-xs">{t('plans.language')}<select aria-label={t('plans.language')} className={`${selectClass} mt-1`} value={value.selection.audioLanguage ?? ''} onChange={(e) => change({ audioLanguage: e.target.value || undefined })}><option value="">{t('plans.any')}</option><option value="en">English</option><option value="zh">中文</option><option value="ja">日本語</option></select></label>
++      {showFolder && <div className="text-xs"><span>{t('plans.folder')}</span><div className="mt-1 flex items-center gap-2"><span className="min-w-0 flex-1 truncate" title={value.outputDir}>{value.outputDir || t('plans.defaultFolder')}</span><button className="v-button-ghost" type="button" onClick={async () => { const folder = await window.api?.selectDownloadFolder(); if (folder) onChange({ ...value, outputDir: folder }) }}>{t('common.change')}</button></div></div>}
++      <label className="block text-xs">{t('plans.filename')}<input aria-label={t('plans.filename')} className={`${selectClass} mt-1`} value={value.filenameTemplate} onChange={(e) => onChange({ ...value, filenameTemplate: e.target.value })} /></label>
++      <p className="text-xs leading-5 text-muted-foreground">{t('plans.noFallback')}</p>
++    </div></details>
++    <details className="v-disclosure"><summary>{t('plans.save')}</summary><div className="space-y-2 pt-3">
++      <div className="flex gap-2"><input aria-label={t('plans.name')} placeholder={t('plans.name')} value={name} onChange={(e) => setName(e.target.value)} className={`${selectClass} min-w-0 flex-1`} /><button type="button" disabled={!name.trim() || busy} className="v-button-secondary shrink-0" onClick={() => save(false)}>{t('plans.saveNew')}</button></div>
++      <div className="flex flex-wrap gap-2">
++        {chosen && !chosen.id.startsWith('builtin:') && <><button type="button" disabled={busy} className="v-button-ghost" onClick={() => save(true)}>{t('plans.update')}</button><button type="button" disabled={busy} className="v-button-ghost" onClick={() => void mutate({ action: 'delete', id: chosen.id, expectedRevision: value.planRevision ?? chosen.revision })}>{t('plans.delete')}</button></>}
++        {chosen && <button type="button" disabled={busy} className="v-button-ghost" onClick={() => void mutate({ action: 'default', id: chosen.id })}>{t('plans.makeDefault')}</button>}
++        {library.defaultId && <button type="button" disabled={busy} className="v-button-ghost" onClick={() => void mutate({ action: 'default', id: null })}>{t('plans.resetDefault')}</button>}
++      </div><p className="text-xs leading-5 text-muted-foreground">{t('plans.snapshotHint')}</p>
++    </div></details>
++    {error && <p role="alert" className="text-xs text-error">{error}</p>}
++  </section>
++}
++export function DownloadPlansPreferences({ settings }: { settings: SettingsData }) {
++  const [draft, setDraft] = useState(() => initialDownloadDraft(settings))
++  return <DownloadOptionsEditor value={draft} onChange={setDraft} settings={settings} />
++}
+--- before/src/renderer/src/components/FormatDialog.tsx
++++ after/src/renderer/src/components/FormatDialog.tsx
+@@ -1,5 +1,8 @@
++import { reusableSelection } from '@v-download/shared'
++import { DownloadOptionsEditor } from './DownloadOptionsEditor'
++import { initialDownloadDraft, exactFormatSelection } from './downloadOptionsModel'
+ import { useState } from 'react'
+-import { X, Download, Music, Video, File, Folder, ChevronDown } from 'lucide-react'
++import { X, Download, Music, Video, Folder, ChevronDown } from 'lucide-react'
+ import type { VideoInfo, SettingsData } from '@/types'
+ import { formatDuration } from '@/utils/format'
+ import { isDouyinProfileHomeUrl } from '@/utils/douyinBulk'
+@@ -7,13 +10,10 @@
+ import { useDialogFocus } from '@/hooks/useDialogFocus'
+ import { ThumbnailImage } from './ThumbnailImage'
+ import {
+-  DEFAULT_INCLUDE_NOTE,
+   TASK_HEADERS_PLACEHOLDER,
+   TASK_PROXY_PLACEHOLDER,
+   fallbackQuality,
+-  getDefaultSelectedKey,
+   getPresentationCandidates,
+-  hasOtherFormats
+ } from './formatDialogPresentation'
+ import {
+   applyFolderChange,
+@@ -33,7 +33,7 @@
+     quality: string,
+     includeNote: boolean,
+     overrides?: TaskDownloadOverrides
+-  ) => void
++  ) => void | Promise<void>
+   queueCount?: number
+   onSkipAll?: () => void
+   /** Opens Preferences → Downloads and prefills the bulk URL field (Douyin profile flows). */
+@@ -41,7 +41,7 @@
+   siteRule?: { format: 'best' | 'video' | 'audio'; quality: string }
+ }
+ 
+-type TabType = 'audio' | 'video' | 'other'
++type TabType = 'audio' | 'video'
+ 
+ export function FormatDialog({
+   videoInfo,
+@@ -54,17 +54,28 @@
+   siteRule
+ }: FormatDialogProps) {
+   const { t } = useTranslation()
+-  const [activeTab, setActiveTab] = useState<TabType>(siteRule?.format === 'audio' ? 'audio' : 'video')
+-  const [downloadDir, setDownloadDir] = useState(settings.downloadDir)
++  const [draft, setDraft] = useState(() => {
++    const value = initialDownloadDraft(settings)
++    if (siteRule && !settings.downloadPlanLibrary?.defaultId) {
++      value.selection = { ...value.selection, target: siteRule.format === 'audio' ? 'audio' : 'video', output: siteRule.format === 'audio' ? 'mp3' : 'original', maxHeight: siteRule.format === 'audio' ? 'best' : Number(siteRule.quality) || 1080, ...(siteRule.format === 'audio' ? { audioBitrate: Number(siteRule.quality) || undefined } : {}) }
++    }
++    return value
++  })
++  const activeTab: TabType = draft.selection.target
++  const setActiveTab = (tab: TabType) => { setSelectedKey(null); setDraft((v) => ({ ...v, selection: { ...reusableSelection(v.selection), target: tab, output: tab === 'audio' ? 'mp3' : 'original', audioBitrate: tab === 'audio' ? Number(settings.defaultAudioQuality) || undefined : undefined, postprocess: 'none' } })) }
++  const downloadDir = draft.outputDir
+   const [bulkNote, setBulkNote] = useState('')
++  const [downloadError, setDownloadError] = useState('')
++  const [downloadBusy, setDownloadBusy] = useState(false)
+   const [bulkBusy, setBulkBusy] = useState(false)
+   const [queuedKeys, setQueuedKeys] = useState<Set<string>>(new Set())
+   const [selectedKey, setSelectedKey] = useState<string | null>(null)
+-  const [includeNote, setIncludeNote] = useState(DEFAULT_INCLUDE_NOTE)
++  const includeNote = draft.includeNote
++  const setIncludeNote = (includeNote: boolean) => setDraft((v) => ({ ...v, includeNote }))
+   const [taskProxyUrl, setTaskProxyUrl] = useState('')
+   const [extraHeadersText, setExtraHeadersText] = useState('')
+   const dialogRef = useDialogFocus<HTMLDivElement>(onClose)
+-  const videoFormatsRaw = getPresentationCandidates(videoInfo.formats, 'video', settings.defaultVideoQuality, siteRule)
++  const videoFormatsRaw = getPresentationCandidates(videoInfo.formats, 'video', String(draft.selection.maxHeight))
+   const audioFormatsRaw = getPresentationCandidates(videoInfo.formats, 'audio', settings.defaultAudioQuality, siteRule)
+   const videoFormats = videoFormatsRaw.length
+     ? videoFormatsRaw
+@@ -73,9 +84,9 @@
+     ? audioFormatsRaw
+     : [{ format_id: 'best-audio', quality: fallbackQuality('audio', settings.defaultAudioQuality || '320', siteRule), kind: 'audio' as const, ext: 'auto', key: 'best-audio', recommended: true }]
+   const activeFormats = activeTab === 'audio' ? audioFormats : videoFormats
+-  const resolvedSelectedKey = selectedKey && activeFormats.some((item) => item.key === selectedKey)
+-    ? selectedKey
+-    : getDefaultSelectedKey(activeFormats)
++  const resolvedSelectedKey = draft.selection.exact
++    ? selectedKey ?? activeFormats.find((item) => item.format_id === draft.selection.exact?.formatId)?.key ?? null
++    : null
+   const selectedFormat = activeFormats.find((item) => item.key === resolvedSelectedKey) ?? activeFormats[0]
+   const formatSize = (bytes?: number, approximate = false) => {
+     if (!bytes || bytes <= 0) return t('format.sizeUnknown')
+@@ -100,7 +111,7 @@
+     const folder = await window.api.selectDownloadFolder()
+     if (!folder) return
+     const next = applyFolderChange(downloadDir, folder)
+-    setDownloadDir(next.downloadDir)
++    setDraft((v) => ({ ...v, outputDir: next.downloadDir }))
+   }
+ 
+   const taskOverrides = (): TaskDownloadOverrides =>
+@@ -111,11 +122,15 @@
+       extraHeadersText
+     })
+ 
+-  const handleDownload = (format: string, quality: number, key: string) => {
+-    if (queuedKeys.has(key)) return
++  const handleDownload = async (format: string, quality: number, key: string) => {
++    if (queuedKeys.has(key) || downloadBusy) return
++    setDownloadBusy(true); setDownloadError('')
++    try {
+     const url = videoInfo.webpage_url || `https://www.youtube.com/watch?v=${videoInfo.id}`
+-    onDownload(url, format, String(quality), includeNote, taskOverrides())
++    await onDownload(url, format, String(quality), includeNote, { ...taskOverrides(), ...(simpleSave ? {} : { selection: draft.selection, planId: draft.planId, planRevision: draft.planRevision, filenameTemplate: draft.filenameTemplate, includeNote: draft.includeNote }) })
+     setQueuedKeys((previous) => new Set(previous).add(key))
++    } catch (error) { setDownloadError(error instanceof Error ? error.message : String(error)) }
++    finally { setDownloadBusy(false) }
+   }
+ 
+   const handleStartDouyinBulkFromDialog = async () => {
+@@ -147,14 +162,14 @@
+   const tabs: { id: TabType; label: string; icon: typeof Music }[] = [
+     { id: 'video', label: t('format.video'), icon: Video },
+     { id: 'audio', label: t('format.audio'), icon: Music },
+-    ...(hasOtherFormats(videoInfo.formats) ? [{ id: 'other' as const, label: t('format.other'), icon: File }] : [])
++
+   ]
+ 
+   const saveKey = isTextNote ? 'text-note' : isImageGallery ? 'gallery' : selectedFormat?.key
+-  const alreadyQueued = Boolean(saveKey && queuedKeys.has(saveKey))
++  const alreadyQueued = downloadBusy || Boolean(saveKey && queuedKeys.has(saveKey))
+   const downloadSelected = () => {
+     if (simpleSave) handleDownload('video', Number(settings.defaultVideoQuality || '1080'), saveKey!)
+-    else if (selectedFormat && activeTab !== 'other') handleDownload(activeTab === 'audio' ? 'mp3' : 'mp4', selectedFormat.quality, selectedFormat.key)
++    else if (selectedFormat) handleDownload(activeTab === 'audio' ? 'mp3' : 'mp4', selectedFormat.quality, selectedFormat.key)
+   }
+ 
+   return (
+@@ -183,27 +198,32 @@
+               </button>
+             })}
+           </div>}
++          {downloadError && <p role="alert" className="mb-2 text-xs text-error">{downloadError}</p>}
++          {!simpleSave && <DownloadOptionsEditor value={draft} onChange={(value) => { setDraft(value); setSelectedKey(null) }} settings={settings} showFolder={false} showNote={false} />}
+           <div id={simpleSave ? 'format-gallery-panel' : `format-panel-${activeTab}`} {...(simpleSave ? { role: 'region' as const, 'aria-labelledby': 'format-dialog-title' } : { role: 'tabpanel' as const, 'aria-labelledby': `format-tab-${activeTab}` })}>
+             {simpleSave ? <div className="py-2">
+               <p className="text-sm font-medium">{isTextNote ? t('format.textNote') : t('format.gallery', { site: galleryLabel })}</p>
+               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{isTextNote ? t('format.textNoteHint') : t(galleryCount === 1 ? 'format.galleryCountOne' : 'format.galleryCount', { count: galleryCount })}</p>
+               {isImageGallery && <div className="mt-3 grid grid-cols-4 gap-2">{videoInfo.image_urls!.slice(0, 8).map((src, index) => <div key={index} className="aspect-square overflow-hidden rounded-md bg-control"><ThumbnailImage src={src} referer={pageUrl} /></div>)}</div>}
+-            </div> : activeTab === 'other' ? <p className="py-6 text-center text-sm text-muted-foreground">{t('format.other')}</p> : <div role="radiogroup" aria-label={t('format.outputFormat')}>
++            </div> : <div role="radiogroup" aria-label={t('format.outputFormat')}>
++              <button type="button" role="radio" aria-checked={!draft.selection.exact} onClick={() => { setSelectedKey(null); setDraft((v) => ({ ...v, selection: reusableSelection(v.selection) })) }} className={`mb-1 min-h-10 w-full rounded-button px-3 py-2 text-left text-[13px] ${!draft.selection.exact ? 'bg-selection font-medium' : 'hover:bg-control'}`}>{t('plans.automatic')}</button>
+               {activeFormats.map((fmt, index) => {
+                 const selected = fmt.key === resolvedSelectedKey
+                 const exact = Boolean(fmt.filesize && fmt.filesize > 0)
+                 const size = formatSize(exact ? fmt.filesize : fmt.filesize_approx, !exact && Boolean(fmt.filesize_approx))
+                 return <button key={fmt.key} type="button" role="radio" aria-checked={selected} tabIndex={selected ? 0 : -1}
+-                  aria-label={t('format.downloadAria', { quality: activeTab === 'audio' ? `${fmt.quality} kbps` : `${fmt.quality}p`, container: activeTab === 'audio' ? 'MP3' : 'MP4' })}
+-                  onClick={() => setSelectedKey(fmt.key)} onKeyDown={(event) => {
++                  aria-label={t('plans.selectSource', { quality: [activeTab === 'audio' ? `${fmt.quality} kbps` : `${fmt.quality}p`, fmt.fps ? `${fmt.fps} fps` : '', fmt.vcodec && fmt.vcodec !== 'none' ? fmt.vcodec : fmt.acodec || ''].filter(Boolean).join(' · '), container: (fmt.container || fmt.ext || '').toUpperCase() })}
++                  onClick={() => { setSelectedKey(fmt.key); setDraft((v) => ({ ...v, selection: exactFormatSelection(v.selection, fmt, videoInfo.webpage_url) })) }} onKeyDown={(event) => {
+                     if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) return
+                     event.preventDefault()
+                     const next = (index + (event.key === 'ArrowDown' || event.key === 'ArrowRight' ? 1 : -1) + activeFormats.length) % activeFormats.length
+                     setSelectedKey(activeFormats[next].key)
++                    setDraft((v) => ({ ...v, selection: exactFormatSelection(v.selection, activeFormats[next], videoInfo.webpage_url) }))
+                     ;(event.currentTarget.parentElement?.children[next] as HTMLElement | undefined)?.focus()
+                   }} className={`mb-1 flex min-h-14 w-full items-center gap-3 rounded-button px-3 py-2 text-left ${selected ? 'bg-selection' : 'hover:bg-control'}`}>
+                   <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${selected ? 'border-foreground' : 'border-border-strong'}`} aria-hidden>{selected && <span className="h-2 w-2 rounded-full bg-foreground" />}</span>
+-                  <span className="min-w-0 flex-1"><span className="block text-[13px] font-medium">{t(activeTab === 'audio' ? 'format.qualityAudio' : 'format.qualityVideo', { quality: fmt.quality })}</span>
++                  <span className="min-w-0 flex-1"><span className="block text-[13px] font-medium">{t(activeTab === 'audio' ? 'plans.sourceAudio' : 'plans.sourceVideo', { quality: fmt.quality })}</span>
++                    <span className="block text-xs text-muted-foreground">{[fmt.container || fmt.ext, fmt.vcodec && fmt.vcodec !== 'none' ? fmt.vcodec : fmt.acodec, fmt.fps ? `${fmt.fps} fps` : '', fmt.dynamic_range, fmt.language].filter(Boolean).join(' · ')}</span>
+                     {fmt.recommended && <span className="text-xs text-muted-foreground">{t('ui.recommended')}</span>}
+                   </span>
+                   <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{size}</span>
+@@ -211,7 +231,13 @@
+               })}
+             </div>}
+           </div>
+-          {!simpleSave && activeTab !== 'other' && selectedFormat && <details className="v-disclosure mt-1"><summary><ChevronDown className="v-chevron h-3.5 w-3.5" aria-hidden />{t('ui.codecs')}</summary>
++          {!simpleSave && draft.selection.exact?.kind === 'video' && audioFormatsRaw.length > 0 && <label className="mt-3 block text-xs">{t('plans.companionAudio')}
++            <select aria-label={t('plans.companionAudio')} className="v-input mt-1 w-full" value={draft.selection.exact.audioFormatId ?? ''} onChange={(event) => setDraft((value) => ({ ...value, selection: { ...value.selection, ...(audioFormatsRaw.find((audio) => audio.format_id === event.target.value)?.language ? { audioLanguage: audioFormatsRaw.find((audio) => audio.format_id === event.target.value)!.language } : {}), exact: value.selection.exact ? { ...value.selection.exact, audioFormatId: event.target.value || undefined } : undefined } }))}>
++              <option value="">{t('plans.automatic')}</option>
++              {audioFormatsRaw.map((audio) => <option key={audio.format_id} value={audio.format_id}>{[audio.language, audio.acodec, `${audio.quality} kbps`, audio.format_id].filter(Boolean).join(' · ')}</option>)}
++            </select>
++          </label>}
++          {!simpleSave && draft.selection.exact && selectedFormat && <details className="v-disclosure mt-1"><summary><ChevronDown className="v-chevron h-3.5 w-3.5" aria-hidden />{t('ui.codecs')}</summary>
+             <p className="pb-2 text-xs leading-relaxed text-muted-foreground">{[t('format.source', { container: (selectedFormat.container || selectedFormat.ext || 'stream').toUpperCase() }), selectedFormat.vcodec && selectedFormat.vcodec !== 'none' ? selectedFormat.vcodec : '', selectedFormat.acodec && selectedFormat.acodec !== 'none' ? selectedFormat.acodec : '', selectedFormat.width && selectedFormat.height ? `${selectedFormat.width}×${selectedFormat.height}` : ''].filter(Boolean).join(' · ')}</p>
+           </details>}
+           <label className="flex items-center gap-2 py-3"><input type="checkbox" checked={includeNote} onChange={(event) => setIncludeNote(event.target.checked)} className="h-4 w-4 accent-action" /><span className="text-xs">{t('format.includeNote')}</span></label>
+@@ -233,7 +259,7 @@
+         <footer className="shrink-0 border-t border-divider-subtle bg-surface px-5 py-4">
+           <div className="mb-3 flex min-w-0 items-center gap-2 text-xs text-muted-foreground"><Folder className="h-4 w-4 shrink-0" aria-hidden /><span className="shrink-0">{t('ui.saveTo')}</span><span className="min-w-0 flex-1 truncate" title={downloadDir}>{downloadDir.split('/').filter(Boolean).slice(-2).join('/') || downloadDir}</span><button type="button" onClick={handleChangeFolder} className="v-button-ghost !min-h-7 !px-2 !py-1">{t('format.change')}</button></div>
+           <div className="flex items-center justify-end gap-2"><button type="button" onClick={onClose} className="v-button-ghost">{t('common.cancel')}</button>
+-            <button type="button" disabled={alreadyQueued || (isTextNote && !includeNote) || (!simpleSave && (activeTab === 'other' || !selectedFormat))} onClick={downloadSelected} className="v-button-primary"><Download className="h-4 w-4" aria-hidden /><span aria-live="polite">{t(alreadyQueued ? 'format.added' : isTextNote ? 'format.saveNote' : isImageGallery ? 'format.downloadImages' : 'format.downloadSelected')}</span></button>
++            <button type="button" disabled={alreadyQueued || (isTextNote && !includeNote) || (!simpleSave && (!selectedFormat))} onClick={downloadSelected} className="v-button-primary"><Download className="h-4 w-4" aria-hidden /><span aria-live="polite">{t(alreadyQueued ? 'format.added' : isTextNote ? 'format.saveNote' : isImageGallery ? 'format.downloadImages' : 'format.downloadSelected')}</span></button>
+           </div>
+           {queueCount > 0 && <div className="mt-3 flex items-center justify-between gap-2 text-xs text-muted-foreground"><span>{t(queueCount === 1 ? 'format.moreQueued' : 'format.moreQueuedPlural', { count: queueCount })}</span>{onSkipAll && <button type="button" onClick={onSkipAll} className="v-button-ghost !min-h-7 !py-1">{t('format.skipAll')}</button>}</div>}
+         </footer>
+--- before/src/renderer/src/components/PreferencesPanel.tsx
++++ after/src/renderer/src/components/PreferencesPanel.tsx
+@@ -1,3 +1,4 @@
++import { DownloadPlansPreferences } from './DownloadOptionsEditor'
+ import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react'
+ import { Check, ChevronDown, Copy, Download, Folder, Globe, RefreshCw, Loader2, X, Puzzle } from 'lucide-react'
+ import { useTranslation } from 'react-i18next'
+@@ -838,6 +839,7 @@
+ 
+         <PrefSectionPane id="downloads" section={section} mounted={mountedSections.has('downloads')}>
+           <div className={PREFERENCES_WORKSPACE_CLASS}>
++            <PrefCard title={t('plans.title')} subtitle={t('plans.snapshotHint')}><DownloadPlansPreferences settings={settings} /></PrefCard>
+             <PrefCard
+               title={t('prefs.saveFiles.downloadFolder')}
+             >
+--- before/src/renderer/src/components/downloadOptionsModel.ts
++++ after/src/renderer/src/components/downloadOptionsModel.ts
+@@ -0,0 +1,35 @@
++import {
++  allDownloadPlans, defaultDownloadSelection, EMPTY_DOWNLOAD_PLAN_LIBRARY, reusableSelection,
++  canonicalVideoCodec, type DownloadPlan, type DownloadSelection, type DownloadSelectionRequest
++} from '@v-download/shared'
++import type { SettingsData, VideoInfo } from '@/types'
++
++export interface DownloadOptionsDraft extends DownloadSelectionRequest {
++  selection: DownloadSelection
++  outputDir: string
++  filenameTemplate: string
++  includeNote: boolean
++}
++export function legacyDownloadDraft(settings: SettingsData): DownloadOptionsDraft {
++  return { selection: defaultDownloadSelection(settings.defaultVideoQuality === 'best' ? 'best' : Number(settings.defaultVideoQuality) || 1080),
++    outputDir: settings.downloadDir, filenameTemplate: settings.filenameTemplate || '{title} [{id}]', includeNote: true }
++}
++export function draftFromPlan(plan: DownloadPlan, settings: SettingsData): DownloadOptionsDraft {
++  return { selection: reusableSelection(plan.selection), planId: plan.id, planRevision: plan.revision,
++    outputDir: plan.outputDir ?? settings.downloadDir, filenameTemplate: plan.filenameTemplate ?? settings.filenameTemplate ?? '{title} [{id}]', includeNote: plan.includeNote }
++}
++export function initialDownloadDraft(settings: SettingsData): DownloadOptionsDraft {
++  const library = settings.downloadPlanLibrary ?? EMPTY_DOWNLOAD_PLAN_LIBRARY
++  const plan = allDownloadPlans(library).find((p) => p.id === library.defaultId)
++  return plan ? draftFromPlan(plan, settings) : legacyDownloadDraft(settings)
++}
++export function exactFormatSelection(selection: DownloadSelection, format: NonNullable<VideoInfo['formats']>[number], sourceUrl: string): DownloadSelection {
++  if (!format.format_id || ['best','best-audio'].includes(format.format_id)) return reusableSelection(selection)
++  const kind = selection.target === 'audio' ? 'audio' : format.acodec && format.acodec !== 'none' ? 'muxed' : 'video'
++  const codec = canonicalVideoCodec(format.vcodec)
++  return { ...selection,
++    ...(selection.target === 'video' ? { maxHeight: format.height ?? selection.maxHeight, videoCodec: codec === 'unknown' ? 'any' : codec,
++      ...(format.fps ? { maxFps: format.fps } : {}) } : {}),
++    ...(selection.target === 'audio' && format.language ? { audioLanguage: format.language } : {}),
++    exact: { sourceUrl, formatId: format.format_id, kind } }
++}
+--- before/src/renderer/src/components/formatDialogPresentation.ts
++++ after/src/renderer/src/components/formatDialogPresentation.ts
+@@ -30,7 +30,7 @@
+ }
+ 
+ function candidateKey(format: NonNullable<VideoInfo['formats']>[number], kind: PresentationKind) {
+-  return [kind, format.height || '', format.width || '', format.abr || format.bitrate || format.tbr || '', format.ext || format.container || '', format.vcodec || '', format.acodec || ''].join('|')
++  return [kind, format.height || '', format.width || '', format.abr || format.bitrate || format.tbr || '', format.ext || format.container || '', format.vcodec || '', format.acodec || '', format.fps || '', format.dynamic_range || '', format.language || ''].join('|')
+ }
+ 
+ export function getPresentationCandidates(
+@@ -55,8 +55,8 @@
+     }
+   }
+   const result = [...merged.values()].sort((a, b) => b.quality - a.quality || a.key.localeCompare(b.key))
+-  const preferred = siteRule && (siteRule.format === kind || siteRule.format === 'best') ? safeQuality(siteRule.quality, defaultQuality) : safeQuality(defaultQuality, defaultQuality)
+-  let best = result.find((candidate) => candidate.quality === preferred)
++  const preferred = defaultQuality === 'best' ? Number.POSITIVE_INFINITY : siteRule && (siteRule.format === kind || siteRule.format === 'best') ? safeQuality(siteRule.quality, defaultQuality) : safeQuality(defaultQuality, defaultQuality)
++  let best = defaultQuality === 'best' ? result[0] : result.find((candidate) => candidate.quality === preferred)
+   if (!best) best = result.reduce<PresentationCandidate | undefined>((closest, candidate) => !closest || Math.abs(candidate.quality - preferred) < Math.abs(closest.quality - preferred) ? candidate : closest, undefined)
+   return result.map((candidate) => ({ ...candidate, recommended: candidate.key === best?.key }))
+ }
+--- before/src/renderer/src/components/taskOverridesPresentation.ts
++++ after/src/renderer/src/components/taskOverridesPresentation.ts
+@@ -1,4 +1,5 @@
+-export type TaskDownloadOverrides = {
++import type { DownloadSelectionRequest } from '@v-download/shared'
++export type TaskDownloadOverrides = DownloadSelectionRequest & {
+   outputDir?: string
+   proxyUrl?: string
+   customHeaders?: Record<string, string>
+--- before/src/renderer/src/hooks/downloadProgress.ts
++++ after/src/renderer/src/hooks/downloadProgress.ts
+@@ -1,8 +1,13 @@
++import { readDownloadSelection } from '@v-download/shared'
+ import type { Download, DownloadStatus } from '@/types'
+ 
+ /** Only merge IPC fields that are actually present — never wipe title/thumbnail with undefined. */
+ export function progressPatchFromIpc(data: Record<string, unknown>): Partial<Download> {
+   const patch: Partial<Download> = {}
++  if (data.selection === null) patch.selection = null
++  else if (data.selection !== undefined) { try { patch.selection = readDownloadSelection(data.selection) } catch { /* Ignore malformed optional selection fields. */ } }
++  if (data.planName === null || typeof data.planName === 'string') patch.planName = data.planName
++  if (data.planId === null || typeof data.planId === 'string') patch.planId = data.planId
+   if (typeof data.progress === 'number') patch.progress = data.progress
+   if (typeof data.status === 'string') patch.status = data.status as DownloadStatus
+   if (typeof data.format === 'string') patch.format = data.format
+--- before/src/renderer/src/hooks/useDownloads.ts
++++ after/src/renderer/src/hooks/useDownloads.ts
+@@ -1,9 +1,14 @@
++import { readDownloadSelection } from '@v-download/shared'
+ import { useState, useEffect, useCallback, useRef } from 'react'
+ import type { Download, DownloadStatus } from '@/types'
+ import { progressPatchFromIpc } from './downloadProgress'
+ 
+ function normalizeTask(t: Record<string, unknown>): Download {
++  const request = (t.metadata as Record<string, unknown> | undefined)?.downloadRequest as { selection?: unknown; plan?: { name?: string; id?: string } } | undefined
++  let selection: Download['selection']
++  try { if (request?.selection) selection = readDownloadSelection(request.selection) } catch { /* Legacy malformed metadata has no selection claim. */ }
+   return {
++    selection, planName: request?.plan?.name, planId: request?.plan?.id,
+     id: String(t.id ?? ''),
+     url: String(t.url ?? ''),
+     title: String(t.title ?? ''),
+--- before/src/renderer/src/types/index.ts
++++ after/src/renderer/src/types/index.ts
+@@ -1,3 +1,4 @@
++import type { DownloadPlanLibrary, DownloadSelection } from '@v-download/shared'
+ import type { DownloadErrorCode } from '@v-download/shared'
+ 
+ export type DownloadStatus =
+@@ -16,6 +17,9 @@
+   url: string
+   title: string
+   format: string
++  selection?: DownloadSelection | null
++  planId?: string | null
++  planName?: string | null
+   quality: string
+   status: DownloadStatus
+   progress: number
+@@ -64,10 +68,11 @@
+   image_urls?: string[]
+   /** Parsed caption / description for note.md */
+   description?: string
+-  formats?: Array<{ format_id?: string; format?: string; ext?: string; container?: string; height?: number; width?: number; abr?: number; bitrate?: number; tbr?: number; filesize?: number; filesize_approx?: number; vcodec?: string; acodec?: string; source?: string }>
++  formats?: Array<{ format_id?: string; fps?: number; dynamic_range?: string; language?: string; format?: string; ext?: string; container?: string; height?: number; width?: number; abr?: number; bitrate?: number; tbr?: number; filesize?: number; filesize_approx?: number; vcodec?: string; acodec?: string; source?: string }>
+ }
+ 
+ export interface SettingsData {
++  downloadPlanLibrary?: DownloadPlanLibrary
+   downloadDir: string
+   concurrency: number
+   showFormatDialog: boolean
+--- before/scripts/extension-background-harness.cjs
++++ after/scripts/extension-background-harness.cjs
+@@ -0,0 +1,26 @@
++// Browser API boundary for production worker tests; network can be real or injected.
++const fs = require('node:fs')
++const path = require('node:path')
++const vm = require('node:vm')
++exports.backgroundHarness = function ({ fetch, storage = {}, extensionId = 'test-extension', directory = path.resolve(__dirname, '../extension') }) {
++  let listener
++  const wakes = []
++  const event = () => ({ addListener() {} })
++  const area = {
++    get(keys, callback) { const data = Object.fromEntries((Array.isArray(keys) ? keys : Object.keys(storage)).filter(k => k in storage).map(k => [k, storage[k]])); if (callback) callback(data); return Promise.resolve(data) },
++    set(values, callback) { Object.assign(storage, values); callback?.(); return Promise.resolve() },
++    remove(keys, callback) { for (const key of [keys].flat()) delete storage[key]; callback?.(); return Promise.resolve() }
++  }
++  const chrome = {
++    storage: { local: area, session: area },
++    runtime: { id: extensionId, lastError: null, onMessage: { addListener(fn) { listener = fn } }, onInstalled: event(), onStartup: event(), getURL: file => `chrome-extension://${extensionId}/${file}` },
++    action: { onClicked: event(), setBadgeText() {}, setBadgeBackgroundColor() {}, setIcon() {}, setTitle() {} },
++    tabs: { onActivated: event(), onUpdated: event(), onRemoved: event(), query(options, callback) { const tabs = [{ id: 1, url: 'https://fixture.test/', title: 'Fixture' }]; callback?.(tabs); return Promise.resolve(tabs) }, create(options, callback) { wakes.push(options); callback?.({ id: 2 }); return Promise.resolve({ id: 2 }) }, remove(id, callback) { callback?.() }, sendMessage() {} },
++    webRequest: { onCompleted: event(), onBeforeRequest: event(), onErrorOccurred: event() },
++    alarms: { create() {}, onAlarm: event() }, cookies: { getAll: async () => [] }, scripting: { executeScript: async () => [] }
++  }
++  const context = vm.createContext({ chrome, console: { log() {}, warn() {}, error() {}, info() {} }, fetch, Response, Headers, Request, AbortController, URL, TextEncoder, TextDecoder, Uint8Array, setTimeout, clearTimeout })
++  context.importScripts = (...files) => files.forEach(file => vm.runInContext(fs.readFileSync(path.join(directory, file), 'utf8'), context, { filename: file }))
++  vm.runInContext(fs.readFileSync(path.join(directory, 'background.js'), 'utf8'), context, { filename: 'background.js' })
++  return { storage, wakes, message(message, sender = {}) { return new Promise((resolve, reject) => { const timer = setTimeout(() => reject(new Error('Worker response timeout')), 15000); const keep = listener(message, sender, result => { clearTimeout(timer); resolve(result) }); if (!keep) { clearTimeout(timer); } }) } }
++}
+--- before/scripts/test-download-progress.ts
++++ after/scripts/test-download-progress.ts
+@@ -34,3 +34,13 @@
+ assert.deepEqual(progressPatchFromIpc({ id: promoted.id, speed: '1 MiB/s' }), { speed: '1 MiB/s' })
+ assert.deepEqual(progressPatchFromIpc({ format: null, quality: 360, thumbnail: undefined }), {})
+ console.log('download progress producer/renderer contract passed')
++
++import { defaultDownloadSelection } from '../packages/shared/src/download-selection'
++const selection = { ...defaultDownloadSelection(360), maxFps: 30 }
++const withPlan = { ...promoted, metadata: { downloadRequest: { version: 1, selection, plan: { id: 'saved:30', name: '360p at 30fps', revision: 1 } } } }
++const planPatch = progressPatchFromIpc(downloadProgressPayload(withPlan, {}, true))
++assert.deepEqual(planPatch.selection, selection)
++assert.equal(planPatch.planName, '360p at 30fps')
++assert.equal(planPatch.planId, 'saved:30')
++assert.equal('selection' in downloadProgressPayload({ ...withPlan, status: 'downloading' }), false)
++assert.equal(progressPatchFromIpc(downloadProgressPayload(promoted, {}, true)).selection, null)
+--- before/scripts/test-download-selection.ts
++++ after/scripts/test-download-selection.ts
+@@ -0,0 +1,61 @@
++import assert from 'node:assert/strict'
++import {
++  defaultDownloadSelection, readDownloadSelection, selectionFormatSelector, reusableSelection,
++  mutateDownloadPlanLibrary, EMPTY_DOWNLOAD_PLAN_LIBRARY, readDownloadPlan, sourceVideoMatches,
++  audioLanguageMatches, type DownloadPlan
++} from '../packages/shared/src/download-selection'
++import { readDownloadRequestSnapshot, selectionKey } from '../src/main/downloadRequestSnapshot'
++import { getPresentationCandidates } from '../src/renderer/src/components/formatDialogPresentation'
++
++const policy = { ...defaultDownloadSelection(360), videoCodec: 'h264' as const, maxFps: 30 }
++const selector = selectionFormatSelector(policy)
++for (const branch of selector.split('/')) {
++  assert.ok(branch.includes('[height<=?360]'), branch)
++  assert.ok(branch.includes('[fps<=?30]'), branch)
++  assert.ok(branch.includes('h264'), branch)
++}
++const exact = { ...policy, exact: { sourceUrl: 'https://fixture.test/watch', formatId: 'video-360-30', kind: 'video' as const, audioFormatId: 'audio-en' } }
++assert.equal(selectionFormatSelector(exact), 'all[format_id="video-360-30"]+all[format_id="audio-en"]')
++assert.equal('exact' in reusableSelection(exact), false)
++for (const formatId of ['best/720', 'x+best', 'x[height>360]', 'x\n-f best']) assert.throws(() => readDownloadSelection({ ...exact, exact: { ...exact.exact, formatId } }))
++assert.throws(() => readDownloadSelection({ ...policy, version: 2 }))
++assert.throws(() => readDownloadSelection({ ...policy, output: 'mp3' }))
++assert.throws(() => readDownloadSelection({ ...policy, output: 'mp4', postprocess: 'h264-mp4', dynamicRange: 'hdr' }))
++assert.equal(sourceVideoMatches(policy, { height: 360, fps: 60, codec: 'avc1' }), false)
++assert.equal(sourceVideoMatches(policy, { height: 720, fps: 30, codec: 'h264' }), false)
++assert.equal(sourceVideoMatches(policy, { height: 360, fps: 30, codec: 'h264' }), true)
++assert.equal(sourceVideoMatches(policy, { height: 360, codec: 'h264' }), false, 'unknown FPS cannot satisfy an explicit limit')
++
++const plan: DownloadPlan = { id: 'test-plan', name: '360p archive', revision: 1, selection: policy, includeNote: true }
++assert.throws(() => readDownloadPlan({ ...plan, selection: exact }))
++const library = mutateDownloadPlanLibrary(EMPTY_DOWNLOAD_PLAN_LIBRARY, { action: 'save', plan, expectedRevision: 0 })
++const selected = mutateDownloadPlanLibrary(library, { action: 'default', id: plan.id })
++assert.throws(() => mutateDownloadPlanLibrary(selected, { action: 'save', plan, expectedRevision: 0 }))
++const updated = mutateDownloadPlanLibrary(selected, { action: 'save', plan: { ...plan, name: 'Updated', selection: defaultDownloadSelection(720) }, expectedRevision: 1 })
++assert.equal(updated.custom[0].revision, 2)
++assert.equal(library.custom[0].selection.maxHeight, 360, 'updates cannot mutate previously admitted choices')
++assert.equal(mutateDownloadPlanLibrary(updated, { action: 'delete', id: plan.id, expectedRevision: 2 }).defaultId, null)
++assert.throws(() => mutateDownloadPlanLibrary(library, { action: 'default', id: 'removed' }))
++const snapshot = readDownloadRequestSnapshot({ version: 1, selection: policy, plan: { id: plan.id, name: plan.name, revision: 1 }, outputDir: '/tmp/downloads', filenameTemplate: '{title} [{id}]', includeNote: true, archiveByAuthor: false, folderNameTemplate: '{author}', playlistSubfolder: true })
++assert.equal(selectionKey(snapshot), selectionKey({ ...snapshot, plan: { ...snapshot.plan!, name: 'Renamed', revision: 2 } }))
++for (const difference of [{ selection: defaultDownloadSelection(720) }, { outputDir: '/tmp/another' }, { filenameTemplate: '{id}' }, { includeNote: false }]) assert.notEqual(selectionKey(snapshot), selectionKey({ ...snapshot, ...difference }))
++const candidates = getPresentationCandidates([
++  { format_id: '30fps', height: 360, fps: 30, vcodec: 'h264', acodec: 'aac', ext: 'mp4' },
++  { format_id: '60fps', height: 360, fps: 60, vcodec: 'h264', acodec: 'aac', ext: 'mp4' }
++], 'video', 'best')
++assert.equal(candidates.length, 2, 'same-height sources with different FPS remain selectable')
++console.log('download selection: exact IDs, constrained fallback, plan revisions, snapshots and output identity passed')
++
++assert.ok(audioLanguageMatches('en', 'eng'))
++assert.ok(audioLanguageMatches('zh', 'zho-Hans'))
++assert.ok(!audioLanguageMatches('en-US', 'eng-GB'))
++assert.ok(!audioLanguageMatches('en', undefined))
++assert.throws(() => readDownloadSelection({ ...policy, target: 'audio', output: 'mp3', audioBitrate: 512 }))
++
++import { videoFacts } from '../src/main/probeStreamFacts'
++assert.equal(videoFacts({ color_transfer: 'unknown' }).dynamicRange, undefined)
++assert.equal(videoFacts({ color_transfer: 'smpte2084' }).dynamicRange, 'hdr')
++assert.equal(videoFacts({ color_transfer: 'bt709' }).dynamicRange, 'sdr')
++
++assert.equal(selectionFormatSelector({ ...exact, exact: { ...exact.exact, formatId: 'best', kind: 'muxed', audioFormatId: undefined } }), 'all[format_id="best"]', 'reserved yt-dlp names remain literal provider IDs')
++assert.equal(selectionFormatSelector({ ...exact, exact: { ...exact.exact, formatId: '1', audioFormatId: '2' } }), 'all[format_id="1"]+all[format_id="2"]', 'numeric provider IDs remain strings')
+--- before/scripts/test-extension-download.js
++++ after/scripts/test-extension-download.js
+@@ -482,7 +482,6 @@
+ assert.match(background, /if \(results\[i\]\.ok\) return/)
+ assert.match(background, /category: 'invalid-media-candidate'/)
+ assert.match(background, /function postDownloadWhenAppReady\(request, maxAttempts = MAX_APP_STARTUP_ATTEMPTS, delayMs = 500\)/)
+-assert.match(background, /wakeOwnedByCaller: surfacedWake === true/)
+ assert.match(background, /WAKE_TAB_RETENTION_MS = 6000/)
+ assert.match(background, /launch-wake-protocol-unavailable/)
+ assert.doesNotMatch(background, /protocolLaunchInjectTab/)
+@@ -508,7 +507,6 @@
+ assert.match(background, /MAX_APP_STARTUP_WAIT_MS = 4 \* 60 \* 1000/)
+ assert.match(background, /MAX_APP_STARTUP_ATTEMPTS = Math\.ceil\(MAX_APP_STARTUP_WAIT_MS \/ 500\)/)
+ assert.match(background, /const deadline = Math\.min\(deadlineAt, Date\.now\(\) \+ MAX_APP_STARTUP_WAIT_MS\)/)
+-assert.match(background, /postDownloadsQueueWhenReady\(\[request\]\)/)
+ assert.match(background, /const retryable = results\.some/)
+ assert.match(ffmpeg, /hasHeader\('Referer'\)/)
+ assert.match(ffmpeg, /h\['Referer'\] = referer/)
+@@ -519,7 +517,7 @@
+ assert.match(background, /mediaCacheReadyPromise/)
+ assert.match(background, /APP_REQUEST_TIMEOUT_MS/)
+ assert.match(background, /APP_DOWNLOAD_TIMEOUT_MS = 2_500/)
+-assert.match(background, /postAppJson\('\/download', request, \{ maxAttempts: 2, timeoutMs: APP_DOWNLOAD_TIMEOUT_MS \}/)
++assert.match(background, /postAppJson\('\/download', payload, \{ maxAttempts: 2, timeoutMs: APP_DOWNLOAD_TIMEOUT_MS \}/)
+ assert.match(background, /function fetchApp\(/)
+ assert.match(background, /appCapabilityLoadPromise = new Promise/)
+ assert.match(background, /await appCapabilityLoadPromise/)
+@@ -671,8 +669,8 @@
+ assert.match(videoInfoResolver, /timeboxSignal/)
+ assert.match(videoInfoResolver, /isDouyinPostUnavailableError/)
+ assert.doesNotMatch(douyin, /const p = chrome\.runtime\.sendMessage/)
+-assert.match(background, /failure\?\.error \|\| 'App is not running or did not accept the media\.'/)
+-assert.match(background, /postAppJson\('\/download', request, \{ maxAttempts: 2, timeoutMs: APP_DOWNLOAD_TIMEOUT_MS \}/)
++assert.match(background, /failure\?\.error \|\| 'App is not running or did not accept the download\.'/)
++assert.match(background, /postAppJson\('\/download', payload, \{ maxAttempts: 2, timeoutMs: APP_DOWNLOAD_TIMEOUT_MS \}/)
+ assert.match(background, /Even a fast-path request with maxAttempts=1 gets one retry/)
+ assert.match(background, /V-Download rejected this Chrome extension/)
+ assert.match(background, /item\.pageUrl/)
+--- before/scripts/test-extension-plans.cjs
++++ after/scripts/test-extension-plans.cjs
+@@ -0,0 +1,35 @@
++const assert = require('node:assert/strict')
++const { backgroundHarness } = require('./extension-background-harness.cjs')
++;(async () => {
++  const calls = []
++  const worker = backgroundHarness({ storage: { appCapability: 'a'.repeat(48), downloadPlanId: 'custom:audio', downloadPlanRevision: 2 }, fetch: async (url, init = {}) => {
++    calls.push({ url, init })
++    return new Response(JSON.stringify(url.endsWith('/download-plans') ? { version: 1, defaultId: null, plans: [] } : { error: 'Download plan changed. Refresh.' }), { status: url.endsWith('/download-plans') ? 200 : 400 })
++  } })
++  assert.equal((await worker.message({ type: 'GET_DOWNLOAD_PLANS' })).ok, true)
++  const result = await worker.message({ type: 'DOWNLOAD_MEDIA_FROM_CONTENT', item: { url: 'https://fixture.test/a.mp4', type: 'mp4' } }, { tab: { id: 1, url: 'https://fixture.test/' } })
++  assert.equal(result.ok, false)
++  assert.match(result.error, /plan changed/i)
++  assert.equal(worker.wakes.length, 0, 'permanent policy errors never trigger app wake or cold retry')
++  const downloads = calls.filter(call => call.url.endsWith('/download'))
++  assert.equal(downloads.length, 1)
++  assert.equal(JSON.parse(downloads[0].init.body).planId, 'custom:audio')
++  assert.equal(JSON.parse(downloads[0].init.body).planRevision, 2)
++  for (const surfacedWake of [true, false]) {
++    let attempt = 0
++    const bodies = []
++    const cold = backgroundHarness({ storage: { appCapability: 'a'.repeat(48), downloadPlanId: 'custom:before', downloadPlanRevision: 1 }, fetch: async (url, init = {}) => {
++      if (url.endsWith('/download')) {
++        bodies.push(JSON.parse(init.body)); attempt++
++        cold.storage.downloadPlanId = 'custom:after'
++        if (attempt < 3) return new Response('{}', { status: 503 })
++      }
++      return new Response('{}', { status: 200 })
++    } })
++    assert.equal((await cold.message({ type: 'DOWNLOAD_MEDIA_FROM_CONTENT', surfacedWake, item: { url: 'https://fixture.test/cold.mp4', type: 'mp4' } }, { tab: { id: 1, url: 'https://fixture.test/' } })).ok, true)
++    assert.equal(cold.wakes.length, surfacedWake ? 0 : 1, 'the caller and background never both wake the app')
++    assert.ok(bodies.length >= 3)
++    assert.ok(bodies.every(body => body.planId === 'custom:before' && body.planRevision === 1), 'cold retries retain the initial plan choice')
++  }
++  console.log('extension plans: shared worker validation, frozen revision and permanent error propagation passed')
++})().catch(error => { console.error(error); process.exitCode = 1 })
+--- before/scripts/test-foundation.ts
++++ after/scripts/test-foundation.ts
+@@ -35,10 +35,16 @@
+   const columns = database.prepare('PRAGMA table_info(downloads)').all() as { name: string }[]
+   assert.ok(columns.some(({ name }) => name === 'extras'))
+   assert.ok(columns.some(({ name }) => name === 'error_code'))
++  assert.ok(columns.some(({ name }) => name === 'selection_key'))
++  assert.equal((database.prepare('SELECT selection_key FROM downloads WHERE id = ?').get('legacy-1') as { selection_key: string | null }).selection_key, null)
++  database.prepare('UPDATE downloads SET selection_key = ? WHERE id = ?').run('frozen-intent', 'legacy-1')
++  migrateDatabase(database)
++  assert.equal((database.prepare('SELECT selection_key FROM downloads WHERE id = ?').get('legacy-1') as { selection_key: string }).selection_key, 'frozen-intent')
+   assert.deepEqual(database.prepare('SELECT version FROM schema_migrations ORDER BY version').all(), [
+     { version: 1 },
+     { version: 2 },
+     { version: 3 },
++    { version: 4 },
+   ])
+   assert.equal(
+     (database.prepare('SELECT title FROM downloads WHERE id = ?').get('legacy-1') as { title: string }).title,
+--- before/scripts/test-note-resolve.ts
++++ after/scripts/test-note-resolve.ts
+@@ -148,7 +148,7 @@
+ assert.match(resolver, /resolveVideoInfo/)
+ assert.match(resolver, /includeNote/)
+ assert.match(readFileSync('src/main/downloadManager.ts', 'utf8'), /shouldWriteNote/)
+-assert.match(readFileSync('src/main/index.ts', 'utf8'), /params\.set\('autoStart', '1'\)/)
++assert.match(readFileSync('src/main/index.ts', 'utf8'), /resolveAutoStart: request\.autoStart !== false/)
+ const urlHandler = readFileSync('src/renderer/src/hooks/useUrlHandler.ts', 'utf8')
+ assert.match(urlHandler, /shouldPromptFormatDialog/)
+ assert.doesNotMatch(urlHandler, /!settings\.showFormatDialog/)
+--- before/scripts/test-security.ts
++++ after/scripts/test-security.ts
+@@ -68,3 +68,8 @@
+ assert.match(remoteApiServer, /REMOTE_API_DEFAULT_PORT = 18766/)
+ assert.match(remoteApiServer, /current\.close\(/)
+ console.log('security validators: origin, pairing boundary, cookie records, download payloads, and redaction fixtures passed')
++
++// Versioned selection objects and integer revisions have dedicated validators.
++assert.equal(validateDownloadPayload({ url: 'https://fixture.test/v.mp4', planId: 'builtin:audio', planRevision: 1 }).ok, true)
++assert.equal(validateDownloadPayload({ url: 'https://fixture.test/v.mp4', selection: { version: 1, target: 'video', maxHeight: 360, videoCodec: 'h264', maxFps: 30, dynamicRange: 'any', output: 'original', postprocess: 'none' } }).ok, true)
++assert.equal(validateDownloadPayload({ url: 'https://fixture.test/v.mp4', planRevision: '1' }).ok, false)
+--- before/scripts/write-extension-cookie-sync.mjs
++++ after/scripts/write-extension-cookie-sync.mjs
+@@ -2,7 +2,7 @@
+  * Writes extension/cookie-sync-domains.js from the built @v-download/shared package
+  * so the MV3 service worker can importScripts() a single source of truth for domains.
+  */
+-import { writeFileSync } from 'fs'
++import { readFileSync, writeFileSync } from 'fs'
+ import { createRequire } from 'module'
+ import { dirname, join } from 'path'
+ import { fileURLToPath } from 'url'
+@@ -21,3 +21,9 @@
+ const outPath = join(root, 'extension/cookie-sync-domains.js')
+ writeFileSync(outPath, body, 'utf-8')
+ console.log('Wrote', outPath)
++
++const ts = require('typescript')
++const selectionSource = readFileSync(join(root, 'packages/shared/src/download-selection.ts'), 'utf8')
++const selectionJs = ts.transpileModule(selectionSource, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText
++writeFileSync(join(root, 'extension/download-selection.js'), '// AUTO-GENERATED by npm run sync:extension-constants; edit packages/shared/src/download-selection.ts.\n' +
++  'globalThis.VDownloadSelection = (() => { const exports = {};\n' + selectionJs + '\nreturn exports; })();\n', 'utf8')
+--- before/extension/background.js
++++ after/extension/background.js
+@@ -1,4 +1,4 @@
+-importScripts('cookie-sync-domains.js', 'media-patterns.js', 'download-transport.js', 'douyin-policy.js')
++importScripts('cookie-sync-domains.js', 'media-patterns.js', 'download-transport.js', 'douyin-policy.js', 'download-selection.js')
+ const COOKIE_SYNC_DOMAINS = globalThis.COOKIE_SYNC_DOMAINS
+ const MP = globalThis.VDownloadMediaPatterns
+ const DT = globalThis.VDownloadDownloadTransport
+@@ -143,7 +143,28 @@
+   appCapabilityStorageWrites = write.catch(() => {})
+   return write
+ }
++async function selectedDownloadPlanFields() {
++  const stored = await new Promise((resolve) => {
++    try { chrome.storage.local.get(['downloadPlanId', 'downloadPlanRevision'], (value) => resolve(value || {})) }
++    catch { resolve({}) }
++  })
++  return typeof stored.downloadPlanId === 'string' && stored.downloadPlanId
++    ? { planId: stored.downloadPlanId, ...(Number.isInteger(stored.downloadPlanRevision) ? { planRevision: stored.downloadPlanRevision } : {}) }
++    : {}
++}
++async function withDownloadPlan(request) {
++  return request.planId !== undefined || request.selection !== undefined ? request : { ...request, ...await selectedDownloadPlanFields() }
++}
++async function getDownloadPlans() {
++  await ensureCapability(false)
++  let response = await fetchApp('/download-plans', { headers: appJsonHeaders() })
++  if ((response.status === 401 || response.status === 403) && await ensureCapability(true)) response = await fetchApp('/download-plans', { headers: appJsonHeaders() })
++  if (!response.ok) throw new Error('Open V-Download and refresh download plans.')
++  return response.json()
++}
++
+ async function postAppJson(path, body, options = {}) {
++  if (path === '/download') body = await withDownloadPlan(body)
+   const requestedMaxAttempts = Number.isInteger(options.maxAttempts) ? Math.max(1, options.maxAttempts) : 3
+   let maxAttempts = requestedMaxAttempts
+   const timeoutMs = Number.isFinite(options.timeoutMs) ? Math.max(250, options.timeoutMs) : APP_REQUEST_TIMEOUT_MS
+@@ -1226,6 +1247,8 @@
+   if (!item || typeof item !== 'object' || !isSafeHttpUrl(item.url)) return false
+   if (item.type !== undefined && (typeof item.type !== 'string' || !CONTENT_MEDIA_TYPES.has(item.type.toLowerCase()))) return false
+   if (item.pageUrl !== undefined && (!isSafeHttpUrl(item.pageUrl) || !isDouyinUrl(item.pageUrl))) return false
++  if (item.selection !== undefined) { try { globalThis.VDownloadSelection.readDownloadSelection(item.selection) } catch { return false } }
++  if (item.planId !== undefined && (typeof item.planId !== 'string' || !/^[A-Za-z0-9:_-]+$/.test(item.planId))) return false
+   if (item.quality !== undefined && (typeof item.quality !== 'string' || !/^(?:\d{1,4}|best)$/.test(item.quality))) return false
+   if (item.autoStart !== undefined && typeof item.autoStart !== 'boolean') return false
+   if (item.initiator !== undefined && (typeof item.initiator !== 'string' || item.initiator.length > 8192)) return false
+@@ -2189,6 +2212,10 @@
+ // --- Message handlers ---
+ 
+ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
++  if (message.type === 'GET_DOWNLOAD_PLANS') {
++    getDownloadPlans().then((data) => sendResponse({ ok: true, ...data })).catch((error) => sendResponse({ ok: false, error: error.message }))
++    return true
++  }
+   if (message.type === 'CLEAR_LAST_DOWNLOAD_ERROR') {
+     clearLastDownloadError()
+     sendResponse({ ok: true })
+@@ -2344,9 +2371,11 @@
+     chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+       const activeTab = Array.isArray(tabs) ? tabs[0] : null
+       const tabId = Number.isInteger(activeTab?.id) ? activeTab.id : null
++      const planFields = await selectedDownloadPlanFields()
+       const requests = items.map((item, i) => MP.isReliableCandidate(item) ? ({
+         url: item.url,
+         type: item.type,
++        ...planFields,
+         referer: isSafeHttpUrl(item.initiator) ? item.initiator : (isSafeHttpUrl(tabUrl) ? tabUrl : ''),
+         title: items.length > 1 ? `${baseTitle} (${i + 1})` : baseTitle
+       }) : null)
+@@ -2489,10 +2518,12 @@
+     const referer = isSafeHttpUrl(item.initiator) ? item.initiator : (isSafeHttpUrl(tabUrl) ? tabUrl : '')
+     const title = (item.title && String(item.title).trim()) || tabTitle
+     const pageUrl = isSafeHttpUrl(item.pageUrl) && isDouyinUrl(item.pageUrl) ? item.pageUrl : ''
++    const choice = { ...(item.selection ? { selection: item.selection } : {}), ...(item.planId ? { planId: item.planId, planRevision: item.planRevision } : {}) }
+     const request = pageUrl
+       ? {
+           url: pageUrl,
+           quality: item.quality || undefined,
++          ...choice,
+           autoStart: item.autoStart === true,
+           referer,
+           title
+@@ -2500,6 +2531,7 @@
+       : {
+           url: item.url,
+           type: item.type,
++          ...choice,
+           referer,
+           title
+         }
+@@ -2523,45 +2555,9 @@
+       }
+     }
+ 
+-    ;(async () => {
+-      try {
+-        const res = await postAppJson('/download', request, { maxAttempts: 2, timeoutMs: APP_DOWNLOAD_TIMEOUT_MS })
+-        logBg('download-from-content-fetch', { status: res.status, ok: res.ok })
+-        if (res.ok) {
+-          clearLastDownloadError()
+-          safeSend({ ok: true })
+-          return
+-        }
+-      } catch (e) {
+-        logBg('download-from-content-fetch-catch', { err: safeError(e) })
+-      }
+-      try {
+-        logBg('download-from-content-cold-wake', { tabId, surfacedWake, wakeOwnedByCaller: surfacedWake === true })
+-        if (!surfacedWake) {
+-          launchWakeToFocusApp(tabId)
+-        }
+-        // The user-gesture wake can launch Electron asynchronously. Wait for
+-        // the same full startup window instead of returning a silent failure
+-        // after six seconds.
+-        const queued = await postDownloadsQueueWhenReady([request])
+-        const ok = queued.ok
+-        const failure = queued.results?.find((result) => !result.ok)
+-        logBg('download-from-content-after-wake', { ok, status: failure?.status ?? null, category: failure?.category || '' })
+-        if (ok) clearLastDownloadError()
+-        else {
+-          setLastDownloadError(
+-            'Could not send this stream to V-Download. Confirm the app is running and try again.'
+-          )
+-        }
+-        const error = failure?.category === 'authorization-required'
+-          ? 'V-Download rejected this Chrome extension. Reload the extension or install the matching extension folder, then retry.'
+-          : failure?.error || 'App is not running or did not accept the media.'
+-        safeSend({ ok, error: ok ? undefined : error })
+-      } catch (err) {
+-        logBg('download-from-content-wake-catch', { err: safeError(err) })
+-        safeSend({ ok: false, error: 'Unable to send this stream. Please retry.' })
+-      }
+-    })()
++    sendDownloadRequest(request, tabId, { surfacedWake }).then(safeSend).catch((error) => {
++      safeSend({ ok: false, error: error.message || 'Unable to send this stream. Please retry.' })
++    })
+     return true
+   }
+ 
+@@ -2614,12 +2610,18 @@
+ 
+ async function sendDownloadRequest(request, tabId, opts = {}) {
+   const { surfacedWake = false } = opts
+-  const payload = typeof request === 'object' && request !== null ? request : { url: String(request) }
++  const payload = await withDownloadPlan(typeof request === 'object' && request !== null ? request : { url: String(request) })
+   try {
+     const res = await postAppJson('/download', payload, { maxAttempts: 2, timeoutMs: APP_DOWNLOAD_TIMEOUT_MS })
+     if (res.ok) {
+       clearLastDownloadError()
+       return { ok: true }
++    }
++    if (!DT.shouldFallback({ status: res.status })) {
++      let failure = {}; try { failure = await res.json() } catch { /* no detail */ }
++      const error = failure.error || 'V-Download rejected this download plan or source selection.'
++      setLastDownloadError(error)
++      return { ok: false, error }
+     }
+   } catch {
+     /* app not running */
+--- before/extension/download-selection.js
++++ after/extension/download-selection.js
+@@ -0,0 +1,224 @@
++// AUTO-GENERATED by npm run sync:extension-constants; edit packages/shared/src/download-selection.ts.
++globalThis.VDownloadSelection = (() => { const exports = {};
++"use strict";
++Object.defineProperty(exports, "__esModule", { value: true });
++exports.EMPTY_DOWNLOAD_PLAN_LIBRARY = exports.BUILTIN_DOWNLOAD_PLANS = void 0;
++exports.readDownloadSelection = readDownloadSelection;
++exports.defaultDownloadSelection = defaultDownloadSelection;
++exports.reusableSelection = reusableSelection;
++exports.readDownloadPlan = readDownloadPlan;
++exports.readDownloadPlanLibrary = readDownloadPlanLibrary;
++exports.allDownloadPlans = allDownloadPlans;
++exports.selectionFormatFilter = selectionFormatFilter;
++exports.selectionFormatSelector = selectionFormatSelector;
++exports.mutateDownloadPlanLibrary = mutateDownloadPlanLibrary;
++exports.canonicalVideoCodec = canonicalVideoCodec;
++exports.sourceVideoMatches = sourceVideoMatches;
++exports.audioLanguageMatches = audioLanguageMatches;
++const object = (v) => {
++    if (!v || typeof v !== 'object' || Array.isArray(v))
++        throw new Error('Expected a download selection object');
++    return v;
++};
++function onlyKeys(v, keys) {
++    if (Object.keys(v).some((key) => !keys.includes(key)))
++        throw new Error('Unknown download selection field');
++}
++function choice(value, choices) {
++    if (typeof value !== 'string' || !choices.includes(value))
++        throw new Error('Invalid download selection option');
++    return value;
++}
++function positive(value) {
++    if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0)
++        throw new Error('Expected a positive download selection number');
++    return value;
++}
++const formatId = (v) => {
++    if (typeof v !== 'string' || !/^[A-Za-z0-9_.:-]+$/.test(v))
++        throw new Error('Invalid provider format ID');
++    return v;
++};
++function readDownloadSelection(value) {
++    const v = object(value);
++    onlyKeys(v, ['version', 'target', 'maxHeight', 'videoCodec', 'maxFps', 'dynamicRange', 'audioLanguage', 'output', 'audioBitrate', 'postprocess', 'exact']);
++    if (v.version !== 1)
++        throw new Error('Unsupported download selection version');
++    const target = choice(v.target, ['video', 'audio']);
++    const maxHeight = v.maxHeight === 'best' ? 'best' : positive(v.maxHeight);
++    if (maxHeight !== 'best' && !Number.isInteger(maxHeight))
++        throw new Error('Video height must be an integer');
++    const output = choice(v.output, ['original', 'mp4', 'mp3', 'm4a', 'opus']);
++    const postprocess = choice(v.postprocess, ['none', 'h264-mp4']);
++    if (target === 'video' && !['original', 'mp4'].includes(output))
++        throw new Error('Video selection requires a video output');
++    if (target === 'audio' && (output === 'mp4' || postprocess !== 'none'))
++        throw new Error('Audio selection requires an audio output');
++    if (postprocess === 'h264-mp4' && output !== 'mp4')
++        throw new Error('H.264 conversion requires MP4 output');
++    const dynamicRange = choice(v.dynamicRange, ['any', 'sdr', 'hdr']);
++    if (postprocess === 'h264-mp4' && dynamicRange === 'hdr')
++        throw new Error('HDR preservation cannot be combined with the H.264 compatibility conversion');
++    const result = {
++        version: 1, target, maxHeight, videoCodec: choice(v.videoCodec, ['any', 'h264', 'hevc', 'vp9', 'av1']),
++        ...(v.maxFps !== undefined ? { maxFps: positive(v.maxFps) } : {}), dynamicRange,
++        ...(v.audioLanguage !== undefined ? { audioLanguage: choiceLanguage(v.audioLanguage) } : {}),
++        output, ...(v.audioBitrate !== undefined ? { audioBitrate: positive(v.audioBitrate) } : {}), postprocess
++    };
++    if (target === 'audio') {
++        result.maxHeight = 'best';
++        result.videoCodec = 'any';
++        result.dynamicRange = 'any';
++        delete result.maxFps;
++    }
++    else
++        delete result.audioBitrate;
++    if (target === 'audio' && output === 'original')
++        delete result.audioBitrate;
++    if (result.audioBitrate !== undefined && (!Number.isInteger(result.audioBitrate) || result.audioBitrate > (output === 'mp3' ? 320 : 512)))
++        throw new Error('Unsupported audio bitrate');
++    if (v.exact !== undefined) {
++        const e = object(v.exact);
++        onlyKeys(e, ['sourceUrl', 'formatId', 'kind', 'audioFormatId']);
++        if (typeof e.sourceUrl !== 'string' || !/^https?:$/.test(new URL(e.sourceUrl).protocol))
++            throw new Error('Exact selection requires its source URL');
++        const kind = choice(e.kind, ['muxed', 'video', 'audio']);
++        if ((target === 'audio') !== (kind === 'audio'))
++            throw new Error('Exact format does not match the selected media target');
++        if (kind !== 'video' && e.audioFormatId !== undefined)
++            throw new Error('Only separate video formats can select a companion audio format');
++        result.exact = { sourceUrl: e.sourceUrl, formatId: formatId(e.formatId), kind,
++            ...(e.audioFormatId !== undefined ? { audioFormatId: formatId(e.audioFormatId) } : {}) };
++    }
++    return result;
++}
++function choiceLanguage(v) {
++    if (typeof v !== 'string' || !/^[A-Za-z]{2,3}(?:-[A-Za-z0-9]+)*$/.test(v))
++        throw new Error('Invalid audio language');
++    return v.toLowerCase();
++}
++function defaultDownloadSelection(maxHeight = 1080) {
++    return { version: 1, target: 'video', maxHeight, videoCodec: 'any', dynamicRange: 'any', output: 'original', postprocess: 'none' };
++}
++function reusableSelection(selection) {
++    const { exact: _exact, ...policy } = readDownloadSelection(selection);
++    return policy;
++}
++exports.BUILTIN_DOWNLOAD_PLANS = [
++    { id: 'builtin:archive', name: 'Original archive', revision: 1, selection: defaultDownloadSelection('best'), includeNote: true },
++    { id: 'builtin:compatible', name: 'Compatible MP4', revision: 1, selection: { ...defaultDownloadSelection(1080), output: 'mp4', postprocess: 'h264-mp4' }, includeNote: true },
++    { id: 'builtin:audio', name: 'Audio only', revision: 1, selection: { ...defaultDownloadSelection('best'), target: 'audio', output: 'mp3', audioBitrate: 192 }, includeNote: false }
++];
++exports.EMPTY_DOWNLOAD_PLAN_LIBRARY = { version: 1, defaultId: null, custom: [] };
++function readDownloadPlan(value) {
++    const v = object(value);
++    onlyKeys(v, ['id', 'name', 'revision', 'selection', 'outputDir', 'filenameTemplate', 'includeNote']);
++    if (typeof v.id !== 'string' || !/^[A-Za-z0-9:_-]+$/.test(v.id) || typeof v.name !== 'string' || !v.name.trim())
++        throw new Error('A download plan needs an ID and name');
++    if (!Number.isInteger(v.revision) || Number(v.revision) < 1 || typeof v.includeNote !== 'boolean')
++        throw new Error('Invalid download plan revision or note option');
++    const selection = readDownloadSelection(v.selection);
++    if (selection.exact)
++        throw new Error('Reusable plans cannot contain video-specific format IDs');
++    for (const key of ['outputDir', 'filenameTemplate']) {
++        if (v[key] !== undefined && (typeof v[key] !== 'string' || !v[key].trim() || v[key].includes('\0')))
++            throw new Error('Invalid download plan output option');
++    }
++    return { id: v.id, name: v.name.trim(), revision: Number(v.revision), selection,
++        ...(v.outputDir !== undefined ? { outputDir: v.outputDir.trim() } : {}),
++        ...(v.filenameTemplate !== undefined ? { filenameTemplate: v.filenameTemplate.trim() } : {}), includeNote: v.includeNote };
++}
++function readDownloadPlanLibrary(value) {
++    const v = object(value);
++    onlyKeys(v, ['version', 'defaultId', 'custom']);
++    if (v.version !== 1 || !Array.isArray(v.custom) || (v.defaultId !== null && typeof v.defaultId !== 'string'))
++        throw new Error('Invalid download plan library');
++    const custom = v.custom.map(readDownloadPlan);
++    if (custom.some((p) => p.id.startsWith('builtin:')) || new Set(custom.map((p) => p.id)).size !== custom.length)
++        throw new Error('Duplicate or reserved download plan ID');
++    const defaultId = v.defaultId;
++    if (defaultId !== null && ![...exports.BUILTIN_DOWNLOAD_PLANS, ...custom].some((p) => p.id === defaultId))
++        throw new Error('Default download plan no longer exists');
++    return { version: 1, defaultId, custom };
++}
++function allDownloadPlans(library) {
++    return [...exports.BUILTIN_DOWNLOAD_PLANS, ...library.custom].map((p) => readDownloadPlan(p));
++}
++/** Match a source format without baking provider IDs into a reusable policy. */
++function selectionFormatFilter(s, kind) {
++    if (kind === 'audio')
++        return s.audioLanguage ? `[language~="(?i)^${languagePattern(s.audioLanguage)}(?:-|$)"]` : '';
++    const codec = { any: '', h264: '[vcodec~="^(avc|h264)"]', hevc: '[vcodec~="^(hev|hvc|hevc|h265)"]', vp9: '[vcodec~="^(vp9|vp09)"]', av1: '[vcodec~="^(av01|av1)"]' }[s.videoCodec];
++    return (s.maxHeight === 'best' ? '' : `[height<=?${s.maxHeight}]`) + codec +
++        (s.maxFps ? `[fps<=?${s.maxFps}]` : '') +
++        (s.dynamicRange === 'sdr' ? '[dynamic_range=SDR]' : s.dynamicRange === 'hdr' ? '[dynamic_range!=SDR][dynamic_range!=none]' : '');
++}
++function selectionFormatSelector(selection) {
++    const s = readDownloadSelection(selection);
++    const audio = `ba${selectionFormatFilter(s, 'audio')}`;
++    const exactId = (id) => `all[format_id="${id}"]`;
++    if (s.exact)
++        return exactId(s.exact.formatId) + (s.exact.kind === 'video' ? `+${s.exact.audioFormatId ? exactId(s.exact.audioFormatId) : audio}` : '');
++    if (s.target === 'audio')
++        return `${audio}/b${selectionFormatFilter(s, 'audio')}`;
++    const video = selectionFormatFilter(s, 'video');
++    return `bv${video}+${audio}/b${video}${selectionFormatFilter(s, 'audio')}`;
++}
++function mutateDownloadPlanLibrary(library, mutation) {
++    const next = readDownloadPlanLibrary(library);
++    if (!mutation || typeof mutation !== 'object')
++        throw new Error('Invalid download plan operation');
++    if (mutation.action === 'default')
++        next.defaultId = mutation.id;
++    else if (mutation.action === 'save' || mutation.action === 'delete') {
++        const id = mutation.action === 'save' ? mutation.plan?.id : mutation.id;
++        if (typeof id !== 'string' || id.startsWith('builtin:'))
++            throw new Error('Built-in download plans cannot be edited');
++        const previous = next.custom.find((p) => p.id === id);
++        if (!Number.isInteger(mutation.expectedRevision) || mutation.expectedRevision < 0 || (previous?.revision ?? 0) !== mutation.expectedRevision)
++            throw new Error('The download plan changed. Refresh before saving.');
++        if (mutation.action === 'delete') {
++            if (!previous)
++                throw new Error('Download plan not found');
++            next.custom = next.custom.filter((p) => p.id !== id);
++            if (next.defaultId === id)
++                next.defaultId = null;
++        }
++        else {
++            const plan = readDownloadPlan({ ...mutation.plan, revision: mutation.expectedRevision + 1 });
++            next.custom = [...next.custom.filter((p) => p.id !== id), plan];
++        }
++    }
++    else
++        throw new Error('Unknown download plan operation');
++    return readDownloadPlanLibrary(next);
++}
++function canonicalVideoCodec(value) {
++    if (/^(avc|h264)/i.test(value ?? ''))
++        return 'h264';
++    if (/^(hev|hvc|h265)/i.test(value ?? ''))
++        return 'hevc';
++    if (/^(vp9|vp09)/i.test(value ?? ''))
++        return 'vp9';
++    if (/^(av01|av1)/i.test(value ?? ''))
++        return 'av1';
++    return 'unknown';
++}
++function sourceVideoMatches(selection, facts) {
++    return (selection.maxHeight === 'best' || (facts.height !== undefined && facts.height <= selection.maxHeight)) &&
++        (selection.videoCodec === 'any' || canonicalVideoCodec(facts.codec) === selection.videoCodec) &&
++        (selection.maxFps === undefined || (facts.fps !== undefined && facts.fps <= selection.maxFps + 0.01)) &&
++        (selection.dynamicRange === 'any' || facts.dynamicRange === selection.dynamicRange);
++}
++/** Provider BCP-47 tags and ffprobe ISO-639 tags describe the same language. */
++const languageAliases = [['en', 'eng'], ['zh', 'zho', 'chi'], ['ja', 'jpn']];
++function languagePattern(language) {
++    const [base, ...region] = language.toLowerCase().split('-');
++    const aliases = languageAliases.find((group) => group.includes(base)) ?? [base];
++    return `(?:${aliases.join('|')})${region.length ? '-' + region.join('-') : ''}`;
++}
++function audioLanguageMatches(requested, actual) {
++    return typeof actual === 'string' && new RegExp(`^${languagePattern(requested)}(?:-|$)`, 'i').test(actual);
++}
++
++return exports; })();
+--- before/extension/popup.html
++++ after/extension/popup.html
+@@ -14,6 +14,11 @@
+     <div class="header">
+       <span id="header-title" class="title">Detected Media</span>
+       <span id="count" class="count"></span>
++    </div>
++    <div class="plan-selector" style="padding: 0 12px 10px">
++      <label for="download-plan">Download plan</label>
++      <div style="display:flex;gap:6px;margin-top:6px"><select id="download-plan" style="min-width:0;flex:1" aria-label="Download plan"><option value="">Follow app default</option></select><button id="refresh-plans" type="button">Refresh</button></div>
++      <p id="plan-status" role="status" style="font-size:12px;line-height:1.4"></p>
+     </div>
+     <div id="selection-bar" class="selection-bar" style="display:none">
+       <button id="select-all-btn" class="selection-link" type="button">Select all</button>
+--- before/extension/popup.js
++++ after/extension/popup.js
+@@ -1,5 +1,6 @@
+ document.addEventListener('DOMContentLoaded', () => {
+   showLastDownloadError()
++  initializeDownloadPlans()
+   chrome.runtime.sendMessage({ type: 'GET_MEDIA' }, (response) => {
+     const { media = [], tabUrl = '', tabTitle = '' } = response || {}
+     renderMedia(media, tabUrl, tabTitle)
+@@ -286,3 +287,32 @@
+   if (bytes < 1073741824) return `${(bytes / 1048576).toFixed(1)} MB`
+   return `${(bytes / 1073741824).toFixed(2)} GB`
+ }
++
++function initializeDownloadPlans() {
++  const select = document.getElementById('download-plan')
++  const status = document.getElementById('plan-status')
++  const refresh = (acceptLatestRevision = false) => chrome.runtime.sendMessage({ type: 'GET_DOWNLOAD_PLANS' }, (result) => {
++    if (!result?.ok) { status.textContent = result?.error || 'Open V-Download to load plans.'; return }
++    chrome.storage.local.get(['downloadPlanId'], (stored) => {
++      select.replaceChildren(new Option('Follow app default', ''))
++      for (const plan of result.plans || []) {
++        const option = new Option(plan.name + (result.defaultId === plan.id ? ' · App default' : ''), plan.id)
++        option.dataset.revision = String(plan.revision)
++        select.add(option)
++      }
++      if (stored.downloadPlanId && ![...select.options].some((option) => option.value === stored.downloadPlanId)) {
++        select.add(new Option('Saved plan unavailable — choose another', stored.downloadPlanId))
++        status.textContent = 'This saved plan was removed. Select another plan before downloading.'
++      } else status.textContent = ''
++      select.value = stored.downloadPlanId || ''
++      if (acceptLatestRevision && select.selectedOptions[0]?.dataset.revision) chrome.storage.local.set({ downloadPlanRevision: Number(select.selectedOptions[0].dataset.revision) })
++    })
++  })
++  select.addEventListener('change', () => {
++    const option = select.selectedOptions[0]
++    chrome.storage.local.set({ downloadPlanId: select.value, downloadPlanRevision: Number(option?.dataset.revision) || null })
++    status.textContent = ''
++  })
++  document.getElementById('refresh-plans').addEventListener('click', () => refresh(true))
++  refresh()
++}
+--- before/packages/shared/src/download-selection.ts
++++ after/packages/shared/src/download-selection.ts
+@@ -0,0 +1,203 @@
++/** Versioned output intent shared by desktop, collections and the extension. */
++export interface DownloadSelection {
++  version: 1
++  target: 'video' | 'audio'
++  maxHeight: number | 'best'
++  videoCodec: 'any' | 'h264' | 'hevc' | 'vp9' | 'av1'
++  maxFps?: number
++  dynamicRange: 'any' | 'sdr' | 'hdr'
++  audioLanguage?: string
++  output: 'original' | 'mp4' | 'mp3' | 'm4a' | 'opus'
++  audioBitrate?: number
++  postprocess: 'none' | 'h264-mp4'
++  /** Provider IDs are scoped to this URL, never copied into reusable plans. */
++  exact?: { sourceUrl: string; formatId: string; kind: 'muxed' | 'video' | 'audio'; audioFormatId?: string }
++}
++export interface DownloadPlan {
++  id: string
++  name: string
++  revision: number
++  selection: DownloadSelection
++  outputDir?: string
++  filenameTemplate?: string
++  includeNote: boolean
++}
++export interface DownloadPlanLibrary { version: 1; defaultId: string | null; custom: DownloadPlan[] }
++export interface DownloadSelectionRequest {
++  /** One original collection position, not the current filtered UI position. */
++  entryIndex?: number
++  selection?: DownloadSelection
++  planId?: string
++  planRevision?: number
++  filenameTemplate?: string
++  includeNote?: boolean
++}
++
++const object = (v: unknown): Record<string, unknown> => {
++  if (!v || typeof v !== 'object' || Array.isArray(v)) throw new Error('Expected a download selection object')
++  return v as Record<string, unknown>
++}
++function onlyKeys(v: Record<string, unknown>, keys: string[]): void {
++  if (Object.keys(v).some((key) => !keys.includes(key))) throw new Error('Unknown download selection field')
++}
++function choice<T extends string>(value: unknown, choices: readonly T[]): T {
++  if (typeof value !== 'string' || !choices.includes(value as T)) throw new Error('Invalid download selection option')
++  return value as T
++}
++function positive(value: unknown): number {
++  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) throw new Error('Expected a positive download selection number')
++  return value
++}
++const formatId = (v: unknown): string => {
++  if (typeof v !== 'string' || !/^[A-Za-z0-9_.:-]+$/.test(v)) throw new Error('Invalid provider format ID')
++  return v
++}
++export function readDownloadSelection(value: unknown): DownloadSelection {
++  const v = object(value)
++  onlyKeys(v, ['version','target','maxHeight','videoCodec','maxFps','dynamicRange','audioLanguage','output','audioBitrate','postprocess','exact'])
++  if (v.version !== 1) throw new Error('Unsupported download selection version')
++  const target = choice(v.target, ['video','audio'])
++  const maxHeight = v.maxHeight === 'best' ? 'best' : positive(v.maxHeight)
++  if (maxHeight !== 'best' && !Number.isInteger(maxHeight)) throw new Error('Video height must be an integer')
++  const output = choice(v.output, ['original','mp4','mp3','m4a','opus'])
++  const postprocess = choice(v.postprocess, ['none','h264-mp4'])
++  if (target === 'video' && !['original','mp4'].includes(output)) throw new Error('Video selection requires a video output')
++  if (target === 'audio' && (output === 'mp4' || postprocess !== 'none')) throw new Error('Audio selection requires an audio output')
++  if (postprocess === 'h264-mp4' && output !== 'mp4') throw new Error('H.264 conversion requires MP4 output')
++  const dynamicRange = choice(v.dynamicRange, ['any','sdr','hdr'])
++  if (postprocess === 'h264-mp4' && dynamicRange === 'hdr') throw new Error('HDR preservation cannot be combined with the H.264 compatibility conversion')
++  const result: DownloadSelection = {
++    version: 1, target, maxHeight, videoCodec: choice(v.videoCodec, ['any','h264','hevc','vp9','av1']),
++    ...(v.maxFps !== undefined ? { maxFps: positive(v.maxFps) } : {}), dynamicRange,
++    ...(v.audioLanguage !== undefined ? { audioLanguage: choiceLanguage(v.audioLanguage) } : {}),
++    output, ...(v.audioBitrate !== undefined ? { audioBitrate: positive(v.audioBitrate) } : {}), postprocess
++  }
++  if (target === 'audio') { result.maxHeight = 'best'; result.videoCodec = 'any'; result.dynamicRange = 'any'; delete result.maxFps }
++  else delete result.audioBitrate
++  if (target === 'audio' && output === 'original') delete result.audioBitrate
++  if (result.audioBitrate !== undefined && (!Number.isInteger(result.audioBitrate) || result.audioBitrate > (output === 'mp3' ? 320 : 512))) throw new Error('Unsupported audio bitrate')
++  if (v.exact !== undefined) {
++    const e = object(v.exact)
++    onlyKeys(e, ['sourceUrl','formatId','kind','audioFormatId'])
++    if (typeof e.sourceUrl !== 'string' || !/^https?:$/.test(new URL(e.sourceUrl).protocol)) throw new Error('Exact selection requires its source URL')
++    const kind = choice(e.kind, ['muxed','video','audio'])
++    if ((target === 'audio') !== (kind === 'audio')) throw new Error('Exact format does not match the selected media target')
++    if (kind !== 'video' && e.audioFormatId !== undefined) throw new Error('Only separate video formats can select a companion audio format')
++    result.exact = { sourceUrl: e.sourceUrl, formatId: formatId(e.formatId), kind,
++      ...(e.audioFormatId !== undefined ? { audioFormatId: formatId(e.audioFormatId) } : {}) }
++  }
++  return result
++}
++function choiceLanguage(v: unknown): string {
++  if (typeof v !== 'string' || !/^[A-Za-z]{2,3}(?:-[A-Za-z0-9]+)*$/.test(v)) throw new Error('Invalid audio language')
++  return v.toLowerCase()
++}
++export function defaultDownloadSelection(maxHeight: number | 'best' = 1080): DownloadSelection {
++  return { version: 1, target: 'video', maxHeight, videoCodec: 'any', dynamicRange: 'any', output: 'original', postprocess: 'none' }
++}
++export function reusableSelection(selection: DownloadSelection): DownloadSelection {
++  const { exact: _exact, ...policy } = readDownloadSelection(selection)
++  return policy
++}
++export const BUILTIN_DOWNLOAD_PLANS: readonly DownloadPlan[] = [
++  { id: 'builtin:archive', name: 'Original archive', revision: 1, selection: defaultDownloadSelection('best'), includeNote: true },
++  { id: 'builtin:compatible', name: 'Compatible MP4', revision: 1, selection: { ...defaultDownloadSelection(1080), output: 'mp4', postprocess: 'h264-mp4' }, includeNote: true },
++  { id: 'builtin:audio', name: 'Audio only', revision: 1, selection: { ...defaultDownloadSelection('best'), target: 'audio', output: 'mp3', audioBitrate: 192 }, includeNote: false }
++]
++export const EMPTY_DOWNLOAD_PLAN_LIBRARY: DownloadPlanLibrary = { version: 1, defaultId: null, custom: [] }
++export function readDownloadPlan(value: unknown): DownloadPlan {
++  const v = object(value)
++  onlyKeys(v, ['id','name','revision','selection','outputDir','filenameTemplate','includeNote'])
++  if (typeof v.id !== 'string' || !/^[A-Za-z0-9:_-]+$/.test(v.id) || typeof v.name !== 'string' || !v.name.trim()) throw new Error('A download plan needs an ID and name')
++  if (!Number.isInteger(v.revision) || Number(v.revision) < 1 || typeof v.includeNote !== 'boolean') throw new Error('Invalid download plan revision or note option')
++  const selection = readDownloadSelection(v.selection)
++  if (selection.exact) throw new Error('Reusable plans cannot contain video-specific format IDs')
++  for (const key of ['outputDir','filenameTemplate']) {
++    if (v[key] !== undefined && (typeof v[key] !== 'string' || !(v[key] as string).trim() || (v[key] as string).includes('\0'))) throw new Error('Invalid download plan output option')
++  }
++  return { id: v.id, name: v.name.trim(), revision: Number(v.revision), selection,
++    ...(v.outputDir !== undefined ? { outputDir: (v.outputDir as string).trim() } : {}),
++    ...(v.filenameTemplate !== undefined ? { filenameTemplate: (v.filenameTemplate as string).trim() } : {}), includeNote: v.includeNote }
++}
++export function readDownloadPlanLibrary(value: unknown): DownloadPlanLibrary {
++  const v = object(value)
++  onlyKeys(v, ['version','defaultId','custom'])
++  if (v.version !== 1 || !Array.isArray(v.custom) || (v.defaultId !== null && typeof v.defaultId !== 'string')) throw new Error('Invalid download plan library')
++  const custom = v.custom.map(readDownloadPlan)
++  if (custom.some((p) => p.id.startsWith('builtin:')) || new Set(custom.map((p) => p.id)).size !== custom.length) throw new Error('Duplicate or reserved download plan ID')
++  const defaultId = v.defaultId as string | null
++  if (defaultId !== null && ![...BUILTIN_DOWNLOAD_PLANS, ...custom].some((p) => p.id === defaultId)) throw new Error('Default download plan no longer exists')
++  return { version: 1, defaultId, custom }
++}
++export function allDownloadPlans(library: DownloadPlanLibrary): DownloadPlan[] {
++  return [...BUILTIN_DOWNLOAD_PLANS, ...library.custom].map((p) => readDownloadPlan(p))
++}
++/** Match a source format without baking provider IDs into a reusable policy. */
++export function selectionFormatFilter(s: DownloadSelection, kind: 'video' | 'audio'): string {
++  if (kind === 'audio') return s.audioLanguage ? `[language~="(?i)^${languagePattern(s.audioLanguage)}(?:-|$)"]` : ''
++  const codec = { any: '', h264: '[vcodec~="^(avc|h264)"]', hevc: '[vcodec~="^(hev|hvc|hevc|h265)"]', vp9: '[vcodec~="^(vp9|vp09)"]', av1: '[vcodec~="^(av01|av1)"]' }[s.videoCodec]
++  return (s.maxHeight === 'best' ? '' : `[height<=?${s.maxHeight}]`) + codec +
++    (s.maxFps ? `[fps<=?${s.maxFps}]` : '') +
++    (s.dynamicRange === 'sdr' ? '[dynamic_range=SDR]' : s.dynamicRange === 'hdr' ? '[dynamic_range!=SDR][dynamic_range!=none]' : '')
++}
++export function selectionFormatSelector(selection: DownloadSelection): string {
++  const s = readDownloadSelection(selection)
++  const audio = `ba${selectionFormatFilter(s, 'audio')}`
++  const exactId = (id: string) => `all[format_id="${id}"]`
++  if (s.exact) return exactId(s.exact.formatId) + (s.exact.kind === 'video' ? `+${s.exact.audioFormatId ? exactId(s.exact.audioFormatId) : audio}` : '')
++  if (s.target === 'audio') return `${audio}/b${selectionFormatFilter(s, 'audio')}`
++  const video = selectionFormatFilter(s, 'video')
++  return `bv${video}+${audio}/b${video}${selectionFormatFilter(s, 'audio')}`
++}
++
++export type DownloadPlanMutation =
++  | { action: 'save'; plan: DownloadPlan; expectedRevision: number }
++  | { action: 'delete'; id: string; expectedRevision: number }
++  | { action: 'default'; id: string | null }
++
++export function mutateDownloadPlanLibrary(library: DownloadPlanLibrary, mutation: DownloadPlanMutation): DownloadPlanLibrary {
++  const next = readDownloadPlanLibrary(library)
++  if (!mutation || typeof mutation !== 'object') throw new Error('Invalid download plan operation')
++  if (mutation.action === 'default') next.defaultId = mutation.id
++  else if (mutation.action === 'save' || mutation.action === 'delete') {
++    const id = mutation.action === 'save' ? mutation.plan?.id : mutation.id
++    if (typeof id !== 'string' || id.startsWith('builtin:')) throw new Error('Built-in download plans cannot be edited')
++    const previous = next.custom.find((p) => p.id === id)
++    if (!Number.isInteger(mutation.expectedRevision) || mutation.expectedRevision < 0 || (previous?.revision ?? 0) !== mutation.expectedRevision) throw new Error('The download plan changed. Refresh before saving.')
++    if (mutation.action === 'delete') {
++      if (!previous) throw new Error('Download plan not found')
++      next.custom = next.custom.filter((p) => p.id !== id)
++      if (next.defaultId === id) next.defaultId = null
++    } else {
++      const plan = readDownloadPlan({ ...mutation.plan, revision: mutation.expectedRevision + 1 })
++      next.custom = [...next.custom.filter((p) => p.id !== id), plan]
++    }
++  } else throw new Error('Unknown download plan operation')
++  return readDownloadPlanLibrary(next)
++}
++
++export function canonicalVideoCodec(value: string | undefined): DownloadSelection['videoCodec'] | 'unknown' {
++  if (/^(avc|h264)/i.test(value ?? '')) return 'h264'
++  if (/^(hev|hvc|h265)/i.test(value ?? '')) return 'hevc'
++  if (/^(vp9|vp09)/i.test(value ?? '')) return 'vp9'
++  if (/^(av01|av1)/i.test(value ?? '')) return 'av1'
++  return 'unknown'
++}
++export interface SourceVideoFacts { height?: number; fps?: number; codec?: string; dynamicRange?: 'sdr' | 'hdr' }
++export function sourceVideoMatches(selection: DownloadSelection, facts: SourceVideoFacts): boolean {
++  return (selection.maxHeight === 'best' || (facts.height !== undefined && facts.height <= selection.maxHeight)) &&
++    (selection.videoCodec === 'any' || canonicalVideoCodec(facts.codec) === selection.videoCodec) &&
++    (selection.maxFps === undefined || (facts.fps !== undefined && facts.fps <= selection.maxFps + 0.01)) &&
++    (selection.dynamicRange === 'any' || facts.dynamicRange === selection.dynamicRange)
++}
++
++/** Provider BCP-47 tags and ffprobe ISO-639 tags describe the same language. */
++const languageAliases: readonly string[][] = [['en','eng'],['zh','zho','chi'],['ja','jpn']]
++function languagePattern(language: string): string {
++  const [base, ...region] = language.toLowerCase().split('-')
++  const aliases = languageAliases.find((group) => group.includes(base)) ?? [base]
++  return `(?:${aliases.join('|')})${region.length ? '-' + region.join('-') : ''}`
++}
++export function audioLanguageMatches(requested: string, actual: string | undefined): boolean {
++  return typeof actual === 'string' && new RegExp(`^${languagePattern(requested)}(?:-|$)`, 'i').test(actual)
++}
+--- before/packages/shared/src/index.ts
++++ after/packages/shared/src/index.ts
+@@ -1,3 +1,4 @@
++import type { DownloadSelectionRequest } from './download-selection.js'
+ export {
+   type ChromeSyncedCookie,
+   type BuildNetscapeCookieFileOptions,
+@@ -49,7 +50,7 @@
+   playlistKind?: 'master' | 'media' | 'unknown'
+ }
+ 
+-export interface StartDownloadOptions {
++export interface StartDownloadOptions extends DownloadSelectionRequest {
+   url: string
+   title: string
+   format: string
+@@ -80,3 +81,5 @@
+   actions: QueueNoticeAction[]
+   vars?: Record<string, string | number>
+ }
++
++export * from './download-selection.js'
+--- before/package.json
++++ after/package.json
+@@ -20,7 +20,8 @@
+     "typecheck:web": "tsc --noEmit -p tsconfig.web.json",
+     "typecheck:node": "tsc --noEmit -p tsconfig.node.json",
+     "lint": "tsc --noEmit -p tsconfig.web.json && tsc --noEmit -p tsconfig.node.json",
+-    "test": "npm run test:selection && npm run test:grouped-queue && npm run test:info-resolution && npm run test:info-resolution-contract && npm run test:douyin-profile && npm run test:douyin-gallery && npm run test:xiaohongshu && npm run test:note-resolve && npm run test:profile-picker-selection && npm run test:foundation && npm run test:media-resolver && npm run test:media-identity && npm run test:persisted-extras && npm run test:collection-picker && npm run test:ytdlp-progress && npm run test:ytdlp-argv && npm run test:po-token && npm run test:engine-manager && npm run test:onboarding && npm run test:native-auth && npm run test:transcode && npm run test:i18n && npm run test:gentle-limit-rate && npm run test:queue-filters && npm run test:presentation && npm run test:thumbnail-fetch && npm run test:http-client && npm run test:extension && npm run test:ui-contract && npm run test:app-version && npm run test:app-menu && npm run test:app-commands && npm run test:tray-quit && npm run test:settings-integration && npm run test:task-notify && npm run test:session-recover && npm run test:download-progress && npm run test:ffprobe && npm run test:output-template && npm run test:task-overrides && npm run test:terminal-error && npm run test:security && npm run test:updater && npm run test:production-placeholder-scan && npm run test:engines && npm run test:api-jobs && npm run test:remote-api && npm run test:remote-mcp && npm run test:mcp-stdio && npm run test:remote-job && npm run test:python-framework && npm run test:dev-native-preflight",
++    "test": "npm run test:selection && npm run test:download-selection && npm run test:grouped-queue && npm run test:info-resolution && npm run test:info-resolution-contract && npm run test:douyin-profile && npm run test:douyin-gallery && npm run test:xiaohongshu && npm run test:note-resolve && npm run test:profile-picker-selection && npm run test:foundation && npm run test:media-resolver && npm run test:media-identity && npm run test:persisted-extras && npm run test:collection-picker && npm run test:ytdlp-progress && npm run test:ytdlp-argv && npm run test:po-token && npm run test:engine-manager && npm run test:onboarding && npm run test:native-auth && npm run test:transcode && npm run test:i18n && npm run test:gentle-limit-rate && npm run test:queue-filters && npm run test:presentation && npm run test:thumbnail-fetch && npm run test:http-client && npm run test:extension && npm run test:ui-contract && npm run test:app-version && npm run test:app-menu && npm run test:app-commands && npm run test:tray-quit && npm run test:settings-integration && npm run test:task-notify && npm run test:session-recover && npm run test:download-progress && npm run test:ffprobe && npm run test:output-template && npm run test:task-overrides && npm run test:terminal-error && npm run test:security && npm run test:updater && npm run test:production-placeholder-scan && npm run test:engines && npm run test:api-jobs && npm run test:remote-api && npm run test:remote-mcp && npm run test:mcp-stdio && npm run test:remote-job && npm run test:python-framework && npm run test:dev-native-preflight",
++    "test:download-selection": "npx tsx scripts/test-download-selection.ts",
+     "test:selection": "npx tsx scripts/test-selection.ts",
+     "test:grouped-queue": "npx tsx scripts/test-grouped-queue-scheduler.ts",
+     "test:info-resolution": "npx tsx scripts/test-info-resolution-scheduler.ts",
+@@ -73,7 +74,7 @@
+     "test:task-overrides": "npx tsx scripts/test-task-overrides.ts",
+     "test:terminal-error": "npx tsx scripts/test-terminal-error-propagation.ts",
+     "test:ytdlp-argv": "npx tsx scripts/test-ytdlp-provider-argv.ts",
+-    "test:extension": "node scripts/test-extension-media.js && node scripts/test-extension-download.js",
++    "test:extension": "node scripts/test-extension-media.js && node scripts/test-extension-download.js && node scripts/test-extension-plans.cjs",
+     "test:ui-contract": "node scripts/test-ui-contract.mjs",
+     "test:dock-progress": "node scripts/test-dock-progress.mjs",
+     "test:python-framework": "node scripts/test-python-framework.mjs",

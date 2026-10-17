@@ -1,0 +1,19 @@
+{
+  "stopped_owned_pids": [
+    19330,
+    10803,
+    19321
+  ],
+  "remaining_active_test_tasks": [],
+  "historical_seed_rows_preserved": {
+    "hist-error-1": "error",
+    "hist-error-2": "error",
+    "hist-error-3": "error",
+    "hist-paused": "paused",
+    "hist-interrupted": "interrupted",
+    "hist-cancelled": "cancelled",
+    "hist-complete": "complete"
+  },
+  "original_user_v_pid": 29928,
+  "original_user_v_still_running": true
+}

@@ -1,0 +1,7 @@
+{
+  "protocol": "vdownload://wake",
+  "launchedExecutable": "/Applications/V-Download.app/Contents/MacOS/V-Download",
+  "bridgeReachable": true,
+  "originalRows": 2,
+  "settingsByteIdentical": true
+}

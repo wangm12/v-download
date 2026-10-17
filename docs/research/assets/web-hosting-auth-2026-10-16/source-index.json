@@ -1,0 +1,32 @@
+{
+  "repository_head": "a3d0bfbb444045e034b0fdfc611e4f2a9888c464",
+  "working_tree": "contains previous implementation changes; HEAD alone is not the source snapshot",
+  "source_sha256": {
+    "package.json": "66f58bd55b5514c6ae239350e1bf1cdf13979c2f87e0c3f808e3c51d3c41355c",
+    "src/main/videoInfoResolver.ts": "fc3a6f81e4cf0e4602dc428bce072b7974436f5ec02fcc656065abece296eeaa",
+    "src/main/remoteApiHandler.ts": "94619d775f7e4f4eb67c0766bf8f6f1aa0d2f4bcbd171ef0f9d7882a54fe4348",
+    "src/main/downloadManager.ts": "35359f0180f12fc4690af38baf3aae7b65398c769e1366f1fa1ca212684a966b",
+    "src/main/nativeAuth.ts": "8f9487c426f835264a3b78d52e3defa4938a061c5f23b8df7fd7114024818ad6",
+    "src/main/downloadPlans.ts": "c932165f36b313398fbb39315dbec6c12852cc4402b6db4d6439c8b64c4b03b8",
+    "packages/shared/src/media-source-context.ts": "15336936a9439bf53c8b8d5ecf735e0642372ac9ad099d5bf0fbe75c8d052df7",
+    "src/main/downloadError.ts": "f4961d9caf0ea029c7181c996d62af9a48236166694d113b11a93c4fff230f95",
+    "src/main/remoteApiHttp.ts": "beefcd5b2d422fb82b53cf3295d8af03ffd56f786cc6877ca01aa3d216eef4a5",
+    "src/main/remoteApiServer.ts": "387316d6cf21e0c3ddc32263e173692ef2445a4f80471c67789f7e5e3656ad6d",
+    "src/main/remoteJobService.ts": "c25b8c95f191c946eace74005fea777f209569b021bfec40fbc2cab3ac05c39f",
+    "src/main/ytdlp.ts": "a224be474ee92fdc747e67dbe1604cfbd5912cb61896cb724aa4e93581cc62c8",
+    "src/main/douyin.ts": "a7c33d236ef147e9c18aade0f86d9a57509e3e89dad663ca424c8b584d6001b3",
+    "src/main/douyinBrowserFetch.ts": "2668d621c299dab67ef359fbac8abc2f70c395b7fc1bc31f8f1c7edf72fde6f1",
+    "src/main/douyinProfile.ts": "50233d1674ebc57235d6d8d211dd1bb8520cbe7ab09839a6a8cae33d89237d1c",
+    "src/main/xiaohongshu.ts": "45dbae434c24d17310fbe20f19d331ad0d3dd11ec443e557a3e3089ea5737ad5",
+    "src/main/cookiesBrowser.ts": "a27d487e62da9b90e411d9d14d8c9e8eaa7bb3f0db59d13bca3f49e8b90570f5",
+    "src/main/settings.ts": "3cbbbf1da04d7d33ea601c81e41ab55c0065216ff502ce95bf2d63f8104abc37",
+    "src/main/database.ts": "c9c1f0d3c3ba169eb1e736179891f4be89f1d9044ff650655a0d8590e5e7b26d",
+    "packages/shared/src/download-selection.ts": "2d79a771053833ebf76c7aeb2786e12a950ae1f53cee497b0fb55ad498b31c26",
+    "packages/shared/src/cookie-sync-domains.ts": "d71ed58552786868cab4209767b0b293a058831718359334f3bace55fd2a0fb3",
+    "src/main/mediaCapture.ts": "179a676a0c733822f44faa88e867010d8e31da67fe29bd06d88f7bff3b3ca0c4",
+    "src/main/poTokenServer.ts": "9f4df8d724c7aeaad82bd704fc792ab897e05efe09bdd3ba8d6221361c7f27e3",
+    "src/main/selectedOutput.ts": "c310998d8e5e81bc097ecd080efd6ddde288ca63cbdfe94f3843604c7a413f18",
+    "src/main/douyinBulk.ts": "8c2eb0bae83fe4812822bef85a307c1f1980f5f1d54655b573b6f27bd6864691",
+    "src/main/douyinBulkJobs.ts": "a67378da1bb3070ca81c867340c01e9195271e128b2e7c01998d5bed4b252d45"
+  }
+}

@@ -137,6 +137,10 @@ make clean     # Clean build caches, dist/ and staging directories
 
 ---
 
+## Documentation
+
+[Documentation index](docs/README.md) · [Desktop status](docs/DESKTOP_STATUS.md) · [Website implementation plan](docs/plans/web-download.md)
+
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+This project is licensed under the MIT License.

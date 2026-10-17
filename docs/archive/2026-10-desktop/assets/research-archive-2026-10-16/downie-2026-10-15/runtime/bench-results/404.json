@@ -1,0 +1,80 @@
+{
+  "label": "404",
+  "input_url": "http://127.0.0.1:55661/missing.mp4",
+  "started_epoch": 1792048986.2883892,
+  "elapsed_s": 1.7124,
+  "http_create_status": 202,
+  "final": {
+    "id": "5d4f5ad3f0f98140",
+    "status": "error",
+    "url": "http://127.0.0.1:55661/missing.mp4",
+    "title": "Direct media",
+    "progress": 0,
+    "kind": null,
+    "files": null,
+    "error": {
+      "code": "download_failed",
+      "message": "ERROR: [generic] missing: Unable to download webpage: HTTP Error 404: Not Found (caused by <HTTPError 404: Not Found>) — Check the URL and try again."
+    },
+    "expiresAt": null,
+    "expired": false
+  },
+  "trace": [
+    {
+      "elapsed_s": 0,
+      "http_status": 202,
+      "job": {
+        "id": "5d4f5ad3f0f98140",
+        "status": "queued",
+        "url": "http://127.0.0.1:55661/missing.mp4"
+      }
+    },
+    {
+      "elapsed_s": 0.0016913750000000505,
+      "http_status": 200,
+      "job": {
+        "id": "5d4f5ad3f0f98140",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/missing.mp4",
+        "title": "Direct media",
+        "progress": 0,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 1.7104094589999992,
+      "http_status": 200,
+      "job": {
+        "id": "5d4f5ad3f0f98140",
+        "status": "error",
+        "url": "http://127.0.0.1:55661/missing.mp4",
+        "title": "Direct media",
+        "progress": 0,
+        "kind": null,
+        "files": null,
+        "error": {
+          "code": "download_failed",
+          "message": "ERROR: [generic] missing: Unable to download webpage: HTTP Error 404: Not Found (caused by <HTTPError 404: Not Found>) — Check the URL and try again."
+        },
+        "expiresAt": null,
+        "expired": false
+      }
+    }
+  ],
+  "resources": {
+    "sample_interval_s": 0.1,
+    "samples": 18,
+    "observed_peak_family_rss_mib": 593.84,
+    "sampled_family_cpu_seconds": 1.65,
+    "limitations": [
+      "RSS is sampled aggregate resident memory, not unique/private memory; shared pages may be counted repeatedly.",
+      "Short-lived children or their final CPU/RSS peak between 100ms samples can be missed; CPU is an observed estimate.",
+      "Measurements include Electron root/renderers/GPU and observed descendant engines, but not the fixture server or unrelated original app."
+    ]
+  },
+  "outputs": []
+}

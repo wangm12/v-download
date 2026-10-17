@@ -1,0 +1,40 @@
+{
+  "configured": {
+    "executable": "/opt/homebrew/bin/ffprobe",
+    "exitCode": 1,
+    "stderr": "http://127.0.0.1:62867/media/dash/manifest.mpd: Invalid data found when processing input\n",
+    "metadata": {}
+  },
+  "bundled": {
+    "executable": "/Applications/V-Download.app/Contents/Resources/engines/darwin-arm64/ffprobe",
+    "exitCode": 0,
+    "stderr": "",
+    "metadata": {
+      "programs": [
+        {
+          "streams": [
+            {
+              "codec_name": "h264",
+              "codec_type": "video"
+            },
+            {
+              "codec_name": "aac",
+              "codec_type": "audio"
+            }
+          ]
+        }
+      ],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "codec_type": "video"
+        },
+        {
+          "codec_name": "aac",
+          "codec_type": "audio"
+        }
+      ]
+    }
+  }
+}

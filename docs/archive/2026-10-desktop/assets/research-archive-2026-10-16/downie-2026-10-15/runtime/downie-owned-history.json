@@ -1,0 +1,122 @@
+[
+  {
+    "pk": 294,
+    "url": "http://127.0.0.1:55661/direct.mp4",
+    "title": "direct.mp4",
+    "first_file_archive_strings": [],
+    "height": 0,
+    "width": 0
+  },
+  {
+    "pk": 295,
+    "url": "http://127.0.0.1:55661/direct.mp4",
+    "title": "direct.mp4",
+    "first_file_archive_strings": [],
+    "height": 0,
+    "width": 0
+  },
+  {
+    "pk": 296,
+    "url": "http://127.0.0.1:55661/media/hls/master.m3u8",
+    "title": "master.m3u8",
+    "first_file_archive_strings": [],
+    "height": 720,
+    "width": 1280
+  },
+  {
+    "pk": 297,
+    "url": "http://127.0.0.1:55661/media/dash/manifest.mpd",
+    "title": "manifest.mpd",
+    "first_file_archive_strings": [],
+    "height": 720,
+    "width": 1280
+  },
+  {
+    "pk": 298,
+    "url": "http://127.0.0.1:55661/annotated.mp4",
+    "title": "annotated.mp4",
+    "first_file_archive_strings": [],
+    "height": 0,
+    "width": 0
+  },
+  {
+    "pk": 299,
+    "url": "http://127.0.0.1:55661/direct.mp4",
+    "title": "direct.mp4",
+    "first_file_archive_strings": [],
+    "height": 0,
+    "width": 0
+  },
+  {
+    "pk": 300,
+    "url": "http://127.0.0.1:55661/media/hls/master.m3u8",
+    "title": "master.m3u8",
+    "first_file_archive_strings": [],
+    "height": 720,
+    "width": 1280
+  },
+  {
+    "pk": 301,
+    "url": "http://127.0.0.1:55661/media/hls/master.m3u8",
+    "title": "master.m3u8",
+    "first_file_archive_strings": [],
+    "height": 720,
+    "width": 1280
+  },
+  {
+    "pk": 302,
+    "url": "http://127.0.0.1:55661/media/dash/manifest.mpd",
+    "title": "manifest.mpd",
+    "first_file_archive_strings": [],
+    "height": 720,
+    "width": 1280
+  },
+  {
+    "pk": 303,
+    "url": "http://127.0.0.1:55661/media/dash/manifest.mpd",
+    "title": "manifest.mpd",
+    "first_file_archive_strings": [],
+    "height": 720,
+    "width": 1280
+  },
+  {
+    "pk": 304,
+    "url": "http://127.0.0.1:55661/media/hls/master.m3u8",
+    "title": "master.m3u8",
+    "first_file_archive_strings": [],
+    "height": 360,
+    "width": 640
+  },
+  {
+    "pk": 305,
+    "url": "http://127.0.0.1:55661/media/hls/master.m3u8",
+    "title": "Local synthetic download fixture",
+    "first_file_archive_strings": [],
+    "height": 360,
+    "width": 640
+  },
+  {
+    "pk": 306,
+    "url": "http://127.0.0.1:55661/slow.mp4",
+    "title": "slow.mp4",
+    "first_file_archive_strings": [],
+    "height": 0,
+    "width": 0
+  },
+  {
+    "pk": 307,
+    "url": "http://127.0.0.1:55661/direct.mp4",
+    "title": "direct.mp4",
+    "first_file_archive_strings": [],
+    "height": 0,
+    "width": 0
+  },
+  {
+    "pk": 308,
+    "url": "http://127.0.0.1:55661/direct.mp4?case=permission",
+    "title": "direct.mp4",
+    "first_file_archive_strings": [],
+    "height": 0,
+    "width": 0
+  }
+]

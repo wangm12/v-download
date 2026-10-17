@@ -1,0 +1,39 @@
+{
+  "started_epoch": 1792051639.773522,
+  "created_http_status": 202,
+  "created": {
+    "id": "5163af85bd0bcb81",
+    "status": "queued",
+    "url": "http://127.0.0.1:55661/slow.mp4?case=v-relaunch"
+  },
+  "before_quit": {
+    "id": "5163af85bd0bcb81",
+    "status": "downloading",
+    "url": "http://127.0.0.1:55661/slow.mp4?case=v-relaunch",
+    "title": "Direct media",
+    "progress": 0,
+    "kind": null,
+    "files": null,
+    "error": null,
+    "expiresAt": null,
+    "expired": false
+  },
+  "root_pid": 65309,
+  "after_relaunch_before_continue": {
+    "http_status": 200,
+    "job": {
+      "id": "5163af85bd0bcb81",
+      "status": "queued",
+      "url": "http://127.0.0.1:55661/slow.mp4?case=v-relaunch",
+      "title": "Direct media",
+      "progress": 27,
+      "kind": null,
+      "files": null,
+      "error": null,
+      "expiresAt": null,
+      "expired": false
+    },
+    "observed_epoch": 1792051703.23594,
+    "root_pid": 77744
+  }
+}

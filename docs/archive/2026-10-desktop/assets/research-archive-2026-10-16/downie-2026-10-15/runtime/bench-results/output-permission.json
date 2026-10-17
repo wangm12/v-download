@@ -1,0 +1,37 @@
+{
+  "label": "output-permission",
+  "input_url": "http://127.0.0.1:55661/direct.mp4",
+  "started_epoch": 1792050105.167708,
+  "elapsed_s": 0.0086,
+  "http_create_status": 500,
+  "final": {
+    "error": {
+      "code": "download_failed",
+      "message": "Internal error"
+    }
+  },
+  "trace": [
+    {
+      "elapsed_s": 0,
+      "http_status": 500,
+      "job": {
+        "error": {
+          "code": "download_failed",
+          "message": "Internal error"
+        }
+      }
+    }
+  ],
+  "resources": {
+    "sample_interval_s": 0.1,
+    "samples": 2,
+    "observed_peak_family_rss_mib": 617.55,
+    "sampled_family_cpu_seconds": 0,
+    "limitations": [
+      "RSS is sampled aggregate resident memory, not unique/private memory; shared pages may be counted repeatedly.",
+      "Short-lived children or their final CPU/RSS peak between 100ms samples can be missed; CPU is an observed estimate.",
+      "Measurements include Electron root/renderers/GPU and observed descendant engines, but not the fixture server or unrelated original app."
+    ]
+  },
+  "outputs": []
+}

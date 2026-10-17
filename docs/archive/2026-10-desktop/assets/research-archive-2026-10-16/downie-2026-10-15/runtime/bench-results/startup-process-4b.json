@@ -1,0 +1,73 @@
+{
+  "label": "process-4b",
+  "spawn_epoch": 1792051670.486079,
+  "spawn_pid": 77744,
+  "did_finish_load_observed_elapsed_s": 1.6277,
+  "did_finish_load_timestamp_elapsed_s": 1.6159210205078125,
+  "ready": {
+    "pid": 77744,
+    "at": "2026-10-15T08:07:52.102Z",
+    "title": "V-Download",
+    "url": "file:///Applications/V-Download.app/Contents/Resources/app.asar/out/renderer/index.html"
+  },
+  "identity": {
+    "pid": 77744,
+    "started_at": "2026-10-15T08:07:50.600Z",
+    "executable": "/Users/mingjie/Documents/github/personal-projects/v-download/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron",
+    "versions": {
+      "node": "24.21.0",
+      "acorn": "8.18.0",
+      "ada": "4.0.0",
+      "amaro": "1.1.11",
+      "ares": "1.34.8",
+      "brotli": "1.2.0",
+      "cldr": "48.0",
+      "icu": "78.2",
+      "llhttp": "9.4.3",
+      "merve": "1.2.2",
+      "modules": "148",
+      "napi": "10",
+      "nbytes": "0.1.4",
+      "ncrypto": "0.0.1",
+      "nghttp2": "1.70.0",
+      "nghttp3": "",
+      "ngtcp2": "",
+      "openssl": "0.0.0",
+      "simdjson": "4.6.7",
+      "simdutf": "7.7.0",
+      "sqlite": "3.53.4",
+      "tz": "2025c",
+      "undici": "7.29.1",
+      "unicode": "17.0",
+      "uv": "1.52.1",
+      "uvwasi": "0.0.23",
+      "v8": "15.0.245.31-electron.0",
+      "zlib": "1.3.2.1-motley",
+      "zstd": "1.6.0",
+      "electron": "43.7.5",
+      "chrome": "150.0.7871.250"
+    },
+    "isPackaged": false,
+    "sourceEntry": "/Applications/V-Download.app/Contents/Resources/app.asar/out/main/index.js",
+    "userData": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/runtime/profile",
+    "sessionData": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/runtime/session",
+    "temp": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/runtime/temp",
+    "downloads": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/runtime/output"
+  },
+  "resources": {
+    "sample_interval_s": 0.1,
+    "samples": 16,
+    "observed_peak_family_rss_mib": 429.88,
+    "sampled_family_cpu_seconds": 1.17,
+    "limitations": [
+      "RSS is sampled aggregate resident memory, not unique/private memory; shared pages may be counted repeatedly.",
+      "Short-lived children or their final CPU/RSS peak between 100ms samples can be missed; CPU is an observed estimate.",
+      "Measurements include Electron root/renderers/GPU and observed descendant engines, but not the fixture server or unrelated original app."
+    ]
+  },
+  "conditions": [
+    "New process using the same existing isolated profile; OS disk cache was not cleared.",
+    "Not packaged: actual installed app.asar loaded by the matching Electron 43.7.5 runtime.",
+    "did-finish-load is a technical milestone, not proof the UI is ready for user input; a port-conflict modal can still be open."
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "head": "a3d0bfbb444045e034b0fdfc611e4f2a9888c464",
+  "sourceSha256": {
+    "package.json": "94844be8574ef406eb6745ea8437b602a76b96a14d8fca3d6929aa9cec929e8e",
+    "src/main/localServer.ts": "8bd9f5a99cc0feaa436ffedae6a3d68268061a43f4848f5662ac82ea096c0918",
+    "extension/content-media-capture.js": "46f6f3861cae443480bd1257a43a0529a218e7de6260569871c51ab26d4b4a48",
+    "extension/background.js": "2d82f1c3c70ae4c2275292d3530d3d7ef953ed6661a2d3f4c032606bf63a9b1f",
+    "extension/media-patterns.js": "bc91b8df60db6ec4508a09b6e5159f0dc82bdf9ed11e0cd664e8dd72078439c8",
+    "extension/manifest.json": "7c6ad8c874210e8fd60c7c5432175a6ef8f69c83f2b9e64e9984628fb655b343",
+    "scripts/test-extension-early-capture.cjs": "88b6fea36d094016976b8b5b5f68bef9ad259660fd6173e4e3af244849edbaee",
+    "scripts/test-extension-plans.cjs": "bba6b26c3334e2cbefc788e6fa9a1830c79af9140ca6ec43b293df26c550cabd"
+  },
+  "builtMainSha256": "af7bb892331527aa3e522d69f62eae5b09c9fd2e45bc4e92f19f3e0f56f4a5a3",
+  "changedThisBatch": [
+    "package.json",
+    "src/main/localServer.ts",
+    "extension/content-media-capture.js",
+    "extension/background.js",
+    "extension/media-patterns.js",
+    "extension/manifest.json",
+    "scripts/test-extension-early-capture.cjs",
+    "scripts/test-extension-plans.cjs"
+  ],
+  "finalTestWorkerOnlyAdjustment": "APP_URL to isolated listener"
+}

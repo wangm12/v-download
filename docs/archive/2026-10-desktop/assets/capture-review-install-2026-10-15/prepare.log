@@ -1,0 +1,1 @@
+Release inputs prepared for darwin-arm64; signing, notarization, updater, and Chrome publication remain gated by verify:release.

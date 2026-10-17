@@ -1,0 +1,31 @@
+[
+  {
+    "app": "/Applications/Downie 4.app",
+    "regular_files": 447,
+    "logical_bytes": 124976774,
+    "groups": {
+      "Contents/Info.plist": 8228,
+      "Contents/PkgInfo": 8,
+      "Contents/_CodeSignature": 92795,
+      "Contents/MacOS": 3685664,
+      "Contents/PlugIns": 1086854,
+      "Contents/Resources": 63789612,
+      "Contents/Library": 144624,
+      "Contents/XPCServices": 3928439,
+      "Contents/Frameworks": 52240550
+    }
+  },
+  {
+    "app": "/Applications/V-Download.app",
+    "regular_files": 516,
+    "logical_bytes": 620883017,
+    "groups": {
+      "Contents/Info.plist": 4207,
+      "Contents/PkgInfo": 8,
+      "Contents/_CodeSignature": 89726,
+      "Contents/MacOS": 52672,
+      "Contents/Resources": 330566865,
+      "Contents/Frameworks": 290169539
+    }
+  }
+]

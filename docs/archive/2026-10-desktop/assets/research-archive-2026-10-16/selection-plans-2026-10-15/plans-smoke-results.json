@@ -1,0 +1,16 @@
+[
+  {
+    "plan": "builtin:compatible",
+    "id": "ee9656a2-2ea7-412d-831e-8ed433f5fdab",
+    "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/output/compatible smoke [ee9656a2-2ea7-412d-831e-8ed433f5fdab].mp4",
+    "codec": "h264",
+    "decode": "PASS"
+  },
+  {
+    "plan": "builtin:audio",
+    "id": "794c3c48-88f8-4e0a-92e3-ea727330c869",
+    "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/output/audio smoke [794c3c48-88f8-4e0a-92e3-ea727330c869].mp3",
+    "codec": "mp3",
+    "decode": "PASS"
+  }
+]

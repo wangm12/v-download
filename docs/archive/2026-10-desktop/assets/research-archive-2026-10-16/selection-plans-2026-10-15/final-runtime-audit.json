@@ -1,0 +1,583 @@
+{
+  "files": [
+    {
+      "taskId": "2fbd0fb8-91e0-4014-bf81-f400b7be7b2b",
+      "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/output/Literal exact hls60 [2fbd0fb8-91e0-4014-bf81-f400b7be7b2b].mp4",
+      "sha256": "b1b6b2c25ace50f47eeda2a3dcd6febc00c467ba94f85f5f3fd2c9bc5683bc22",
+      "bytes": 1468244,
+      "duration": "12.032000",
+      "container": "mov,mp4,m4a,3gp,3g2,mj2",
+      "streams": [
+        {
+          "codec_type": "video",
+          "codec_name": "h264",
+          "height": 360,
+          "r_frame_rate": "60/1",
+          "bit_rate": "841174"
+        },
+        {
+          "codec_type": "audio",
+          "codec_name": "aac",
+          "r_frame_rate": "0/0",
+          "bit_rate": "127425"
+        }
+      ],
+      "chapters": 0,
+      "fullDecode": "PASS"
+    },
+    {
+      "taskId": "21cbac1e-4505-43a1-8652-0e459c13f1ec",
+      "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/output/Literal exact hls30 [21cbac1e-4505-43a1-8652-0e459c13f1ec].mp4",
+      "sha256": "3724b188b428a543b1f8116ab42ffd0ebc06513068cb63f9c6688341c63d32f7",
+      "bytes": 1127180,
+      "duration": "12.032000",
+      "container": "mov,mp4,m4a,3gp,3g2,mj2",
+      "streams": [
+        {
+          "codec_type": "video",
+          "codec_name": "h264",
+          "height": 360,
+          "r_frame_rate": "30/1",
+          "bit_rate": "614162"
+        },
+        {
+          "codec_type": "audio",
+          "codec_name": "aac",
+          "r_frame_rate": "0/0",
+          "bit_rate": "127425"
+        }
+      ],
+      "chapters": 0,
+      "fullDecode": "PASS"
+    },
+    {
+      "taskId": "e2d7c7f5-8480-4a84-bef7-54150d8cf9fb",
+      "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/output/Literal exact numeric-pair [e2d7c7f5-8480-4a84-bef7-54150d8cf9fb].mkv",
+      "sha256": "44779364dc4846e0a4f30b069497e985f3c009e2af1ec5489716c84d662788ce",
+      "bytes": 1118034,
+      "duration": "12.021000",
+      "container": "matroska,webm",
+      "streams": [
+        {
+          "codec_type": "video",
+          "codec_name": "h264",
+          "height": 360,
+          "r_frame_rate": "30/1"
+        },
+        {
+          "codec_type": "audio",
+          "codec_name": "aac",
+          "r_frame_rate": "0/0"
+        }
+      ],
+      "chapters": 0,
+      "fullDecode": "PASS"
+    },
+    {
+      "taskId": "8236489b-74e0-46d9-9bc3-969080b635f4",
+      "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/output/English subtitles compatibility [8236489b-74e0-46d9-9bc3-969080b635f4].mp4",
+      "sha256": "c81c3b44550e1adbe8bbead186f8cbabc3d05d621191716df15f58696539aee7",
+      "bytes": 3692863,
+      "duration": "12.010000",
+      "container": "mov,mp4,m4a,3gp,3g2,mj2",
+      "streams": [
+        {
+          "codec_type": "video",
+          "codec_name": "h264",
+          "height": 720,
+          "r_frame_rate": "30/1",
+          "bit_rate": "2326614"
+        },
+        {
+          "codec_type": "audio",
+          "codec_name": "aac",
+          "r_frame_rate": "0/0",
+          "bit_rate": "124511"
+        },
+        {
+          "codec_type": "subtitle",
+          "codec_name": "mov_text",
+          "r_frame_rate": "0/0",
+          "bit_rate": "81"
+        },
+        {
+          "codec_type": "data",
+          "codec_name": "bin_data",
+          "r_frame_rate": "0/0",
+          "bit_rate": "41"
+        }
+      ],
+      "chapters": 3,
+      "fullDecode": "PASS"
+    },
+    {
+      "taskId": "c36ed0bb-fe7e-453f-b457-e0f517f4823a",
+      "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/output/Restart frozen scheme [c36ed0bb-fe7e-453f-b457-e0f517f4823a].mp4",
+      "sha256": "3724b188b428a543b1f8116ab42ffd0ebc06513068cb63f9c6688341c63d32f7",
+      "bytes": 1127180,
+      "duration": "12.032000",
+      "container": "mov,mp4,m4a,3gp,3g2,mj2",
+      "streams": [
+        {
+          "codec_type": "video",
+          "codec_name": "h264",
+          "height": 360,
+          "r_frame_rate": "30/1",
+          "bit_rate": "614162"
+        },
+        {
+          "codec_type": "audio",
+          "codec_name": "aac",
+          "r_frame_rate": "0/0",
+          "bit_rate": "127425"
+        }
+      ],
+      "chapters": 0,
+      "fullDecode": "PASS"
+    },
+    {
+      "taskId": "3bbc4cf7-b04f-488c-b070-8bbc8c3d8b10",
+      "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/output/Shared plan collection/Shared plan collection 2 [collection-list=ui-final-2].mp3",
+      "sha256": "fc1301cd22f2d0e0a98b7c372af1f48810497479ed2778d398cb731aca691001",
+      "bytes": 289872,
+      "duration": "12.010667",
+      "container": "mp3",
+      "streams": [
+        {
+          "codec_type": "audio",
+          "codec_name": "mp3",
+          "r_frame_rate": "0/0",
+          "bit_rate": "192000"
+        }
+      ],
+      "chapters": 0,
+      "fullDecode": "PASS"
+    },
+    {
+      "taskId": "9895e175-0cf4-4b23-8e3b-aabcb5e88d04",
+      "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/output/Queue after conversion cancellation [9895e175-0cf4-4b23-8e3b-aabcb5e88d04].mp3",
+      "sha256": "62e2afe92b1329793bab12bbafc12b3e8d025fda90aeb193c3799768ce584c08",
+      "bytes": 289914,
+      "duration": "12.010667",
+      "container": "mp3",
+      "streams": [
+        {
+          "codec_type": "audio",
+          "codec_name": "mp3",
+          "r_frame_rate": "0/0",
+          "bit_rate": "192000"
+        }
+      ],
+      "chapters": 0,
+      "fullDecode": "PASS"
+    },
+    {
+      "taskId": "bf009ed0-49c3-4169-b5a0-f336ccc9f46a",
+      "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/output/FFmpeg shared 360p 30fps [bf009ed0-49c3-4169-b5a0-f336ccc9f46a].mp4",
+      "sha256": "fa01df3b6a1a7c76a85d3fa3ef6f10c3ae3480e0a40ab6643ceb1804b73b2009",
+      "bytes": 1127180,
+      "duration": "12.032000",
+      "container": "mov,mp4,m4a,3gp,3g2,mj2",
+      "streams": [
+        {
+          "codec_type": "video",
+          "codec_name": "h264",
+          "height": 360,
+          "r_frame_rate": "30/1",
+          "bit_rate": "614162"
+        },
+        {
+          "codec_type": "audio",
+          "codec_name": "aac",
+          "r_frame_rate": "0/0",
+          "bit_rate": "127425"
+        }
+      ],
+      "chapters": 0,
+      "fullDecode": "PASS"
+    },
+    {
+      "taskId": "4ff7f444-4fae-4f6d-938f-3b31084f578c",
+      "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/output/Exact 360p 30 or 60 fps 1 [precision-ui=final-1].mp4",
+      "sha256": "b1b6b2c25ace50f47eeda2a3dcd6febc00c467ba94f85f5f3fd2c9bc5683bc22",
+      "bytes": 1468244,
+      "duration": "12.032000",
+      "container": "mov,mp4,m4a,3gp,3g2,mj2",
+      "streams": [
+        {
+          "codec_type": "video",
+          "codec_name": "h264",
+          "height": 360,
+          "r_frame_rate": "60/1",
+          "bit_rate": "841174"
+        },
+        {
+          "codec_type": "audio",
+          "codec_name": "aac",
+          "r_frame_rate": "0/0",
+          "bit_rate": "127425"
+        }
+      ],
+      "chapters": 0,
+      "fullDecode": "PASS"
+    },
+    {
+      "taskId": "75f0108f-8565-4ec9-b6cb-dca588e7628c",
+      "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/output/Extension compatible batch 2 [75f0108f-8565-4ec9-b6cb-dca588e7628c].mp4",
+      "sha256": "1a24031b1c8b5750a3bdfb423c3e082045c785f37c8f82b366a13405a5cd7442",
+      "bytes": 768155,
+      "duration": "12.010000",
+      "container": "mov,mp4,m4a,3gp,3g2,mj2",
+      "streams": [
+        {
+          "codec_type": "video",
+          "codec_name": "h264",
+          "height": 360,
+          "r_frame_rate": "30/1",
+          "bit_rate": "377604"
+        },
+        {
+          "codec_type": "audio",
+          "codec_name": "aac",
+          "r_frame_rate": "0/0",
+          "bit_rate": "124511"
+        }
+      ],
+      "chapters": 0,
+      "fullDecode": "PASS"
+    },
+    {
+      "taskId": "adec6aa2-489e-4138-8cd9-648119cf72e7",
+      "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/output/Extension compatible batch 1 [adec6aa2-489e-4138-8cd9-648119cf72e7].mp4",
+      "sha256": "b333531f1d5a6f10a215d8d119d93a175782ba68cac349b072c8d616f2b056ad",
+      "bytes": 780355,
+      "duration": "12.033008",
+      "container": "mov,mp4,m4a,3gp,3g2,mj2",
+      "streams": [
+        {
+          "codec_type": "video",
+          "codec_name": "h264",
+          "height": 360,
+          "r_frame_rate": "30/1",
+          "bit_rate": "389335"
+        },
+        {
+          "codec_type": "audio",
+          "codec_name": "aac",
+          "r_frame_rate": "0/0",
+          "bit_rate": "120763"
+        }
+      ],
+      "chapters": 0,
+      "fullDecode": "PASS"
+    },
+    {
+      "taskId": "dfee62f4-3559-4fec-922f-b6508636ec4d",
+      "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/output/Extension selected MP3 [dfee62f4-3559-4fec-922f-b6508636ec4d].mp3",
+      "sha256": "62e2afe92b1329793bab12bbafc12b3e8d025fda90aeb193c3799768ce584c08",
+      "bytes": 289914,
+      "duration": "12.010667",
+      "container": "mp3",
+      "streams": [
+        {
+          "codec_type": "audio",
+          "codec_name": "mp3",
+          "r_frame_rate": "0/0",
+          "bit_rate": "192000"
+        }
+      ],
+      "chapters": 0,
+      "fullDecode": "PASS"
+    },
+    {
+      "taskId": "025f18fd-db78-4a01-bd2a-6e071ace59cf",
+      "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/output/native-compatible/001 - Shared plan collection (1) [collection\uff1flist=native&run=2-1].mp4",
+      "sha256": "4acf65afecdecb3a4ffde9ff3d8008f633c30e5573b34e7d6ce536a88939d9bb",
+      "bytes": 857267,
+      "duration": "12.032000",
+      "container": "mov,mp4,m4a,3gp,3g2,mj2",
+      "streams": [
+        {
+          "codec_type": "video",
+          "codec_name": "h264",
+          "height": 360,
+          "r_frame_rate": "60/1",
+          "bit_rate": "437780"
+        },
+        {
+          "codec_type": "audio",
+          "codec_name": "aac",
+          "r_frame_rate": "0/0",
+          "bit_rate": "120763"
+        }
+      ],
+      "chapters": 0,
+      "fullDecode": "PASS"
+    },
+    {
+      "taskId": "025f18fd-db78-4a01-bd2a-6e071ace59cf",
+      "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/output/native-compatible/002 - Shared plan collection (2) [collection\uff1flist=native&run=2-2].mp4",
+      "sha256": "9f0ba356c527751d79e9d47239f5cb4b2fb9f4395b54dfc83d6b1b5922048d3a",
+      "bytes": 3686017,
+      "duration": "12.033008",
+      "container": "mov,mp4,m4a,3gp,3g2,mj2",
+      "streams": [
+        {
+          "codec_type": "video",
+          "codec_name": "h264",
+          "height": 720,
+          "r_frame_rate": "30/1",
+          "bit_rate": "2326614"
+        },
+        {
+          "codec_type": "audio",
+          "codec_name": "aac",
+          "r_frame_rate": "0/0",
+          "bit_rate": "120765"
+        }
+      ],
+      "chapters": 0,
+      "fullDecode": "PASS"
+    },
+    {
+      "taskId": "fda1452c-108c-4168-bdd7-2a073fdd21f5",
+      "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/output/snapshot-test/Shared plan collection 2 [collection-run=2-2].mkv",
+      "sha256": "b5c1b966bcb1ac71687acd69cfea1d71fb0a445febb12ccb4889cbbbed0e181a",
+      "bytes": 1118034,
+      "duration": "12.021000",
+      "container": "matroska,webm",
+      "streams": [
+        {
+          "codec_type": "video",
+          "codec_name": "h264",
+          "height": 360,
+          "r_frame_rate": "30/1"
+        },
+        {
+          "codec_type": "audio",
+          "codec_name": "aac",
+          "r_frame_rate": "0/0"
+        }
+      ],
+      "chapters": 0,
+      "fullDecode": "PASS"
+    },
+    {
+      "taskId": "735484c7-147c-468b-b866-c8fbd8ebf5d8",
+      "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/output/snapshot-test/Shared plan collection 1 [collection-run=2-1].mp4",
+      "sha256": "3724b188b428a543b1f8116ab42ffd0ebc06513068cb63f9c6688341c63d32f7",
+      "bytes": 1127180,
+      "duration": "12.032000",
+      "container": "mov,mp4,m4a,3gp,3g2,mj2",
+      "streams": [
+        {
+          "codec_type": "video",
+          "codec_name": "h264",
+          "height": 360,
+          "r_frame_rate": "30/1",
+          "bit_rate": "614162"
+        },
+        {
+          "codec_type": "audio",
+          "codec_name": "aac",
+          "r_frame_rate": "0/0",
+          "bit_rate": "127425"
+        }
+      ],
+      "chapters": 0,
+      "fullDecode": "PASS"
+    },
+    {
+      "taskId": "4b0facee-5875-4f61-bc4b-871b82a3f52d",
+      "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/output/snapshot-test/Shared plan collection 1 [collection-1].mp4",
+      "sha256": "3724b188b428a543b1f8116ab42ffd0ebc06513068cb63f9c6688341c63d32f7",
+      "bytes": 1127180,
+      "duration": "12.032000",
+      "container": "mov,mp4,m4a,3gp,3g2,mj2",
+      "streams": [
+        {
+          "codec_type": "video",
+          "codec_name": "h264",
+          "height": 360,
+          "r_frame_rate": "30/1",
+          "bit_rate": "614162"
+        },
+        {
+          "codec_type": "audio",
+          "codec_name": "aac",
+          "r_frame_rate": "0/0",
+          "bit_rate": "127425"
+        }
+      ],
+      "chapters": 0,
+      "fullDecode": "PASS"
+    },
+    {
+      "taskId": "c9f1a674-5111-4f81-a18f-6b2a04237d90",
+      "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/output/Exact 360p 30 or 60 fps 1 [precision-ui=1-1].mp4",
+      "sha256": "b1b6b2c25ace50f47eeda2a3dcd6febc00c467ba94f85f5f3fd2c9bc5683bc22",
+      "bytes": 1468244,
+      "duration": "12.032000",
+      "container": "mov,mp4,m4a,3gp,3g2,mj2",
+      "streams": [
+        {
+          "codec_type": "video",
+          "codec_name": "h264",
+          "height": 360,
+          "r_frame_rate": "60/1",
+          "bit_rate": "841174"
+        },
+        {
+          "codec_type": "audio",
+          "codec_name": "aac",
+          "r_frame_rate": "0/0",
+          "bit_rate": "127425"
+        }
+      ],
+      "chapters": 0,
+      "fullDecode": "PASS"
+    },
+    {
+      "taskId": "794c3c48-88f8-4e0a-92e3-ea727330c869",
+      "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/output/audio smoke [794c3c48-88f8-4e0a-92e3-ea727330c869].mp3",
+      "sha256": "62e2afe92b1329793bab12bbafc12b3e8d025fda90aeb193c3799768ce584c08",
+      "bytes": 289914,
+      "duration": "12.010667",
+      "container": "mp3",
+      "streams": [
+        {
+          "codec_type": "audio",
+          "codec_name": "mp3",
+          "r_frame_rate": "0/0",
+          "bit_rate": "192000"
+        }
+      ],
+      "chapters": 0,
+      "fullDecode": "PASS"
+    },
+    {
+      "taskId": "ee9656a2-2ea7-412d-831e-8ed433f5fdab",
+      "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/output/compatible smoke [ee9656a2-2ea7-412d-831e-8ed433f5fdab].mp4",
+      "sha256": "1a24031b1c8b5750a3bdfb423c3e082045c785f37c8f82b366a13405a5cd7442",
+      "bytes": 768155,
+      "duration": "12.010000",
+      "container": "mov,mp4,m4a,3gp,3g2,mj2",
+      "streams": [
+        {
+          "codec_type": "video",
+          "codec_name": "h264",
+          "height": 360,
+          "r_frame_rate": "30/1",
+          "bit_rate": "377604"
+        },
+        {
+          "codec_type": "audio",
+          "codec_name": "aac",
+          "r_frame_rate": "0/0",
+          "bit_rate": "124511"
+        }
+      ],
+      "chapters": 0,
+      "fullDecode": "PASS"
+    },
+    {
+      "taskId": "1fba7b4c-4444-48a5-a504-8f0b82cff79b",
+      "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/output/Exact-60 [1fba7b4c-4444-48a5-a504-8f0b82cff79b].mp4",
+      "sha256": "b1b6b2c25ace50f47eeda2a3dcd6febc00c467ba94f85f5f3fd2c9bc5683bc22",
+      "bytes": 1468244,
+      "duration": "12.032000",
+      "container": "mov,mp4,m4a,3gp,3g2,mj2",
+      "streams": [
+        {
+          "codec_type": "video",
+          "codec_name": "h264",
+          "height": 360,
+          "r_frame_rate": "60/1",
+          "bit_rate": "841174"
+        },
+        {
+          "codec_type": "audio",
+          "codec_name": "aac",
+          "r_frame_rate": "0/0",
+          "bit_rate": "127425"
+        }
+      ],
+      "chapters": 0,
+      "fullDecode": "PASS"
+    },
+    {
+      "taskId": "93a04e85-7480-4ff7-b627-991c05b007c3",
+      "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/output/Exact-30 [93a04e85-7480-4ff7-b627-991c05b007c3].mp4",
+      "sha256": "3724b188b428a543b1f8116ab42ffd0ebc06513068cb63f9c6688341c63d32f7",
+      "bytes": 1127180,
+      "duration": "12.032000",
+      "container": "mov,mp4,m4a,3gp,3g2,mj2",
+      "streams": [
+        {
+          "codec_type": "video",
+          "codec_name": "h264",
+          "height": 360,
+          "r_frame_rate": "30/1",
+          "bit_rate": "614162"
+        },
+        {
+          "codec_type": "audio",
+          "codec_name": "aac",
+          "r_frame_rate": "0/0",
+          "bit_rate": "127425"
+        }
+      ],
+      "chapters": 0,
+      "fullDecode": "PASS"
+    }
+  ],
+  "identities": {
+    "/Users/mingjie/Documents/github/personal-projects/v-download/out/main/index.js": "7060023fef7d4f0b034b73f13e008fbea3e3392d245fc3e4611a10ccd336375f",
+    "/Users/mingjie/Documents/github/personal-projects/v-download/out/preload/index.js": "c8f27b0801c253c736681ea24e79486a2ce90aacbebde5a58a3e44bf516c3ff0",
+    "/Applications/V-Download.app/Contents/Resources/engines/darwin-arm64/ffmpeg": "4a9b309ffe7204d9791df8d96697b18f255c5cffcd826df55f085044d930d201",
+    "/Applications/V-Download.app/Contents/Resources/engines/darwin-arm64/ffprobe": "0558a2fa04d4cb7085e3275cacd50cacb1d6ff4e41d44fb25653500c469071e5",
+    "/Applications/V-Download.app/Contents/Resources/engines/darwin-arm64/yt-dlp": "e0ded0a3ca3c9633519578dc44adaa53003df86d1126bd4bf233ae9dc6da992b",
+    "/Applications/V-Download.app/Contents/Resources/app.asar": "2b436fae61184fb4f1a265a9a82f6af835b10a5b8a5b96dddf8cfaf9d1991a61"
+  },
+  "app": {
+    "pid": 57275,
+    "executable": "/Users/mingjie/Documents/github/personal-projects/v-download/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron",
+    "versions": {
+      "node": "24.21.0",
+      "acorn": "8.18.0",
+      "ada": "4.0.0",
+      "amaro": "1.1.11",
+      "ares": "1.34.8",
+      "brotli": "1.2.0",
+      "cldr": "48.0",
+      "icu": "78.2",
+      "llhttp": "9.4.3",
+      "merve": "1.2.2",
+      "modules": "148",
+      "napi": "10",
+      "nbytes": "0.1.4",
+      "ncrypto": "0.0.1",
+      "nghttp2": "1.70.0",
+      "nghttp3": "",
+      "ngtcp2": "",
+      "openssl": "0.0.0",
+      "simdjson": "4.6.7",
+      "simdutf": "7.7.0",
+      "sqlite": "3.53.4",
+      "tz": "2025c",
+      "undici": "7.29.1",
+      "unicode": "17.0",
+      "uv": "1.52.1",
+      "uvwasi": "0.0.23",
+      "v8": "15.0.245.31-electron.0",
+      "zlib": "1.3.2.1-motley",
+      "zstd": "1.6.0",
+      "electron": "43.7.5",
+      "chrome": "150.0.7871.250"
+    },
+    "userData": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/profile",
+    "sessionData": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/session",
+    "temp": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/temp",
+    "source": "/Users/mingjie/Documents/github/personal-projects/v-download/out/main/index.js"
+  }
+}

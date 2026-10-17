@@ -1,0 +1,33 @@
+[
+  {
+    "id": "75f0108f-8565-4ec9-b6cb-dca588e7628c",
+    "plan": "builtin:compatible",
+    "video": [
+      "h264"
+    ],
+    "audio": [
+      "aac"
+    ],
+    "decode": "PASS"
+  },
+  {
+    "id": "adec6aa2-489e-4138-8cd9-648119cf72e7",
+    "plan": "builtin:compatible",
+    "video": [
+      "h264"
+    ],
+    "audio": [
+      "aac"
+    ],
+    "decode": "PASS"
+  },
+  {
+    "id": "dfee62f4-3559-4fec-922f-b6508636ec4d",
+    "plan": "builtin:audio",
+    "video": [],
+    "audio": [
+      "mp3"
+    ],
+    "decode": "PASS"
+  }
+]

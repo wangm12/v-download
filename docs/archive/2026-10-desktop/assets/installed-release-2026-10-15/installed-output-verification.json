@@ -1,0 +1,473 @@
+{
+  "complete": 9,
+  "expectedFailure": 1,
+  "historicalFailureUntouched": true,
+  "outputs": [
+    {
+      "id": "2ba9dd5a-9d39-49a1-a1b6-d1da3f16c85a",
+      "url": "http://127.0.0.1:50711/media/hls/master.m3u8",
+      "status": "complete",
+      "path": "/Users/mingjie/Downloads/master [master].mp4",
+      "sha256": "3ddf32ca2335512dafb2f98b94d69f906f1f9fad9b7c46cc09e3847fcce4680c",
+      "duration": 12.032,
+      "streams": [
+        {
+          "type": "video",
+          "codec": "h264",
+          "height": 720,
+          "language": "und"
+        },
+        {
+          "type": "audio",
+          "codec": "aac",
+          "height": null,
+          "language": "und"
+        }
+      ],
+      "chapters": 0,
+      "fullDecode": true,
+      "snapshot": null,
+      "sourceContext": null
+    },
+    {
+      "id": "4a4afad4-c096-45b0-98c6-a01ada5da9d3",
+      "url": "http://127.0.0.1:50711/watch/hls",
+      "status": "complete",
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/installed-release-2026-10-15/output/Local synthetic download fixture 1 [hls-1].mp4",
+      "sha256": "3724b188b428a543b1f8116ab42ffd0ebc06513068cb63f9c6688341c63d32f7",
+      "duration": 12.032,
+      "streams": [
+        {
+          "type": "video",
+          "codec": "h264",
+          "height": 360,
+          "language": "und"
+        },
+        {
+          "type": "audio",
+          "codec": "aac",
+          "height": null,
+          "language": "und"
+        }
+      ],
+      "chapters": 0,
+      "fullDecode": true,
+      "snapshot": {
+        "version": 1,
+        "selection": {
+          "version": 1,
+          "target": "video",
+          "maxHeight": 360,
+          "videoCodec": "h264",
+          "dynamicRange": "any",
+          "output": "original",
+          "postprocess": "none",
+          "exact": {
+            "sourceUrl": "http://127.0.0.1:50711/watch/hls",
+            "formatId": "hls-798",
+            "kind": "muxed"
+          }
+        },
+        "plan": {
+          "id": "a2cc8c75-f7b2-4d1c-ad96-c5ffc9f891d5",
+          "name": "Installed E2E 360p",
+          "revision": 1
+        },
+        "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/installed-release-2026-10-15/output",
+        "filenameTemplate": "{title} [{id}]",
+        "includeNote": true,
+        "archiveByAuthor": false,
+        "folderNameTemplate": "{author}",
+        "playlistSubfolder": true
+      },
+      "sourceContext": null
+    },
+    {
+      "id": "98056109-791a-402b-bb15-345547e22468",
+      "url": "http://127.0.0.1:50711/stream/installed-1/1/master.m3u8?token=a%2fb&label=hello%20world&utm_source=early",
+      "status": "complete",
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/installed-release-2026-10-15/output/Early capture installed-1 1 [98056109-791a-402b-bb15-345547e22468].mp4",
+      "sha256": "b1b6b2c25ace50f47eeda2a3dcd6febc00c467ba94f85f5f3fd2c9bc5683bc22",
+      "duration": 12.032,
+      "streams": [
+        {
+          "type": "video",
+          "codec": "h264",
+          "height": 360,
+          "language": "und"
+        },
+        {
+          "type": "audio",
+          "codec": "aac",
+          "height": null,
+          "language": "und"
+        }
+      ],
+      "chapters": 0,
+      "fullDecode": true,
+      "snapshot": {
+        "version": 1,
+        "selection": {
+          "version": 1,
+          "target": "video",
+          "maxHeight": 360,
+          "videoCodec": "any",
+          "dynamicRange": "any",
+          "output": "original",
+          "postprocess": "none"
+        },
+        "plan": {
+          "id": "a2cc8c75-f7b2-4d1c-ad96-c5ffc9f891d5",
+          "name": "Installed E2E 360p",
+          "revision": 1
+        },
+        "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/installed-release-2026-10-15/output",
+        "filenameTemplate": "{title} [{id}]",
+        "includeNote": true,
+        "archiveByAuthor": false,
+        "folderNameTemplate": "{author}",
+        "playlistSubfolder": true
+      },
+      "sourceContext": {
+        "version": 1,
+        "pageUrl": "http://127.0.0.1:50711/watch/early?round=installed-1",
+        "documentUrl": "http://127.0.0.1:50711/watch/early?round=installed-1",
+        "initiator": "http://127.0.0.1:50711",
+        "tabId": 1493626237,
+        "frameId": 0,
+        "navigationEpoch": 3,
+        "observedAt": 1792120521651,
+        "pageTitle": "Early capture installed-1",
+        "documentId": "6C16B58F860958F0E27C19D03B029064"
+      }
+    },
+    {
+      "id": "acf2e5fe-0fe0-44d0-b4a8-112423e5cf91",
+      "url": "http://127.0.0.1:50711/stream/installed-1/2/master.m3u8?token=a%2fb&label=hello%20world&utm_source=early",
+      "status": "complete",
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/installed-release-2026-10-15/output/Early capture installed-1 2 [acf2e5fe-0fe0-44d0-b4a8-112423e5cf91].mp4",
+      "sha256": "b1b6b2c25ace50f47eeda2a3dcd6febc00c467ba94f85f5f3fd2c9bc5683bc22",
+      "duration": 12.032,
+      "streams": [
+        {
+          "type": "video",
+          "codec": "h264",
+          "height": 360,
+          "language": "und"
+        },
+        {
+          "type": "audio",
+          "codec": "aac",
+          "height": null,
+          "language": "und"
+        }
+      ],
+      "chapters": 0,
+      "fullDecode": true,
+      "snapshot": {
+        "version": 1,
+        "selection": {
+          "version": 1,
+          "target": "video",
+          "maxHeight": 360,
+          "videoCodec": "any",
+          "dynamicRange": "any",
+          "output": "original",
+          "postprocess": "none"
+        },
+        "plan": {
+          "id": "a2cc8c75-f7b2-4d1c-ad96-c5ffc9f891d5",
+          "name": "Installed E2E 360p",
+          "revision": 1
+        },
+        "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/installed-release-2026-10-15/output",
+        "filenameTemplate": "{title} [{id}]",
+        "includeNote": true,
+        "archiveByAuthor": false,
+        "folderNameTemplate": "{author}",
+        "playlistSubfolder": true
+      },
+      "sourceContext": {
+        "version": 1,
+        "pageUrl": "http://127.0.0.1:50711/watch/early?round=installed-1",
+        "documentUrl": "http://127.0.0.1:50711/watch/early?round=installed-1",
+        "initiator": "http://127.0.0.1:50711",
+        "tabId": 1493626237,
+        "frameId": 0,
+        "navigationEpoch": 3,
+        "observedAt": 1792120521652,
+        "pageTitle": "Early capture installed-1",
+        "documentId": "6C16B58F860958F0E27C19D03B029064"
+      }
+    },
+    {
+      "id": "62b99f41-1c59-44a6-b32d-fc383dfc478b",
+      "url": "http://127.0.0.1:50711/stream/installed-1/3/master.m3u8?token=a%2fb&label=hello%20world&utm_source=early",
+      "status": "complete",
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/installed-release-2026-10-15/output/Early capture installed-1 3 [62b99f41-1c59-44a6-b32d-fc383dfc478b].mp4",
+      "sha256": "b1b6b2c25ace50f47eeda2a3dcd6febc00c467ba94f85f5f3fd2c9bc5683bc22",
+      "duration": 12.032,
+      "streams": [
+        {
+          "type": "video",
+          "codec": "h264",
+          "height": 360,
+          "language": "und"
+        },
+        {
+          "type": "audio",
+          "codec": "aac",
+          "height": null,
+          "language": "und"
+        }
+      ],
+      "chapters": 0,
+      "fullDecode": true,
+      "snapshot": {
+        "version": 1,
+        "selection": {
+          "version": 1,
+          "target": "video",
+          "maxHeight": 360,
+          "videoCodec": "any",
+          "dynamicRange": "any",
+          "output": "original",
+          "postprocess": "none"
+        },
+        "plan": {
+          "id": "a2cc8c75-f7b2-4d1c-ad96-c5ffc9f891d5",
+          "name": "Installed E2E 360p",
+          "revision": 1
+        },
+        "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/installed-release-2026-10-15/output",
+        "filenameTemplate": "{title} [{id}]",
+        "includeNote": true,
+        "archiveByAuthor": false,
+        "folderNameTemplate": "{author}",
+        "playlistSubfolder": true
+      },
+      "sourceContext": {
+        "version": 1,
+        "pageUrl": "http://127.0.0.1:50711/watch/early?round=installed-1",
+        "documentUrl": "http://127.0.0.1:50711/embed/early?round=installed-1&slot=3",
+        "initiator": "http://127.0.0.1:50711",
+        "tabId": 1493626237,
+        "frameId": 4770,
+        "navigationEpoch": 3,
+        "observedAt": 1792120521899,
+        "pageTitle": "Early capture installed-1",
+        "documentId": "E5A54AAD3548073FA2AC6F5E2CF56E51"
+      }
+    },
+    {
+      "id": "d24378a3-e43a-4d42-a214-ae5f1ce901b3",
+      "url": "http://127.0.0.1:50711/direct/installed-1/film.mp4?token=a%2fb&label=hello%20world&utm_source=early",
+      "status": "complete",
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/installed-release-2026-10-15/output/Early capture installed-1 4 [d24378a3-e43a-4d42-a214-ae5f1ce901b3].mp4",
+      "sha256": "d268daf0b476dab4bb4f0c470748d50ffba0ca486940fbfabd48bee8ec5a7f1a",
+      "duration": 12.0,
+      "streams": [
+        {
+          "type": "video",
+          "codec": "h264",
+          "height": 360,
+          "language": "und"
+        },
+        {
+          "type": "audio",
+          "codec": "aac",
+          "height": null,
+          "language": "und"
+        }
+      ],
+      "chapters": 0,
+      "fullDecode": true,
+      "snapshot": {
+        "version": 1,
+        "selection": {
+          "version": 1,
+          "target": "video",
+          "maxHeight": 360,
+          "videoCodec": "any",
+          "dynamicRange": "any",
+          "output": "original",
+          "postprocess": "none"
+        },
+        "plan": {
+          "id": "a2cc8c75-f7b2-4d1c-ad96-c5ffc9f891d5",
+          "name": "Installed E2E 360p",
+          "revision": 1
+        },
+        "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/installed-release-2026-10-15/output",
+        "filenameTemplate": "{title} [{id}]",
+        "includeNote": true,
+        "archiveByAuthor": false,
+        "folderNameTemplate": "{author}",
+        "playlistSubfolder": true
+      },
+      "sourceContext": {
+        "version": 1,
+        "pageUrl": "http://127.0.0.1:50711/watch/early?round=installed-1",
+        "documentUrl": "http://127.0.0.1:50711/watch/early?round=installed-1",
+        "initiator": "http://127.0.0.1:50711",
+        "tabId": 1493626237,
+        "frameId": 0,
+        "navigationEpoch": 3,
+        "observedAt": 1792120521667,
+        "pageTitle": "Early capture installed-1",
+        "documentId": "6C16B58F860958F0E27C19D03B029064"
+      }
+    },
+    {
+      "id": "699f8511-71ab-4979-be02-2da2dfdd7347",
+      "url": "http://127.0.0.1:50711/direct.mp4?test=mp3",
+      "status": "complete",
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/installed-release-2026-10-15/output/installed-mp3 [699f8511-71ab-4979-be02-2da2dfdd7347].mp3",
+      "sha256": "62e2afe92b1329793bab12bbafc12b3e8d025fda90aeb193c3799768ce584c08",
+      "duration": 12.010667,
+      "streams": [
+        {
+          "type": "audio",
+          "codec": "mp3",
+          "height": null,
+          "language": null
+        }
+      ],
+      "chapters": 0,
+      "fullDecode": true,
+      "snapshot": {
+        "version": 1,
+        "selection": {
+          "version": 1,
+          "target": "audio",
+          "maxHeight": "best",
+          "videoCodec": "any",
+          "dynamicRange": "any",
+          "output": "mp3",
+          "audioBitrate": 192,
+          "postprocess": "none"
+        },
+        "plan": {
+          "id": "a2cc8c75-f7b2-4d1c-ad96-c5ffc9f891d5",
+          "name": "Installed E2E 360p",
+          "revision": 1
+        },
+        "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/installed-release-2026-10-15/output",
+        "filenameTemplate": "{title} [{id}]",
+        "includeNote": true,
+        "archiveByAuthor": false,
+        "folderNameTemplate": "{author}",
+        "playlistSubfolder": true
+      },
+      "sourceContext": null
+    },
+    {
+      "id": "67d2335f-18d5-4736-979f-76f3fbc0f6ad",
+      "url": "http://127.0.0.1:50711/annotated.mp4?test=subtitles",
+      "status": "complete",
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/installed-release-2026-10-15/output/installed-subtitles [67d2335f-18d5-4736-979f-76f3fbc0f6ad].mp4",
+      "sha256": "f88a8f394b4c7f48b805d30b51db62697ad91bfea6cee30fe720df9f42c03e4a",
+      "duration": 12.01,
+      "streams": [
+        {
+          "type": "video",
+          "codec": "h264",
+          "height": 720,
+          "language": "und"
+        },
+        {
+          "type": "audio",
+          "codec": "aac",
+          "height": null,
+          "language": "und"
+        },
+        {
+          "type": "subtitle",
+          "codec": "mov_text",
+          "height": null,
+          "language": "eng"
+        },
+        {
+          "type": "data",
+          "codec": "bin_data",
+          "height": null,
+          "language": "eng"
+        }
+      ],
+      "chapters": 3,
+      "fullDecode": true,
+      "snapshot": {
+        "version": 1,
+        "selection": {
+          "version": 1,
+          "target": "video",
+          "maxHeight": "best",
+          "videoCodec": "any",
+          "dynamicRange": "any",
+          "output": "mp4",
+          "postprocess": "h264-mp4"
+        },
+        "plan": {
+          "id": "a2cc8c75-f7b2-4d1c-ad96-c5ffc9f891d5",
+          "name": "Installed E2E 360p",
+          "revision": 1
+        },
+        "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/installed-release-2026-10-15/output",
+        "filenameTemplate": "{title} [{id}]",
+        "includeNote": true,
+        "archiveByAuthor": false,
+        "folderNameTemplate": "{author}",
+        "playlistSubfolder": true
+      },
+      "sourceContext": null
+    },
+    {
+      "id": "0566cb42-20e4-47dd-be3a-2b6c082ea42b",
+      "url": "http://127.0.0.1:50711/slow.mp4?test=installed-recovery",
+      "status": "complete",
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/installed-release-2026-10-15/output/installed-recovery [0566cb42-20e4-47dd-be3a-2b6c082ea42b].mp4",
+      "sha256": "644677695f2da8aa3137b31244ac82fdfc6934b9f30766371c29d950a2d322bf",
+      "duration": 12.0,
+      "streams": [
+        {
+          "type": "video",
+          "codec": "h264",
+          "height": 720,
+          "language": "und"
+        },
+        {
+          "type": "audio",
+          "codec": "aac",
+          "height": null,
+          "language": "und"
+        }
+      ],
+      "chapters": 0,
+      "fullDecode": true,
+      "snapshot": {
+        "version": 1,
+        "selection": {
+          "version": 1,
+          "target": "video",
+          "maxHeight": "best",
+          "videoCodec": "any",
+          "dynamicRange": "any",
+          "output": "original",
+          "postprocess": "none"
+        },
+        "plan": {
+          "id": "a2cc8c75-f7b2-4d1c-ad96-c5ffc9f891d5",
+          "name": "Installed E2E 360p",
+          "revision": 1
+        },
+        "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/installed-release-2026-10-15/output",
+        "filenameTemplate": "{title} [{id}]",
+        "includeNote": true,
+        "archiveByAuthor": false,
+        "folderNameTemplate": "{author}",
+        "playlistSubfolder": true
+      },
+      "sourceContext": null
+    }
+  ]
+}

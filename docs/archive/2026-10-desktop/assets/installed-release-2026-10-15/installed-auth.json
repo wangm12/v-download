@@ -1,0 +1,47 @@
+[
+  {
+    "case": "valid-post",
+    "status": 200,
+    "passed": true
+  },
+  {
+    "case": "valid-legacy-get",
+    "status": 200,
+    "passed": true
+  },
+  {
+    "case": "missing-origin",
+    "status": 403,
+    "passed": true
+  },
+  {
+    "case": "foreign-origin",
+    "status": 403,
+    "passed": true
+  },
+  {
+    "case": "unknown-extension",
+    "status": 403,
+    "passed": true
+  },
+  {
+    "case": "missing-cap",
+    "status": 403,
+    "passed": true
+  },
+  {
+    "case": "wrong-cap",
+    "status": 403,
+    "passed": true
+  },
+  {
+    "case": "nonempty-query",
+    "status": 400,
+    "passed": true
+  },
+  {
+    "case": "array-query",
+    "status": 400,
+    "passed": true
+  }
+]

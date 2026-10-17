@@ -1,0 +1,80 @@
+{
+  "label": "403",
+  "input_url": "http://127.0.0.1:55661/denied.mp4",
+  "started_epoch": 1792048988.160109,
+  "elapsed_s": 0.5549,
+  "http_create_status": 202,
+  "final": {
+    "id": "9bed514bc5670bc6",
+    "status": "error",
+    "url": "http://127.0.0.1:55661/denied.mp4",
+    "title": "Direct media",
+    "progress": 0,
+    "kind": null,
+    "files": null,
+    "error": {
+      "code": "auth_required",
+      "message": "ERROR: [generic] denied: Unable to download webpage: HTTP Error 403: Forbidden (caused by <HTTPError 403: Forbidden>) — Sign in to the source site and retry; no credentials were retained."
+    },
+    "expiresAt": null,
+    "expired": false
+  },
+  "trace": [
+    {
+      "elapsed_s": 0,
+      "http_status": 202,
+      "job": {
+        "id": "9bed514bc5670bc6",
+        "status": "queued",
+        "url": "http://127.0.0.1:55661/denied.mp4"
+      }
+    },
+    {
+      "elapsed_s": 0.0015870830000004332,
+      "http_status": 200,
+      "job": {
+        "id": "9bed514bc5670bc6",
+        "status": "downloading",
+        "url": "http://127.0.0.1:55661/denied.mp4",
+        "title": "Direct media",
+        "progress": 0,
+        "kind": null,
+        "files": null,
+        "error": null,
+        "expiresAt": null,
+        "expired": false
+      }
+    },
+    {
+      "elapsed_s": 0.5309824170000006,
+      "http_status": 200,
+      "job": {
+        "id": "9bed514bc5670bc6",
+        "status": "error",
+        "url": "http://127.0.0.1:55661/denied.mp4",
+        "title": "Direct media",
+        "progress": 0,
+        "kind": null,
+        "files": null,
+        "error": {
+          "code": "auth_required",
+          "message": "ERROR: [generic] denied: Unable to download webpage: HTTP Error 403: Forbidden (caused by <HTTPError 403: Forbidden>) — Sign in to the source site and retry; no credentials were retained."
+        },
+        "expiresAt": null,
+        "expired": false
+      }
+    }
+  ],
+  "resources": {
+    "sample_interval_s": 0.1,
+    "samples": 7,
+    "observed_peak_family_rss_mib": 593.67,
+    "sampled_family_cpu_seconds": 0.56,
+    "limitations": [
+      "RSS is sampled aggregate resident memory, not unique/private memory; shared pages may be counted repeatedly.",
+      "Short-lived children or their final CPU/RSS peak between 100ms samples can be missed; CPU is an observed estimate.",
+      "Measurements include Electron root/renderers/GPU and observed descendant engines, but not the fixture server or unrelated original app."
+    ]
+  },
+  "outputs": []
+}

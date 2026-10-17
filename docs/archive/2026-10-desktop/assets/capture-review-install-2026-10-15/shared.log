@@ -1,0 +1,9 @@
+
+> v-download@1.1.7 sync:extension-constants
+> npm run build --workspace=@v-download/shared && node scripts/write-extension-cookie-sync.mjs
+
+
+> @v-download/shared@1.0.0 build
+> tsc && tsc -p tsconfig.esm.json && node scripts/write-esm-package.mjs
+
+Wrote /Users/mingjie/Documents/github/personal-projects/v-download/extension/cookie-sync-domains.js

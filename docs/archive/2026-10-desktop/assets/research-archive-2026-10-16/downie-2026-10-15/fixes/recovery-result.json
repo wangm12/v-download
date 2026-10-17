@@ -1,0 +1,34 @@
+[
+  [
+    "hist-cancelled",
+    "cancelled"
+  ],
+  [
+    "hist-complete",
+    "complete"
+  ],
+  [
+    "hist-error-1",
+    "error"
+  ],
+  [
+    "hist-error-2",
+    "error"
+  ],
+  [
+    "hist-error-3",
+    "error"
+  ],
+  [
+    "hist-interrupted",
+    "interrupted"
+  ],
+  [
+    "hist-paused",
+    "paused"
+  ],
+  [
+    "recover-target",
+    "complete"
+  ]
+]

@@ -1,0 +1,11 @@
+--- /Users/mingjie/Documents/github/personal-projects/v-download-research/capture-review-install-2026-10-15/DownloadInspector.before.tsx	2026-10-15 22:47:23
++++ /Users/mingjie/Documents/github/personal-projects/v-download/src/renderer/src/components/DownloadInspector.tsx	2026-10-15 23:32:06
+@@ -212,7 +212,7 @@
+         </>}
+       </div>
+       {error && (status === 'error' || status === 'interrupted' || status === 'cancelled') && <details className="v-disclosure"><summary><ChevronDown className="v-chevron h-3.5 w-3.5" aria-hidden />{t('ui.rawError')}</summary><p className="max-h-40 overflow-y-auto break-words py-2 text-xs leading-relaxed text-muted-foreground">{error}</p></details>}
+-      <CapturedMediaDetails download={download} />
++      <CapturedMediaDetails key={id} download={download} />
+       {destination && <div className="min-w-0"><p className="mb-1 text-xs text-muted-foreground">{t('inspector.destination')}</p>{fileName && <p className="truncate text-xs" title={file_path || undefined}>{fileName}</p>}<p className="mt-1 truncate text-xs text-muted-foreground" title={destination}>{folderName}</p></div>}
+       <div><p className="mb-1 text-xs text-muted-foreground">{t('inspector.source')}</p><button type="button" onClick={() => window.api?.openExternalUrl(sourceUrl)} className="inline-flex items-center gap-2 rounded text-xs hover:underline"><ExternalLink className="h-3.5 w-3.5" aria-hidden />{sourceHost}</button>
+         <details className="v-disclosure mt-1"><summary><ChevronDown className="v-chevron h-3.5 w-3.5" aria-hidden />{t('inspector.showLink')}</summary><p className="select-text break-all py-2 text-xs text-muted-foreground">{url}</p><button type="button" onClick={() => void navigator.clipboard.writeText(url)} className="v-button-secondary">{t('inspector.copySource')}</button></details>

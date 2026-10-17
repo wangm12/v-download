@@ -1,0 +1,38 @@
+{
+  "ownedProcesses": [
+    {
+      "pid": 57275,
+      "name": "research Electron",
+      "stopped": true
+    },
+    {
+      "pid": 22641,
+      "name": "fixture server",
+      "stopped": true
+    },
+    {
+      "pid": 38205,
+      "name": "research Chrome",
+      "stopped": true
+    }
+  ],
+  "listeners": [
+    {
+      "port": 55955,
+      "closed": true
+    },
+    {
+      "port": 55958,
+      "closed": true
+    },
+    {
+      "port": 60706,
+      "closed": true
+    }
+  ],
+  "originalUserApp": {
+    "pid": 29928,
+    "running": true
+  },
+  "installedAppAsarSHA256": "2b436fae61184fb4f1a265a9a82f6af835b10a5b8a5b96dddf8cfaf9d1991a61"
+}

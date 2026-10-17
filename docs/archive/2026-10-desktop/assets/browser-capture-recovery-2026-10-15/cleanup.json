@@ -1,0 +1,79 @@
+{
+  "stopped": [
+    {
+      "pid": 67124,
+      "kind": "fixture server"
+    }
+  ],
+  "ports": {
+    "extension": {
+      "port": 55723,
+      "closed": true
+    },
+    "test IPC": {
+      "port": 55720,
+      "closed": true
+    },
+    "fixture": {
+      "port": 62438,
+      "closed": true
+    }
+  },
+  "removed": [
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/V-Download Capture Test.app",
+      "logicalBytes": 649792970
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/package-stage",
+      "logicalBytes": 57114682
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/chrome-profile",
+      "logicalBytes": 114125354
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/profile",
+      "logicalBytes": 86820
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/session",
+      "logicalBytes": 1822986
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/temp",
+      "logicalBytes": 0
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/logs",
+      "logicalBytes": 0
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/output",
+      "logicalBytes": 0
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output",
+      "logicalBytes": 20353312
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/test-extension",
+      "logicalBytes": 439784
+    }
+  ],
+  "logicalBytesRemoved": 858159833,
+  "originalFilesUnchanged": {
+    "settings.json": true,
+    "cookies.txt": true,
+    "extension-pairing.secret": true,
+    "remote-jobs.json": true,
+    "installed-app.asar": true
+  },
+  "preserved": [
+    "repository source changes",
+    "verification evidence",
+    "fixture generators and scripts",
+    "current build output",
+    "original installed application and data"
+  ]
+}

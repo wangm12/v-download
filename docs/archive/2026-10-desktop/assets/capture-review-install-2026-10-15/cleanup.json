@@ -1,0 +1,57 @@
+{
+  "entries": [
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download/dist",
+      "logicalBytesRemoved": 881527970,
+      "removed": true
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download/.release-staging/current",
+      "logicalBytesRemoved": 305139099,
+      "removed": true
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download/out",
+      "logicalBytesRemoved": 2485222,
+      "removed": true
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/capture-review-install-2026-10-15/profile",
+      "logicalBytesRemoved": 1868151,
+      "removed": true
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/capture-review-install-2026-10-15/frozen-output",
+      "logicalBytesRemoved": 1987660,
+      "removed": true
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/capture-review-install-2026-10-15/outputs",
+      "logicalBytesRemoved": 0,
+      "removed": true
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/capture-review-install-2026-10-15/fixtures",
+      "logicalBytesRemoved": 13849474,
+      "removed": true
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/capture-review-install-2026-10-15/profile-settings.json",
+      "logicalBytesRemoved": 1398,
+      "removed": true
+    }
+  ],
+  "logicalBytesRemoved": 1206858974,
+  "fixturePortClosed": true,
+  "isolatedAppStopped": true,
+  "normalAppRunning": true,
+  "normalAppPid": 98391,
+  "testTabsClosed": true,
+  "kept": [
+    "final DMG",
+    "0700 rollback backup",
+    "research evidence",
+    "node_modules and shared/dist required by workspace"
+  ],
+  "scope": "only owned test/build outputs; no user media or original app data removed"
+}

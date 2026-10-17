@@ -1,0 +1,126 @@
+[
+  {
+    "monotonic": 0.112189583,
+    "rss_kib": 632368,
+    "processes": [
+      {
+        "pid": 61381,
+        "ppid": 61377,
+        "rss_kib": 265328,
+        "cpu_s": 1.69,
+        "birth": "Thu Oct 15 00:37:11 2026",
+        "executable": "/Users/mingjie/Documents/github/personal-projects/v-download/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron"
+      },
+      {
+        "pid": 61385,
+        "ppid": 61381,
+        "rss_kib": 96832,
+        "cpu_s": 0.62,
+        "birth": "Thu Oct 15 00:37:11 2026",
+        "executable": "/Users/mingjie/Documents/github/personal-projects/v-download/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper"
+      },
+      {
+        "pid": 61386,
+        "ppid": 61381,
+        "rss_kib": 53344,
+        "cpu_s": 0.07,
+        "birth": "Thu Oct 15 00:37:11 2026",
+        "executable": "/Users/mingjie/Documents/github/personal-projects/v-download/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper"
+      },
+      {
+        "pid": 62198,
+        "ppid": 61381,
+        "rss_kib": 2432,
+        "cpu_s": 0.0,
+        "birth": "Thu Oct 15 00:37:58 2026",
+        "executable": "/bin/bash"
+      },
+      {
+        "pid": 61400,
+        "ppid": 61381,
+        "rss_kib": 201696,
+        "cpu_s": 0.79,
+        "birth": "Thu Oct 15 00:37:12 2026",
+        "executable": "/Users/mingjie/Documents/github/personal-projects/v-download/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper (Renderer).app/Contents/MacOS/Electron Helper (Renderer)"
+      },
+      {
+        "pid": 62205,
+        "ppid": 62198,
+        "rss_kib": 10944,
+        "cpu_s": 0.01,
+        "birth": "Thu Oct 15 00:37:58 2026",
+        "executable": "/Users/mingjie/Documents/github/personal-projects/v-download/resources/engines/po-token/darwin-arm64/bgutil-provider"
+      },
+      {
+        "pid": 62206,
+        "ppid": 62198,
+        "rss_kib": 1792,
+        "cpu_s": 0.0,
+        "birth": "Thu Oct 15 00:37:58 2026",
+        "executable": "/bin/bash"
+      }
+    ]
+  },
+  {
+    "monotonic": 0.214827,
+    "rss_kib": 632368,
+    "processes": [
+      {
+        "pid": 61381,
+        "ppid": 61377,
+        "rss_kib": 265328,
+        "cpu_s": 1.69,
+        "birth": "Thu Oct 15 00:37:11 2026",
+        "executable": "/Users/mingjie/Documents/github/personal-projects/v-download/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron"
+      },
+      {
+        "pid": 61385,
+        "ppid": 61381,
+        "rss_kib": 96832,
+        "cpu_s": 0.62,
+        "birth": "Thu Oct 15 00:37:11 2026",
+        "executable": "/Users/mingjie/Documents/github/personal-projects/v-download/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper"
+      },
+      {
+        "pid": 61386,
+        "ppid": 61381,
+        "rss_kib": 53344,
+        "cpu_s": 0.07,
+        "birth": "Thu Oct 15 00:37:11 2026",
+        "executable": "/Users/mingjie/Documents/github/personal-projects/v-download/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper"
+      },
+      {
+        "pid": 62198,
+        "ppid": 61381,
+        "rss_kib": 2432,
+        "cpu_s": 0.0,
+        "birth": "Thu Oct 15 00:37:58 2026",
+        "executable": "/bin/bash"
+      },
+      {
+        "pid": 61400,
+        "ppid": 61381,
+        "rss_kib": 201696,
+        "cpu_s": 0.79,
+        "birth": "Thu Oct 15 00:37:12 2026",
+        "executable": "/Users/mingjie/Documents/github/personal-projects/v-download/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper (Renderer).app/Contents/MacOS/Electron Helper (Renderer)"
+      },
+      {
+        "pid": 62205,
+        "ppid": 62198,
+        "rss_kib": 10944,
+        "cpu_s": 0.01,
+        "birth": "Thu Oct 15 00:37:58 2026",
+        "executable": "/Users/mingjie/Documents/github/personal-projects/v-download/resources/engines/po-token/darwin-arm64/bgutil-provider"
+      },
+      {
+        "pid": 62206,
+        "ppid": 62198,
+        "rss_kib": 1792,
+        "cpu_s": 0.0,
+        "birth": "Thu Oct 15 00:37:58 2026",
+        "executable": "/bin/bash"
+      }
+    ]
+  }
+]

@@ -1,0 +1,547 @@
+[
+  {
+    "name": "begin f0203be1",
+    "passed": true,
+    "details": {
+      "data": {
+        "requestId": "086b2d458e2f20bc68a6210dd09899727be74cc1c1292f76",
+        "pageUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+        "title": "解析被拒绝403",
+        "planName": "原方案 360p H264",
+        "exactSource": false,
+        "expiresAt": 1792130704242
+      }
+    }
+  },
+  {
+    "name": "claim session",
+    "passed": true,
+    "details": {
+      "command": {
+        "requestId": "086b2d458e2f20bc68a6210dd09899727be74cc1c1292f76",
+        "pageUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+        "title": "解析被拒绝403",
+        "planName": "原方案 360p H264",
+        "exactSource": false,
+        "expiresAt": 1792130704242
+      }
+    }
+  },
+  {
+    "name": "different page refused",
+    "passed": true,
+    "details": {
+      "error": "The candidate belongs to another page. Return to the source page or start a new capture."
+    }
+  },
+  {
+    "name": "missing confirmation refused",
+    "passed": true,
+    "details": {
+      "error": "Confirm one replacement media source first"
+    }
+  },
+  {
+    "name": "plan injection refused",
+    "passed": true,
+    "details": {
+      "error": "Invalid download selection"
+    }
+  },
+  {
+    "name": "resolver source accepted",
+    "passed": true,
+    "details": {
+      "ok": true
+    }
+  },
+  {
+    "name": "repeat callback idempotent",
+    "passed": true,
+    "details": {
+      "ok": true
+    }
+  },
+  {
+    "name": "resolver promotion complete",
+    "passed": true,
+    "details": {
+      "id": "f0203be1-495e-46ff-bde9-d6a69d92b87d",
+      "url": "http://127.0.0.1:62438/denied",
+      "title": "解析被拒绝403",
+      "format": "video",
+      "quality": "360",
+      "status": "complete",
+      "progress": 100,
+      "filePath": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output/解析被拒绝403 (1).mp4",
+      "thumbnail": null,
+      "duration": null,
+      "metadata": {
+        "recaptureRevision": 1,
+        "recaptureAt": "2026-10-16T05:55:04.246Z",
+        "sourceContext": {
+          "version": 1,
+          "pageUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+          "documentUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+          "observedAt": 1792130104236
+        },
+        "downloadRequest": {
+          "version": 1,
+          "selection": {
+            "version": 1,
+            "target": "video",
+            "maxHeight": 360,
+            "videoCodec": "h264",
+            "maxFps": 30,
+            "dynamicRange": "any",
+            "output": "mp4",
+            "postprocess": "h264-mp4"
+          },
+          "plan": {
+            "id": "capture-plan",
+            "name": "原方案 360p H264",
+            "revision": 1
+          },
+          "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output",
+          "filenameTemplate": "{title}",
+          "includeNote": false,
+          "archiveByAuthor": false,
+          "folderNameTemplate": "{author}",
+          "playlistSubfolder": false
+        },
+        "candidate": {
+          "url": "http://127.0.0.1:62438/media/360.mp4",
+          "container": "mp4"
+        },
+        "mediaType": "mp4",
+        "referer": "http://127.0.0.1:62438/watch?lesson=a%20b",
+        "ytdlpId": "360",
+        "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output",
+        "skipAdoptExisting": true
+      },
+      "playlistId": null,
+      "playlistIndex": null,
+      "error": null,
+      "errorCode": null,
+      "createdAt": "2026-10-16T05:53:03.403Z",
+      "updatedAt": "2026-10-16T05:55:05.022Z",
+      "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output"
+    }
+  },
+  {
+    "name": "same row and original URL",
+    "passed": true,
+    "details": null
+  },
+  {
+    "name": "resolver frozen request unchanged",
+    "passed": true,
+    "details": null
+  },
+  {
+    "name": "all unrelated failed tasks unchanged",
+    "passed": true,
+    "details": null
+  },
+  {
+    "name": "MP4 metadata inspection",
+    "passed": true,
+    "details": {
+      "data": {
+        "version": 1,
+        "inspectedAt": "2026-10-16T05:55:05.261Z",
+        "url": "http://127.0.0.1:62438/media/360.mp4",
+        "kind": "file",
+        "streams": [
+          {
+            "index": 0,
+            "kind": "video",
+            "codec": "h264",
+            "width": 640,
+            "height": 360,
+            "fps": 30,
+            "language": "und"
+          },
+          {
+            "index": 1,
+            "kind": "audio",
+            "codec": "aac",
+            "language": "eng"
+          }
+        ],
+        "resources": [],
+        "warnings": [],
+        "duration": 8
+      }
+    }
+  },
+  {
+    "name": "inspection does not enqueue",
+    "passed": true,
+    "details": null
+  },
+  {
+    "name": "foreign web origin",
+    "passed": true,
+    "details": {
+      "error": "Pairing required"
+    }
+  },
+  {
+    "name": "missing capability",
+    "passed": true,
+    "details": {
+      "error": "Pairing required"
+    }
+  },
+  {
+    "name": "malformed inspection refused",
+    "passed": true,
+    "details": {
+      "error": "Invalid download URL"
+    }
+  },
+  {
+    "name": "malformed inspection refused",
+    "passed": true,
+    "details": {
+      "error": "Invalid media source context"
+    }
+  },
+  {
+    "name": "malformed inspection refused",
+    "passed": true,
+    "details": {
+      "error": "Invalid headers"
+    }
+  },
+  {
+    "name": "403 inspection stays access refusal",
+    "passed": true,
+    "details": {
+      "error": "HTTP 403: media access failed; cause unknown."
+    }
+  },
+  {
+    "name": "begin 3de8bbae",
+    "passed": true,
+    "details": {
+      "data": {
+        "requestId": "11ca7a336af7652f88f796c0b4d8d7ec2b51de280e051668",
+        "pageUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+        "title": "来源不存在404",
+        "planName": "原方案 360p H264",
+        "exactSource": false,
+        "expiresAt": 1792130705295
+      }
+    }
+  },
+  {
+    "name": "claim session",
+    "passed": true,
+    "details": {
+      "command": {
+        "requestId": "11ca7a336af7652f88f796c0b4d8d7ec2b51de280e051668",
+        "pageUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+        "title": "来源不存在404",
+        "planName": "原方案 360p H264",
+        "exactSource": false,
+        "expiresAt": 1792130705295
+      }
+    }
+  },
+  {
+    "name": "cancelled session refused",
+    "passed": true,
+    "details": {
+      "error": "Capture session expired. Return to the task and start again."
+    }
+  },
+  {
+    "name": "begin 3de8bbae",
+    "passed": true,
+    "details": {
+      "data": {
+        "requestId": "580027a0de292c923891f9261423bb2b387a6144a3b5f146",
+        "pageUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+        "title": "来源不存在404",
+        "planName": "原方案 360p H264",
+        "exactSource": false,
+        "expiresAt": 1792130705297
+      }
+    }
+  },
+  {
+    "name": "claim session",
+    "passed": true,
+    "details": {
+      "command": {
+        "requestId": "580027a0de292c923891f9261423bb2b387a6144a3b5f146",
+        "pageUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+        "title": "来源不存在404",
+        "planName": "原方案 360p H264",
+        "exactSource": false,
+        "expiresAt": 1792130705297
+      }
+    }
+  },
+  {
+    "name": "begin 3de8bbae",
+    "passed": true,
+    "details": {
+      "data": {
+        "requestId": "bb1615418c7d0a982ed5d5e2cf175de991cb7304994b7a08",
+        "pageUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+        "title": "来源不存在404",
+        "planName": "原方案 360p H264",
+        "exactSource": false,
+        "expiresAt": 1792130705299
+      }
+    }
+  },
+  {
+    "name": "claim session",
+    "passed": true,
+    "details": {
+      "command": {
+        "requestId": "bb1615418c7d0a982ed5d5e2cf175de991cb7304994b7a08",
+        "pageUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+        "title": "来源不存在404",
+        "planName": "原方案 360p H264",
+        "exactSource": false,
+        "expiresAt": 1792130705299
+      }
+    }
+  },
+  {
+    "name": "superseded session refused",
+    "passed": true,
+    "details": {
+      "error": "Capture session expired. Return to the task and start again."
+    }
+  },
+  {
+    "name": "begin bd5b0a4b",
+    "passed": true,
+    "details": {
+      "data": {
+        "requestId": "ccf2729383bf74b1f4bcdf438c7ba61efc1a97d0b35e7a77",
+        "pageUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+        "title": "精确来源不可静默放宽",
+        "exactSource": true,
+        "expiresAt": 1792130705812
+      }
+    }
+  },
+  {
+    "name": "claim session",
+    "passed": true,
+    "details": {
+      "command": {
+        "requestId": "ccf2729383bf74b1f4bcdf438c7ba61efc1a97d0b35e7a77",
+        "pageUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+        "title": "精确来源不可静默放宽",
+        "exactSource": true,
+        "expiresAt": 1792130705812
+      }
+    }
+  },
+  {
+    "name": "exact source lock preserved",
+    "passed": true,
+    "details": {
+      "error": "The original task locks an exact source format. Select the new source as a new task and confirm its format; the original selection was kept."
+    }
+  },
+  {
+    "name": "exact intent unchanged",
+    "passed": true,
+    "details": null
+  },
+  {
+    "name": "begin e143fcbe",
+    "passed": true,
+    "details": {
+      "data": {
+        "requestId": "dced7ca959e8afc66947a25784f752c77f9f90bc5fcbb46d",
+        "pageUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+        "title": "重新捕获仍验证360上限",
+        "exactSource": false,
+        "expiresAt": 1792130706325
+      }
+    }
+  },
+  {
+    "name": "claim session",
+    "passed": true,
+    "details": {
+      "command": {
+        "requestId": "dced7ca959e8afc66947a25784f752c77f9f90bc5fcbb46d",
+        "pageUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+        "title": "重新捕获仍验证360上限",
+        "exactSource": false,
+        "expiresAt": 1792130706325
+      }
+    }
+  },
+  {
+    "name": "candidate admission retains constraints",
+    "passed": true,
+    "details": {
+      "ok": true
+    }
+  },
+  {
+    "name": "720 source does not satisfy 360 request",
+    "passed": true,
+    "details": {
+      "id": "e143fcbe-831a-42c9-9c61-90f7099386d2",
+      "url": "http://127.0.0.1:62438/expired-mismatch.m3u8",
+      "title": "重新捕获仍验证360上限",
+      "format": "video",
+      "quality": "360",
+      "status": "error",
+      "progress": 100,
+      "filePath": null,
+      "thumbnail": null,
+      "duration": null,
+      "metadata": {
+        "recaptureRevision": 1,
+        "recaptureAt": "2026-10-16T05:55:06.327Z",
+        "sourceContext": {
+          "version": 1,
+          "pageUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+          "documentUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+          "observedAt": 1792130104236
+        },
+        "downloadRequest": {
+          "version": 1,
+          "selection": {
+            "version": 1,
+            "target": "video",
+            "maxHeight": 360,
+            "videoCodec": "any",
+            "dynamicRange": "any",
+            "output": "original",
+            "postprocess": "none"
+          },
+          "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output",
+          "filenameTemplate": "changed-{title}",
+          "includeNote": false,
+          "archiveByAuthor": false,
+          "folderNameTemplate": "{author}",
+          "playlistSubfolder": false
+        },
+        "candidate": {
+          "url": "http://127.0.0.1:62438/media/720.mp4",
+          "container": "mp4"
+        },
+        "mediaType": "mp4",
+        "referer": "http://127.0.0.1:62438/watch?lesson=a%20b",
+        "ytdlpId": "720",
+        "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output",
+        "skipAdoptExisting": true
+      },
+      "playlistId": null,
+      "playlistIndex": null,
+      "error": "Source selection not satisfied. Requested: height ≤ 360p. Observed: 720p / h264 / 30 FPS / unknown HDR.",
+      "errorCode": "UNSUPPORTED",
+      "createdAt": "2026-10-16T05:55:05.815Z",
+      "updatedAt": "2026-10-16T05:55:06.844Z",
+      "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output"
+    }
+  },
+  {
+    "name": "begin e143fcbe",
+    "passed": true,
+    "details": {
+      "data": {
+        "requestId": "f0dfcc6ba9dc784af7ff359a3e759469d63d8b81a9006a25",
+        "pageUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+        "title": "重新捕获仍验证360上限",
+        "exactSource": false,
+        "expiresAt": 1792130707349
+      }
+    }
+  },
+  {
+    "name": "claim session",
+    "passed": true,
+    "details": {
+      "command": {
+        "requestId": "f0dfcc6ba9dc784af7ff359a3e759469d63d8b81a9006a25",
+        "pageUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+        "title": "重新捕获仍验证360上限",
+        "exactSource": false,
+        "expiresAt": 1792130707349
+      }
+    }
+  },
+  {
+    "name": "second capture accepted",
+    "passed": true,
+    "details": {
+      "ok": true
+    }
+  },
+  {
+    "name": "second capture completes",
+    "passed": true,
+    "details": {
+      "id": "e143fcbe-831a-42c9-9c61-90f7099386d2",
+      "url": "http://127.0.0.1:62438/expired-mismatch.m3u8",
+      "title": "重新捕获仍验证360上限",
+      "format": "video",
+      "quality": "360",
+      "status": "complete",
+      "progress": 100,
+      "filePath": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output/changed-重新捕获仍验证360上限 (1).mp4",
+      "thumbnail": null,
+      "duration": null,
+      "metadata": {
+        "recaptureRevision": 2,
+        "recaptureAt": "2026-10-16T05:55:07.354Z",
+        "sourceContext": {
+          "version": 1,
+          "pageUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+          "documentUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+          "observedAt": 1792130104236
+        },
+        "downloadRequest": {
+          "version": 1,
+          "selection": {
+            "version": 1,
+            "target": "video",
+            "maxHeight": 360,
+            "videoCodec": "any",
+            "dynamicRange": "any",
+            "output": "original",
+            "postprocess": "none"
+          },
+          "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output",
+          "filenameTemplate": "changed-{title}",
+          "includeNote": false,
+          "archiveByAuthor": false,
+          "folderNameTemplate": "{author}",
+          "playlistSubfolder": false
+        },
+        "candidate": {
+          "url": "http://127.0.0.1:62438/media/360.mp4",
+          "container": "mp4"
+        },
+        "mediaType": "mp4",
+        "referer": "http://127.0.0.1:62438/watch?lesson=a%20b",
+        "ytdlpId": "720",
+        "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output",
+        "skipAdoptExisting": true
+      },
+      "playlistId": null,
+      "playlistIndex": null,
+      "error": null,
+      "errorCode": null,
+      "createdAt": "2026-10-16T05:55:05.815Z",
+      "updatedAt": "2026-10-16T05:55:07.895Z",
+      "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output"
+    }
+  }
+]

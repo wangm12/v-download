@@ -1,0 +1,318 @@
+
+> v-download@1.1.7 pretest
+> node scripts/dev-native-preflight.mjs --restore
+
+Verified host Node and Electron N-API bindings for darwin-arm64: /Users/mingjie/Documents/github/personal-projects/v-download/node_modules/better-sqlite3/prebuilds/darwin-arm64.node
+
+> v-download@1.1.7 test
+> npm run test:selection && npm run test:download-selection && npm run test:grouped-queue && npm run test:info-resolution && npm run test:info-resolution-contract && npm run test:douyin-profile && npm run test:douyin-gallery && npm run test:xiaohongshu && npm run test:note-resolve && npm run test:profile-picker-selection && npm run test:foundation && npm run test:media-resolver && npm run test:media-identity && npm run test:persisted-extras && npm run test:collection-picker && npm run test:ytdlp-progress && npm run test:ytdlp-argv && npm run test:po-token && npm run test:engine-manager && npm run test:onboarding && npm run test:native-auth && npm run test:transcode && npm run test:i18n && npm run test:gentle-limit-rate && npm run test:queue-filters && npm run test:presentation && npm run test:thumbnail-fetch && npm run test:http-client && npm run test:extension && npm run test:ui-contract && npm run test:app-version && npm run test:app-menu && npm run test:app-commands && npm run test:tray-quit && npm run test:settings-integration && npm run test:task-notify && npm run test:session-recover && npm run test:download-progress && npm run test:ffprobe && npm run test:output-template && npm run test:task-overrides && npm run test:terminal-error && npm run test:security && npm run test:updater && npm run test:production-placeholder-scan && npm run test:engines && npm run test:api-jobs && npm run test:remote-api && npm run test:remote-mcp && npm run test:mcp-stdio && npm run test:remote-job && npm run test:python-framework && npm run test:dev-native-preflight
+
+
+> v-download@1.1.7 test:selection
+> npx tsx scripts/test-selection.ts
+
+selection tests passed
+
+> v-download@1.1.7 test:download-selection
+> npx tsx scripts/test-download-selection.ts
+
+download selection: exact IDs, constrained fallback, plan revisions, snapshots and output identity passed
+
+> v-download@1.1.7 test:grouped-queue
+> npx tsx scripts/test-grouped-queue-scheduler.ts
+
+grouped queue scheduler tests passed
+
+> v-download@1.1.7 test:info-resolution
+> npx tsx scripts/test-info-resolution-scheduler.ts
+
+info resolution scheduler: concurrency, FIFO, and queued cancellation passed
+
+> v-download@1.1.7 test:info-resolution-contract
+> npx tsx scripts/test-info-resolution-contract.ts
+
+info resolution UI and persistence contract passed
+
+> v-download@1.1.7 test:douyin-profile
+> npx tsx scripts/test-douyin-profile.ts
+
+✔ creator pages and mobile user shares have the same profile identity (1.1065ms)
+✔ video shares, malformed profiles, and unrelated hosts do not open the profile picker (0.110958ms)
+✔ resolved profiles route to the creator picker, while videos keep their format flow (0.069625ms)
+✔ short links follow user and video redirects and release the unread response body (1.6465ms)
+✔ only real v.douyin.com share URLs trigger short-link inspection (0.045334ms)
+✔ extractProfilePostsFromHtml parses RENDER_DATA embed (0.606667ms)
+✔ resolveMsToken generates fallback when no cookie file (0.133833ms)
+✔ signDouyinUrlWithXBogus appends X-Bogus param (1.745333ms)
+✔ buildSignedAwemePostUrl includes post-specific query fields (0.538375ms)
+✔ filterDouyinCookies keeps Douyin domains only (0.339916ms)
+✔ awemeItemToProfileRow maps API aweme_list item (0.073292ms)
+✔ mapBrowserToPlaywrightLaunch supports chrome and rejects safari (0.10775ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 9.681416
+
+> v-download@1.1.7 test:douyin-gallery
+> npx tsx scripts/test-douyin-gallery.ts
+
+Douyin gallery motion tests passed
+
+> v-download@1.1.7 test:xiaohongshu
+> npx tsx scripts/test-xiaohongshu.ts
+
+xiaohongshu url and error helpers passed
+
+> v-download@1.1.7 test:note-resolve
+> npx tsx scripts/test-note-resolve.ts
+
+note resolve helpers passed
+
+> v-download@1.1.7 test:profile-picker-selection
+> npx tsx src/renderer/src/components/douyinProfilePickerState.test.ts
+
+Douyin profile picker selection passed
+
+> v-download@1.1.7 test:foundation
+> npx tsx scripts/test-foundation.ts
+
+✔ database migrations upgrade legacy downloads and remain idempotent (3.295458ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5.188708
+
+> v-download@1.1.7 test:media-resolver
+> npx tsx scripts/test-media-resolver.ts
+
+media resolver fixtures: ok
+
+> v-download@1.1.7 test:media-identity
+> npx tsx scripts/test-media-identity.ts
+
+media identity tests passed
+
+> v-download@1.1.7 test:persisted-extras
+> npx tsx scripts/test-persisted-extras.ts
+
+persisted extras tests passed
+
+> v-download@1.1.7 test:collection-picker
+> npx tsx scripts/test-collection-picker.ts
+
+collection picker tests passed
+
+> v-download@1.1.7 test:ytdlp-progress
+> npx tsx scripts/test-ytdlp-progress.ts
+
+yt-dlp progress parsing uses real duration instead of an asymptotic curve
+
+> v-download@1.1.7 test:ytdlp-argv
+> npx tsx scripts/test-ytdlp-provider-argv.ts
+
+yt-dlp provider argv wiring assertions passed
+
+> v-download@1.1.7 test:po-token
+> npx tsx scripts/test-po-token-provider.ts
+
+PO token provider fake tests passed: readiness, reuse, bounded retries, recovery, and permanent shutdown
+
+> v-download@1.1.7 test:engine-manager
+> npx tsx scripts/test-engine-manager.ts
+
+engine manager model tests passed
+
+> v-download@1.1.7 test:onboarding
+> npx tsx scripts/test-onboarding.ts
+
+onboarding settings tests passed
+
+> v-download@1.1.7 test:native-auth
+> npx tsx scripts/test-native-auth.ts
+
+native auth model tests passed
+
+> v-download@1.1.7 test:transcode
+> npx tsx scripts/test-transcode.ts
+
+transcode model tests passed
+
+> v-download@1.1.7 test:i18n
+> npx tsx scripts/test-i18n.ts
+
+i18n tests passed (698 keys × 3 locales)
+
+> v-download@1.1.7 test:gentle-limit-rate
+> npx tsx scripts/test-gentle-limit-rate.ts
+
+gentle --limit-rate tests passed (cap: 2M)
+
+> v-download@1.1.7 test:queue-filters
+> npx tsx src/renderer/src/utils/queueFilters.test.ts
+
+queue filter tests passed
+
+> v-download@1.1.7 test:presentation
+> npx tsx src/renderer/src/components/formatDialogPresentation.test.ts && npx tsx src/renderer/src/components/downloadInspectorPresentation.test.ts && npx tsx src/renderer/src/components/preferencesPanelPresentation.test.ts && npx tsx src/renderer/src/components/preferencesPanelSpeedPolicy.test.ts && npx tsx src/renderer/src/components/playlistGroupPresentation.test.ts && npx tsx src/renderer/src/components/statusPresentation.test.ts && npx tsx src/renderer/src/components/compactViewPresentation.test.ts && npx tsx src/renderer/src/components/agentSkillPresentation.test.ts && node src/renderer/src/components/BottomBar.structure.test.mjs
+
+format dialog presentation tests passed
+Download details presentation state passed
+PreferencesPanel presentation structure passed
+PreferencesPanel speed policy presentation passed
+PASS collection preview shows remaining items after four thumbnails
+PASS collection without thumbnails still reports all items as overflow
+PASS five-item boundary is expanded and has no more items
+PASS status and remaining values are derived from counts
+PASS disclosure keeps the preview capped until show all is explicitly requested
+Status presentation mapping passed
+compact view presentation tests passed
+agent skill presentation tests passed
+BottomBar structure check passed
+
+> v-download@1.1.7 test:thumbnail-fetch
+> npx tsx scripts/test-thumbnail-fetch.ts
+
+thumbnail fetch guard tests passed
+
+> v-download@1.1.7 test:http-client
+> npx tsx scripts/test-http-client.ts
+
+[http] proxied fetch failed via http://127.0.0.1:9: fetch failed
+http client tests passed
+
+> v-download@1.1.7 test:extension
+> node scripts/test-extension-media.js && node scripts/test-extension-download.js && node scripts/test-extension-plans.cjs && node scripts/test-extension-source-data.cjs && node scripts/test-extension-early-capture.cjs
+
+extension media utility: 6 reliable candidates; manifests, duplicates, and identity labels verified
+extension download: transient retry, cold wake, duplicate guard, and visible states verified
+extension plans: shared worker validation, frozen revision and permanent error propagation passed
+extension source data: raw URLs, idempotent scoring, independent candidates, network capture and both submit paths passed
+extension early capture: buffered resources, bounded retries, sender ownership, navigation cutoffs and network precedence passed
+
+> v-download@1.1.7 test:ui-contract
+> node scripts/test-ui-contract.mjs
+
+ui contract: 27 renderer files and 27 extension files checked
+
+> v-download@1.1.7 test:app-version
+> npx tsx scripts/test-app-version-contract.ts
+
+app version contract passed
+
+> v-download@1.1.7 test:app-menu
+> npx tsx scripts/test-app-menu.ts
+
+app-menu contract ok
+
+> v-download@1.1.7 test:app-commands
+> npx tsx scripts/test-app-commands.ts
+
+app-commands catalog ok
+
+> v-download@1.1.7 test:tray-quit
+> npx tsx scripts/test-tray-quit.ts
+
+tray-quit tests passed
+
+> v-download@1.1.7 test:settings-integration
+> npx tsx scripts/test-settings-integration.ts
+
+settings-integration tests passed
+
+> v-download@1.1.7 test:task-notify
+> npx tsx scripts/test-task-notify.ts
+
+task-notify tests passed
+
+> v-download@1.1.7 test:session-recover
+> npx tsx scripts/test-session-recover.ts
+
+session-recover tests passed
+
+> v-download@1.1.7 test:download-progress
+> npx tsx scripts/test-download-progress.ts
+
+download progress producer/renderer contract passed
+
+> v-download@1.1.7 test:ffprobe
+> npx tsx scripts/test-ffprobe.ts
+
+ffprobe real subprocess: success, malformed JSON, read failure, bounded capture and cancellation passed
+
+> v-download@1.1.7 test:output-template
+> npx tsx scripts/test-output-template.ts
+
+output-template tests passed
+
+> v-download@1.1.7 test:task-overrides
+> npx tsx scripts/test-task-overrides.ts
+
+task override tests passed
+
+> v-download@1.1.7 test:terminal-error
+> npx tsx scripts/test-terminal-error-propagation.ts
+
+terminal error_code propagation assertions passed
+
+> v-download@1.1.7 test:security
+> npx tsx scripts/test-security.ts
+
+security validators: origin, pairing boundary, cookie records, download payloads, and redaction fixtures passed
+
+> v-download@1.1.7 test:updater
+> npx tsx scripts/test-updater-contract.ts
+
+updater contract passed (lazy, packaged/configured, HTTPS-only, redacted errors, additive IPC)
+
+> v-download@1.1.7 test:production-placeholder-scan
+> npx tsx scripts/test-production-placeholder-scan.ts
+
+production renderer placeholder scan passed (77 source files)
+
+> v-download@1.1.7 test:engines
+> node scripts/test-engines.mjs
+
+engine manifest tests passed
+
+> v-download@1.1.7 test:api-jobs
+> npx tsx scripts/test-api-jobs.ts
+
+api jobs model tests passed
+
+> v-download@1.1.7 test:remote-api
+> npx tsx scripts/test-remote-api.ts
+
+remote api tests passed
+
+> v-download@1.1.7 test:remote-mcp
+> npx tsx scripts/test-remote-mcp.ts
+
+remote mcp tests passed
+
+> v-download@1.1.7 test:mcp-stdio
+> npx tsx scripts/test-v-download-mcp-stdio.ts
+
+v-download mcp stdio tests passed
+
+> v-download@1.1.7 test:remote-job
+> npx tsx scripts/test-remote-job.ts
+
+remote job adapter: ownership, status, enqueue guards passed
+
+> v-download@1.1.7 test:python-framework
+> node scripts/test-python-framework.mjs
+
+python framework normalize tests passed
+
+> v-download@1.1.7 test:dev-native-preflight
+> node scripts/test-dev-native-preflight.mjs
+
+dev native preflight and restore contract passed

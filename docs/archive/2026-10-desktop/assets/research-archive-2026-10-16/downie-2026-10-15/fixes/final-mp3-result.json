@@ -1,0 +1,76 @@
+{
+  "task": {
+    "id": "807be6ac-da8d-410e-8784-cd7273ebf5f6",
+    "url": "http://127.0.0.1:62276/watch/hls",
+    "title": "Local synthetic download fixture (1)",
+    "format": "mp3",
+    "quality": "128",
+    "status": "complete",
+    "progress": 100,
+    "filePath": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/fixes/output/Local synthetic download fixture (1) [hls-1].mp3",
+    "thumbnail": "",
+    "duration": 0,
+    "metadata": {
+      "ytdlpId": "hls-1",
+      "noteTitle": "Local synthetic download fixture (1)",
+      "noteAuthor": "",
+      "noteUrl": "http://127.0.0.1:62276/watch/hls",
+      "noteDescription": "",
+      "includeNote": true
+    },
+    "playlistId": null,
+    "playlistIndex": null,
+    "error": null,
+    "errorCode": null,
+    "createdAt": "2026-10-15T17:18:18.717Z",
+    "updatedAt": "2026-10-15T17:18:59.225Z"
+  },
+  "probe": {
+    "streams": [
+      {
+        "index": 0,
+        "codec_name": "mp3",
+        "codec_long_name": "MP3 (MPEG audio layer 3)",
+        "codec_type": "audio",
+        "codec_tag_string": "[0][0][0][0]",
+        "codec_tag": "0x0000",
+        "mime_codec_string": "mp4a.40.34",
+        "sample_fmt": "fltp",
+        "sample_rate": "48000",
+        "channels": 1,
+        "channel_layout": "mono",
+        "bits_per_sample": 0,
+        "initial_padding": 0,
+        "r_frame_rate": "0/0",
+        "avg_frame_rate": "0/0",
+        "time_base": "1/14112000",
+        "start_pts": 324870,
+        "start_time": "0.023021",
+        "duration_ts": 169795584,
+        "duration": "12.032000",
+        "bit_rate": "72493",
+        "disposition": {
+          "default": 0,
+          "dub": 0,
+          "original": 0,
+          "comment": 0,
+          "lyrics": 0,
+          "karaoke": 0,
+          "forced": 0,
+          "hearing_impaired": 0,
+          "visual_impaired": 0,
+          "clean_effects": 0,
+          "attached_pic": 0,
+          "timed_thumbnails": 0,
+          "non_diegetic": 0,
+          "captions": 0,
+          "descriptions": 0,
+          "metadata": 0,
+          "dependent": 0,
+          "still_image": 0,
+          "multilayer": 0
+        }
+      }
+    ]
+  }
+}

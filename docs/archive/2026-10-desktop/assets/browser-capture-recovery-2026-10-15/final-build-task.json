@@ -1,0 +1,62 @@
+{
+  "id": "38e41633-0c59-47f8-9e5d-f53a9f39e47b",
+  "url": "http://127.0.0.1:62438/expired-final.m3u8",
+  "title": "最终验收原方案",
+  "format": "video",
+  "quality": "360",
+  "status": "complete",
+  "progress": 100,
+  "filePath": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output/最终验收原方案.mp4",
+  "thumbnail": null,
+  "duration": null,
+  "metadata": {
+    "recaptureRevision": 1,
+    "recaptureAt": "2026-10-16T06:07:51.785Z",
+    "sourceContext": {
+      "version": 1,
+      "pageUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+      "documentUrl": "http://127.0.0.1:62438/embed/player?chapter=one%20two",
+      "observedAt": 1792130870744
+    },
+    "downloadRequest": {
+      "version": 1,
+      "selection": {
+        "version": 1,
+        "target": "video",
+        "maxHeight": 360,
+        "videoCodec": "h264",
+        "maxFps": 30,
+        "dynamicRange": "any",
+        "output": "mp4",
+        "postprocess": "h264-mp4"
+      },
+      "plan": {
+        "id": "final-freeze",
+        "name": "最终原方案",
+        "revision": 1
+      },
+      "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output",
+      "filenameTemplate": "{title}",
+      "includeNote": false,
+      "archiveByAuthor": false,
+      "folderNameTemplate": "{author}",
+      "playlistSubfolder": false
+    },
+    "candidate": {
+      "url": "http://127.0.0.1:62438/media/iframe.m3u8?token=a%2fb",
+      "container": "hls",
+      "protocol": "hls"
+    },
+    "mediaType": "hls",
+    "referer": "http://127.0.0.1:62438/embed/player?chapter=one%20two",
+    "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output",
+    "skipAdoptExisting": true
+  },
+  "playlistId": null,
+  "playlistIndex": null,
+  "error": null,
+  "errorCode": null,
+  "createdAt": "2026-10-16T06:07:50.755Z",
+  "updatedAt": "2026-10-16T06:07:52.853Z",
+  "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output"
+}

@@ -1,0 +1,41 @@
+{
+  "checks": [
+    {
+      "case": "valid-post",
+      "status": 200
+    },
+    {
+      "case": "legacy-get-with-origin",
+      "status": 200
+    },
+    {
+      "case": "missing-origin",
+      "status": 403
+    },
+    {
+      "case": "foreign-site",
+      "status": 403
+    },
+    {
+      "case": "foreign-extension",
+      "status": 403
+    },
+    {
+      "case": "missing-capability",
+      "status": 403
+    },
+    {
+      "case": "wrong-capability",
+      "status": 403
+    },
+    {
+      "case": "read-query-cannot-mutate",
+      "status": 400
+    },
+    {
+      "case": "array-query",
+      "status": 400
+    }
+  ],
+  "libraryUnchanged": true
+}

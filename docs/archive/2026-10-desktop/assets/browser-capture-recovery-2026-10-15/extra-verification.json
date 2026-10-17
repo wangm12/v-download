@@ -1,0 +1,266 @@
+[
+  {
+    "name": "unknown provider codec is strictly verified from actual source",
+    "passed": true,
+    "details": {
+      "id": "b65b947d-3100-4ab8-9d72-a3036ca649e2",
+      "url": "http://127.0.0.1:62438/expired-hevc.m3u8",
+      "title": "HEVC不可伪装成H264来源",
+      "format": "video",
+      "quality": "360",
+      "status": "error",
+      "progress": 100,
+      "filePath": null,
+      "thumbnail": null,
+      "duration": null,
+      "metadata": {
+        "recaptureRevision": 1,
+        "recaptureAt": "2026-10-16T06:02:41.537Z",
+        "sourceContext": {
+          "version": 1,
+          "pageUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+          "documentUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+          "observedAt": 1792130560496
+        },
+        "downloadRequest": {
+          "version": 1,
+          "selection": {
+            "version": 1,
+            "target": "video",
+            "maxHeight": 360,
+            "videoCodec": "h264",
+            "maxFps": 30,
+            "dynamicRange": "any",
+            "output": "mp4",
+            "postprocess": "h264-mp4"
+          },
+          "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output",
+          "filenameTemplate": "changed-{title}",
+          "includeNote": false,
+          "archiveByAuthor": false,
+          "folderNameTemplate": "{author}",
+          "playlistSubfolder": false
+        },
+        "candidate": {
+          "url": "http://127.0.0.1:62438/media/hevc/index.m3u8",
+          "container": "hls",
+          "protocol": "hls"
+        },
+        "mediaType": "hls",
+        "referer": "http://127.0.0.1:62438/watch?lesson=a%20b",
+        "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output",
+        "skipAdoptExisting": true
+      },
+      "playlistId": null,
+      "playlistIndex": null,
+      "error": "Source selection not satisfied. Requested: height ≤ 360p, h264, FPS ≤ 30. Observed: 360p / hevc / 30 FPS / unknown HDR.",
+      "errorCode": "UNSUPPORTED",
+      "createdAt": "2026-10-16T06:02:40.502Z",
+      "updatedAt": "2026-10-16T06:02:42.309Z",
+      "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output"
+    }
+  },
+  {
+    "name": "unknown provider H264 facts succeed after actual verification",
+    "passed": true,
+    "details": {
+      "id": "b65b947d-3100-4ab8-9d72-a3036ca649e2",
+      "url": "http://127.0.0.1:62438/expired-hevc.m3u8",
+      "title": "HEVC不可伪装成H264来源",
+      "format": "video",
+      "quality": "360",
+      "status": "complete",
+      "progress": 100,
+      "filePath": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output/changed-HEVC不可伪装成H264来源.mp4",
+      "thumbnail": null,
+      "duration": null,
+      "metadata": {
+        "recaptureRevision": 2,
+        "recaptureAt": "2026-10-16T06:02:42.558Z",
+        "sourceContext": {
+          "version": 1,
+          "pageUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+          "documentUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+          "observedAt": 1792130560496
+        },
+        "downloadRequest": {
+          "version": 1,
+          "selection": {
+            "version": 1,
+            "target": "video",
+            "maxHeight": 360,
+            "videoCodec": "h264",
+            "maxFps": 30,
+            "dynamicRange": "any",
+            "output": "mp4",
+            "postprocess": "h264-mp4"
+          },
+          "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output",
+          "filenameTemplate": "changed-{title}",
+          "includeNote": false,
+          "archiveByAuthor": false,
+          "folderNameTemplate": "{author}",
+          "playlistSubfolder": false
+        },
+        "candidate": {
+          "url": "http://127.0.0.1:62438/media/independent.m3u8",
+          "container": "hls",
+          "protocol": "hls"
+        },
+        "mediaType": "hls",
+        "referer": "http://127.0.0.1:62438/watch?lesson=a%20b",
+        "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output",
+        "skipAdoptExisting": true
+      },
+      "playlistId": null,
+      "playlistIndex": null,
+      "error": null,
+      "errorCode": null,
+      "createdAt": "2026-10-16T06:02:40.502Z",
+      "updatedAt": "2026-10-16T06:02:43.531Z",
+      "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output"
+    }
+  },
+  {
+    "name": "audio intent retained",
+    "passed": true,
+    "details": {
+      "id": "138cbe5c-59c2-4939-9f63-02ba40855ad9",
+      "url": "http://127.0.0.1:62438/expired-audio.m3u8",
+      "title": "原音频方案恢复",
+      "format": "mp3",
+      "quality": "192",
+      "status": "complete",
+      "progress": 100,
+      "filePath": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output/changed-原音频方案恢复.mp3",
+      "thumbnail": null,
+      "duration": null,
+      "metadata": {
+        "recaptureRevision": 1,
+        "recaptureAt": "2026-10-16T06:02:44.084Z",
+        "sourceContext": {
+          "version": 1,
+          "pageUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+          "documentUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+          "observedAt": 1792130560496
+        },
+        "downloadRequest": {
+          "version": 1,
+          "selection": {
+            "version": 1,
+            "target": "audio",
+            "maxHeight": "best",
+            "videoCodec": "any",
+            "dynamicRange": "any",
+            "output": "mp3",
+            "audioBitrate": 192,
+            "postprocess": "none"
+          },
+          "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output",
+          "filenameTemplate": "changed-{title}",
+          "includeNote": false,
+          "archiveByAuthor": false,
+          "folderNameTemplate": "{author}",
+          "playlistSubfolder": false
+        },
+        "candidate": {
+          "url": "http://127.0.0.1:62438/media/independent.m3u8",
+          "container": "hls",
+          "protocol": "hls"
+        },
+        "mediaType": "hls",
+        "referer": "http://127.0.0.1:62438/watch?lesson=a%20b",
+        "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output",
+        "skipAdoptExisting": true
+      },
+      "playlistId": null,
+      "playlistIndex": null,
+      "error": null,
+      "errorCode": null,
+      "createdAt": "2026-10-16T06:02:43.569Z",
+      "updatedAt": "2026-10-16T06:02:44.854Z",
+      "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output"
+    }
+  },
+  {
+    "name": "explicit source page for CDN-only task",
+    "passed": true,
+    "details": {
+      "id": "f4b60c81-ebde-4633-b477-958c79c996ad",
+      "url": "http://127.0.0.1:62438/expired-cdn.mp4",
+      "title": "补充原网页后恢复",
+      "format": "video",
+      "quality": "360",
+      "status": "complete",
+      "progress": 100,
+      "filePath": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output/changed-补充原网页后恢复.mp4",
+      "thumbnail": null,
+      "duration": null,
+      "metadata": {
+        "recaptureRevision": 1,
+        "recaptureAt": "2026-10-16T06:02:45.615Z",
+        "sourceContext": {
+          "version": 1,
+          "pageUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+          "documentUrl": "http://127.0.0.1:62438/watch?lesson=a%20b",
+          "observedAt": 1792130560496
+        },
+        "downloadRequest": {
+          "version": 1,
+          "selection": {
+            "version": 1,
+            "target": "video",
+            "maxHeight": 360,
+            "videoCodec": "any",
+            "dynamicRange": "any",
+            "output": "original",
+            "postprocess": "none"
+          },
+          "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output",
+          "filenameTemplate": "changed-{title}",
+          "includeNote": false,
+          "archiveByAuthor": false,
+          "folderNameTemplate": "{author}",
+          "playlistSubfolder": false
+        },
+        "candidate": {
+          "url": "http://127.0.0.1:62438/media/360.mp4",
+          "container": "mp4"
+        },
+        "mediaType": "mp4",
+        "referer": "http://127.0.0.1:62438/watch?lesson=a%20b",
+        "ytdlpId": "360",
+        "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output",
+        "skipAdoptExisting": true
+      },
+      "playlistId": null,
+      "playlistIndex": null,
+      "error": null,
+      "errorCode": null,
+      "createdAt": "2026-10-16T06:02:45.099Z",
+      "updatedAt": "2026-10-16T06:02:46.154Z",
+      "outputDir": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-recovery-2026-10-15/frozen-output"
+    }
+  },
+  {
+    "name": "invalid page override refused",
+    "passed": true,
+    "details": {
+      "error": "Enter a valid HTTP(S) source page"
+    }
+  },
+  {
+    "name": "invalid page override refused",
+    "passed": true,
+    "details": {
+      "error": "Enter a valid HTTP(S) source page"
+    }
+  },
+  {
+    "name": "invalid page override refused",
+    "passed": true,
+    "details": {
+      "error": "Enter a valid HTTP(S) source page"
+    }
+  }
+]

@@ -1,0 +1,792 @@
+{
+  "started_at_utc": "2026-10-17T06:00:48.165976+00:00",
+  "host": {
+    "os": "macOS-27.0.1-arm64-arm-64bit",
+    "arch": "arm64"
+  },
+  "engine": {
+    "path": "/Applications/V-Download.app/Contents/Resources/engines/darwin-arm64/yt-dlp",
+    "version": "2026.07.04",
+    "sha256": "ff7d4fc44b8fbf42da021c1bca950da0326cdb0cdb84992fdc7fb7ec215df435",
+    "ffmpeg_sha256": "eaf91238e104dd0e262bc6510e25061855cc99a6955a721b0ac99660d58c473d",
+    "ffprobe_sha256": "ed9dc5871914b466b96b402c9ec0ba68ce4f836e72faa464b1b4e279835bd4a6"
+  },
+  "base_argv": [
+    "/Applications/V-Download.app/Contents/Resources/engines/darwin-arm64/yt-dlp",
+    "--ignore-config",
+    "--no-cookies",
+    "--no-cookies-from-browser",
+    "--no-plugin-dirs",
+    "--no-cache-dir",
+    "--no-playlist",
+    "--proxy",
+    "",
+    "--socket-timeout",
+    "7",
+    "--retries",
+    "0",
+    "--extractor-retries",
+    "0",
+    "--fragment-retries",
+    "0",
+    "--no-progress",
+    "--newline",
+    "--ffmpeg-location",
+    "/Applications/V-Download.app/Contents/Resources/engines/darwin-arm64",
+    "--js-runtimes",
+    "node:/Users/mingjie/.nvm/versions/node/v23.10.0/bin/node"
+  ],
+  "scope": "macOS engine baseline; no desktop pipeline, PO provider, cloud IP, real login, or personal Chrome profile",
+  "local_cases": [
+    {
+      "exit": 0,
+      "timeout": false,
+      "elapsed_seconds": 0.474,
+      "stderr": "WARNING: Your yt-dlp version (2026.07.04) is older than 90 days!\n         It is strongly recommended to always use the latest version.\n         Auto-update is not supported for unpackaged executables; Re-download the latest release.\n         To suppress this warning, add --no-update to your command/config.\n",
+      "id": "public_no_cookie",
+      "input_path": "/public.mp4",
+      "extra_argv": [],
+      "expected_download": true,
+      "file_exists": true,
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/public.mp4",
+          "status": 200,
+          "cookie_present": false,
+          "referer": null,
+          "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"
+        },
+        {
+          "method": "GET",
+          "path": "/public.mp4",
+          "status": 200,
+          "cookie_present": false,
+          "referer": null,
+          "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"
+        }
+      ],
+      "output": {
+        "sha256": "75e2deb9530ae58871272fad11387496e0fca83cc2d526dd1a5826d54b1589c3",
+        "bytes": 663601,
+        "ffprobe": {
+          "programs": [],
+          "stream_groups": [],
+          "streams": [
+            {
+              "codec_name": "h264",
+              "codec_type": "video",
+              "width": 640,
+              "height": 360
+            },
+            {
+              "codec_name": "aac",
+              "codec_type": "audio"
+            }
+          ],
+          "format": {
+            "duration": "3.000000"
+          }
+        },
+        "ffprobe_exit": 0,
+        "full_decode_exit": 0,
+        "decode_stderr": ""
+      },
+      "matches_expectation": true
+    },
+    {
+      "exit": 1,
+      "timeout": false,
+      "elapsed_seconds": 0.457,
+      "stderr": "WARNING: Your yt-dlp version (2026.07.04) is older than 90 days!\n         It is strongly recommended to always use the latest version.\n         Auto-update is not supported for unpackaged executables; Re-download the latest release.\n         To suppress this warning, add --no-update to your command/config.\nERROR: [generic] guest: Unable to download webpage: HTTP Error 403: Forbidden (caused by <HTTPError 403: Forbidden>)\n",
+      "id": "guest_direct_no_cookie",
+      "input_path": "/guest.mp4",
+      "extra_argv": [],
+      "expected_download": false,
+      "file_exists": false,
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/guest.mp4",
+          "status": 403,
+          "cookie_present": false,
+          "referer": null,
+          "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
+        }
+      ],
+      "matches_expectation": true
+    },
+    {
+      "exit": 0,
+      "timeout": false,
+      "elapsed_seconds": 0.661,
+      "stderr": "WARNING: Your yt-dlp version (2026.07.04) is older than 90 days!\n         It is strongly recommended to always use the latest version.\n         Auto-update is not supported for unpackaged executables; Re-download the latest release.\n         To suppress this warning, add --no-update to your command/config.\nWARNING: [generic] Falling back on generic information extractor\n",
+      "id": "guest_page_sets_cookie",
+      "input_path": "/watch-guest",
+      "extra_argv": [],
+      "expected_download": true,
+      "file_exists": true,
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/watch-guest",
+          "status": 200,
+          "cookie_present": false,
+          "referer": null,
+          "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36"
+        },
+        {
+          "method": "GET",
+          "path": "/guest.mp4",
+          "status": 200,
+          "cookie_present": true,
+          "referer": "http://127.0.0.1:59245/watch-guest",
+          "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36"
+        }
+      ],
+      "output": {
+        "sha256": "75e2deb9530ae58871272fad11387496e0fca83cc2d526dd1a5826d54b1589c3",
+        "bytes": 663601,
+        "ffprobe": {
+          "programs": [],
+          "stream_groups": [],
+          "streams": [
+            {
+              "codec_name": "h264",
+              "codec_type": "video",
+              "width": 640,
+              "height": 360
+            },
+            {
+              "codec_name": "aac",
+              "codec_type": "audio"
+            }
+          ],
+          "format": {
+            "duration": "3.000000"
+          }
+        },
+        "ffprobe_exit": 0,
+        "full_decode_exit": 0,
+        "decode_stderr": ""
+      },
+      "matches_expectation": true
+    },
+    {
+      "exit": 1,
+      "timeout": false,
+      "elapsed_seconds": 0.456,
+      "stderr": "WARNING: Your yt-dlp version (2026.07.04) is older than 90 days!\n         It is strongly recommended to always use the latest version.\n         Auto-update is not supported for unpackaged executables; Re-download the latest release.\n         To suppress this warning, add --no-update to your command/config.\nERROR: [generic] account: Unable to download webpage: HTTP Error 401: Unauthorized (caused by <HTTPError 401: Unauthorized>)\n",
+      "id": "account_no_cookie",
+      "input_path": "/account.mp4",
+      "extra_argv": [],
+      "expected_download": false,
+      "file_exists": false,
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/account.mp4",
+          "status": 401,
+          "cookie_present": false,
+          "referer": null,
+          "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+        }
+      ],
+      "matches_expectation": true
+    },
+    {
+      "exit": 0,
+      "timeout": false,
+      "elapsed_seconds": 0.483,
+      "stderr": "WARNING: Your yt-dlp version (2026.07.04) is older than 90 days!\n         It is strongly recommended to always use the latest version.\n         Auto-update is not supported for unpackaged executables; Re-download the latest release.\n         To suppress this warning, add --no-update to your command/config.\n",
+      "id": "account_synthetic_cookie",
+      "input_path": "/account.mp4",
+      "extra_argv": [
+        "--cookies",
+        "<temporary>/synthetic-only.cookies.txt"
+      ],
+      "expected_download": true,
+      "file_exists": true,
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/account.mp4",
+          "status": 200,
+          "cookie_present": true,
+          "referer": null,
+          "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36"
+        },
+        {
+          "method": "GET",
+          "path": "/account.mp4",
+          "status": 200,
+          "cookie_present": true,
+          "referer": null,
+          "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36"
+        }
+      ],
+      "output": {
+        "sha256": "75e2deb9530ae58871272fad11387496e0fca83cc2d526dd1a5826d54b1589c3",
+        "bytes": 663601,
+        "ffprobe": {
+          "programs": [],
+          "stream_groups": [],
+          "streams": [
+            {
+              "codec_name": "h264",
+              "codec_type": "video",
+              "width": 640,
+              "height": 360
+            },
+            {
+              "codec_name": "aac",
+              "codec_type": "audio"
+            }
+          ],
+          "format": {
+            "duration": "3.000000"
+          }
+        },
+        "ffprobe_exit": 0,
+        "full_decode_exit": 0,
+        "decode_stderr": ""
+      },
+      "matches_expectation": true
+    },
+    {
+      "exit": 1,
+      "timeout": false,
+      "elapsed_seconds": 0.439,
+      "stderr": "WARNING: Your yt-dlp version (2026.07.04) is older than 90 days!\n         It is strongly recommended to always use the latest version.\n         Auto-update is not supported for unpackaged executables; Re-download the latest release.\n         To suppress this warning, add --no-update to your command/config.\nERROR: [generic] referer: Unable to download webpage: HTTP Error 403: Forbidden (caused by <HTTPError 403: Forbidden>)\n",
+      "id": "referer_missing",
+      "input_path": "/referer.mp4",
+      "extra_argv": [],
+      "expected_download": false,
+      "file_exists": false,
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/referer.mp4",
+          "status": 403,
+          "cookie_present": false,
+          "referer": null,
+          "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"
+        }
+      ],
+      "matches_expectation": true
+    },
+    {
+      "exit": 1,
+      "timeout": false,
+      "elapsed_seconds": 0.452,
+      "stderr": "WARNING: Your yt-dlp version (2026.07.04) is older than 90 days!\n         It is strongly recommended to always use the latest version.\n         Auto-update is not supported for unpackaged executables; Re-download the latest release.\n         To suppress this warning, add --no-update to your command/config.\nERROR: [generic] referer: Unable to download webpage: HTTP Error 403: Forbidden (caused by <HTTPError 403: Forbidden>)\n",
+      "id": "referer_origin_only",
+      "input_path": "/referer.mp4",
+      "extra_argv": [
+        "--referer",
+        "http://127.0.0.1:59245/"
+      ],
+      "expected_download": false,
+      "file_exists": false,
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/referer.mp4",
+          "status": 403,
+          "cookie_present": false,
+          "referer": "http://127.0.0.1:59245/",
+          "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+        }
+      ],
+      "matches_expectation": true
+    },
+    {
+      "exit": 0,
+      "timeout": false,
+      "elapsed_seconds": 0.475,
+      "stderr": "WARNING: Your yt-dlp version (2026.07.04) is older than 90 days!\n         It is strongly recommended to always use the latest version.\n         Auto-update is not supported for unpackaged executables; Re-download the latest release.\n         To suppress this warning, add --no-update to your command/config.\n",
+      "id": "referer_complete",
+      "input_path": "/referer.mp4",
+      "extra_argv": [
+        "--referer",
+        "http://127.0.0.1:59245/watch/path?video=42&variant=full"
+      ],
+      "expected_download": true,
+      "file_exists": true,
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/referer.mp4",
+          "status": 200,
+          "cookie_present": false,
+          "referer": "http://127.0.0.1:59245/watch/path?video=42&variant=full",
+          "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+        },
+        {
+          "method": "GET",
+          "path": "/referer.mp4",
+          "status": 200,
+          "cookie_present": false,
+          "referer": "http://127.0.0.1:59245/watch/path?video=42&variant=full",
+          "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+        }
+      ],
+      "output": {
+        "sha256": "75e2deb9530ae58871272fad11387496e0fca83cc2d526dd1a5826d54b1589c3",
+        "bytes": 663601,
+        "ffprobe": {
+          "programs": [],
+          "stream_groups": [],
+          "streams": [
+            {
+              "codec_name": "h264",
+              "codec_type": "video",
+              "width": 640,
+              "height": 360
+            },
+            {
+              "codec_name": "aac",
+              "codec_type": "audio"
+            }
+          ],
+          "format": {
+            "duration": "3.000000"
+          }
+        },
+        "ffprobe_exit": 0,
+        "full_decode_exit": 0,
+        "decode_stderr": ""
+      },
+      "matches_expectation": true
+    },
+    {
+      "exit": 1,
+      "timeout": false,
+      "elapsed_seconds": 0.442,
+      "stderr": "WARNING: Your yt-dlp version (2026.07.04) is older than 90 days!\n         It is strongly recommended to always use the latest version.\n         Auto-update is not supported for unpackaged executables; Re-download the latest release.\n         To suppress this warning, add --no-update to your command/config.\nERROR: [generic] bound: Unable to download webpage: HTTP Error 403: Forbidden (caused by <HTTPError 403: Forbidden>)\n",
+      "id": "bound_cookie_only",
+      "input_path": "/bound.mp4",
+      "extra_argv": [
+        "--cookies",
+        "<temporary>/synthetic-only.cookies.txt"
+      ],
+      "expected_download": false,
+      "file_exists": false,
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/bound.mp4",
+          "status": 403,
+          "cookie_present": true,
+          "referer": null,
+          "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36"
+        }
+      ],
+      "matches_expectation": true
+    },
+    {
+      "exit": 0,
+      "timeout": false,
+      "elapsed_seconds": 0.456,
+      "stderr": "WARNING: Your yt-dlp version (2026.07.04) is older than 90 days!\n         It is strongly recommended to always use the latest version.\n         Auto-update is not supported for unpackaged executables; Re-download the latest release.\n         To suppress this warning, add --no-update to your command/config.\n",
+      "id": "bound_cookie_and_ua",
+      "input_path": "/bound.mp4",
+      "extra_argv": [
+        "--cookies",
+        "<temporary>/synthetic-only.cookies.txt",
+        "--user-agent",
+        "VDownloadResearch/1.0"
+      ],
+      "expected_download": true,
+      "file_exists": true,
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/bound.mp4",
+          "status": 200,
+          "cookie_present": true,
+          "referer": null,
+          "ua": "VDownloadResearch/1.0"
+        },
+        {
+          "method": "GET",
+          "path": "/bound.mp4",
+          "status": 200,
+          "cookie_present": true,
+          "referer": null,
+          "ua": "VDownloadResearch/1.0"
+        }
+      ],
+      "output": {
+        "sha256": "75e2deb9530ae58871272fad11387496e0fca83cc2d526dd1a5826d54b1589c3",
+        "bytes": 663601,
+        "ffprobe": {
+          "programs": [],
+          "stream_groups": [],
+          "streams": [
+            {
+              "codec_name": "h264",
+              "codec_type": "video",
+              "width": 640,
+              "height": 360
+            },
+            {
+              "codec_name": "aac",
+              "codec_type": "audio"
+            }
+          ],
+          "format": {
+            "duration": "3.000000"
+          }
+        },
+        "ffprobe_exit": 0,
+        "full_decode_exit": 0,
+        "decode_stderr": ""
+      },
+      "matches_expectation": true
+    }
+  ],
+  "public_cases": [
+    {
+      "exit": 0,
+      "timeout": false,
+      "elapsed_seconds": 1.484,
+      "stderr": "WARNING: Your yt-dlp version (2026.07.04) is older than 90 days!\n         It is strongly recommended to always use the latest version.\n         Auto-update is not supported for unpackaged executables; Re-download the latest release.\n         To suppress this warning, add --no-update to your command/config.\n",
+      "site": "YouTube",
+      "url": "https://www.youtube.com/watch?v=YE7VzlLtp-4",
+      "mode": "metadata_only",
+      "metadata": {
+        "id": "YE7VzlLtp-4",
+        "title": "Big Buck Bunny",
+        "duration": 597,
+        "format_count": 27,
+        "heights": [
+          27,
+          45,
+          90,
+          144,
+          240,
+          360,
+          480,
+          720,
+          1080
+        ],
+        "subtitle_languages": [
+          "en",
+          "fr"
+        ],
+        "automatic_caption_languages": [
+          "aa",
+          "ab",
+          "af",
+          "ak",
+          "am",
+          "ar",
+          "as",
+          "ay",
+          "az",
+          "ba",
+          "be",
+          "bg",
+          "bho",
+          "bn",
+          "bo",
+          "br",
+          "bs",
+          "ca",
+          "ceb",
+          "co",
+          "crs",
+          "cs",
+          "cy",
+          "da",
+          "de",
+          "dv",
+          "dz",
+          "ee",
+          "el",
+          "en",
+          "en-orig",
+          "eo",
+          "es",
+          "et",
+          "eu",
+          "fa",
+          "fi",
+          "fil",
+          "fj",
+          "fo",
+          "fr",
+          "fy",
+          "ga",
+          "gaa",
+          "gd",
+          "gl",
+          "gn",
+          "gu",
+          "gv",
+          "ha",
+          "haw",
+          "hi",
+          "hmn",
+          "hr",
+          "ht",
+          "hu",
+          "hy",
+          "id",
+          "ig",
+          "is",
+          "it",
+          "iu",
+          "iw",
+          "ja",
+          "jv",
+          "ka",
+          "kha",
+          "kk",
+          "kl",
+          "km",
+          "kn",
+          "ko",
+          "kri",
+          "ku",
+          "ky",
+          "la",
+          "lb",
+          "lg",
+          "ln",
+          "lo",
+          "lt",
+          "lua",
+          "luo",
+          "lv",
+          "mfe",
+          "mg",
+          "mi",
+          "mk",
+          "ml",
+          "mn",
+          "mr",
+          "ms",
+          "mt",
+          "my",
+          "ne",
+          "new",
+          "nl",
+          "no",
+          "nso",
+          "ny",
+          "oc",
+          "om",
+          "or",
+          "os",
+          "pa",
+          "pam",
+          "pl",
+          "ps",
+          "pt",
+          "pt-PT",
+          "qu",
+          "rn",
+          "ro",
+          "ru",
+          "rw",
+          "sa",
+          "sd",
+          "sg",
+          "si",
+          "sk",
+          "sl",
+          "sm",
+          "sn",
+          "so",
+          "sq",
+          "sr",
+          "ss",
+          "st",
+          "su",
+          "sv",
+          "sw",
+          "ta",
+          "te",
+          "tg",
+          "th",
+          "ti",
+          "tk",
+          "tn",
+          "to",
+          "tr",
+          "ts",
+          "tt",
+          "tum",
+          "ug",
+          "uk",
+          "ur",
+          "uz",
+          "ve",
+          "vi",
+          "war",
+          "wo",
+          "xh",
+          "yi",
+          "yo",
+          "zh-Hans",
+          "zh-Hant",
+          "zu"
+        ]
+      }
+    },
+    {
+      "exit": 0,
+      "timeout": false,
+      "elapsed_seconds": 3.064,
+      "stderr": "WARNING: Your yt-dlp version (2026.07.04) is older than 90 days!\n         It is strongly recommended to always use the latest version.\n         Auto-update is not supported for unpackaged executables; Re-download the latest release.\n         To suppress this warning, add --no-update to your command/config.\n",
+      "site": "Bilibili",
+      "url": "https://www.bilibili.com/video/BV1nx411u79K",
+      "mode": "metadata_only",
+      "metadata": {
+        "id": "BV1nx411u79K",
+        "title": "【练习室】201603声乐练习《No Air》with VigoVan",
+        "duration": 80.384,
+        "format_count": 1,
+        "heights": [
+          360
+        ],
+        "subtitle_languages": [],
+        "automatic_caption_languages": []
+      }
+    },
+    {
+      "exit": 1,
+      "timeout": false,
+      "elapsed_seconds": 0.991,
+      "stderr": "WARNING: Your yt-dlp version (2026.07.04) is older than 90 days!\n         It is strongly recommended to always use the latest version.\n         Auto-update is not supported for unpackaged executables; Re-download the latest release.\n         To suppress this warning, add --no-update to your command/config.\nWARNING: [Douyin] 6953975910773099811: Failed to download web detail JSON: HTTP Error 403: Forbidden\nERROR: [Douyin] 6953975910773099811: Fresh cookies (not necessarily logged in) are needed\n",
+      "site": "Douyin",
+      "url": "https://www.douyin.com/video/6953975910773099811",
+      "mode": "metadata_only"
+    },
+    {
+      "exit": 1,
+      "timeout": false,
+      "elapsed_seconds": 2.338,
+      "stderr": "WARNING: Your yt-dlp version (2026.07.04) is older than 90 days!\n         It is strongly recommended to always use the latest version.\n         Auto-update is not supported for unpackaged executables; Re-download the latest release.\n         To suppress this warning, add --no-update to your command/config.\nWARNING: Extractor failed to obtain \"title\". Creating a generic title instead\nERROR: [XiaoHongShu] 6411cf99000000001300b6d9: No video formats found!; please report this issue on  https://github.com/yt-dlp/yt-dlp/issues?q= , filling out the appropriate issue template. Confirm you are on the latest version using  yt-dlp -U\n",
+      "site": "Xiaohongshu",
+      "url": "https://www.xiaohongshu.com/explore/6411cf99000000001300b6d9",
+      "mode": "metadata_only"
+    },
+    {
+      "exit": 0,
+      "timeout": false,
+      "elapsed_seconds": 1.832,
+      "stderr": "WARNING: Your yt-dlp version (2026.07.04) is older than 90 days!\n         It is strongly recommended to always use the latest version.\n         Auto-update is not supported for unpackaged executables; Re-download the latest release.\n         To suppress this warning, add --no-update to your command/config.\n",
+      "site": "Instagram",
+      "url": "https://www.instagram.com/reel/Chunk8-jurw/",
+      "mode": "metadata_only",
+      "metadata": {
+        "id": "Chunk8-jurw",
+        "title": "Video by instagram",
+        "duration": null,
+        "format_count": 9,
+        "heights": [
+          840,
+          1280
+        ],
+        "subtitle_languages": [],
+        "automatic_caption_languages": []
+      }
+    },
+    {
+      "exit": 0,
+      "timeout": false,
+      "elapsed_seconds": 1.073,
+      "stderr": "WARNING: Your yt-dlp version (2026.07.04) is older than 90 days!\n         It is strongly recommended to always use the latest version.\n         Auto-update is not supported for unpackaged executables; Re-download the latest release.\n         To suppress this warning, add --no-update to your command/config.\n",
+      "site": "X",
+      "url": "https://twitter.com/oshtru/status/1577855540407197696",
+      "mode": "metadata_only",
+      "metadata": {
+        "id": "1577855447914409984",
+        "title": "Oshtru - gm ✨️ now I can post image and video. nice update.",
+        "duration": 30.03,
+        "format_count": 9,
+        "heights": [
+          400,
+          600,
+          900
+        ],
+        "subtitle_languages": [],
+        "automatic_caption_languages": []
+      }
+    },
+    {
+      "exit": 0,
+      "timeout": false,
+      "elapsed_seconds": 0.758,
+      "stderr": "WARNING: Your yt-dlp version (2026.07.04) is older than 90 days!\n         It is strongly recommended to always use the latest version.\n         Auto-update is not supported for unpackaged executables; Re-download the latest release.\n         To suppress this warning, add --no-update to your command/config.\n",
+      "site": "HLS",
+      "url": "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+      "mode": "metadata_only",
+      "metadata": {
+        "id": "x36xhzz",
+        "title": "x36xhzz",
+        "duration": 634,
+        "format_count": 5,
+        "heights": [
+          184,
+          288,
+          480,
+          720,
+          1080
+        ],
+        "subtitle_languages": [],
+        "automatic_caption_languages": []
+      }
+    },
+    {
+      "exit": 0,
+      "timeout": false,
+      "elapsed_seconds": 0.644,
+      "stderr": "WARNING: Your yt-dlp version (2026.07.04) is older than 90 days!\n         It is strongly recommended to always use the latest version.\n         Auto-update is not supported for unpackaged executables; Re-download the latest release.\n         To suppress this warning, add --no-update to your command/config.\nWARNING: [generic] Falling back on generic information extractor\n",
+      "site": "DASH",
+      "url": "https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps.mpd",
+      "mode": "metadata_only",
+      "metadata": {
+        "id": "bbb_30fps",
+        "title": "bbb_30fps",
+        "duration": null,
+        "format_count": 11,
+        "heights": [
+          180,
+          270,
+          360,
+          432,
+          576,
+          720,
+          1080,
+          2160
+        ],
+        "subtitle_languages": [],
+        "automatic_caption_languages": []
+      }
+    }
+  ],
+  "source_sha256": {
+    "package.json": "66f58bd55b5514c6ae239350e1bf1cdf13979c2f87e0c3f808e3c51d3c41355c",
+    "src/main/videoInfoResolver.ts": "fc3a6f81e4cf0e4602dc428bce072b7974436f5ec02fcc656065abece296eeaa",
+    "src/main/remoteApiHandler.ts": "94619d775f7e4f4eb67c0766bf8f6f1aa0d2f4bcbd171ef0f9d7882a54fe4348",
+    "src/main/downloadManager.ts": "35359f0180f12fc4690af38baf3aae7b65398c769e1366f1fa1ca212684a966b",
+    "src/main/nativeAuth.ts": "8f9487c426f835264a3b78d52e3defa4938a061c5f23b8df7fd7114024818ad6",
+    "src/main/downloadPlans.ts": "c932165f36b313398fbb39315dbec6c12852cc4402b6db4d6439c8b64c4b03b8",
+    "packages/shared/src/media-source-context.ts": "15336936a9439bf53c8b8d5ecf735e0642372ac9ad099d5bf0fbe75c8d052df7"
+  },
+  "fixture": {
+    "kind": "synthetic testsrc2 + sine, 3s H264/AAC 640x360",
+    "sha256": "75e2deb9530ae58871272fad11387496e0fca83cc2d526dd1a5826d54b1589c3",
+    "bytes": 663601
+  },
+  "ended_at_utc": "2026-10-17T06:00:58.228923+00:00",
+  "cleanup": {
+    "temporary_media_and_synthetic_cookies_removed": true,
+    "fixture_listener_closed": true,
+    "personal_profiles_accessed": false
+  }
+}

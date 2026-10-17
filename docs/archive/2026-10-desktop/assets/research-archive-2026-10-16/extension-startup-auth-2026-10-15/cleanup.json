@@ -1,0 +1,17 @@
+{
+  "stoppedOwnedProcesses": [
+    57986,
+    62986,
+    59023
+  ],
+  "originalUserApp": {
+    "pid": 29928,
+    "command": "/Applications/V-Download.app/Contents/MacOS/V-Download"
+  },
+  "ownedPorts": [
+    57252,
+    57255,
+    54702
+  ],
+  "ownedPortsClosed": true
+}

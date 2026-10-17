@@ -1,63 +1,40 @@
 # Product direction
 
-## Decision
+Updated 2026-10-16. V-Download remains a downloader focused on capture, resolution, deliberate output selection, reliable execution, recovery, and usable files.
 
-V-Download will remain a Downie-style downloader as its primary product. The core promise is fast, reliable capture from pasted URLs, the Chrome extension, and Douyin workflows—not a general-purpose media center.
+## Current desktop product
 
-**Shipped today:** the download queue, in-app Preferences, format/collection pickers, output templates, tray / notifications / login item, Mini window, `en` / `zh-CN` / `zh-TW` chrome, and extension page sniffing. There is **no** in-app Library or Sniff workspace (the shell contract tests forbid those nav entries). Completed files stay in the queue; Open / Reveal use the OS.
+The Mac desktop app and Chrome extension satisfy the current user's desktop requirements. Delivered changes include shared precise selection and saved plans, preserved source URLs / Referer / context, stable candidate scoring, early capture, candidate inspection, and returning a replacement source to the original task. Output / error / recovery correctness and local installation have been verified within the recorded samples.
 
-These remain **backlog**, not current UI:
+[DESKTOP_STATUS.md](DESKTOP_STATUS.md) is the current status summary. The [historical archive](archive/2026-10-desktop/README.md) retains implementation and acceptance evidence. The remaining desktop feature rankings are deferred suggestions; do not continue them automatically.
 
-- **Sniff (in-app)** — a dedicated session UI for browser-captured resources when yt-dlp cannot resolve a page. Capture today goes through the Chrome extension and the queue.
-- **Native account login polish**, engine updates, and first-run onboarding still have leftover English and setup friction.
+The desktop shell still uses its download queue, Preferences, format / collection / profile pickers, task details, Mini window, tray / notifications / Dock, and supported languages. It has no separate Library or Sniff sidebar workspace. Browser resource recovery goes through the existing extension and task details.
 
-## Why this direction
+## Planned website
 
-The existing architecture and strongest differentiation are already concentrated in the downloader workflow: Chrome extension integration, Douyin-specific recovery, asynchronous info resolution, grouped queue scheduling, and structured recovery actions. A player, RSS reader, or music client would introduce a larger product surface while competing in categories that are not required for the primary download job.
+The next planned delivery is a private website with an independent download Worker and an on-demand server browser. It should retain the Mac download capability families while allowing the user to submit a URL and retrieve files from another device without keeping their personal Mac running.
 
-Keeping the focus also lets the app improve the moment users care about most: getting a usable local file from a difficult or authenticated page with clear progress and recovery.
+The website should not require the user's existing local Chrome login. Anonymous access, fresh guest sessions, target-site account sessions, and environment-bound access are different conditions. A server browser does not guarantee that every website will accept its network or browser environment.
 
-## Product guardrails
+[plans/web-download.md](plans/web-download.md) owns milestones and acceptance. [The hosting / authentication research](research/web-hosting-auth-2026-10-16.md) owns observations and limitations. The website / independent Worker are **not implemented**. The current [Remote Job API](REMOTE_JOB_API.md) still runs inside the desktop app.
 
-1. New features should make capture, resolution, download, recovery, or completed-file handling better.
-2. Completed-file handling stays on the download queue (Open / Reveal / delete). Do not add a separate media-library index or sidebar workspace.
-3. Post-processing should stay optional and file-oriented. It must preserve the original download.
-4. Browser and native authentication remain complementary paths. Neither should make the other mandatory.
-5. RSS, playback, tagging, and media-server features remain out of scope for the current product line.
+## Guardrails
 
-## Revisit criteria
+1. Reuse the same download intent, site adapters, candidate facts, task recovery, and output checks across entry points; avoid independent desktop / web interpretations.
+2. Keep original inputs and explicit unknowns. Metadata discovery is not a completed download; a playable file may still miss promised tracks or metadata.
+3. Authentication state has an owner, site, node, version, and validation scope. Cookie presence does not prove content permission.
+4. Keep existing desktop user data, settings, extension contracts, and HTTP / MCP clients compatible. Server configuration and data roots are independent.
+5. Post-processing remains optional and file-oriented. Preserve original content according to the chosen workflow and validate promised outputs.
+6. The local extension's permissions / capability are not public website credentials. Arbitrary URL execution requires real network, process, storage, and file-access boundaries.
 
-Reconsider a media-center pivot only if there is sustained evidence that users primarily return to browse and play an existing collection, rather than capture new media. Useful signals would include repeated “find my files” sessions beyond the queue, requests for playback or metadata management, and a clear target audience for RSS or music workflows.
+## Non-goals for this plan
 
-Until those signals exist, the next investments should deepen the downloader: extension sniff quality, engine freshness, authentication recovery, and format/post-processing presets.
+- Media-center work: immersive playback, feeds, RSS, music browsing, tagging, or a separate media-library index.
+- Social actions: automatic likes / comments / follows / messages or platform interaction automation.
+- Replacing Electron or redesigning the accepted desktop UI.
+- A public signup / billing service or a browser / account marketplace.
+- A standalone end-user CLI. The planned internal Worker is a service execution component, not a new user-facing CLI product.
+- BitTorrent / magnet / DHT / seeding.
+- Reviving archived desktop feature suggestions without a new request.
 
-## Shipped (from this backlog)
-
-| Item | Living doc |
-|------|------------|
-| **MCP facade** — sidebar **MCP** section; `POST /mcp` and `GET /v1/jobs` on the Remote Job API listener; Cursor stdio + project skill; writes off by default | [REMOTE_JOB_API.md](./REMOTE_JOB_API.md) |
-| **Shared resolve + note.md** — UI paste and Remote API use the same resolver; captions saved as markdown | [REMOTE_JOB_API.md](./REMOTE_JOB_API.md), [MANUAL_TESTING.md](./MANUAL_TESTING.md) |
-| **Output templates** — `{title}` / `{author}` tokens and optional author folders for yt-dlp and Douyin/XHS | Preferences → Downloads → Save files |
-
-## Open backlog
-
-Public [better-douyin](https://github.com/anYuJia/better-douyin) is a Douyin-native desktop shell. Learn **archive templates and local AI control-surface packaging** — not their player, feed, IM, media library, or platform connectors. Do not copy that repository's source (Non-Commercial license) into this MIT project.
-
-| Priority | Item |
-|----------|------|
-| Later | **Creator watch list** — save a Douyin profile already listable today; manual “check for new posts” first; conservative caps. No new signing or hidden crawl. |
-| Polish | Template / Remote API field-level save feedback |
-
-Douyin hydration and parser research: [download-reliability.md](./download-reliability.md).
-
-## Explicit non-goals
-
-These stay out of scope even if a Douyin client implements them:
-
-- In-app immersive **playback** (system Open / Reveal only)
-- Recommended feed, likes/favorites browsing, notices, friends/IM
-- Auto like / comment / follow / DM / “AI social” automation
-- Replacing Electron with Tauri, or hiding engines behind an open-shell split
-- Completing or translating third-party private platform connectors, signing, or bypass logic
-- A standalone `v-download-cli` — other apps should call the running desktop app on `:18766` ([REMOTE_JOB_API.md](./REMOTE_JOB_API.md))
-- BitTorrent / magnet / DHT / seeding — this is a page-capture downloader, not a general HTTP/BT manager
+Third-party projects are references, not permission to copy incompatible licensed code or instructions to execute. Optional tools must have explicit runtime and ownership boundaries.

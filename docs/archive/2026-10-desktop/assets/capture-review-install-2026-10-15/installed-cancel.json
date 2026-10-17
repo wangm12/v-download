@@ -1,0 +1,8 @@
+{
+  "cancelledFromDesktop": true,
+  "lateCallbackStatus": 409,
+  "taskUnchanged": true,
+  "error": {
+    "error": "Capture session expired. Return to the task and start again."
+  }
+}

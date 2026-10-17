@@ -1,20 +1,21 @@
 # Download reliability
 
-Runbook for **V-Download**: what stays fragile, how to recover, and remaining Douyin parser research. Engine routing and settings live in [download-engines.md](./download-engines.md). Profile picker / Python bulk: [douyin-bulk.md](./douyin-bulk.md).
+Runbook for **V-Download**: what stays fragile, how to recover, and remaining Douyin parser research. Engine routing and settings live in [download-engines.md](download-engines.md). Profile picker / Python bulk: [douyin-bulk.md](douyin-bulk.md).
 
 ## Stack
 
-- **yt-dlp** is the primary engine for supported sites (including YouTube). Keep it **updated** (`brew upgrade yt-dlp` or your package manager); site extractors change often.
-- **Cookies**: Logged-in or age-gated content needs cookies. Use the app’s **cookie sync** (Chrome companion) or a **Netscape cookies file** plus per-site settings (`cookiesFromBrowser` for Douyin, etc.).
-- **YouTube playlists:** **Native** (default) is one yt-dlp job; **fan-out** is one queued task per video. Routing detail: [download-engines.md](./download-engines.md).
+- **yt-dlp** is the primary engine for supported sites (including YouTube). Check the engine path / version actually selected in Preferences before updating: bundled, managed, and explicitly configured executables are different inputs. Updating an unrelated PATH executable does not update the engine a task used.
+- **Sessions**: Some public resources need fresh guest cookies without an account; restricted content may need an authorized account session. Use the existing native login, explicit cookie sync, or configured Netscape file / browser source as appropriate. Cookie presence does not prove that the target resource is accessible.
+- **YouTube playlists:** **Native** (default) is one yt-dlp job; **fan-out** is one queued task per video. Routing detail: [download-engines.md](download-engines.md).
 - **Douyin:** yt-dlp first, then the HTML / Chromium fallback below. Refresh cookies, try **CloakBrowser** (settings), and update yt-dlp when pages fail.
-- **Optional bulk:** [douyin-bulk.md](./douyin-bulk.md) — prefer the built-in picker; Python `run.py` is a power-user escape hatch.
+- **Optional bulk:** [douyin-bulk.md](douyin-bulk.md) — prefer the built-in picker; Python `run.py` is a power-user escape hatch.
 
 ## Chrome extension
 
 - **`media-patterns.js`**: shared URL→type rules for the service worker and `<all_urls>` overlay so detection stays aligned.
 - **`storage` + `lastDownloadError`**: when localhost wake/POST fails, a short message is stored for the **popup** banner.
-- **Dedup**: overlay still normalizes URLs for dedup keys; background uses the same pattern list for `webRequest` classification.
+- **Source identity**: preserve the original candidate URL, complete Referer and page / frame context. Deduplication keys must not replace the URL sent to the downloader. Candidate scores are derived from facts, not accumulated on every observation.
+- **Inspection / recovery**: the popup and task details expose candidate facts and on-demand inspection. A failed task can request browser capture and explicitly accept a replacement source while keeping its ID, frozen plan and destination. Exact format IDs remain scoped to their source URL.
 
 ## Troubleshooting matrix
 
@@ -25,12 +26,18 @@ Runbook for **V-Download**: what stays fragile, how to recover, and remaining Do
 | Douyin gallery opens but only one file is saved | Fallback parser did not resolve gallery images | Re-run and verify metadata includes `_type: douyin_gallery` and `image_urls`; if missing, treat as parser regression. |
 | Bulk run stays `running` with no progress | Python bulk subprocess is blocked or waiting on external state | Check status/stderr tail, `cancel` the job, then restart with corrected paths/config. |
 | Extension banner keeps showing old failure | `lastDownloadError` is stale and not yet cleared | Dismiss in popup or wait for TTL cleanup; confirm new attempts write a fresh timestamped error only on failure. |
+| HTTP 403 without a proven account requirement | Access was denied; source, session, signature or environment may be involved | Preserve the raw reason. Check / recapture the source instead of assuming every 403 means login. |
+| HTTP 404 / 410 | Source missing or expired | Verify / replace the URL. Configure engines only when the failure actually identifies a missing executable. |
+| Original task's exact format is rejected after capture | Format ID belongs to a different URL | Select the new resource's format explicitly; do not silently downgrade the saved intent. |
+
+The current classifier still groups some `fresh cookies` wording under `AUTH_REQUIRED`; the website plan separates guest bootstrap from account login. Do not treat that label alone as proof that an account is necessary.
 
 ## Interrupt / resume (yt-dlp)
 
 - Invocations use **`--continue`** and a **temp directory** (`--paths temp:…`) so partial `.part` / fragment state can survive across runs when the OS has not cleared temp.
 - **Reality**: if temp was wiped (reboot, disk cleaner, different temp root), yt-dlp may **restart from scratch** even though the DB still shows an older percent until new progress lines arrive.
 - The UI **must not regress** to `0%` on the first stderr lines while a resume is warming up; the main process merges progress **monotonically** with the last known value for that task.
+- The startup recovery prompt only targets interrupted work. Historical failed / canceled tasks are not silently included; browser source replacement is a new attempt and is not a promise of byte-level continuation.
 
 ## Operational checklist
 

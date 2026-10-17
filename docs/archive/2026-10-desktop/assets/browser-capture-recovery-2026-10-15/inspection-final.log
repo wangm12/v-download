@@ -1,0 +1,10 @@
+
+> v-download@1.1.7 test:media-inspection
+> npx tsx scripts/test-media-inspection.ts
+
+media inspection and access refusal semantics: ok
+
+> v-download@1.1.7 test:media-resolver
+> npx tsx scripts/test-media-resolver.ts
+
+media resolver fixtures: ok

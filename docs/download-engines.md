@@ -1,6 +1,6 @@
 # Download engines and routing
 
-This document describes how **V-Download** chooses between **yt-dlp**, **ffmpeg**, **Douyin-specific code**, and **external bulk tools**. Recovery and Douyin fallback research: [download-reliability.md](./download-reliability.md). Release checks: [MANUAL_TESTING.md](./MANUAL_TESTING.md).
+This document describes how **V-Download** chooses between **yt-dlp**, **ffmpeg**, **Douyin-specific code**, and **external bulk tools**. Recovery and Douyin fallback research: [download-reliability.md](download-reliability.md). Release checks: [MANUAL_TESTING.md](MANUAL_TESTING.md).
 
 ## Glossary
 
@@ -23,14 +23,14 @@ This document describes how **V-Download** chooses between **yt-dlp**, **ffmpeg*
 | Douyin page | yt-dlp; Douyin module if needed | yt-dlp or `douyin.ts` fetch fallback |
 | Douyin image gallery (`douyinImageUrls`) | `douyin.ts` | `douyin.ts` gallery writer (parallel image fetches, capped concurrency) |
 | Douyin creator profile (`/user/…` paste) | Built-in [`douyinProfile`](../src/main/douyinProfile.ts) list + picker | One **queue task per selected** post URL (yt-dlp + Douyin fallback) |
-| Douyin creator bulk (Preferences Python, optional) | External [douyin-downloader](https://github.com/jiji262/douyin-downloader) | Same subprocess writes files (`-p` aligned with app settings; see [douyin-bulk.md](./douyin-bulk.md)) |
+| Douyin creator bulk (Preferences Python, optional) | External [douyin-downloader](https://github.com/jiji262/douyin-downloader) | Same subprocess writes files (`-p` aligned with app settings; see [douyin-bulk.md](douyin-bulk.md)) |
 | YouTube playlist | yt-dlp JSON / flat playlist | One yt-dlp job (`native`) or many tasks (`fanout`) |
 
 ## Bulk download meanings
 
 1. **Many URLs in the queue** — Each row is a task; `concurrency` controls how many run at once. No separate “bulk mode”.
 2. **YouTube playlist bulk** — Controlled by `youtubePlaylistMode` (`native` vs `fanout`).
-3. **Douyin profile/creator** — Paste `https://www.douyin.com/user/…` → in-app **picker** (load more / capped load-all, multi-select, add to queue). Optional Python bulk: [douyin-bulk.md](./douyin-bulk.md).
+3. **Douyin profile/creator** — Paste `https://www.douyin.com/user/…` → in-app **picker** (load more / capped load-all, multi-select, add to queue). Optional Python bulk: [douyin-bulk.md](douyin-bulk.md).
 
 ## ffmpeg vs yt-dlp for direct media
 

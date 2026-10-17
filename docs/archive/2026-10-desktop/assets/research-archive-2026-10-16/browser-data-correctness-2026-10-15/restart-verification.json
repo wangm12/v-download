@@ -1,0 +1,12 @@
+{
+  "taskCount": 9,
+  "completeCount": 8,
+  "preserved": [
+    "url",
+    "sourceContext",
+    "referer",
+    "filePath",
+    "status"
+  ],
+  "historyErrorStillError": true
+}

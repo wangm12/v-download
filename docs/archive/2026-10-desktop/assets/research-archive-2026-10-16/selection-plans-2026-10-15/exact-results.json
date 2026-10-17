@@ -1,0 +1,18 @@
+[
+  {
+    "id": "93a04e85-7480-4ff7-b627-991c05b007c3",
+    "format_id": "hls-400",
+    "height": 360,
+    "fps": 30,
+    "decode": "PASS",
+    "duplicate": "focused"
+  },
+  {
+    "id": "1fba7b4c-4444-48a5-a504-8f0b82cff79b",
+    "format_id": "hls-800",
+    "height": 360,
+    "fps": 60,
+    "decode": "PASS",
+    "duplicate": "focused"
+  }
+]

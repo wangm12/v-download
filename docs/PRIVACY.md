@@ -16,4 +16,6 @@ When the user starts a download, the selected URL is sent to the local desktop a
 
 Diagnostic logs should not contain cookie values or authentication tokens. If you report an issue, review and redact local URLs or file paths before attaching logs. Support and source code are available through the [project repository](https://github.com/wangm12/v-download).
 
-This document describes the current product behavior. Review it before each Chrome Web Store submission if permissions or data flows change.
+This document describes the current desktop / extension behavior. The [planned website](plans/web-download.md) is not deployed and would introduce server-side tasks, files and optional site sessions; its retention, revocation and data flows must be documented and verified before deployment. The current local cookie-sync description must not be reused as if it described a hosted service.
+
+Review this document before each Chrome Web Store submission if permissions or data flows change.

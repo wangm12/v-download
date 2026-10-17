@@ -1,0 +1,1404 @@
+--- baseline/package.json
++++ package.json
+@@ -74,7 +74,7 @@
+     "test:task-overrides": "npx tsx scripts/test-task-overrides.ts",
+     "test:terminal-error": "npx tsx scripts/test-terminal-error-propagation.ts",
+     "test:ytdlp-argv": "npx tsx scripts/test-ytdlp-provider-argv.ts",
+-    "test:extension": "node scripts/test-extension-media.js && node scripts/test-extension-download.js && node scripts/test-extension-plans.cjs",
++    "test:extension": "node scripts/test-extension-media.js && node scripts/test-extension-download.js && node scripts/test-extension-plans.cjs && node scripts/test-extension-source-data.cjs",
+     "test:ui-contract": "node scripts/test-ui-contract.mjs",
+     "test:dock-progress": "node scripts/test-dock-progress.mjs",
+     "test:python-framework": "node scripts/test-python-framework.mjs",
+--- baseline/src/main/downloadRequestSnapshot.ts
++++ src/main/downloadRequestSnapshot.ts
+@@ -1,7 +1,7 @@
+ import { createHash } from 'crypto'
+ import { isAbsolute } from 'path'
+ import {
+-  readDownloadSelection,
++  readDownloadSelection, readMediaSourceContext, mediaSourceReferer,
+   type DownloadPlan, type DownloadSelection
+ } from '@v-download/shared'
+ import { validateOutputTemplate } from './outputTemplateModel'
+@@ -34,9 +34,16 @@
+     outputDir: v.outputDir, filenameTemplate: v.filenameTemplate, includeNote: v.includeNote,
+     archiveByAuthor: v.archiveByAuthor, folderNameTemplate: v.folderNameTemplate, playlistSubfolder: v.playlistSubfolder }
+ }
+-export function selectionKey(snapshot?: DownloadRequestSnapshot): string | null {
+-  if (!snapshot) return null
+-  const { plan: _plan, ...intent } = readDownloadRequestSnapshot(snapshot)
++export function selectionKey(snapshot?: DownloadRequestSnapshot, sourceContext?: unknown): string | null {
++  if (!snapshot && sourceContext === undefined) return null
++  const { plan: _plan, ...intent } = snapshot ? readDownloadRequestSnapshot(snapshot) : { plan: undefined }
++  if (sourceContext !== undefined) {
++    const source = readMediaSourceContext(sourceContext)
++    // Capture IDs/timestamps change between observations; document URLs and Referer
++    // determine whether the same transport can safely reuse an existing task.
++    return createHash('sha256').update(JSON.stringify({ version: 1, selection: snapshot ? intent : null,
++      source: { pageUrl: source.pageUrl, documentUrl: source.documentUrl, referer: mediaSourceReferer(source) } })).digest('hex')
++  }
+   return createHash('sha256').update(JSON.stringify(intent)).digest('hex')
+ }
+ export function admissionIdentity(urlKey: string, key: string | null | undefined): string {
+--- baseline/src/main/persistedExtras.ts
++++ src/main/persistedExtras.ts
+@@ -1,3 +1,4 @@
++import { readMediaSourceContext } from '@v-download/shared'
+ import { readDownloadRequestSnapshot } from './downloadRequestSnapshot'
+ import { filterPersistedHeaders } from './mediaResolver'
+ 
+@@ -27,6 +28,7 @@
+ export function pickPersistedExtras(metadata?: Record<string, unknown>): Record<string, unknown> {
+   const out: Record<string, unknown> = {}
+   if (!metadata) return out
++  if (metadata.sourceContext !== undefined) out.sourceContext = readMediaSourceContext(metadata.sourceContext)
+   if (metadata.downloadRequest !== undefined) out.downloadRequest = readDownloadRequestSnapshot(metadata.downloadRequest)
+   if (metadata.infoResolve === true) out.infoResolve = true
+   if (metadata.resolveAutoStart === true) out.resolveAutoStart = true
+--- baseline/src/main/securityValidation.ts
++++ src/main/securityValidation.ts
+@@ -1,4 +1,4 @@
+-import { readDownloadSelection } from '@v-download/shared'
++import { readMediaSourceContext, mediaSourceReferer, readDownloadSelection } from '@v-download/shared'
+ import { COOKIE_SYNC_DOMAINS, type ChromeSyncedCookie } from '@v-download/shared'
+ import { timingSafeEqual } from 'node:crypto'
+ 
+@@ -78,15 +78,16 @@
+ export function validateDownloadPayload(payload: unknown): { ok: true; value: Record<string, unknown> } | { ok: false; error: string } {
+   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return { ok: false, error: 'Invalid payload' }
+   const p = payload as Record<string, unknown>
+-  const keys = new Set(['url', 'type', 'quality', 'autoStart', 'referer', 'headers', 'title', 'filename', 'selection', 'planId', 'planRevision'])
++  const keys = new Set(['url', 'type', 'quality', 'autoStart', 'referer', 'headers', 'title', 'filename', 'selection', 'planId', 'planRevision', 'sourceContext'])
+   if (Object.keys(p).some((k) => !keys.has(k)) || typeof p.url !== 'string' || p.url.length < 1 || p.url.length > 8192) return { ok: false, error: 'Invalid download payload' }
+   try { const u = new URL(p.url); if (u.protocol !== 'http:' && u.protocol !== 'https:') return { ok: false, error: 'Invalid download URL' } } catch { return { ok: false, error: 'Invalid download URL' } }
+-  for (const key of ['referer', 'title', 'filename']) if (p[key] !== undefined && (typeof p[key] !== 'string' || p[key].length > 512)) return { ok: false, error: 'Invalid download field' }
++  for (const key of ['title', 'filename']) if (p[key] !== undefined && (typeof p[key] !== 'string' || p[key].length > 512)) return { ok: false, error: 'Invalid download field' }
+   if (p.selection !== undefined) { try { readDownloadSelection(p.selection) } catch { return { ok: false, error: 'Invalid download selection' } } }
+   if (p.planId !== undefined && (typeof p.planId !== 'string' || !/^[A-Za-z0-9:_-]+$/.test(p.planId))) return { ok: false, error: 'Invalid download plan' }
+   if (p.planRevision !== undefined && (!Number.isInteger(p.planRevision) || Number(p.planRevision) < 1)) return { ok: false, error: 'Invalid download plan revision' }
+   if (p.quality !== undefined && (typeof p.quality !== 'string' || !/^(?:\d{1,4}|best)$/.test(p.quality))) return { ok: false, error: 'Invalid download quality' }
+   if (p.autoStart !== undefined && typeof p.autoStart !== 'boolean') return { ok: false, error: 'Invalid download option' }
++  if (p.referer !== undefined && (typeof p.referer !== 'string' || p.referer.length > 8192 || /[\u0000-\u0020\u007f]/.test(p.referer))) return { ok: false, error: 'Invalid referer' }
+   if (p.referer !== undefined) { try { const r = new URL(p.referer as string); if (r.protocol !== 'http:' && r.protocol !== 'https:') return { ok: false, error: 'Invalid referer' } } catch { return { ok: false, error: 'Invalid referer' } } }
+   if (p.type !== undefined && (typeof p.type !== 'string' || !MEDIA_TYPES.has(p.type.toLowerCase()))) return { ok: false, error: 'Invalid media type' }
+   if (p.headers !== undefined) {
+@@ -94,5 +95,11 @@
+     const h = p.headers as Record<string, unknown>
+     if (Object.keys(h).length > 32 || Object.entries(h).some(([k, v]) => !HEADER_NAME.test(k) || typeof v !== 'string' || v.length > 4096 || /[\u0000-\u0008\u000a-\u001f\u007f]/.test(v))) return { ok: false, error: 'Invalid headers' }
+   }
++  if (p.sourceContext !== undefined) {
++    try {
++      const sourceContext = readMediaSourceContext(p.sourceContext)
++      return { ok: true, value: { ...p, sourceContext, referer: mediaSourceReferer(sourceContext) ?? p.referer } }
++    } catch { return { ok: false, error: 'Invalid media source context' } }
++  }
+   return { ok: true, value: p }
+ }
+--- baseline/src/main/downloadProgress.ts
++++ src/main/downloadProgress.ts
+@@ -27,6 +27,7 @@
+           format: task.format,
+           quality: task.quality,
+           selection: request?.selection ?? null,
++          sourceContext: task.metadata.sourceContext ?? null,
+           planName: request?.plan?.name ?? null,
+           planId: request?.plan?.id ?? null,
+           error: task.error,
+--- baseline/src/main/index.ts
++++ src/main/index.ts
+@@ -205,10 +205,11 @@
+   try {
+     const shared = { url: request.url, title: request.title || 'download',
+       quality: request.quality, selection: request.selection, planId: request.planId, planRevision: request.planRevision,
+-      referer: request.referer, customHeaders: request.headers }
++      referer: request.referer, customHeaders: request.headers,
++      metadata: request.sourceContext ? { sourceContext: request.sourceContext } : {} }
+     const admitted = request.type
+       ? downloadManager.addTaskAdmitted({ ...shared, format: 'video', mediaType: request.type })
+-      : downloadManager.createInfoResolveTask({ ...shared, metadata: { resolveAutoStart: request.autoStart !== false } })
++      : downloadManager.createInfoResolveTask({ ...shared, metadata: { ...shared.metadata, resolveAutoStart: request.autoStart !== false } })
+     if (!request.type && admitted.task.status === 'resolving') initializeInfoResolutionManager()
+     if (!request.type && admitted.outcome === 'created') enqueueInfoResolve(admitted.task.id)
+     downloadManager.emitQueueAdmission(admitted)
+--- baseline/src/main/downloadPlans.ts
++++ src/main/downloadPlans.ts
+@@ -20,7 +20,7 @@
+   const raw = options.selection ?? plan?.selection ?? inherited?.selection
+   const metadata = { ...(options.metadata ?? {}) }
+   delete metadata.downloadRequest
+-  if (!raw) return { ...options, metadata, selectionKey: null }
++  if (!raw) return { ...options, metadata, selectionKey: selectionKey(undefined, metadata.sourceContext) }
+   const entryIndex = options.entryIndex ?? inherited?.entryIndex
+   if (entryIndex !== undefined && (!Number.isInteger(entryIndex) || entryIndex < 1)) throw new Error('Invalid collection entry index')
+   const selection = readDownloadSelection(raw)
+@@ -45,7 +45,7 @@
+   metadata.outputDir = snapshot.outputDir
+   return { ...options, format: selection.target === 'audio' ? (selection.output === 'original' ? 'audio' : selection.output) : 'video',
+     quality: String(selection.target === 'video' ? selection.maxHeight : selection.audioBitrate ?? 'best'),
+-    outputDir: snapshot.outputDir, metadata, selectionKey: selectionKey(snapshot) }
++    outputDir: snapshot.outputDir, metadata, selectionKey: selectionKey(snapshot, metadata.sourceContext) }
+ }
+ 
+ /** Native site video fallbacks must validate intent too; provider IDs and conversion stay in yt-dlp. */
+--- baseline/src/main/localServer.ts
++++ src/main/localServer.ts
+@@ -1,4 +1,4 @@
+-import { allDownloadPlans, type DownloadSelectionRequest } from '@v-download/shared'
++import { allDownloadPlans, type DownloadSelectionRequest, type MediaSourceContext } from '@v-download/shared'
+ import { createServer, IncomingMessage, ServerResponse } from 'http'
+ import { app, BrowserWindow, dialog } from 'electron'
+ import { writeFileSync, mkdirSync, existsSync, chmodSync, readFileSync, realpathSync, renameSync, unlinkSync } from 'fs'
+@@ -127,6 +127,7 @@
+ }
+ 
+ export interface DownloadRequest extends DownloadSelectionRequest {
++  sourceContext?: MediaSourceContext
+   url: string
+   type?: string
+   quality?: string
+--- baseline/src/renderer/src/types/index.ts
++++ src/renderer/src/types/index.ts
+@@ -1,4 +1,4 @@
+-import type { DownloadPlanLibrary, DownloadSelection } from '@v-download/shared'
++import type { DownloadPlanLibrary, DownloadSelection, MediaSourceContext } from '@v-download/shared'
+ import type { DownloadErrorCode } from '@v-download/shared'
+ 
+ export type DownloadStatus =
+@@ -18,6 +18,7 @@
+   title: string
+   format: string
+   selection?: DownloadSelection | null
++  sourceContext?: MediaSourceContext | null
+   planId?: string | null
+   planName?: string | null
+   quality: string
+--- baseline/src/renderer/src/components/DownloadInspector.tsx
++++ src/renderer/src/components/DownloadInspector.tsx
+@@ -176,11 +176,12 @@
+   const recover = () => {
+     if (recoveryAction === 'sync-cookies' && onSyncBrowserCookies) onSyncBrowserCookies()
+     else if (recoveryAction === 'open-settings') void window.api?.openSettings()
+-    else if (recoveryAction === 'open-source') void window.api?.openExternalUrl(url)
++    else if (recoveryAction === 'open-source') void window.api?.openExternalUrl(sourceUrl)
+     else actions.retry(id)
+   }
++  const sourceUrl = download.sourceContext?.pageUrl ?? download.sourceContext?.documentUrl ?? url
+   let sourceHost = t('inspector.sourcePage')
+-  try { sourceHost = new URL(url).hostname.replace(/^www\./, '') } catch { /* legacy URLs */ }
++  try { sourceHost = new URL(sourceUrl).hostname.replace(/^www\./, '') } catch { /* legacy URLs */ }
+   const destination = file_path || downloadDir
+   const fileName = file_path?.split('/').pop()
+   const folderName = (file_path ? file_path.slice(0, file_path.lastIndexOf('/')) : downloadDir).split('/').filter(Boolean).slice(-2).join('/')
+@@ -211,7 +212,7 @@
+       </div>
+       {error && (status === 'error' || status === 'interrupted' || status === 'cancelled') && <details className="v-disclosure"><summary><ChevronDown className="v-chevron h-3.5 w-3.5" aria-hidden />{t('ui.rawError')}</summary><p className="max-h-40 overflow-y-auto break-words py-2 text-xs leading-relaxed text-muted-foreground">{error}</p></details>}
+       {destination && <div className="min-w-0"><p className="mb-1 text-xs text-muted-foreground">{t('inspector.destination')}</p>{fileName && <p className="truncate text-xs" title={file_path || undefined}>{fileName}</p>}<p className="mt-1 truncate text-xs text-muted-foreground" title={destination}>{folderName}</p></div>}
+-      <div><p className="mb-1 text-xs text-muted-foreground">{t('inspector.source')}</p><button type="button" onClick={() => window.api?.openExternalUrl(url)} className="inline-flex items-center gap-2 rounded text-xs hover:underline"><ExternalLink className="h-3.5 w-3.5" aria-hidden />{sourceHost}</button>
++      <div><p className="mb-1 text-xs text-muted-foreground">{t('inspector.source')}</p><button type="button" onClick={() => window.api?.openExternalUrl(sourceUrl)} className="inline-flex items-center gap-2 rounded text-xs hover:underline"><ExternalLink className="h-3.5 w-3.5" aria-hidden />{sourceHost}</button>
+         <details className="v-disclosure mt-1"><summary><ChevronDown className="v-chevron h-3.5 w-3.5" aria-hidden />{t('inspector.showLink')}</summary><p className="select-text break-all py-2 text-xs text-muted-foreground">{url}</p><button type="button" onClick={() => void navigator.clipboard.writeText(url)} className="v-button-secondary">{t('inspector.copySource')}</button></details>
+       </div>
+       {status === 'complete' && file_path && <details className="v-disclosure border-t border-divider-subtle pt-2"><summary><ChevronDown className="v-chevron h-3.5 w-3.5" aria-hidden />{t('inspector.createConvertedCopy')}</summary>
+--- baseline/src/renderer/src/hooks/useDownloads.ts
++++ src/renderer/src/hooks/useDownloads.ts
+@@ -1,4 +1,4 @@
+-import { readDownloadSelection } from '@v-download/shared'
++import { readDownloadSelection, readMediaSourceContext } from '@v-download/shared'
+ import { useState, useEffect, useCallback, useRef } from 'react'
+ import type { Download, DownloadStatus } from '@/types'
+ import { progressPatchFromIpc } from './downloadProgress'
+@@ -7,8 +7,10 @@
+   const request = (t.metadata as Record<string, unknown> | undefined)?.downloadRequest as { selection?: unknown; plan?: { name?: string; id?: string } } | undefined
+   let selection: Download['selection']
+   try { if (request?.selection) selection = readDownloadSelection(request.selection) } catch { /* Legacy malformed metadata has no selection claim. */ }
++  let sourceContext: Download['sourceContext']
++  try { const raw = (t.metadata as Record<string, unknown> | undefined)?.sourceContext; if (raw) sourceContext = readMediaSourceContext(raw) } catch { /* No source claim from malformed legacy metadata. */ }
+   return {
+-    selection, planName: request?.plan?.name, planId: request?.plan?.id,
++    sourceContext, selection, planName: request?.plan?.name, planId: request?.plan?.id,
+     id: String(t.id ?? ''),
+     url: String(t.url ?? ''),
+     title: String(t.title ?? ''),
+--- baseline/src/renderer/src/hooks/downloadProgress.ts
++++ src/renderer/src/hooks/downloadProgress.ts
+@@ -1,9 +1,11 @@
+-import { readDownloadSelection } from '@v-download/shared'
++import { readDownloadSelection, readMediaSourceContext } from '@v-download/shared'
+ import type { Download, DownloadStatus } from '@/types'
+ 
+ /** Only merge IPC fields that are actually present — never wipe title/thumbnail with undefined. */
+ export function progressPatchFromIpc(data: Record<string, unknown>): Partial<Download> {
+   const patch: Partial<Download> = {}
++  if (data.sourceContext === null) patch.sourceContext = null
++  else if (data.sourceContext !== undefined) { try { patch.sourceContext = readMediaSourceContext(data.sourceContext) } catch { /* Ignore malformed source claims. */ } }
+   if (data.selection === null) patch.selection = null
+   else if (data.selection !== undefined) { try { patch.selection = readDownloadSelection(data.selection) } catch { /* Ignore malformed optional selection fields. */ } }
+   if (data.planName === null || typeof data.planName === 'string') patch.planName = data.planName
+--- baseline/extension/popup.js
++++ extension/popup.js
+@@ -154,7 +154,7 @@
+     size.textContent = item.size ? formatSize(item.size) : 'Unknown size'
+ 
+     const confidence = document.createElement('span')
+-    confidence.textContent = item.confidence ? `${item.confidence}% confidence` : 'Detected'
++    confidence.textContent = item.confidence ? `Match score ${item.confidence}/100` : 'Detected'
+ 
+     meta.appendChild(roleBadge)
+     meta.appendChild(domain)
+--- baseline/extension/content-video-overlay.js
++++ extension/content-video-overlay.js
+@@ -359,11 +359,6 @@
+     }
+   }
+ 
+-  function buildDedupKey(url, type, listMode) {
+-    const base = listMode === 'all' ? url : normalizeUrlForDedup(url)
+-    return `${base}|${type}`
+-  }
+-
+   function inferTypeFromUrl(url) {
+     const mp = typeof globalThis !== 'undefined' ? globalThis.VDownloadMediaPatterns : null
+     if (mp && typeof mp.inferTypeFromUrl === 'function') return mp.inferTypeFromUrl(url)
+@@ -395,7 +390,6 @@
+       : sniffed
+     const seen = new Map() // dedup key → original entry
+     const options = []
+-    const elementOptions = []
+     const isBlobSrc = isBlobOrStream(video.currentSrc)
+     const hasManifest = relevant.some((e) => e.type === 'hls' || e.type === 'dash')
+     const skipElementSources = isBlobSrc && hasManifest
+@@ -423,19 +417,19 @@
+       const shared = globalThis.VDownloadMediaPatterns
+       if (!shared || !shared.isReliableCandidate(sharedCandidate)) continue
+       const type = shared.inferType(url, mimeType)
+-      const key = buildDedupKey(url, type, listMode)
++      // A DOM source and a captured request describe one candidate only when
++      // both the transport URL and the requesting document actually match.
++      const captured = shared.documentCandidate({ url, type }, relevant, location.href)
++      const option = captured ? { ...captured, label: resLabel ? `${type} (${resLabel})` : type } : {
++        ...sharedCandidate, type,
++        sourceContext: { version: 1, documentUrl: location.href },
++        label: resLabel ? `${type} (${resLabel})` : type,
++        confidence: shared.scoreCandidate({ ...sharedCandidate, type })
++      }
++      const key = shared.candidateKey(option)
+       if (seen.has(key)) continue
+       seen.set(key, true)
+-      const option = {
+-        url,
+-        type,
+-        label: resLabel ? `${type} (${resLabel})` : type,
+-        size: null,
+-        source: 'element',
+-        confidence: 100
+-      }
+       options.push(option)
+-      elementOptions.push(option)
+     }
+ 
+     // 2. From background sniffed media. Manifests are kept even if they
+@@ -449,7 +443,7 @@
+         return (b.size || 0) - (a.size || 0)
+       })
+       for (const entry of sorted.slice(0, 120)) {
+-        const key = buildDedupKey(entry.url, entry.type, listMode)
++        const key = globalThis.VDownloadMediaPatterns.candidateKey(entry)
+         if (seen.has(key)) continue
+         seen.set(key, true)
+         options.push({
+@@ -459,80 +453,24 @@
+           size: entry.size,
+           initiator: entry.initiator,
+           pageUrl: entry.pageUrl,
+-          source: 'sniffed',
++          sourceContext: entry.sourceContext,
++          source: entry.source || 'network',
+           confidence: Math.min(100, Number(entry.confidence || 0))
+         })
+       }
+       return applyIdentity(options, listMode)
+     }
+ 
+-    // Smart filtering: hide noisy MSE/HLS segments by heuristics.
+-
+-    const hasHls = relevant.some((e) => e.type === 'hls')
+-    const SEGMENT_THRESHOLD = 5 * 1024 * 1024 // 5MB: below this + blob src = likely segment
+-
+-    const byType = new Map()
++    // Reliable candidates are independent until a relationship is proven. A manifest
++    // elsewhere on the page or another player's blob URL cannot hide this source.
+     for (const entry of relevant) {
+-      if (!byType.has(entry.type)) byType.set(entry.type, [])
+-      byType.get(entry.type).push(entry)
+-    }
+-
+-    for (const [type, entries] of byType) {
+-      // Prefer newer sniffed entries to avoid stale ad URLs after stream switches.
+-      entries.sort((a, b) => {
+-        const tsDelta = (b.timestamp || 0) - (a.timestamp || 0)
+-        if (tsDelta !== 0) return tsDelta
+-        return (b.size || 0) - (a.size || 0)
+-      })
+-
+-      let filtered = entries
+-
+-      if (type === 'hls' || type === 'dash') {
+-        // Keep every manifest. Identity ranking — not recency — decides Main.
+-        filtered = entries
+-      } else if (hasHls) {
+-        // HLS present: non-HLS entries below threshold are segments → drop them
+-        filtered = entries.filter((e) => !e.size || e.size >= SEGMENT_THRESHOLD)
+-        filtered = filtered.slice(0, 2)
+-      } else if (isBlobSrc && entries.length > 2) {
+-        // blob: src + many entries of same type = MSE player chunks
+-        // Only keep the single largest (might be a full file) if it's meaningfully large
+-        const newestLarge = entries.find((e) => e.size && e.size >= SEGMENT_THRESHOLD)
+-        if (newestLarge) {
+-          filtered = [newestLarge]
+-        } else {
+-          // All small → these are segments, not useful for download
+-          filtered = []
+-        }
+-      } else {
+-        // Normal case: few entries, likely real files
+-        filtered = entries.slice(0, 3)
+-      }
+-
+-      for (const entry of filtered) {
+-        const key = buildDedupKey(entry.url, entry.type, listMode)
+-        if (seen.has(key)) continue
+-        seen.set(key, true)
+-        const option = {
+-          url: entry.url,
+-          type: entry.type,
+-          label: entry.type.toUpperCase(),
+-          size: entry.size,
+-          initiator: entry.initiator,
+-          pageUrl: entry.pageUrl,
+-          source: entry.source || 'network',
+-          confidence: Math.min(100, Number(entry.confidence || 0))
+-        }
+-        options.push(option)
+-        // Keep the best same-type network candidate available if the user
+-        // deliberately picked an element URL first. The click path performs
+-        // this fallback exactly once after the original request fails.
+-        for (const element of elementOptions) {
+-          if (element.type === option.type && option.source !== 'element' && !element.fallbackNetwork) {
+-            element.fallbackNetwork = option
+-          }
+-        }
+-      }
++      const key = globalThis.VDownloadMediaPatterns.candidateKey(entry)
++      if (seen.has(key)) continue
++      seen.set(key, true)
++      const option = {
++        ...entry, label: entry.type.toUpperCase(), source: entry.source || 'network'
++      }
++      options.push(option)
+     }
+ 
+     // In Smart mode, a sniffed network URL is generally more actionable than
+@@ -603,7 +541,7 @@
+     }
+     const source = document.createElement('span')
+     source.className = 'vdl-format-size'
+-    source.textContent = `${opt.source || 'network'} · ${Math.min(100, Number(opt.confidence || 0))}/100`
++    source.textContent = `${opt.source || 'network'} · match score ${Math.min(100, Number(opt.confidence || 0))}/100`
+     meta.appendChild(source)
+ 
+     info.appendChild(label)
+@@ -777,7 +715,7 @@
+         }
+ 
+         const getLatestSniffedOption = async (clickedOpt) => {
+-          if (clickedOpt.source !== 'sniffed') return clickedOpt
++          if (clickedOpt.source === 'element') return clickedOpt
+           try {
+             const resp = await fetchFrameMediaSnapshot({ force: true })
+             const media = globalThis.VDownloadMediaPatterns?.filterSniffedForOverlay
+@@ -791,7 +729,9 @@
+               ...clickedOpt,
+               url: picked.url,
+               type: picked.type || clickedOpt.type,
+-              initiator: picked.initiator || clickedOpt.initiator || ''
++              initiator: picked.initiator || clickedOpt.initiator || '',
++              pageUrl: picked.pageUrl || clickedOpt.pageUrl,
++              sourceContext: picked.sourceContext || clickedOpt.sourceContext
+             }
+           } catch {
+             return clickedOpt
+@@ -800,14 +740,11 @@
+ 
+         for (const opt of options) {
+           const row = buildPanelItem(opt, async (clickedOpt) => {
+-            const key = buildDedupKey(clickedOpt.url, clickedOpt.type, listMode)
++            const key = globalThis.VDownloadMediaPatterns.candidateKey(clickedOpt)
+             const previous = itemStates.get(key)
+             if (previous === 'sending' || previous === 'queued') return
+-            const clickedUrlKey = `${clickedOpt.type}|${clickedOpt.url}`
+-            const fallbackUrlKey = clickedOpt.fallbackNetwork
+-              ? `${clickedOpt.fallbackNetwork.type}|${clickedOpt.fallbackNetwork.url}`
+-              : ''
+-            if (submittedUrls.has(clickedUrlKey) || submittedUrls.has(fallbackUrlKey)) return
++            const clickedUrlKey = globalThis.VDownloadMediaPatterns.candidateKey(clickedOpt)
++            if (submittedUrls.has(clickedUrlKey)) return
+             itemStates.set(key, 'sending')
+             row._ytdlSetState('sending', 'Sending…')
+             flashButton(btn, 'vdl-sending')
+@@ -825,13 +762,9 @@
+             // keep sending that candidate instead of waking the app and then
+             // silently abandoning the click.
+             const latestOpt = await getLatestSniffedOption(clickedOpt) || clickedOpt
+-            const item = {
+-              url: latestOpt.url,
+-              type: latestOpt.type,
+-              initiator: latestOpt.initiator || ''
+-            }
++            const item = globalThis.VDownloadMediaPatterns.mediaItemForDownload(latestOpt)
+             const send = (candidate) => new Promise((resolve) => {
+-              const urlKey = `${candidate.type}|${candidate.url}`
++              const urlKey = globalThis.VDownloadMediaPatterns.candidateKey(candidate)
+               if (submittedUrls.has(urlKey) || inFlightUrls.has(urlKey)) return resolve({ ok: false, duplicate: true })
+               inFlightUrls.add(urlKey)
+               // Compatibility shape: DOWNLOAD_MEDIA_FROM_CONTENT', item, surfacedWake }
+@@ -844,12 +777,7 @@
+                 resolve(result)
+               })
+             })
+-            let resp = await send(item)
+-            const fallback = clickedOpt.source === 'element' && clickedOpt.fallbackNetwork
+-            if (!resp.ok && fallback && fallback.url !== item.url && !submittedUrls.has(`${fallback.type}|${fallback.url}`)) {
+-              row._ytdlSetState('sending', 'Retrying network…')
+-              resp = await send({ url: fallback.url, type: fallback.type, initiator: fallback.initiator || '' })
+-            }
++            const resp = await send(item)
+             if (resp.ok) {
+               itemStates.set(key, 'queued')
+               row._ytdlSetState('queued', 'Added to queue')
+--- baseline/extension/background.js
++++ extension/background.js
+@@ -1,4 +1,4 @@
+-importScripts('cookie-sync-domains.js', 'media-patterns.js', 'download-transport.js', 'douyin-policy.js', 'download-selection.js')
++importScripts('cookie-sync-domains.js', 'media-patterns.js', 'download-transport.js', 'douyin-policy.js', 'download-selection.js', 'media-source-context.js')
+ const COOKIE_SYNC_DOMAINS = globalThis.COOKIE_SYNC_DOMAINS
+ const MP = globalThis.VDownloadMediaPatterns
+ const DT = globalThis.VDownloadDownloadTransport
+@@ -143,6 +143,31 @@
+   appCapabilityStorageWrites = write.catch(() => {})
+   return write
+ }
++function downloadSourceFields(item, fallback = {}) {
++  const read = globalThis.VDownloadSourceContext.readMediaSourceContext
++  const existing = item.sourceContext ? read(item.sourceContext) : undefined
++  const sameSenderDocument = existing?.documentUrl && existing.documentUrl === fallback.documentUrl &&
++    (existing.frameId === undefined || existing.frameId === fallback.frameId)
++  const context = read(existing ? { ...existing,
++    ...(!existing.pageUrl && isSafeHttpUrl(fallback.pageUrl) ? { pageUrl: fallback.pageUrl } : {}),
++    ...(existing.pageTitle === undefined && fallback.pageTitle ? { pageTitle: fallback.pageTitle } : {}),
++    ...(sameSenderDocument && existing.tabId === undefined && Number.isInteger(fallback.tabId) ? { tabId: fallback.tabId } : {}),
++    ...(sameSenderDocument && existing.frameId === undefined && Number.isInteger(fallback.frameId) ? { frameId: fallback.frameId } : {}),
++    ...(sameSenderDocument && existing.documentId === undefined && fallback.documentId ? { documentId: fallback.documentId } : {})
++  } : {
++    version: 1,
++    ...(isSafeHttpUrl(fallback.pageUrl || item.pageUrl) ? { pageUrl: fallback.pageUrl || item.pageUrl } : {}),
++    ...(isSafeHttpUrl(item.pageUrl || fallback.documentUrl) ? { documentUrl: item.pageUrl || fallback.documentUrl } : {}),
++    ...(isSafeHttpUrl(item.initiator) ? { initiator: item.initiator } : {}),
++    ...(fallback.pageTitle ? { pageTitle: fallback.pageTitle } : {}),
++    ...(Number.isInteger(fallback.tabId) ? { tabId: fallback.tabId } : {}),
++    ...(Number.isInteger(fallback.frameId) ? { frameId: fallback.frameId } : {}),
++    ...(fallback.documentId ? { documentId: fallback.documentId } : {}),
++    ...(Number.isFinite(item.timestamp) ? { observedAt: item.timestamp } : {})
++  })
++  return { sourceContext: context, referer: globalThis.VDownloadSourceContext.mediaSourceReferer(context) }
++}
++
+ async function selectedDownloadPlanFields() {
+   const stored = await new Promise((resolve) => {
+     try { chrome.storage.local.get(['downloadPlanId', 'downloadPlanRevision'], (value) => resolve(value || {})) }
+@@ -1246,7 +1271,8 @@
+ function isValidContentItem(item) {
+   if (!item || typeof item !== 'object' || !isSafeHttpUrl(item.url)) return false
+   if (item.type !== undefined && (typeof item.type !== 'string' || !CONTENT_MEDIA_TYPES.has(item.type.toLowerCase()))) return false
+-  if (item.pageUrl !== undefined && (!isSafeHttpUrl(item.pageUrl) || !isDouyinUrl(item.pageUrl))) return false
++  if (item.pageUrl !== undefined && !isSafeHttpUrl(item.pageUrl)) return false
++  if (item.sourceContext !== undefined) { try { globalThis.VDownloadSourceContext.readMediaSourceContext(item.sourceContext) } catch { return false } }
+   if (item.selection !== undefined) { try { globalThis.VDownloadSelection.readDownloadSelection(item.selection) } catch { return false } }
+   if (item.planId !== undefined && (typeof item.planId !== 'string' || !/^[A-Za-z0-9:_-]+$/.test(item.planId))) return false
+   if (item.quality !== undefined && (typeof item.quality !== 'string' || !/^(?:\d{1,4}|best)$/.test(item.quality))) return false
+@@ -1502,14 +1528,17 @@
+     if (context.awaitingHydration) continue
+     tabs[context.tabId] = {
+       epoch: tabNavigationEpoch(context.tabId),
+-      pageUrl: String(knownTabPageUrls.get(context.tabId) || '').slice(0, 2048)
++      pageUrl: String(knownTabPageUrls.get(context.tabId) || '')
+     }
+     requests.push({
+       requestId: String(requestId).slice(0, 128),
+       tabId: context.tabId,
+       epoch: context.epoch,
+       requestKind: String(context.requestKind || '').slice(0, 16),
+-      startedAt: Number(context.startedAt) || 0
++      startedAt: Number(context.startedAt) || 0,
++      ...(Number.isInteger(context.frameId) ? { frameId: context.frameId } : {}),
++      ...(context.documentId ? { documentId: context.documentId } : {}),
++      ...(context.documentUrl ? { documentUrl: context.documentUrl } : {})
+     })
+   }
+   return { tabs, requests }
+@@ -1547,7 +1576,7 @@
+       // that ran before the asynchronous session read completed.
+       tabNavigationEpochs.set(tabId, baseEpoch + tabNavigationRevision(tabId))
+       if (!knownTabPageUrls.has(tabId) && typeof state.pageUrl === 'string') {
+-        knownTabPageUrls.set(tabId, state.pageUrl.slice(0, 2048))
++        knownTabPageUrls.set(tabId, state.pageUrl)
+       }
+     }
+   }
+@@ -1562,9 +1591,12 @@
+     pendingMediaRequestEpochs.set(requestId, {
+       tabId,
+       epoch,
+-      pageUrl: Number(tabState?.epoch) === epoch && typeof tabState?.pageUrl === 'string' ? tabState.pageUrl.slice(0, 2048) : '',
++      pageUrl: Number(tabState?.epoch) === epoch && typeof tabState?.pageUrl === 'string' ? tabState.pageUrl : '',
+       requestKind: typeof raw.requestKind === 'string' ? raw.requestKind.slice(0, 16) : '',
+       startedAt: Number.isFinite(Number(raw.startedAt)) ? Number(raw.startedAt) : 0,
++      ...(Number.isInteger(raw.frameId) ? { frameId: raw.frameId } : {}),
++      ...(typeof raw.documentId === 'string' ? { documentId: raw.documentId } : {}),
++      ...(isSafeHttpUrl(raw.documentUrl) ? { documentUrl: raw.documentUrl } : {}),
+       awaitingHydration: false,
+       navigationRevision: tabNavigationRevision(tabId)
+     })
+@@ -1592,7 +1624,7 @@
+       continue
+     }
+     context.epoch = tabNavigationEpoch(context.tabId)
+-    context.pageUrl = pageUrl.slice(0, 2048)
++    context.pageUrl = pageUrl
+     context.awaitingHydration = false
+     changed = true
+   }
+@@ -1637,6 +1669,8 @@
+ function persistedMediaEntry(raw) {
+   if (!raw || typeof raw !== 'object' || !isSafeHttpUrl(raw.url)) return null
+   const type = typeof raw.type === 'string' ? raw.type : MP.inferType(raw.url, raw.mime || raw.contentType)
++  let sourceContext
++  try { if (raw.sourceContext) sourceContext = globalThis.VDownloadSourceContext.readMediaSourceContext(raw.sourceContext) } catch { return null }
+   const entry = {
+     url: raw.url,
+     type,
+@@ -1649,7 +1683,8 @@
+     pageUrlIsDocument: raw.pageUrlIsDocument === true,
+     timestamp: Number.isFinite(Number(raw.timestamp)) ? Number(raw.timestamp) : 0,
+     source: typeof raw.source === 'string' ? raw.source : 'network',
+-    confidence: Number.isFinite(Number(raw.confidence)) ? Number(raw.confidence) : 0,
++    confidence: MP.scoreCandidate(raw),
++    ...(sourceContext ? { sourceContext } : {}),
+   }
+   return MP.isReliableCandidate(entry) ? entry : null
+ }
+@@ -1666,12 +1701,13 @@
+           contentType: String(entry.contentType || '').slice(0, 128),
+           size: entry.size || null,
+           requestKind: String(entry.requestKind || '').slice(0, 32),
+-          initiator: String(entry.initiator || '').slice(0, 2048),
+-          pageUrl: String(entry.pageUrl || '').slice(0, 2048),
++          initiator: String(entry.initiator || ''),
++          pageUrl: String(entry.pageUrl || ''),
+           pageUrlIsDocument: entry.pageUrlIsDocument === true,
+           timestamp: entry.timestamp || 0,
+           source: String(entry.source || 'network').slice(0, 32),
+-          confidence: entry.confidence || 0,
++          confidence: MP.scoreCandidate(entry),
++          ...(entry.sourceContext ? { sourceContext: entry.sourceContext } : {}),
+         }
+         const serialized = JSON.stringify(value)
+         candidates.push({ tabId, frameId, value, cost: (serialized.length + 64) * 2, timestamp: value.timestamp })
+@@ -1777,11 +1813,13 @@
+       for (const [frameKey, savedEntries] of Object.entries(savedFrames)) {
+         const frameId = Number(frameKey)
+         if (frameKey === '__pageUrl' || !Number.isInteger(frameId) || !Array.isArray(savedEntries)) continue
++        // A frame navigation delivered during hydration owns the current state.
++        if (frameId > 0 && frameRevisions.has(`${tabId}:${frameId}`)) continue
+         const bucket = new Map()
+         for (const raw of savedEntries) {
+           const entry = persistedMediaEntry(raw)
+           if (frameId === 0 && entry?.pageUrl && !topFramePageMatches(tabId, entry.pageUrl, entry.pageUrlIsDocument)) continue
+-          if (entry) bucket.set(MP.canonicalizeUrl(entry.url), entry)
++          if (entry) bucket.set(MP.candidateKey(entry), entry)
+         }
+         if (bucket.size) frames.set(frameId, bucket)
+       }
+@@ -1822,9 +1860,9 @@
+ function addMediaEntry(tabId, frameId, url, entry) {
+   if (!isSafeHttpUrl(url)) return
+   const bucket = getFrameBucket(tabId, frameId)
+-  const key = MP.canonicalizeUrl(url)
++  const key = MP.candidateKey(entry)
+   const previous = bucket.get(key)
+-  bucket.set(key, previous ? { ...previous, ...entry, size: Math.max(previous.size || 0, entry.size || 0) || null, timestamp: Math.max(previous.timestamp || 0, entry.timestamp || 0) } : entry)
++  bucket.set(key, previous && (previous.timestamp || 0) > (entry.timestamp || 0) ? previous : entry)
+   // Evict oldest entries if over cap
+   if (bucket.size > FRAME_BUCKET_MAX) {
+     const sorted = Array.from(bucket.entries()).sort((a, b) => a[1].timestamp - b[1].timestamp)
+@@ -1852,18 +1890,7 @@
+ function getAllTabMedia(tabId) {
+   pruneMedia()
+   const tab = tabMedia.get(tabId)
+-  if (!tab) return []
+-  const seen = new Set()
+-  const result = []
+-  for (const bucket of tab.values()) {
+-    for (const [url, entry] of bucket) {
+-      if (!seen.has(url)) {
+-        seen.add(url)
+-        result.push(entry)
+-      }
+-    }
+-  }
+-  return result
++  return tab ? MP.mergeCandidates([...tab.values()].flatMap((bucket) => [...bucket.values()])) : []
+ }
+ 
+ function pruneMedia() {
+@@ -2002,13 +2029,14 @@
+ })
+ 
+ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+-  if (typeof tab.url === 'string') knownTabPageUrls.set(tabId, tab.url)
++  // webNavigation can establish the new document before tabs.onUpdated. Do not
++  // invalidate its already-captured requests a second time when the tab catches up.
++  if (changeInfo.url && normalizedPageUrl(knownTabPageUrls.get(tabId)) !== normalizedPageUrl(changeInfo.url)) {
++    invalidateTabMediaForNavigation(tabId, changeInfo.url)
++    updateBadge(tabId, 0)
++  } else if (typeof tab.url === 'string') knownTabPageUrls.set(tabId, tab.url)
+   if (changeInfo.url || changeInfo.status === 'complete') {
+     updateTabUI(tab)
+-  }
+-  if (changeInfo.url) {
+-    invalidateTabMediaForNavigation(tabId, changeInfo.url)
+-    updateBadge(tabId, 0)
+   }
+ })
+ 
+@@ -2092,6 +2120,58 @@
+   }
+ }
+ 
++// A frame's document URL is captured at request start, not inferred from its origin.
++const frameRevisions = new Map()
++let nextFrameRevision = 0
++const pendingFrameLookups = new Map()
++function frameRevision(tabId, frameId, advance = false) {
++  const key = `${tabId}:${frameId}`
++  if (advance || !frameRevisions.has(key)) {
++    frameRevisions.delete(key)
++    frameRevisions.set(key, ++nextFrameRevision)
++    if (frameRevisions.size > MAX_PENDING_MEDIA_REQUEST_EPOCHS) frameRevisions.delete(frameRevisions.keys().next().value)
++  }
++  return frameRevisions.get(key)
++}
++function onFrameNavigation(details, historyChange = false) {
++  if (details.frameId === 0) {
++    if (isSafeHttpUrl(details.url) && (!historyChange || normalizedPageUrl(knownTabPageUrls.get(details.tabId)) !== normalizedPageUrl(details.url))) {
++      invalidateTabMediaForNavigation(details.tabId, details.url)
++      updateBadge(details.tabId, 0)
++    }
++    return
++  }
++  if (details.frameId < 0) return
++  frameRevision(details.tabId, details.frameId, true)
++  tabMedia.get(details.tabId)?.delete(details.frameId)
++  scheduleMediaCachePersist()
++}
++chrome.webNavigation?.onCommitted?.addListener(onFrameNavigation)
++chrome.webNavigation?.onHistoryStateUpdated?.addListener((details) => onFrameNavigation(details, true))
++chrome.tabs.onRemoved.addListener((tabId) => {
++  for (const key of frameRevisions.keys()) if (key.startsWith(`${tabId}:`)) frameRevisions.delete(key)
++})
++function captureFrameDocument(details, context) {
++  if (details.frameId <= 0 || context.documentUrl || !chrome.webNavigation?.getFrame) return
++  const revision = context.frameRevision
++  const key = `${details.tabId}:${details.frameId}:${details.documentId || ''}:${revision}`
++  let lookup = pendingFrameLookups.get(key)
++  if (!lookup) {
++    if (pendingFrameLookups.size >= MAX_PENDING_MEDIA_REQUEST_EPOCHS) return
++    lookup = chrome.webNavigation.getFrame({ tabId: details.tabId, frameId: details.frameId,
++      ...(details.documentId ? { documentId: details.documentId } : {}) }).catch(() => null)
++    pendingFrameLookups.set(key, lookup)
++    void lookup.finally(() => { if (pendingFrameLookups.get(key) === lookup) pendingFrameLookups.delete(key) })
++  }
++  context.frameLookup = lookup.then((frame) => {
++    if (frameRevisions.get(`${details.tabId}:${details.frameId}`) !== revision) return
++    if (!frame || (details.documentId && frame.documentId !== details.documentId) || !isSafeHttpUrl(frame.url)) return
++    context.documentUrl = frame.url
++    context.documentId = frame.documentId || details.documentId
++    scheduleMediaRequestEpochPersist()
++  })
++}
++
+ // --- webRequest sniffer (frame-aware) ---
+ 
+ chrome.webRequest.onCompleted.addListener(
+@@ -2102,12 +2182,23 @@
+       pendingMediaRequestEpochs.delete(requestId)
+       scheduleMediaRequestEpochPersist()
+     }
+-    void mediaCacheReadyPromise.then(() => {
++    void mediaCacheReadyPromise.then(async () => {
+       if (details.tabId < 0) return
+       // If completion woke a cold worker before session storage finished
+       // loading, retrieve the persisted in-flight request context now.
+       const requestContext = requestContextAtEvent || pendingMediaRequestEpochs.get(requestId)
+       if (requestContext) {
++        if (requestContext.frameLookup) await requestContext.frameLookup
++        if (requestContext.frameRevision !== undefined && frameRevisions.get(`${details.tabId}:${details.frameId}`) !== requestContext.frameRevision) return
++        if (details.frameId > 0 && requestContext.frameRevision === undefined) {
++          // A restored request has no live revision proof. Verify its captured
++          // frame URL before accepting a completion after a worker restart.
++          const frame = await chrome.webNavigation?.getFrame({ tabId: details.tabId, frameId: details.frameId,
++            ...(requestContext.documentId ? { documentId: requestContext.documentId } : {}) }).catch(() => null)
++          if (!frame || !requestContext.documentUrl || frame.url !== requestContext.documentUrl ||
++            (requestContext.documentId && frame.documentId !== requestContext.documentId)) return
++        }
++        if (requestContext.documentId && details.documentId !== requestContext.documentId) return
+         pendingMediaRequestEpochs.delete(requestId)
+         scheduleMediaRequestEpochPersist()
+         if (requestContext.tabId !== details.tabId || requestContext.epoch !== tabNavigationEpoch(details.tabId)) return
+@@ -2128,7 +2219,7 @@
+       const parsedSize = contentLength == null || contentLength === '' ? null : Number(contentLength)
+       if (parsedSize !== null && (!Number.isFinite(parsedSize) || parsedSize < 0)) return
+       const mediaType = MP.inferType(details.url, mime)
+-      const documentUrl = typeof details.documentUrl === 'string' ? details.documentUrl.slice(0, 2048) : ''
++      const documentUrl = typeof details.documentUrl === 'string' ? details.documentUrl : requestContext?.documentUrl || ''
+       const trustedPageUrl = documentUrl || requestContext?.pageUrl || ''
+       // With no in-flight ownership record, only accept a top-frame request
+       // when Chrome supplied a full document URL that still matches the tab.
+@@ -2138,15 +2229,24 @@
+         const currentPageUrl = knownTabPageUrls.get(details.tabId)
+         if (!currentPageUrl || normalizedPageUrl(documentUrl) !== normalizedPageUrl(currentPageUrl)) return
+       }
++      const sourceContext = globalThis.VDownloadSourceContext.readMediaSourceContext({
++        version: 1,
++        ...(isSafeHttpUrl(knownTabPageUrls.get(details.tabId)) ? { pageUrl: knownTabPageUrls.get(details.tabId) } : {}),
++        ...(isSafeHttpUrl(documentUrl) ? { documentUrl } : {}),
++        ...(isSafeHttpUrl(details.initiator) ? { initiator: details.initiator } : {}),
++        tabId: details.tabId, frameId: details.frameId ?? 0, navigationEpoch: tabNavigationEpoch(details.tabId),
++        ...(details.documentId ? { documentId: details.documentId } : {}), observedAt: Date.now()
++      })
+       const candidate = {
++        sourceContext,
+         url: details.url,
+         type: mediaType,
+         mime: mime.slice(0, 128),
+         contentType: mime.slice(0, 128),
+         size: parsedSize,
+         requestKind: details.type,
+-        initiator: typeof details.initiator === 'string' ? details.initiator.slice(0, 8192) : '',
+-        pageUrl: trustedPageUrl || (typeof details.initiator === 'string' ? details.initiator.slice(0, 2048) : ''),
++        initiator: typeof details.initiator === 'string' ? details.initiator : '',
++        pageUrl: trustedPageUrl || (typeof details.initiator === 'string' ? details.initiator : ''),
+         pageUrlIsDocument: Boolean(documentUrl || requestContext?.pageUrl),
+         timestamp: Date.now(),
+         source: 'network'
+@@ -2158,7 +2258,7 @@
+       addMediaEntry(details.tabId, frameId, details.url, candidate)
+ 
+       updateBadge(details.tabId, getAllTabMedia(details.tabId).length)
+-    })
++    }).catch(() => logBg('media-capture-invalid-context', { tabId: details.tabId, frameId: details.frameId }))
+   },
+   { urls: ['<all_urls>'], types: ['media', 'xmlhttprequest', 'other'] },
+   ['responseHeaders']
+@@ -2175,16 +2275,17 @@
+     pendingMediaRequestEpochs.set(String(details.requestId), {
+       tabId: details.tabId,
+       epoch: tabNavigationEpoch(details.tabId),
+-      pageUrl: String(knownTabPageUrls.get(details.tabId) || '').slice(0, 2048),
++      pageUrl: String(knownTabPageUrls.get(details.tabId) || ''),
+       requestKind: String(details.type || '').slice(0, 16),
+       startedAt: Date.now(),
+       awaitingHydration: mediaCacheHydrating,
+       navigationRevision: tabNavigationRevision(details.tabId),
+       frameId: Number.isInteger(details.frameId) ? details.frameId : -1,
+-      documentUrl: Number.isInteger(details.frameId) && details.frameId === 0 && typeof details.documentUrl === 'string'
+-        ? details.documentUrl.slice(0, 2048)
+-        : ''
++      documentUrl: typeof details.documentUrl === 'string' ? details.documentUrl : '',
++      ...(details.documentId ? { documentId: details.documentId } : {}),
++      ...(details.frameId > 0 ? { frameRevision: frameRevision(details.tabId, details.frameId) } : {})
+     })
++    captureFrameDocument(details, pendingMediaRequestEpochs.get(String(details.requestId)))
+     scheduleMediaRequestEpochPersist()
+   },
+   { urls: ['<all_urls>'], types: ['media', 'xmlhttprequest', 'other'] }
+@@ -2372,13 +2473,14 @@
+       const activeTab = Array.isArray(tabs) ? tabs[0] : null
+       const tabId = Number.isInteger(activeTab?.id) ? activeTab.id : null
+       const planFields = await selectedDownloadPlanFields()
+-      const requests = items.map((item, i) => MP.isReliableCandidate(item) ? ({
+-        url: item.url,
+-        type: item.type,
+-        ...planFields,
+-        referer: isSafeHttpUrl(item.initiator) ? item.initiator : (isSafeHttpUrl(tabUrl) ? tabUrl : ''),
+-        title: items.length > 1 ? `${baseTitle} (${i + 1})` : baseTitle
+-      }) : null)
++      const requests = items.map((item, i) => {
++        if (!MP.isReliableCandidate(item)) return null
++        try {
++          return { url: item.url, type: item.type, ...planFields,
++            ...downloadSourceFields(item, { pageUrl: tabUrl, pageTitle: tabTitle, tabId }),
++            title: items.length > 1 ? `${baseTitle} (${i + 1})` : baseTitle }
++        } catch { return null }
++      })
+       const directResults = requests.map((request) => request ? ({ ok: false, status: null, error: 'Not sent' }) : ({ ok: false, status: 422, category: 'invalid-media-candidate', error: 'Invalid media candidate' }))
+       const pendingIndexes = []
+       try {
+@@ -2473,11 +2575,11 @@
+ 
+       const mergedByKey = new Map()
+       for (const m of frameMedia) {
+-        const key = `${MP.canonicalizeUrl(m.url)}|${m.type}`
++        const key = MP.candidateKey(m)
+         mergedByKey.set(key, m)
+       }
+       for (const m of tabMedia) {
+-        const key = `${MP.canonicalizeUrl(m.url)}|${m.type}`
++        const key = MP.candidateKey(m)
+         const prev = mergedByKey.get(key)
+         if (!prev || (m.timestamp || 0) > (prev.timestamp || 0)) {
+           mergedByKey.set(key, m)
+@@ -2515,7 +2617,13 @@
+       return false
+     }
+ 
+-    const referer = isSafeHttpUrl(item.initiator) ? item.initiator : (isSafeHttpUrl(tabUrl) ? tabUrl : '')
++    let sourceFields
++    try {
++      sourceFields = downloadSourceFields(item, { pageUrl: tabUrl, documentUrl: sender.url, pageTitle: tabTitle, tabId, frameId: sender.frameId ?? 0, documentId: sender.documentId })
++    } catch {
++      sendResponse({ ok: false, error: 'Invalid media source context' })
++      return false
++    }
+     const title = (item.title && String(item.title).trim()) || tabTitle
+     const pageUrl = isSafeHttpUrl(item.pageUrl) && isDouyinUrl(item.pageUrl) ? item.pageUrl : ''
+     const choice = { ...(item.selection ? { selection: item.selection } : {}), ...(item.planId ? { planId: item.planId, planRevision: item.planRevision } : {}) }
+@@ -2525,14 +2633,14 @@
+           quality: item.quality || undefined,
+           ...choice,
+           autoStart: item.autoStart === true,
+-          referer,
++          ...sourceFields,
+           title
+         }
+       : {
+           url: item.url,
+           type: item.type,
+           ...choice,
+-          referer,
++          ...sourceFields,
+           title
+         }
+ 
+--- baseline/extension/media-patterns.js
++++ extension/media-patterns.js
+@@ -20,7 +20,6 @@
+   ]
+   const AUDIO = new Set(['mp3', 'm4a', 'aac', 'ogg', 'wav', 'flac'])
+   const MANIFESTS = new Set(['hls', 'dash'])
+-  const PREVIEW_SIZE = 5 * 1024 * 1024
+   const HEATMAP = /(^|[./_-])(heatmap|sprite|thumbnail|preview_v)([0-9a-z._-]|$)/i
+   const TRAILER = /(^|[./_-])(teaser|trailer)([0-9a-z._-]|$)/i
+   const MASTER_STEM = /^(master|index|playlist)$/i
+@@ -144,7 +143,7 @@
+   }
+   function scoreCandidate(c) {
+     const type = c.type || inferType(c.url, c.mime || c.contentType)
+-    const raw = (c.confidence || 0) + (MANIFESTS.has(type) ? 35 : 20) + (c.size > 0 ? Math.min(25, Math.log10(c.size) * 2) : 0) + (c.source === 'element' ? 12 : 0) + (/^https:/.test(c.url) ? 4 : 0)
++    const raw = (MANIFESTS.has(type) ? 35 : 20) + (c.size > 0 ? Math.min(25, Math.log10(c.size) * 2) : 0) + (c.source === 'element' ? 12 : 0) + (/^https:/.test(c.url) ? 4 : 0)
+     return Math.min(100, Math.max(0, raw - identityPenalty(c.url)))
+   }
+   function displayTitleFor(item, pageTitle) {
+@@ -173,17 +172,11 @@
+       const path = pathText(raw.url)
+       let role = 'unknown'
+       if (isAdLikeUrl(raw.url)) role = 'ad'
+-      else if (pageUrl && raw.pageUrl && isRelatedDocument(raw.pageUrl, pageUrl)) role = 'related'
++      else if (pageUrl && (raw.sourceContext?.pageUrl || raw.pageUrl) && isRelatedDocument(raw.sourceContext?.pageUrl || raw.pageUrl, pageUrl)) role = 'related'
+       else if (HEATMAP.test(path)) role = 'heatmap'
+       else if (TRAILER.test(path)) role = 'preview'
+       return { ...raw, type, role, playlistKind: playlistKindFromUrl(raw.url, type) }
+     })
+-    const hasManifest = prepared.some((item) => MANIFESTS.has(item.type) && item.role !== 'related' && item.role !== 'ad')
+-    for (const item of prepared) {
+-      if (item.role !== 'unknown') continue
+-      const size = Number(item.size || 0)
+-      if (hasManifest && !MANIFESTS.has(item.type) && !AUDIO.has(item.type) && size > 0 && size < PREVIEW_SIZE) item.role = 'preview'
+-    }
+     const contenders = prepared.filter((item) => item.role === 'unknown')
+     const manifests = contenders.filter((item) => MANIFESTS.has(item.type))
+     const pool = manifests.length ? manifests : contenders.filter((item) => !AUDIO.has(item.type))
+@@ -191,7 +184,7 @@
+     if (main) {
+       for (const item of pool) {
+         if (item === main) item.role = 'main'
+-        else if (MANIFESTS.has(item.type)) item.role = 'variant'
++        // No manifest relationship has been established: other candidates remain independent.
+       }
+     }
+     for (const item of prepared) item.displayTitle = displayTitleFor(item, pageTitle)
+@@ -219,27 +212,49 @@
+     const main = visible.filter((item) => item.role === 'main')
+     const variants = visible.filter((item) => item.role === 'variant')
+     const rest = visible.filter((item) => item.role !== 'main' && item.role !== 'variant')
+-    return main.concat(variants.slice(0, 1), rest)
++    return main.concat(variants, rest)
+   }
+   function pickRefreshedSniffedCandidate(clicked, media) {
+     if (!clicked || !clicked.url) return null
+     const key = stableMediaUrl(clicked.url)
+-    const same = (Array.isArray(media) ? media : []).filter((item) => item && item.type === clicked.type && stableMediaUrl(item.url) === key)
++    const same = (Array.isArray(media) ? media : []).filter((item) => item && item.type === clicked.type && stableMediaUrl(item.url) === key && sourceScope(item) === sourceScope(clicked))
+     if (!same.length) return clicked
+     return same.slice().sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))[0] || clicked
++  }
++  // Context is part of discovery identity; the actual transport URL is never normalized.
++  function sourceScope(candidate) {
++    const context = candidate.sourceContext || {}
++    return JSON.stringify([context.pageUrl || candidate.pageUrl || '', context.documentUrl || '', context.tabId ?? null,
++      context.frameId ?? null, context.documentId || '', context.navigationEpoch ?? null])
++  }
++  function candidateKey(candidate) {
++    return JSON.stringify([canonicalizeUrl(candidate.url), candidate.type || inferType(candidate.url, candidate.mime || candidate.contentType), sourceScope(candidate)])
++  }
++  function documentCandidate(element, media, documentUrl) {
++    return (media || []).find((item) => item.url === element.url && item.type === element.type &&
++      (item.sourceContext?.documentUrl === documentUrl ||
++       (item.sourceContext?.frameId === 0 && item.sourceContext?.pageUrl === documentUrl)))
++  }
++  // Project the transport and its provenance together at every overlay submit path.
++  function mediaItemForDownload(candidate) {
++    return { url: candidate.url, type: candidate.type,
++      ...(candidate.initiator ? { initiator: candidate.initiator } : {}),
++      ...(candidate.pageUrl ? { pageUrl: candidate.pageUrl } : {}),
++      ...(candidate.sourceContext ? { sourceContext: candidate.sourceContext } : {}) }
+   }
+   function mergeCandidates(items) {
+     const merged = new Map()
+     for (const raw of Array.isArray(items) ? items : []) {
+       if (!isReliableCandidate(raw)) continue
+-      const url = canonicalizeUrl(raw.url), type = raw.type || inferType(url, raw.mime || raw.contentType)
+-      const next = { ...raw, url, type, mime: raw.mime || raw.contentType || '', confidence: Number(raw.confidence || 0) }
+-      const key = `${url}|${type}`
++      const type = raw.type || inferType(raw.url, raw.mime || raw.contentType)
++      const next = { ...raw, type, mime: raw.mime || raw.contentType || '' }
++      const key = candidateKey(next)
+       const prev = merged.get(key)
+-      if (!prev) merged.set(key, next)
+-      else merged.set(key, { ...prev, ...next, url: prev.url, size: Math.max(Number(prev.size || 0), Number(next.size || 0)) || null, timestamp: Math.max(prev.timestamp || 0, next.timestamp || 0), confidence: Math.max(scoreCandidate(prev), scoreCandidate(next)) })
++      // Keep URL and provenance from the same observation. Timestamps do not rank quality.
++      if (!prev || (next.timestamp || 0) >= (prev.timestamp || 0)) merged.set(key, next)
+     }
+-    return Array.from(merged.values()).map((c) => ({ ...c, confidence: Math.round(scoreCandidate(c)) })).sort((a, b) => b.confidence - a.confidence || (b.size || 0) - (a.size || 0) || a.url.localeCompare(b.url))
++    return Array.from(merged.values()).map((c) => ({ ...c, confidence: Math.round(scoreCandidate(c)) }))
++      .sort((a, b) => b.confidence - a.confidence || (b.size || 0) - (a.size || 0) || a.url.localeCompare(b.url))
+   }
+   function filterSniffedForOverlay(sniffed, videoLoadTime) {
+     const list = Array.isArray(sniffed) ? sniffed : []
+@@ -259,5 +274,5 @@
+       return ts >= cutoff
+     })
+   }
+-  g.VDownloadMediaPatterns = { MIN_VIDEO_SIZE, AUDIO, MANIFESTS, canonicalizeUrl, stableMediaUrl, safeUrl, contentType, inferType, inferTypeFromUrl: (u) => inferType(u, ''), isNoise, isReliableCandidate, isAdLikeUrl, scoreCandidate, mergeCandidates, filterSniffedForOverlay, classifyMediaRole, selectDefaultMedia, selectSmartOverlayMedia, pickRefreshedSniffedCandidate, displayTitleFor, roleLabel, playlistKindFromUrl, validateBatch: (items) => Array.isArray(items) && items.length > 0 }
++  g.VDownloadMediaPatterns = { MIN_VIDEO_SIZE, AUDIO, MANIFESTS, candidateKey, documentCandidate, mediaItemForDownload, canonicalizeUrl, stableMediaUrl, safeUrl, contentType, inferType, inferTypeFromUrl: (u) => inferType(u, ''), isNoise, isReliableCandidate, isAdLikeUrl, scoreCandidate, mergeCandidates, filterSniffedForOverlay, classifyMediaRole, selectDefaultMedia, selectSmartOverlayMedia, pickRefreshedSniffedCandidate, displayTitleFor, roleLabel, playlistKindFromUrl, validateBatch: (items) => Array.isArray(items) && items.length > 0 }
+ })(typeof globalThis !== 'undefined' ? globalThis : this)
+--- baseline/extension/manifest.json
++++ extension/manifest.json
+@@ -11,7 +11,8 @@
+     "tabs",
+     "alarms",
+     "scripting",
+-    "webRequest"
++    "webRequest",
++    "webNavigation"
+   ],
+   "host_permissions": [
+     "<all_urls>",
+--- baseline/extension/media-source-context.js
++++ extension/media-source-context.js
+@@ -0,0 +1,51 @@
++// AUTO-GENERATED by npm run sync:extension-constants; edit packages/shared/src/media-source-context.ts.
++globalThis.VDownloadSourceContext = (() => { const exports = {};
++"use strict";
++Object.defineProperty(exports, "__esModule", { value: true });
++exports.readMediaSourceContext = readMediaSourceContext;
++exports.mediaSourceReferer = mediaSourceReferer;
++const URL_FIELDS = ['pageUrl', 'documentUrl', 'initiator'];
++const NUMBER_FIELDS = ['tabId', 'frameId', 'navigationEpoch', 'observedAt'];
++function readMediaSourceContext(value) {
++    if (!value || typeof value !== 'object' || Array.isArray(value))
++        throw new Error('Invalid media source context');
++    const input = value;
++    const keys = new Set(['version', ...URL_FIELDS, ...NUMBER_FIELDS, 'pageTitle', 'documentId']);
++    if (input.version !== 1 || Object.keys(input).some((key) => !keys.has(key)))
++        throw new Error('Unsupported media source context');
++    const output = { version: 1 };
++    for (const key of URL_FIELDS) {
++        if (input[key] === undefined)
++            continue;
++        const url = input[key];
++        if (typeof url !== 'string' || url.length > 8192 || /[\u0000-\u0020\u007f]/.test(url))
++            throw new Error('Invalid media source URL');
++        if (!/^https?:$/.test(new URL(url).protocol))
++            throw new Error('Invalid media source URL');
++        output[key] = url;
++    }
++    for (const key of NUMBER_FIELDS) {
++        if (input[key] === undefined)
++            continue;
++        if (!Number.isSafeInteger(input[key]) || Number(input[key]) < 0)
++            throw new Error('Invalid media source identity');
++        output[key] = Number(input[key]);
++    }
++    for (const key of ['pageTitle', 'documentId']) {
++        const text = input[key];
++        if (text === undefined)
++            continue;
++        if (typeof text !== 'string' || text.length > (key === 'documentId' ? 128 : 2048) || /[\u0000-\u001f\u007f]/.test(text))
++            throw new Error('Invalid media source text');
++        output[key] = text;
++    }
++    if (!output.pageUrl && !output.documentUrl && !output.initiator)
++        throw new Error('Missing media source page');
++    return output;
++}
++/** Use the complete requesting document before any origin-only fallback. */
++function mediaSourceReferer(context) {
++    return (context.documentUrl ?? context.pageUrl ?? context.initiator)?.split('#', 1)[0];
++}
++
++return exports; })();
+--- baseline/scripts/write-extension-cookie-sync.mjs
++++ scripts/write-extension-cookie-sync.mjs
+@@ -23,7 +23,9 @@
+ console.log('Wrote', outPath)
+ 
+ const ts = require('typescript')
+-const selectionSource = readFileSync(join(root, 'packages/shared/src/download-selection.ts'), 'utf8')
+-const selectionJs = ts.transpileModule(selectionSource, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText
+-writeFileSync(join(root, 'extension/download-selection.js'), '// AUTO-GENERATED by npm run sync:extension-constants; edit packages/shared/src/download-selection.ts.\n' +
+-  'globalThis.VDownloadSelection = (() => { const exports = {};\n' + selectionJs + '\nreturn exports; })();\n', 'utf8')
++for (const [name, globalName] of [['download-selection', 'VDownloadSelection'], ['media-source-context', 'VDownloadSourceContext']]) {
++  const source = readFileSync(join(root, `packages/shared/src/${name}.ts`), 'utf8')
++  const compiled = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText
++  writeFileSync(join(root, `extension/${name}.js`), `// AUTO-GENERATED by npm run sync:extension-constants; edit packages/shared/src/${name}.ts.\n` +
++    `globalThis.${globalName} = (() => { const exports = {};\n` + compiled + '\nreturn exports; })();\n', 'utf8')
++}
+--- baseline/scripts/test-security.ts
++++ scripts/test-security.ts
+@@ -73,3 +73,13 @@
+ assert.equal(validateDownloadPayload({ url: 'https://fixture.test/v.mp4', planId: 'builtin:audio', planRevision: 1 }).ok, true)
+ assert.equal(validateDownloadPayload({ url: 'https://fixture.test/v.mp4', selection: { version: 1, target: 'video', maxHeight: 360, videoCodec: 'h264', maxFps: 30, dynamicRange: 'any', output: 'original', postprocess: 'none' } }).ok, true)
+ assert.equal(validateDownloadPayload({ url: 'https://fixture.test/v.mp4', planRevision: '1' }).ok, false)
++
++const provenance = { version: 1, pageUrl: 'https://site.test/watch?title=a%20b#player', documentUrl: 'https://player.test/embed?q=c%2fd#video', frameId: 7, tabId: 1, navigationEpoch: 2, documentId: 'doc-7', observedAt: 100 }
++const capture = validateDownloadPayload({ url: 'https://cdn.test/a.m3u8?sig=a%2fb', referer: 'https://wrong.test', sourceContext: provenance })
++assert.equal(capture.ok, true)
++if (capture.ok) {
++  assert.equal(capture.value.url, 'https://cdn.test/a.m3u8?sig=a%2fb')
++  assert.equal(capture.value.referer, 'https://player.test/embed?q=c%2fd')
++  assert.deepEqual(capture.value.sourceContext, provenance)
++}
++for (const sourceContext of [{ ...provenance, version: 2 }, { ...provenance, cookie: 'not-a-source-field' }, { ...provenance, frameId: -1 }, { ...provenance, documentUrl: 'file:///tmp/page' }, { ...provenance, pageUrl: 'https://test/\r\nInjected: yes' }]) assert.equal(validateDownloadPayload({ url: 'https://cdn.test/a.mp4', sourceContext }).ok, false)
+--- baseline/scripts/test-extension-media.js
++++ scripts/test-extension-media.js
+@@ -22,7 +22,8 @@
+ if (result.length !== 6) throw new Error(`expected 6 reliable candidates, got ${result.length}`)
+ if (!result.some((x) => x.type === 'hls') || !result.some((x) => x.type === 'dash')) throw new Error('manifest candidates were filtered')
+ if (result.filter((x) => x.type === 'mp4' && x.url.includes('/video.mp4')).length !== 1) throw new Error('canonical duplicate did not merge')
+-if (result.some((x) => /segment|utm_|tracking/i.test(x.url))) throw new Error('noise leaked into candidates')
++if (result.some((x) => /segment-/i.test(x.url))) throw new Error('noise leaked into candidates')
++if (!result.find((x) => x.url.includes('/video.mp4')).url.includes('utm_')) throw new Error('original transport query was modified')
+ if (mp.isReliableCandidate({ url: 'https://example.test/watch?id=123', source: 'element' })) throw new Error('arbitrary element URL accepted')
+ const safe = mp.safeUrl('https://cdn.example.test/video.mp4?token=secret&signature=private')
+ if (/[?&]|secret|private/i.test(safe)) throw new Error('safe URL leaked query values')
+@@ -63,9 +64,9 @@
+ if (labeled.filter((item) => item.role === 'main').length !== 1) throw new Error('expected exactly one main role')
+ if (byUrl['https://video.sacd.example/hls/master.m3u8']?.role !== 'main') throw new Error('HLS master was not chosen as main')
+ if (byUrl['https://video.sacd.example/hls/master.m3u8']?.playlistKind !== 'master') throw new Error('master playlistKind missing')
+-if (byUrl['https://video.sacd.example/hls/1080p.m3u8']?.role !== 'variant') throw new Error('second HLS was not marked variant')
++if (byUrl['https://video.sacd.example/hls/1080p.m3u8']?.role !== 'unknown') throw new Error('unrelated HLS was incorrectly marked variant')
+ if (byUrl['https://thumb-ah.flix.example/fh_heatmap_preview_v6_a-352x198.mp4']?.role !== 'heatmap') throw new Error('heatmap preview was not labeled')
+-if (byUrl['https://video.sacd.example/ol_c483855c0126bdf226177496.mp4']?.role !== 'preview') throw new Error('small MP4 beside HLS was not preview')
++if (byUrl['https://video.sacd.example/ol_c483855c0126bdf226177496.mp4']?.role !== 'unknown') throw new Error('independent MP4 was incorrectly classified as preview')
+ if (byUrl['https://cdn.example/teaser-clip.mp4']?.role !== 'preview') throw new Error('teaser URL was not preview')
+ const defaults = mp.selectDefaultMedia(labeled)
+ if (defaults.length !== 1 || defaults[0].url !== 'https://video.sacd.example/hls/master.m3u8') throw new Error('default selection must be the main HLS only')
+--- baseline/scripts/test-extension-download.js
++++ scripts/test-extension-download.js
+@@ -357,22 +357,18 @@
+ assert.match(overlay, /__vdownloadWakeFromUserGesture/)
+ assert.match(overlay, /wakeFromGesture\(\) === true/)
+ assert.match(overlay, /DOWNLOAD_MEDIA_FROM_CONTENT', item, surfacedWake \}/)
+-assert.match(overlay, /fallbackNetwork/)
+-assert.match(overlay, /Retrying network…/)
+ assert.match(overlay, /submittedUrls = new Set\(\)/)
+-assert.match(overlay, /clickedOpt\.source === 'element' && clickedOpt\.fallbackNetwork/)
+-assert.match(overlay, /fallback\.url !== item\.url/)
++assert.doesNotMatch(overlay, /fallbackNetwork|Retrying network…/, 'a DOM source cannot silently switch to another candidate')
+ assert.match(overlay, /a\.source !== 'element'/)
+ assert.match(overlay, /b\.source !== 'element'/)
+ assert.match(overlay, /source !== 'element'/)
+ assert.match(overlay, /type === 'hls'/)
+-assert.match(overlay, /SEGMENT_THRESHOLD = 5 \* 1024 \* 1024/)
+ assert.match(overlay, /previous === 'sending' \|\| previous === 'queued'/)
+ assert.match(overlay, /surfacedWake \}, \(resp\)/)
+ assert.match(overlay, /const inFlightUrls = new Set\(\)/)
+ assert.match(overlay, /inFlightUrls\.delete\(urlKey\)/)
+ assert.match(overlay, /if \(result\.ok\) submittedUrls\.add\(urlKey\)/)
+-assert.match(overlay, /submittedUrls\.has\(fallbackUrlKey\)/)
++assert.match(overlay, /submittedUrls\.has\(clickedUrlKey\)/)
+ assert.match(overlay, /function getYouTubePrimaryVideo/)
+ assert.match(overlay, /#movie_player video\.html5-main-video/)
+ assert.match(overlay, /html5-video-player\.ytp-fullscreen/)
+@@ -499,7 +495,6 @@
+ assert.match(overlay, /Ad · /)
+ assert.match(overlay, /selectSmartOverlayMedia/)
+ assert.match(overlay, /pickRefreshedSniffedCandidate/)
+-assert.match(overlay, /Keep every manifest/)
+ assert.doesNotMatch(overlay, /filtered = entries\.slice\(0, 2\)/)
+ assert.match(background, /if \(!surfacedWake\) \{\s*launchWakeToFocusApp\(tabId\)/)
+ assert.match(background, /make-dev does not register vdownload/)
+--- baseline/scripts/test-persisted-extras.ts
++++ scripts/test-persisted-extras.ts
+@@ -21,3 +21,7 @@
+ assert.equal(empty.skipAdoptExisting, undefined)
+ 
+ console.log('persisted extras tests passed')
++
++const browserSource = { version: 1, pageUrl: 'https://site.test/watch?q=hello%20world#video', documentUrl: 'https://frame.test/embed?token=a%2fb', tabId: 4, frameId: 7, documentId: 'doc', navigationEpoch: 2, observedAt: 100 }
++assert.deepEqual(pickPersistedExtras({ sourceContext: browserSource }).sourceContext, browserSource)
++assert.throws(() => pickPersistedExtras({ sourceContext: { ...browserSource, headers: { Cookie: 'invalid-context-field' } } }))
+--- baseline/scripts/test-extension-source-data.cjs
++++ scripts/test-extension-source-data.cjs
+@@ -0,0 +1,93 @@
++const assert = require('node:assert/strict')
++const fs = require('node:fs')
++const vm = require('node:vm')
++const { backgroundHarness } = require('./extension-background-harness.cjs')
++const context = vm.createContext({ URL, URLSearchParams })
++vm.runInContext(fs.readFileSync('extension/media-patterns.js', 'utf8'), context)
++const mp = context.VDownloadMediaPatterns
++const wire = 'https://cdn.fixture.test/media.m3u8?token=a%2fb&label=hello%20world&utm_source=capture'
++const page = 'https://site.fixture.test/watch/lesson?course=long%20course#player'
++const documentUrl = 'https://player.fixture.test/embed/lesson?entry=one%20two#video'
++const sourceContext = { version: 1, pageUrl: page, documentUrl, tabId: 1, frameId: 7, documentId: 'document-7', navigationEpoch: 2, observedAt: 100 }
++let rows = [{ url: wire, type: 'hls', source: 'network', sourceContext, confidence: 99, timestamp: 100 }]
++for (let i = 0; i < 10; i++) {
++  rows = mp.mergeCandidates(rows.concat(rows))
++  assert.equal(rows.length, 1)
++  assert.equal(rows[0].url, wire)
++  assert.equal(rows[0].confidence, 39, 'rank depends on source facts, never the previous rank')
++}
++assert.equal(mp.classifyMediaRole(rows, { pageUrl: page })[0].role, 'main', 'the requesting iframe is still owned by the captured top-level page')
++assert.equal(mp.mergeCandidates([...rows, { ...rows[0], sourceContext: { ...sourceContext, frameId: 8 } }]).length, 2, 'the same resource in another frame retains its own provenance')
++const independent = [1, 2, 3].map(i => ({ url: `https://cdn.fixture.test/episode-${i}/master.m3u8`, type: 'hls', source: 'network', timestamp: i }))
++independent.push({ url: 'https://cdn.fixture.test/independent.mp4', type: 'mp4', size: 200000, source: 'network' })
++const labeled = mp.classifyMediaRole(mp.mergeCandidates(independent), { pageUrl: page, pageTitle: 'Lesson' })
++assert.equal(labeled.filter(c => c.role === 'variant').length, 0)
++assert.equal(mp.selectSmartOverlayMedia(labeled).length, 4, 'unknown relationships and short independent MP4s remain visible')
++const refresh = mp.pickRefreshedSniffedCandidate(rows[0], [{ ...rows[0], url: wire.replace('token=a%2fb', 'token=new'), sourceContext: { ...sourceContext, frameId: 8 }, timestamp: 200 }])
++assert.equal(refresh.url, wire, 'refresh cannot switch to a different frame')
++assert.equal(mp.documentCandidate({ url: wire, type: 'hls' }, rows, documentUrl).url, wire, 'DOM and network observations of the same document can share one candidate')
++assert.equal(mp.documentCandidate({ url: wire, type: 'hls' }, rows, page), undefined, 'the same media URL in an iframe cannot claim the top-level element')
++;(async () => {
++  const sent = []
++  const worker = backgroundHarness({ storage: { appCapability: 'a'.repeat(48) }, tabs: [{ id: 1, url: page, title: 'Lesson' }], getFrame: async () => ({ documentId: 'document-7', url: documentUrl }), fetch: async (url, init = {}) => {
++    if (url.endsWith('/download')) sent.push(JSON.parse(init.body))
++    return new Response('{}', { status: 200 })
++  } })
++  await worker.message({ type: 'GET_MEDIA' })
++  const request = { requestId: 'owned-1', tabId: 1, frameId: 7, documentId: 'document-7', url: wire, type: 'xmlhttprequest', initiator: 'https://player.fixture.test' }
++  await worker.events.beforeRequest.emit(request)
++  await worker.events.completed.emit({ ...request, statusCode: 200, responseHeaders: [{ name: 'content-type', value: 'application/vnd.apple.mpegurl' }] })
++  const found = await worker.message({ type: 'GET_MEDIA' })
++  assert.equal(found.media.length, 1)
++  assert.equal(found.media[0].url, wire)
++  assert.equal(found.media[0].sourceContext.documentUrl, documentUrl)
++  assert.equal(found.media[0].sourceContext.frameId, 7)
++  assert.equal((await worker.message({ type: 'DOWNLOAD_MEDIA', items: found.media, tabUrl: page, tabTitle: 'Lesson' })).ok, true)
++  assert.equal(sent[0].url, wire)
++  assert.equal(sent[0].referer, documentUrl.split('#')[0])
++  assert.equal(sent[0].sourceContext.pageUrl, page)
++  assert.equal(sent[0].sourceContext.documentId, 'document-7')
++  const content = await worker.message({ type: 'DOWNLOAD_MEDIA_FROM_CONTENT', item: mp.mediaItemForDownload(found.media[0]) }, { tab: { id: 1, url: page, title: 'Lesson' }, frameId: 0, url: page })
++  assert.equal(content.ok, true, JSON.stringify(content))
++  assert.deepEqual(sent[1], sent[0], 'popup and overlay preserve the same captured source')
++  const { documentId: _capturedId, ...withoutId } = found.media[0].sourceContext
++  await worker.message({ type: 'DOWNLOAD_MEDIA_FROM_CONTENT', item: mp.mediaItemForDownload({ ...found.media[0], sourceContext: withoutId }) },
++    { tab: { id: 1, url: page, title: 'Lesson' }, frameId: 0, documentId: 'top-document', url: page })
++  assert.equal(sent[2].sourceContext.documentId, undefined, 'missing iframe identity cannot be filled with the top-level sender document')
++  await worker.message({ type: 'DOWNLOAD_MEDIA_FROM_CONTENT', item: { url: wire, type: 'hls', sourceContext: { version: 1, documentUrl: page } } },
++    { tab: { id: 1, url: page, title: 'Lesson' }, frameId: 0, documentId: 'top-document', url: page })
++  assert.equal(sent[3].sourceContext.documentId, 'top-document', 'DOM-only source claims gain IDs only from their own document')
++  assert.equal(sent[3].sourceContext.pageUrl, page)
++  const invalid = await worker.message({ type: 'DOWNLOAD_MEDIA', items: [{ ...found.media[0], sourceContext: { version: 2 } }], tabUrl: page })
++  assert.equal(invalid.ok, false, 'invalid batch provenance responds instead of hanging')
++  const stale = { ...request, requestId: 'stale-frame' }
++  await worker.events.beforeRequest.emit(stale)
++  await worker.events.frameHistory.emit({ tabId: 1, frameId: 7 })
++  await worker.events.completed.emit({ ...stale, statusCode: 200, responseHeaders: [{ name: 'content-type', value: 'application/vnd.apple.mpegurl' }] })
++  assert.equal((await worker.message({ type: 'GET_MEDIA' })).media.length, 0, 'a changed iframe cannot inherit the old route candidate')
++  const savedCandidate = { ...found.media[0], timestamp: Date.now() }
++  const restored = (extra = {}) => backgroundHarness({ fetch: async () => new Response('{}'),
++    tabs: [{ id: 1, url: page, title: 'Lesson' }],
++    getFrame: async () => ({ documentId: 'document-7', url: documentUrl }),
++    storage: { tabMediaCache: { 1: { __pageUrl: page, 7: [savedCandidate] } },
++      tabMediaRequestEpochs: { tabs: { 1: { epoch: 2, pageUrl: page } }, requests: [{ requestId: 'restored', tabId: 1,
++        epoch: 2, requestKind: 'xmlhttprequest', startedAt: Date.now(), frameId: 7, documentId: 'document-7', documentUrl }] } }, ...extra })
++  const restarted = restored()
++  assert.equal((await restarted.message({ type: 'GET_MEDIA' })).media[0].sourceContext.documentUrl, documentUrl, 'worker cache restoration retains full provenance')
++  const navigating = restored()
++  await navigating.events.frameHistory.emit({ tabId: 1, frameId: 7 })
++  assert.equal((await navigating.message({ type: 'GET_MEDIA' })).media.length, 0, 'hydration cannot resurrect an invalidated iframe')
++  const changedFrame = restored({ getFrame: async () => ({ documentId: 'document-7', url: documentUrl + '&route=new' }) })
++  await changedFrame.events.frameHistory.emit({ tabId: 1, frameId: 7 })
++  await changedFrame.events.completed.emit({ ...request, requestId: 'restored', statusCode: 200,
++    responseHeaders: [{ name: 'content-type', value: 'application/vnd.apple.mpegurl' }] })
++  assert.equal((await changedFrame.message({ type: 'GET_MEDIA' })).media.length, 0, 'restored requests verify the live frame route before accepting a late completion')
++  const nextPage = page.replace('lesson?', 'next?')
++  await worker.events.frameCommitted.emit({ tabId: 1, frameId: 0, url: nextPage })
++  const early = { ...request, requestId: 'early-new-document', frameId: 0, documentId: 'new-document' }
++  await worker.events.beforeRequest.emit(early)
++  await worker.events.tabUpdated.emit(1, { url: nextPage }, { id: 1, url: nextPage, title: 'Next' })
++  await worker.events.completed.emit({ ...early, statusCode: 200, responseHeaders: [{ name: 'content-type', value: 'application/vnd.apple.mpegurl' }] })
++  assert.equal((await worker.message({ type: 'GET_MEDIA' })).media[0].sourceContext.pageUrl, nextPage, 'late tabs.onUpdated cannot erase requests owned by the newly committed document')
++  console.log('extension source data: raw URLs, idempotent scoring, independent candidates, network capture and both submit paths passed')
++})().catch(error => { console.error(error); process.exitCode = 1 })
+--- baseline/scripts/test-download-progress.ts
++++ scripts/test-download-progress.ts
+@@ -44,3 +44,7 @@
+ assert.equal(planPatch.planId, 'saved:30')
+ assert.equal('selection' in downloadProgressPayload({ ...withPlan, status: 'downloading' }), false)
+ assert.equal(progressPatchFromIpc(downloadProgressPayload(promoted, {}, true)).selection, null)
++
++const sourceContext = { version: 1, pageUrl: 'https://source.test/watch?q=raw%20value', frameId: 7 }
++assert.deepEqual(progressPatchFromIpc(downloadProgressPayload({ ...promoted, metadata: { sourceContext } }, {}, true)).sourceContext, sourceContext)
++assert.equal(progressPatchFromIpc({ sourceContext: null }).sourceContext, null)
+--- baseline/scripts/test-download-selection.ts
++++ scripts/test-download-selection.ts
+@@ -39,6 +39,10 @@
+ const snapshot = readDownloadRequestSnapshot({ version: 1, selection: policy, plan: { id: plan.id, name: plan.name, revision: 1 }, outputDir: '/tmp/downloads', filenameTemplate: '{title} [{id}]', includeNote: true, archiveByAuthor: false, folderNameTemplate: '{author}', playlistSubfolder: true })
+ assert.equal(selectionKey(snapshot), selectionKey({ ...snapshot, plan: { ...snapshot.plan!, name: 'Renamed', revision: 2 } }))
+ for (const difference of [{ selection: defaultDownloadSelection(720) }, { outputDir: '/tmp/another' }, { filenameTemplate: '{id}' }, { includeNote: false }]) assert.notEqual(selectionKey(snapshot), selectionKey({ ...snapshot, ...difference }))
++const source = { version: 1, pageUrl: 'https://fixture.test/watch?item=one', documentUrl: 'https://player.test/embed?item=one', frameId: 2, observedAt: 1 }
++assert.notEqual(selectionKey(snapshot, source), selectionKey(snapshot, { ...source, documentUrl: 'https://player.test/embed?item=two' }), 'another requesting document cannot reuse stale Referer')
++assert.equal(selectionKey(snapshot, source), selectionKey(snapshot, { ...source, frameId: 5, observedAt: 2, documentId: 'new-capture' }), 'new browser capture identities do not duplicate the same source task')
++assert.notEqual(selectionKey(undefined, source), null, 'legacy output requests still isolate distinct browser sources')
+ const candidates = getPresentationCandidates([
+   { format_id: '30fps', height: 360, fps: 30, vcodec: 'h264', acodec: 'aac', ext: 'mp4' },
+   { format_id: '60fps', height: 360, fps: 60, vcodec: 'h264', acodec: 'aac', ext: 'mp4' }
+--- baseline/scripts/extension-background-harness.cjs
++++ scripts/extension-background-harness.cjs
+@@ -2,10 +2,10 @@
+ const fs = require('node:fs')
+ const path = require('node:path')
+ const vm = require('node:vm')
+-exports.backgroundHarness = function ({ fetch, storage = {}, extensionId = 'test-extension', directory = path.resolve(__dirname, '../extension') }) {
++exports.backgroundHarness = function ({ fetch, storage = {}, extensionId = 'test-extension', tabs = [{ id: 1, url: 'https://fixture.test/', title: 'Fixture' }], getFrame = async () => null, directory = path.resolve(__dirname, '../extension') }) {
+   let listener
+   const wakes = []
+-  const event = () => ({ addListener() {} })
++  const event = () => { const handlers = []; return { addListener(fn) { handlers.push(fn) }, async emit(...args) { for (const fn of handlers) await fn(...args); await new Promise(setImmediate) } } }
+   const area = {
+     get(keys, callback) { const data = Object.fromEntries((Array.isArray(keys) ? keys : Object.keys(storage)).filter(k => k in storage).map(k => [k, storage[k]])); if (callback) callback(data); return Promise.resolve(data) },
+     set(values, callback) { Object.assign(storage, values); callback?.(); return Promise.resolve() },
+@@ -15,12 +15,13 @@
+     storage: { local: area, session: area },
+     runtime: { id: extensionId, lastError: null, onMessage: { addListener(fn) { listener = fn } }, onInstalled: event(), onStartup: event(), getURL: file => `chrome-extension://${extensionId}/${file}` },
+     action: { onClicked: event(), setBadgeText() {}, setBadgeBackgroundColor() {}, setIcon() {}, setTitle() {} },
+-    tabs: { onActivated: event(), onUpdated: event(), onRemoved: event(), query(options, callback) { const tabs = [{ id: 1, url: 'https://fixture.test/', title: 'Fixture' }]; callback?.(tabs); return Promise.resolve(tabs) }, create(options, callback) { wakes.push(options); callback?.({ id: 2 }); return Promise.resolve({ id: 2 }) }, remove(id, callback) { callback?.() }, sendMessage() {} },
++    tabs: { onActivated: event(), onUpdated: event(), onRemoved: event(), query(options, callback) { callback?.(tabs); return Promise.resolve(tabs) }, create(options, callback) { wakes.push(options); callback?.({ id: 2 }); return Promise.resolve({ id: 2 }) }, remove(id, callback) { callback?.() }, sendMessage() {} },
+     webRequest: { onCompleted: event(), onBeforeRequest: event(), onErrorOccurred: event() },
++    webNavigation: { onCommitted: event(), onHistoryStateUpdated: event(), getFrame },
+     alarms: { create() {}, onAlarm: event() }, cookies: { getAll: async () => [] }, scripting: { executeScript: async () => [] }
+   }
+-  const context = vm.createContext({ chrome, console: { log() {}, warn() {}, error() {}, info() {} }, fetch, Response, Headers, Request, AbortController, URL, TextEncoder, TextDecoder, Uint8Array, setTimeout, clearTimeout })
++  const context = vm.createContext({ chrome, console: { log() {}, warn() {}, error() {}, info() {} }, fetch, Response, Headers, Request, AbortController, URL, URLSearchParams, TextEncoder, TextDecoder, Uint8Array, setTimeout, clearTimeout })
+   context.importScripts = (...files) => files.forEach(file => vm.runInContext(fs.readFileSync(path.join(directory, file), 'utf8'), context, { filename: file }))
+   vm.runInContext(fs.readFileSync(path.join(directory, 'background.js'), 'utf8'), context, { filename: 'background.js' })
+-  return { storage, wakes, message(message, sender = {}) { return new Promise((resolve, reject) => { const timer = setTimeout(() => reject(new Error('Worker response timeout')), 15000); const keep = listener(message, sender, result => { clearTimeout(timer); resolve(result) }); if (!keep) { clearTimeout(timer); } }) } }
++  return { storage, wakes, events: { completed: chrome.webRequest.onCompleted, beforeRequest: chrome.webRequest.onBeforeRequest, tabUpdated: chrome.tabs.onUpdated, frameCommitted: chrome.webNavigation.onCommitted, frameHistory: chrome.webNavigation.onHistoryStateUpdated }, message(message, sender = {}) { return new Promise((resolve, reject) => { const timer = setTimeout(() => reject(new Error('Worker response timeout')), 15000); const keep = listener(message, sender, result => { clearTimeout(timer); resolve(result) }); if (!keep) { clearTimeout(timer); } }) } }
+ }
+--- baseline/packages/shared/src/media-source-context.ts
++++ packages/shared/src/media-source-context.ts
+@@ -0,0 +1,50 @@
++/** Browser provenance is independent of the media URL and never grants authentication. */
++export interface MediaSourceContext {
++  version: 1
++  /** Top-level page the user opened. */
++  pageUrl?: string
++  /** Actual requesting frame URL, when the browser supplied it. */
++  documentUrl?: string
++  pageTitle?: string
++  initiator?: string
++  tabId?: number
++  frameId?: number
++  documentId?: string
++  navigationEpoch?: number
++  observedAt?: number
++}
++
++const URL_FIELDS = ['pageUrl', 'documentUrl', 'initiator'] as const
++const NUMBER_FIELDS = ['tabId', 'frameId', 'navigationEpoch', 'observedAt'] as const
++export function readMediaSourceContext(value: unknown): MediaSourceContext {
++  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid media source context')
++  const input = value as Record<string, unknown>
++  const keys = new Set<string>(['version', ...URL_FIELDS, ...NUMBER_FIELDS, 'pageTitle', 'documentId'])
++  if (input.version !== 1 || Object.keys(input).some((key) => !keys.has(key))) throw new Error('Unsupported media source context')
++  const output: MediaSourceContext = { version: 1 }
++  for (const key of URL_FIELDS) {
++    if (input[key] === undefined) continue
++    const url = input[key]
++    if (typeof url !== 'string' || url.length > 8192 || /[\u0000-\u0020\u007f]/.test(url)) throw new Error('Invalid media source URL')
++    if (!/^https?:$/.test(new URL(url).protocol)) throw new Error('Invalid media source URL')
++    output[key] = url
++  }
++  for (const key of NUMBER_FIELDS) {
++    if (input[key] === undefined) continue
++    if (!Number.isSafeInteger(input[key]) || Number(input[key]) < 0) throw new Error('Invalid media source identity')
++    output[key] = Number(input[key])
++  }
++  for (const key of ['pageTitle', 'documentId'] as const) {
++    const text = input[key]
++    if (text === undefined) continue
++    if (typeof text !== 'string' || text.length > (key === 'documentId' ? 128 : 2048) || /[\u0000-\u001f\u007f]/.test(text)) throw new Error('Invalid media source text')
++    output[key] = text
++  }
++  if (!output.pageUrl && !output.documentUrl && !output.initiator) throw new Error('Missing media source page')
++  return output
++}
++
++/** Use the complete requesting document before any origin-only fallback. */
++export function mediaSourceReferer(context: MediaSourceContext): string | undefined {
++  return (context.documentUrl ?? context.pageUrl ?? context.initiator)?.split('#', 1)[0]
++}
+--- baseline/packages/shared/src/index.ts
++++ packages/shared/src/index.ts
+@@ -1,3 +1,4 @@
++import type { MediaSourceContext } from './media-source-context.js'
+ import type { DownloadSelectionRequest } from './download-selection.js'
+ export {
+   type ChromeSyncedCookie,
+@@ -28,6 +29,7 @@
+   formatId?: string
+   url: string
+   pageUrl?: string
++  sourceContext?: MediaSourceContext
+   source?: 'yt-dlp' | 'ffmpeg' | 'sniffer' | 'extension'
+   format?: string
+   quality?: string
+@@ -83,3 +85,5 @@
+ }
+ 
+ export * from './download-selection.js'
++
++export * from './media-source-context.js'

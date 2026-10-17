@@ -1,0 +1,11 @@
+{
+  "id": "4ff7f444-4fae-4f6d-938f-3b31084f578c",
+  "height": 360,
+  "fps": 60,
+  "exact": {
+    "sourceUrl": "http://127.0.0.1:60706/watch/precision?ui=final",
+    "formatId": "hls-800",
+    "kind": "muxed"
+  },
+  "decode": "PASS"
+}

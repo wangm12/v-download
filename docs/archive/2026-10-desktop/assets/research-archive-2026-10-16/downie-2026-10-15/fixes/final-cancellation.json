@@ -1,0 +1,7 @@
+{
+  "id": "21bc40ce-d7ef-45f6-8f20-7bef6117a58a",
+  "paused": true,
+  "retried": "complete",
+  "full_decode": "PASS",
+  "note": "Initial 60-second harness poll expired on the 32 KiB/s fixture; the same production task finished normally and was then decoded."
+}

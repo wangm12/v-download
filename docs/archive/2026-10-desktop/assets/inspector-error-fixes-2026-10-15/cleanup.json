@@ -1,0 +1,25 @@
+{
+  "removed": [
+    "/Users/mingjie/Documents/github/personal-projects/v-download/dist",
+    "/Users/mingjie/Documents/github/personal-projects/v-download/out",
+    "/Users/mingjie/Documents/github/personal-projects/v-download/.release-staging",
+    "/Users/mingjie/Documents/github/personal-projects/v-download-research/inspector-error-fixes-2026-10-15/build",
+    "/Users/mingjie/Documents/github/personal-projects/v-download-research/inspector-error-fixes-2026-10-15/output",
+    "/Users/mingjie/Documents/github/personal-projects/v-download-research/inspector-error-fixes-2026-10-15/fixtures/sample.mp4",
+    "/Users/mingjie/Documents/github/personal-projects/v-download-research/inspector-error-fixes-2026-10-15/missing-engine",
+    "/Applications/V-Download-previous-install.app",
+    "/Users/mingjie/Library/Application Support/v-download/DawnGraphiteCache",
+    "/Users/mingjie/Library/Application Support/v-download/GPUCache",
+    "/Users/mingjie/Library/Application Support/v-download/Cache",
+    "/Users/mingjie/Library/Application Support/v-download/DawnWebGPUCache",
+    "/Users/mingjie/Library/Application Support/v-download/Code Cache",
+    "/Users/mingjie/Library/Application Support/v-download/logs"
+  ],
+  "testServerStopped": true,
+  "preserved": [
+    "source",
+    "evidence",
+    "final DMG",
+    "rollback application and user data"
+  ]
+}

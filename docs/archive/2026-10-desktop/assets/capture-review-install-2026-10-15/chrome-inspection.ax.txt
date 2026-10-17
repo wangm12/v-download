@@ -1,0 +1,76 @@
+Window: "", App: Google Chrome.
+0 window Secondary Actions: Raise
+	1 container
+		2 scroll area
+			3 HTML content chrome-extension://ggolokdmilobpagmcbebkdpmkbnjhmgb/popup.html
+				4 container
+					5 text Capture recovery fixture 5
+					6 text Continue: Review A
+					7 text Keep the original Review 360p H264 and output folder. Select ONE resource.
+					8 checkbox This is the same media. Replace its source and restart the original task., Value: 0
+					9 button Leave capture mode
+					10 button Select all
+					11 text ·
+					12 button Deselect all
+					13 text 0/5 selected
+					14 checkbox manifest.mpd, Value: 0
+					15 container http://127.0.0.1:62867/media/dash/manifest.mpd
+						16 text manifest.mpd
+					17 text Detected 127.0.0.1 DASH 1.9 KB Match score 42/100
+					18 disclosure triangle Details / Inspect
+						19 text Details / Inspect
+					20 button Use source
+					21 checkbox Capture recovery fixture, Value: 0
+					22 container http://127.0.0.1:62867/media/master.m3u8?token=a%2fb&label=hello%20world
+						23 text Capture recovery fixture
+					24 text Suggested 127.0.0.1 HLS 238 B Match score 40/100
+					25 container
+						26 disclosure triangle Details / Inspect
+							27 text Details / Inspect
+						28 text Detected via network · application/vnd.apple.mpegurl. Match score is a heuristic, not verified quality. Page: http://127.0.0.1:62867/watch?review=A%20B Request document: http://127.0.0.1:62867/watch?review=A%20B Media: http://127.0.0.1:62867/media/master.m3u8?token=a%2fb&label=hello%20world
+						29 button Inspect again
+						30 text Inspected now: hls-master · Duration: 8.0s
+						31 text video: h264 · 640×360 · 30.00 fps
+						32 text audio: aac · eng
+						33 text video: h264 · 1280×720 · 30.00 fps
+						34 text audio: aac · eng
+						35 text Relationships read from this manifest:
+						36 text variant · 360p · 30 fps · avc1.42c01e,mp4a.40.2: http://127.0.0.1:62867/media/360/index.m3u8
+						37 text variant · 720p · 30 fps · avc1.42c01f,mp4a.40.2: http://127.0.0.1:62867/media/720/index.m3u8
+						38 text Point-in-time result. Browser login does not prove engine access. The download plan still controls final quality.
+					39 button Use source
+					40 checkbox iframe.m3u8, Value: 0
+					41 container http://127.0.0.1:62867/media/iframe.m3u8?token=a%2fb
+						42 text iframe.m3u8
+					43 text Detected 127.0.0.1 HLS 224 B Match score 40/100
+					44 disclosure triangle Details / Inspect
+						45 text Details / Inspect
+					46 button Use source
+					47 checkbox independent.m3u8, Value: 0
+					48 container http://127.0.0.1:62867/media/independent.m3u8
+						49 text independent.m3u8
+					50 text Detected 127.0.0.1 HLS 224 B Match score 40/100
+					51 disclosure triangle Details / Inspect
+						52 text Details / Inspect
+					53 button Use source
+					54 checkbox 360.mp4, Value: 0
+					55 container http://127.0.0.1:62867/media/360.mp4
+						56 text 360.mp4
+					57 text Detected 127.0.0.1 MP4 1.3 MB Match score 32/100
+					58 disclosure triangle Details / Inspect
+						59 text Details / Inspect
+					60 button Use source
+					61 button (disabled) Replace source & continue task
+62 menu bar
+	63 Chrome
+	64 File
+	65 Edit
+	66 View
+	67 History
+	68 Bookmarks
+	69 Profiles
+	70 Tab
+	71 Window
+	72 Help
+
+The focused UI element is 3 HTML content chrome-extension://ggolokdmilobpagmcbebkdpmkbnjhmgb/popup.html

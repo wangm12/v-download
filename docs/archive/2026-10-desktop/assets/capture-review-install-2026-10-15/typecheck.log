@@ -1,0 +1,12 @@
+
+> v-download@1.1.7 typecheck
+> npm run typecheck:web && npm run typecheck:node
+
+
+> v-download@1.1.7 typecheck:web
+> tsc --noEmit -p tsconfig.web.json
+
+
+> v-download@1.1.7 typecheck:node
+> tsc --noEmit -p tsconfig.node.json
+

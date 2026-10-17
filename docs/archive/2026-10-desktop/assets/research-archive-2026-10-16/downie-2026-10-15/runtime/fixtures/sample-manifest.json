@@ -1,0 +1,424 @@
+{
+  "generated_at_utc": "2026-10-15T07:18:02.912451+00:00",
+  "media_root": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/runtime/fixtures/media",
+  "inputs": "Local FFmpeg lavfi testsrc2 (12 s, 30 fps) and sine (440 Hz, 48 kHz); hand-authored subtitles and chapters.",
+  "licensing": "No remote or third-party audiovisual input. Synthetic fixture data and authored captions/metadata are dedicated to CC0-1.0 for research and test reuse; FFmpeg binary licensing is separate and not redistributed here.",
+  "reproducibility": "build_samples.py records exact command arguments and binary hashes; repeated encoding need not be byte-identical across toolchains.",
+  "engines": {
+    "ffmpeg": {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download/resources/engines/darwin-arm64/ffmpeg",
+      "sha256": "eaf91238e104dd0e262bc6510e25061855cc99a6955a721b0ac99660d58c473d",
+      "version": "ffmpeg version 8.1.2-https://www.martin-riedl.de Copyright (c) 2000-2026 the FFmpeg developers"
+    },
+    "ffprobe": {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download/resources/engines/darwin-arm64/ffprobe",
+      "sha256": "ed9dc5871914b466b96b402c9ec0ba68ce4f836e72faa464b1b4e279835bd4a6",
+      "version": "ffprobe version 8.1.2-https://www.martin-riedl.de Copyright (c) 2007-2026 the FFmpeg developers"
+    }
+  },
+  "files": [
+    {
+      "path": "captions.en.srt",
+      "bytes": 215,
+      "sha256": "251d6213676cea97e33cc63c4a6b764a8b565b4926871058f36f41bbb5ad11a8"
+    },
+    {
+      "path": "captions.en.vtt",
+      "bytes": 199,
+      "sha256": "ca80cb645156687fad2b01e06782f95dfa627af792f26283f5e15f2993764050"
+    },
+    {
+      "path": "chapters.ffmetadata",
+      "bytes": 331,
+      "sha256": "6b15efeefa6e44f53bbad12d83883999ae01e321c491fa3b20dc4489e0facadb"
+    },
+    {
+      "path": "dash/chunk-stream0-00001.m4s",
+      "bytes": 461713,
+      "sha256": "d58507c7c6e639e8b40cb3a2cfac59d6b2b8511d73a9daf3597d95f9caea22db"
+    },
+    {
+      "path": "dash/chunk-stream0-00002.m4s",
+      "bytes": 469613,
+      "sha256": "c60388fa9e1915fa434fb0f97ac071a4f5084b30a39f9ec771877fa61ec6c050"
+    },
+    {
+      "path": "dash/chunk-stream0-00003.m4s",
+      "bytes": 509254,
+      "sha256": "8b5119c989825be17b786eb4e1132f311a8d87faf93cafc06a46b64a5ef36286"
+    },
+    {
+      "path": "dash/chunk-stream0-00004.m4s",
+      "bytes": 436454,
+      "sha256": "eb8d140e67b517ac90190eb44fa90d06473c59760439e0e5a9d1a8f0d7cf629e"
+    },
+    {
+      "path": "dash/chunk-stream0-00005.m4s",
+      "bytes": 408496,
+      "sha256": "36b566b055c0ccd9b88e24e4fe568bb1cc927043280cd48f214c75d4872643e2"
+    },
+    {
+      "path": "dash/chunk-stream0-00006.m4s",
+      "bytes": 420655,
+      "sha256": "063b1ba14742a724beaa33eb74294c330142cabb545b779f7b14637f5f5de669"
+    },
+    {
+      "path": "dash/chunk-stream1-00001.m4s",
+      "bytes": 154881,
+      "sha256": "fec48186c3c17cd1fb3b042dae6de8c5fc7e9a388d47d9445c39375ad124a61c"
+    },
+    {
+      "path": "dash/chunk-stream1-00002.m4s",
+      "bytes": 165571,
+      "sha256": "19f7a5378b25971b0334525ec3b42ff96aef98ccca79c062304232bcc45f7e2a"
+    },
+    {
+      "path": "dash/chunk-stream1-00003.m4s",
+      "bytes": 157286,
+      "sha256": "b2108d96f8d6d79b3f3bc7f0b17b3a70cd6efad8c6cfc03c0c93691df58dab60"
+    },
+    {
+      "path": "dash/chunk-stream1-00004.m4s",
+      "bytes": 152352,
+      "sha256": "dcf099904b027da1f5eb241645014d10c8e5ed61b002366c396fa53273795c19"
+    },
+    {
+      "path": "dash/chunk-stream1-00005.m4s",
+      "bytes": 151468,
+      "sha256": "7fb0d15f914508747d24bc3b0efd34a9ea3502299abc13d8d2a5253c7510a888"
+    },
+    {
+      "path": "dash/chunk-stream1-00006.m4s",
+      "bytes": 141306,
+      "sha256": "38011d176de5c98a68ddf599ab097fa774c49e00bb5a5bdc6640569d7d956924"
+    },
+    {
+      "path": "dash/chunk-stream2-00001.m4s",
+      "bytes": 30790,
+      "sha256": "f7ec5682a5df409c0a96e04740634f424d99b73575b1bbced0f7c7e3479a6f1a"
+    },
+    {
+      "path": "dash/chunk-stream2-00002.m4s",
+      "bytes": 32703,
+      "sha256": "80fe5f2a1207a27db7e11e4c6a24b2b8107cc049b4b29d72aa97c7b5edb52088"
+    },
+    {
+      "path": "dash/chunk-stream2-00003.m4s",
+      "bytes": 32743,
+      "sha256": "b2cebf5a8d3763b5ebc858d4a3db086f97254bfde63f7918cf08ef28f28d8e6e"
+    },
+    {
+      "path": "dash/chunk-stream2-00004.m4s",
+      "bytes": 32382,
+      "sha256": "94e5c917c186d0a1dac1ed260bdc7548980c863897312c8e4af059f1c186eb01"
+    },
+    {
+      "path": "dash/chunk-stream2-00005.m4s",
+      "bytes": 32713,
+      "sha256": "906d8670ea3e2aa4a7030881cbfff0214643edd4d5ef30f200f526e3f3039d8f"
+    },
+    {
+      "path": "dash/chunk-stream2-00006.m4s",
+      "bytes": 32730,
+      "sha256": "470430e164136735148bd06696a5ec26f2d0232f1e52ed6e3c52494054d14b2e"
+    },
+    {
+      "path": "dash/chunk-stream2-00007.m4s",
+      "bytes": 1143,
+      "sha256": "317c323ce4337b30b055c2fec969bbf4c43ea31c6ff272c82e35f03a1fe0edff"
+    },
+    {
+      "path": "dash/init-stream0.m4s",
+      "bytes": 834,
+      "sha256": "e1d0f448fa641b8959d63465e467a49528844f18e8fa14358d3de81d6f17ddca"
+    },
+    {
+      "path": "dash/init-stream1.m4s",
+      "bytes": 834,
+      "sha256": "c699b1c053e2a28fb94d1bbd4ce83b2aa7bbeb23670ad9579b2f6281cb75169a"
+    },
+    {
+      "path": "dash/init-stream2.m4s",
+      "bytes": 765,
+      "sha256": "243e35117b7b2557c20a291b26b6fafeeefdf2f669fe52d0cd5e7e162fe03e74"
+    },
+    {
+      "path": "dash/manifest.mpd",
+      "bytes": 2447,
+      "sha256": "051339142cec2a2b1d4c04241792054806ca06c375b15d70caf6557b0f2a22fb",
+      "duration_seconds": 12.0,
+      "streams": [
+        {
+          "index": 0,
+          "codec_type": "video",
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "index": 1,
+          "codec_type": "video",
+          "codec_name": "h264",
+          "width": 640,
+          "height": 360
+        },
+        {
+          "index": 2,
+          "codec_type": "audio",
+          "codec_name": "aac",
+          "sample_rate": "48000",
+          "channels": 1
+        }
+      ],
+      "chapters": []
+    },
+    {
+      "path": "hls/360/index.m3u8",
+      "bytes": 339,
+      "sha256": "2642497c1ee0e8f6c8844a2701bb52f0a709da22fff0a5ba865303cf0559f0dd"
+    },
+    {
+      "path": "hls/360/segment-000.ts",
+      "bytes": 198152,
+      "sha256": "89309ae087c5c21f5998bd8b8d16d04352b7910c907f57e3e2677704cdeb13a5"
+    },
+    {
+      "path": "hls/360/segment-001.ts",
+      "bytes": 211876,
+      "sha256": "0a9edfbb8d9e4ecc99e01f97c4d7d66246d79b38f75b73ca3acb6a5fb72a614f"
+    },
+    {
+      "path": "hls/360/segment-002.ts",
+      "bytes": 203228,
+      "sha256": "14886d1990c7bd7e8b544ba877e18aee8de3ebcee1d92355d9ed41d0001bdd03"
+    },
+    {
+      "path": "hls/360/segment-003.ts",
+      "bytes": 198152,
+      "sha256": "88f514659ed51e5ba923511b97bf2b561a626253ac564a2eb353ca5d94c0724e"
+    },
+    {
+      "path": "hls/360/segment-004.ts",
+      "bytes": 197964,
+      "sha256": "a72879cdb675111ad2a4158d4a199d9861f46170d6a7af3517e553030c042f8e"
+    },
+    {
+      "path": "hls/360/segment-005.ts",
+      "bytes": 188376,
+      "sha256": "6fe1f5969c43ce505fff6a9413327ec5273d84ece7de29d1b6a56bd1cb9b4beb"
+    },
+    {
+      "path": "hls/720/index.m3u8",
+      "bytes": 339,
+      "sha256": "2642497c1ee0e8f6c8844a2701bb52f0a709da22fff0a5ba865303cf0559f0dd"
+    },
+    {
+      "path": "hls/720/segment-000.ts",
+      "bytes": 511360,
+      "sha256": "bc791c7cafa72c22a6a180ef17d5acf58e67bdc2c730f59be35cb3d755dc2192"
+    },
+    {
+      "path": "hls/720/segment-001.ts",
+      "bytes": 522264,
+      "sha256": "b155250ec1c2e71d34a6ac6c3e16feae833e04e8bde9ff1d7673b570752ab262"
+    },
+    {
+      "path": "hls/720/segment-002.ts",
+      "bytes": 562872,
+      "sha256": "f6a8adf8ea70c2fcbe457f9a4b4fce600c609e8a446821be3d1453ca9e9a11f4"
+    },
+    {
+      "path": "hls/720/segment-003.ts",
+      "bytes": 489364,
+      "sha256": "06a7f0496ef56333622f4c8413e858386bb799d3c712637f3f9c5cacc899df4b"
+    },
+    {
+      "path": "hls/720/segment-004.ts",
+      "bytes": 460976,
+      "sha256": "f750cbeef313b5c230edf9265449591e341281bfeda48356cda5b10a1ea56637"
+    },
+    {
+      "path": "hls/720/segment-005.ts",
+      "bytes": 473572,
+      "sha256": "0b541d43e268d6346b5329f1095d42348c350fee921386f905dc6224055d9301"
+    },
+    {
+      "path": "hls/master.m3u8",
+      "bytes": 306,
+      "sha256": "17ac5efb22358dceaaef3d34dc2656f7abffa4d71a25bdc606eedb2892de7766",
+      "duration_seconds": 12.0,
+      "streams": [
+        {
+          "index": 0,
+          "codec_type": "video",
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "index": 1,
+          "codec_type": "audio",
+          "codec_name": "aac",
+          "sample_rate": "48000",
+          "channels": 1
+        },
+        {
+          "index": 2,
+          "codec_type": "video",
+          "codec_name": "h264",
+          "width": 640,
+          "height": 360
+        },
+        {
+          "index": 3,
+          "codec_type": "audio",
+          "codec_name": "aac",
+          "sample_rate": "48000",
+          "channels": 1
+        }
+      ],
+      "chapters": []
+    },
+    {
+      "path": "sample-360.mp4",
+      "bytes": 1124841,
+      "sha256": "d268daf0b476dab4bb4f0c470748d50ffba0ca486940fbfabd48bee8ec5a7f1a",
+      "duration_seconds": 12.0,
+      "streams": [
+        {
+          "index": 0,
+          "codec_type": "video",
+          "codec_name": "h264",
+          "width": 640,
+          "height": 360,
+          "duration": "12.000000"
+        },
+        {
+          "index": 1,
+          "codec_type": "audio",
+          "codec_name": "aac",
+          "sample_rate": "48000",
+          "channels": 1,
+          "duration": "12.000000"
+        }
+      ],
+      "chapters": []
+    },
+    {
+      "path": "sample-720.mp4",
+      "bytes": 2908122,
+      "sha256": "644677695f2da8aa3137b31244ac82fdfc6934b9f30766371c29d950a2d322bf",
+      "duration_seconds": 12.0,
+      "streams": [
+        {
+          "index": 0,
+          "codec_type": "video",
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720,
+          "duration": "12.000000"
+        },
+        {
+          "index": 1,
+          "codec_type": "audio",
+          "codec_name": "aac",
+          "sample_rate": "48000",
+          "channels": 1,
+          "duration": "12.000000"
+        }
+      ],
+      "chapters": []
+    },
+    {
+      "path": "sample-annotated.mp4",
+      "bytes": 2909644,
+      "sha256": "037ec6dd3df74fb1118a6a492b543eed49672025ed62a482f9b3779e94b4c260",
+      "duration_seconds": 12.0,
+      "streams": [
+        {
+          "index": 0,
+          "codec_type": "video",
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720,
+          "duration": "12.000000"
+        },
+        {
+          "index": 1,
+          "codec_type": "audio",
+          "codec_name": "aac",
+          "sample_rate": "48000",
+          "channels": 1,
+          "duration": "12.000000"
+        },
+        {
+          "index": 2,
+          "codec_type": "subtitle",
+          "codec_name": "mov_text",
+          "duration": "12.000000"
+        },
+        {
+          "index": 3,
+          "codec_type": "data",
+          "codec_name": "bin_data",
+          "duration": "12.000000"
+        }
+      ],
+      "chapters": [
+        {
+          "id": 0,
+          "time_base": "1/1000",
+          "start": 0,
+          "start_time": "0.000000",
+          "end": 4000,
+          "end_time": "4.000000",
+          "tags": {
+            "title": "Opening"
+          }
+        },
+        {
+          "id": 1,
+          "time_base": "1/1000",
+          "start": 4000,
+          "start_time": "4.000000",
+          "end": 8000,
+          "end_time": "8.000000",
+          "tags": {
+            "title": "Middle"
+          }
+        },
+        {
+          "id": 2,
+          "time_base": "1/1000",
+          "start": 8000,
+          "start_time": "8.000000",
+          "end": 12000,
+          "end_time": "12.000000",
+          "tags": {
+            "title": "Closing"
+          }
+        }
+      ]
+    },
+    {
+      "path": "sample-audio.m4a",
+      "bytes": 194761,
+      "sha256": "6576a5377bb2195ea712ad2288423c0aaeedd5c9d175cf7b9e88f82523719e64",
+      "duration_seconds": 12.0,
+      "streams": [
+        {
+          "index": 0,
+          "codec_type": "audio",
+          "codec_name": "aac",
+          "sample_rate": "48000",
+          "channels": 1,
+          "duration": "12.000000"
+        }
+      ],
+      "chapters": []
+    }
+  ],
+  "total_media_bytes": 15186386,
+  "evidence": "evidence/ffprobe-local.json",
+  "app_support_claim": "Fixture validity only; no assertion about Downie or v-download support."
+}

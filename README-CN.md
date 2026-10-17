@@ -142,6 +142,10 @@ make clean     # 清理构建缓存、dist/ 与中间目录
 
 ---
 
+## 文档
+
+[文档总入口](docs/README.md) · [桌面版当前状态](docs/DESKTOP_STATUS.md) · [网页版实施计划](docs/plans/web-download.md)
+
 ## 开源协议
 
-本项目采用 [MIT 许可证](LICENSE) 开源。
+本项目采用 MIT 许可证 开源。

@@ -82,4 +82,4 @@ browser_fallback: true
 2. **Preferences → Downloads → Douyin bulk** — optional `run.py` / `config.yml` escape hatch.
 3. **Format dialog** — if the page URL looks like a profile, **Bulk download profile** / **Configure bulk in preferences** still link to the Python path when configured.
 
-See also [download-engines.md](./download-engines.md) for how this relates to yt-dlp and the main queue.
+See also [download-engines.md](download-engines.md) for how this relates to yt-dlp and the main queue.

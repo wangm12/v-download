@@ -1,0 +1,262 @@
+[
+  {
+    "path": "src/i18n/catalog.ts",
+    "before": "7e27ca673baa307440a4fbd6cf9491cc793f68fa3a408840eca48b4322863c59",
+    "after": "90b620d02718f832151567d3a8708fabb3f88faaad0eec8c877dcf5ab186d9d0"
+  },
+  {
+    "path": "src/main/database.ts",
+    "before": "ae142829f1dc81816b4156331fdfeb0f06ab1973e9e677bc588c6586098f42b6",
+    "after": "c9c1f0d3c3ba169eb1e736179891f4be89f1d9044ff650655a0d8590e5e7b26d"
+  },
+  {
+    "path": "src/main/databaseMigrations.ts",
+    "before": "f5e761e022ab70d97fdc75cd81eed9f4a7852847c897159a5d68e67969eca999",
+    "after": "835c55adf2b4a90937516025d7978ea0b8a80eb7e92972cfcd4fffc5086ec6e4"
+  },
+  {
+    "path": "src/main/downloadManager.ts",
+    "before": "a039711306ed1c2f905a9a5c5483e74521ba230386b2cc77e4719cac2eacac0a",
+    "after": "cad5c600615ed8c64e2b41cbcdaad357558215c2977bfbe9b2a31f29ce57d801"
+  },
+  {
+    "path": "src/main/downloadPlans.ts",
+    "before": null,
+    "after": "c767db887e73d61b1414d16eef1e7eed4d7f4bcc06428a97c05ad49d97053309"
+  },
+  {
+    "path": "src/main/downloadProgress.ts",
+    "before": "8e95f053fe3fb6f16a4ac82b0898fc141e73cbeb7e40a8032ba5c060561b5668",
+    "after": "f810bc7758f9aafbeea1798da2bff93ee20a4237aa4d2d42ce0c8fdebec13323"
+  },
+  {
+    "path": "src/main/downloadQuality.ts",
+    "before": "660e2c123a898be2634d5a17b68bbe31d704bc8f03d86e8f29eaef96ab1ffa57",
+    "after": "dc03cce57ac93fae0f63f1c363b1428f8571608468e7444cccb9ae2fa1c23dbd"
+  },
+  {
+    "path": "src/main/downloadRequestSnapshot.ts",
+    "before": null,
+    "after": "fce2e1fccf2a9ae12139d2b042fba204459d9d0b43756817a10624f5ef296d76"
+  },
+  {
+    "path": "src/main/ffmpegDownload.ts",
+    "before": "82f84ac8e10f0dc4041b05ed7d5499984aad3508eff75bc35343e4eba5ce824a",
+    "after": "9ac079572f32bb8505cad3a33f14edc79dfeb41249263325873291e0f429f078"
+  },
+  {
+    "path": "src/main/index.ts",
+    "before": "37e9b99b2043be197e913c1e2d78ec59540c54cab16cd60fef822460b2343dfc",
+    "after": "cd2de8a4adc66653db4f5a6c850a9b6cd2190ad332f3d66cf973d9b772151707"
+  },
+  {
+    "path": "src/main/ipc/downloads.ts",
+    "before": "39c6fa45caa2f5000f59f43fe78886a9736c5b18f0f846d43e854931598b9d3b",
+    "after": "16259609349726610e88053ddcdcfd06d0d1d387de691ee12c29c3ba5aacc097"
+  },
+  {
+    "path": "src/main/ipc/settings.ts",
+    "before": "c353b02619837a1b98ac44b25b0be1570338a592f691c159044ee4c87d960945",
+    "after": "b59e6fbb82331f9a563809c5e2ed38ed4b75552b65c2b144b7dd438ba7b2f8ce"
+  },
+  {
+    "path": "src/main/localServer.ts",
+    "before": "89a927d7add16b0cd97a2c7bf75653657da6ce94bf8131c1b8490f058333da32",
+    "after": "491a4a28ca375f9f5d20ae215aa6a8cda3a58b097704112a68fecbdc8637c878"
+  },
+  {
+    "path": "src/main/persistedExtras.ts",
+    "before": "2ea4620ae845a9b215429200f77d66af3e7114b4feba50e33d220a5038010f43",
+    "after": "50250658c4c47fcad7cc0c0f2fbd365c87037ccc6c9f9fa67e4da7141fff1826"
+  },
+  {
+    "path": "src/main/probeStreamFacts.ts",
+    "before": null,
+    "after": "07ecf41ddea7fbd93c2a08e8675895309160fb429a3503d92b7d98fba4271fdf"
+  },
+  {
+    "path": "src/main/securityValidation.ts",
+    "before": "9d692fb1b13a99168d505199dc23c0cc24115a17d0f459b2016420e9dd310a06",
+    "after": "63c3e52c9177bb52365ae0bc620795a31fd1938932532f3f4b73355c629af4ca"
+  },
+  {
+    "path": "src/main/selectedOutput.ts",
+    "before": null,
+    "after": "c310998d8e5e81bc097ecd080efd6ddde288ca63cbdfe94f3843604c7a413f18"
+  },
+  {
+    "path": "src/main/settings.ts",
+    "before": "138b9ed56aa1bbdc46f0baec490ae2bf041e2fda597a4bbc6ad877fd3dfbdae2",
+    "after": "3cbbbf1da04d7d33ea601c81e41ab55c0065216ff502ce95bf2d63f8104abc37"
+  },
+  {
+    "path": "src/main/transcodeModel.ts",
+    "before": "2e7525143fca7b229823681d210fcc7cb4b7c52da5a4ccaf00da871b02b2af39",
+    "after": "2dcdd7e700e603925c7c9b940e0b8eaea8d721cc3fe7637bd45639d56539f971"
+  },
+  {
+    "path": "src/main/ytdlp.ts",
+    "before": "a360457c72982c2ca399abb02733f38174afbba7e8d171f4d9f4882b35746d3c",
+    "after": "a224be474ee92fdc747e67dbe1604cfbd5912cb61896cb724aa4e93581cc62c8"
+  },
+  {
+    "path": "src/preload/api.d.ts",
+    "before": "bfb75eec6e6ef7570923ce9000eae0b9aaa04bb8c394b739c31581f890da6478",
+    "after": "aa0dcfe09acc96bf57b27080016e769bc1bd46bc502b54ee6d3445283f157ff1"
+  },
+  {
+    "path": "src/preload/index.ts",
+    "before": "f1356f22da2cb5b34be6aeb2e31e4c4e3ba493b4d446a34f9b85370c6d133a7d",
+    "after": "5fc050c062cb1f358208560fedfa77df411ba84d63e6ee7a8b170cbbde61acf7"
+  },
+  {
+    "path": "src/renderer/src/App.tsx",
+    "before": "a15acfa97c910f2a9ceec7988b8337daa12534e30732fc415467ce81ed6cc702",
+    "after": "3cc0af09b3343cbcee2fa5d604e85d79355ead0c8b495fd058bebd2fdd1bd031"
+  },
+  {
+    "path": "src/renderer/src/components/CollectionPickerDialog.tsx",
+    "before": "1ff9ac9e1c9eefecf5ce48f9f6eae2a480d8b77473ed1bc62e3ef7234ef0b4b0",
+    "after": "b6cc881ad080c43415344113617e778a1f8a8bf36eff3e91b0502d591a95709f"
+  },
+  {
+    "path": "src/renderer/src/components/DouyinProfilePickerDialog.tsx",
+    "before": "099cb270e8d00ce3ba7dc1f5f2c7dcf03675aba206faeead2badf806939ee280",
+    "after": "6985002c1ae26c33465b6cb8cdc4eee5f4c94e91608e60d1f9fbac7e078cdab1"
+  },
+  {
+    "path": "src/renderer/src/components/DownloadInspector.tsx",
+    "before": "2db4b9ed4ea0a7e1f69f2a6d1ef08f1f1fe1f42b4302ee757690b7d831cd5e6f",
+    "after": "1d4fd2f2e9ff9648c37c30074d2dd9022971163528073207658ecfc4693fe6ae"
+  },
+  {
+    "path": "src/renderer/src/components/DownloadItem.tsx",
+    "before": "a991770fc11636ebfcc0479e076a09281dc7f81559a5d36331687f4b1ca1c555",
+    "after": "2e83c41f42ba00d45718e3728f463df610722f490b3e76de07c9b3630f5a13da"
+  },
+  {
+    "path": "src/renderer/src/components/DownloadOptionsEditor.tsx",
+    "before": null,
+    "after": "329272acd0eec07f1a384a6963daddc6f23e2d6ba1b62b9b1e76c941e6102939"
+  },
+  {
+    "path": "src/renderer/src/components/FormatDialog.tsx",
+    "before": "8eb56131505d94e7003c2554b5bba95ccf378389e1d6ed6f15f93a90ef44c20a",
+    "after": "591ff52409001010f218ae57e54080b57d992b171f58196610b875ebd208201c"
+  },
+  {
+    "path": "src/renderer/src/components/PreferencesPanel.tsx",
+    "before": "7d868b8f752f5ed32ec1db1fef9c2a6d7dffa481b80c4170ab9f55587e399b27",
+    "after": "73842394e82cec1c1b0be5c8a43505dd673041f1494183ca07abb929dae9caca"
+  },
+  {
+    "path": "src/renderer/src/components/downloadOptionsModel.ts",
+    "before": null,
+    "after": "906d46de74c1cac7bed54df942e7284188570721fb67a59136c914368023253d"
+  },
+  {
+    "path": "src/renderer/src/components/formatDialogPresentation.ts",
+    "before": "6520db207c960b3935e166619e8df5cfdb9a16b2c2e1b06aab35f1ce2c904670",
+    "after": "8c6d1a59ea50400c4331820fa8148489c2275e2a42c88c488e6bfa32ff60859c"
+  },
+  {
+    "path": "src/renderer/src/components/taskOverridesPresentation.ts",
+    "before": "9f60c13c58e27a2a9455e70ea33b4a0b7c9dde43a5ce7ac78105a6dacf8744fe",
+    "after": "9ce82cea87e89e4e82ad459b6cd907a9e923c5b375dc68a585c40ad09a7fc1f3"
+  },
+  {
+    "path": "src/renderer/src/hooks/downloadProgress.ts",
+    "before": "1293819bbb8fad97f2a817dbdd9f22579bbb0d768d156633345b9b12720e2cdf",
+    "after": "680a04bcfa8a3e6bab95033bea8256df48c6d4cdd8490a76fcc870513fea00f5"
+  },
+  {
+    "path": "src/renderer/src/hooks/useDownloads.ts",
+    "before": "67afb433d97fa889a5bb818b9304944b7373bb2204059d5d6ef6016c312190ec",
+    "after": "e89ce5ddab5681f1f8d4520c26553deceb84fb539fbc75e439b015bca2df9cca"
+  },
+  {
+    "path": "src/renderer/src/types/index.ts",
+    "before": "152a5a18ce591cfa42fbb90c7d314aac79fb5a8d2b2ffaa1d1a7ca322bf49caf",
+    "after": "eb4136fca27c8020fb9e9e4ecd7e5d7aa26421db85a09c66f6a636dd15815e62"
+  },
+  {
+    "path": "scripts/extension-background-harness.cjs",
+    "before": null,
+    "after": "daa458baa3fa5b0e3e6be02d04bd92ca1ea47f7979fd28830b2c7c1203c4e0cd"
+  },
+  {
+    "path": "scripts/test-download-progress.ts",
+    "before": "f23645d735d7353799ad346389fc9c4bbd0b10da8b0fce3d8c1a25900aca0411",
+    "after": "e3eb09cb3d3105060b730cacad1406eb10005f25a3d0078251ec29ca945e9e7d"
+  },
+  {
+    "path": "scripts/test-download-selection.ts",
+    "before": null,
+    "after": "5edea6a16af44fe70a7638930bf30775b89a7ccd5ed052aac2f2a619364f6378"
+  },
+  {
+    "path": "scripts/test-extension-download.js",
+    "before": "57abc2498c8b6d5722a36e578f9f21901237541be56495f2401aa1019d4c54f6",
+    "after": "ee7c537364dc953ef381e47cfef4e7820df3a20ae76618fabfcd1e07d308037e"
+  },
+  {
+    "path": "scripts/test-extension-plans.cjs",
+    "before": null,
+    "after": "97aa8d7f5f2c8bdb0b7508b345c2c337186209f6b9456958cd74778cf4bfe5a7"
+  },
+  {
+    "path": "scripts/test-foundation.ts",
+    "before": "4d5f028da0ca8db34813209d4ba8214d4e72c9e8bae9385b07dee3738b57d660",
+    "after": "ab596e232fa454971df4c329810ed9eaa541d5a123cc1ca81cd940f795106134"
+  },
+  {
+    "path": "scripts/test-note-resolve.ts",
+    "before": "85f438ac63a69d1b2b08288dfbb05d103c07eb2456062ac259694ff1a38edb89",
+    "after": "f637f0008359dc969eace1ba7b94a4cae97e42a5343ff4723f655c99aeaa61dd"
+  },
+  {
+    "path": "scripts/test-security.ts",
+    "before": "9f872b0625ab4b2c5a609822b93e23aebab3b2fcd3c502dc195dd041eb647248",
+    "after": "0fa529572a81ae32b7878aabb413d8ace4626a994955012fee1a2f7a48e29396"
+  },
+  {
+    "path": "scripts/write-extension-cookie-sync.mjs",
+    "before": "778421f341ffb13c3185ba38929bfce2e35191e41785e06e93538622a769bab5",
+    "after": "e3de803f2541ff1a8a0a0337e6e4b4a9526ab33e9d8e29a03cab4a474422f23b"
+  },
+  {
+    "path": "extension/background.js",
+    "before": "de8ae2b349f2a3053a4c77e7b73408d620c8c7486effd76aa4108b33145efae0",
+    "after": "6a38f85753510bff2e85f2feb479f5976d5b9ed5036612061aabe3330f03b097"
+  },
+  {
+    "path": "extension/download-selection.js",
+    "before": null,
+    "after": "e090e6c3bc150dc31b556c45eac91cc273a7dfb84bafce0a24b9a0fb65bebafe"
+  },
+  {
+    "path": "extension/popup.html",
+    "before": "7d311786a32a865b7c38c7ab16798648bfe15fb841218c944d921cbabd7184e3",
+    "after": "cf2caf7c4f2ec53e9eea603805d6b0142766125f50a27625bb8719c6619a5ba7"
+  },
+  {
+    "path": "extension/popup.js",
+    "before": "ef818c4550720718a1c2fceb68da6bb6911c8d14fe2e8dba909e31c01ab41c44",
+    "after": "a578aef2dc59512a9dee2cdf460f275d7f89e6267baa40ef41804985132389b8"
+  },
+  {
+    "path": "packages/shared/src/download-selection.ts",
+    "before": null,
+    "after": "71a49afb055c1e814f6dad4dc1ca4e89fea209ee49835240ebca7ba9ef521921"
+  },
+  {
+    "path": "packages/shared/src/index.ts",
+    "before": "e249eab665791079236bebf82d9dbed555b15004821abbbe6d5dd701adc34d3b",
+    "after": "b53ace1dc62b5dc09041a5cc28e8bad93775f9909d06080416c5eff339c91653"
+  },
+  {
+    "path": "package.json",
+    "before": "c307254bdfa73dbc37d0f7eaeadf40a05544a630f9e2065ca258bd4c7f7a3127",
+    "after": "9a097397006f1dc7c11fdd3f53630499e0a72d34f6eb2895239afdc1e7183248"
+  }
+]

@@ -1,0 +1,10 @@
+
+> v-download@1.1.7 test:extension
+> node scripts/test-extension-media.js && node scripts/test-extension-download.js && node scripts/test-extension-plans.cjs && node scripts/test-extension-source-data.cjs && node scripts/test-extension-early-capture.cjs && node scripts/test-extension-capture.cjs
+
+extension media utility: 6 reliable candidates; manifests, duplicates, and identity labels verified
+extension download: transient retry, cold wake, duplicate guard, and visible states verified
+extension plans: shared worker validation, frozen revision and permanent error propagation passed
+extension source data: raw URLs, idempotent scoring, independent candidates, network capture and both submit paths passed
+extension early capture: buffered resources, bounded retries, sender ownership, navigation cutoffs and network precedence passed
+extension inspection and bound capture workflow: ok

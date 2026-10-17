@@ -1,0 +1,170 @@
+[
+  {
+    "id": "a3c9559b-235f-43ad-a84e-7a66793d14c9",
+    "url": "http://127.0.0.1:61076/media/sample-360.mp4?case=legacy",
+    "filePath": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-data-correctness-2026-10-15/output/download [a3c9559b-235f-43ad-a84e-7a66793d14c9].mp4",
+    "duration": "12.000000",
+    "streams": [
+      {
+        "codec_type": "video",
+        "codec_name": "h264",
+        "width": 640,
+        "height": 360
+      },
+      {
+        "codec_type": "audio",
+        "codec_name": "aac",
+        "width": null,
+        "height": null
+      }
+    ],
+    "fullDecode": "passed"
+  },
+  {
+    "id": "2ec1eb83-359e-4afd-acb9-d4659dd107f7",
+    "url": "http://127.0.0.1:61076/media/sample-360.mp4?token=a%2fb&label=hello%20world&utm_source=capture",
+    "filePath": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-data-correctness-2026-10-15/output/Long Referer [2ec1eb83-359e-4afd-acb9-d4659dd107f7].mp4",
+    "duration": "12.000000",
+    "streams": [
+      {
+        "codec_type": "video",
+        "codec_name": "h264",
+        "width": 640,
+        "height": 360
+      },
+      {
+        "codec_type": "audio",
+        "codec_name": "aac",
+        "width": null,
+        "height": null
+      }
+    ],
+    "fullDecode": "passed"
+  },
+  {
+    "id": "0f465b49-9a73-4bc8-a19e-a2b258acd1f1",
+    "url": "http://127.0.0.1:61076/shared.mp4?token=a%2fb&label=hello%20world&utm_source=capture",
+    "filePath": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-data-correctness-2026-10-15/output/Admission source 7 [0f465b49-9a73-4bc8-a19e-a2b258acd1f1].mp4",
+    "duration": "12.000000",
+    "streams": [
+      {
+        "codec_type": "video",
+        "codec_name": "h264",
+        "width": 640,
+        "height": 360
+      },
+      {
+        "codec_type": "audio",
+        "codec_name": "aac",
+        "width": null,
+        "height": null
+      }
+    ],
+    "fullDecode": "passed"
+  },
+  {
+    "id": "252868a1-eed7-4169-92fa-66f6599b0f8b",
+    "url": "http://127.0.0.1:61076/shared.mp4?token=a%2fb&label=hello%20world&utm_source=capture",
+    "filePath": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-data-correctness-2026-10-15/output/Admission source 0 [252868a1-eed7-4169-92fa-66f6599b0f8b].mp4",
+    "duration": "12.000000",
+    "streams": [
+      {
+        "codec_type": "video",
+        "codec_name": "h264",
+        "width": 640,
+        "height": 360
+      },
+      {
+        "codec_type": "audio",
+        "codec_name": "aac",
+        "width": null,
+        "height": null
+      }
+    ],
+    "fullDecode": "passed"
+  },
+  {
+    "id": "869af7a0-2172-4689-9ddf-8736375df436",
+    "url": "http://127.0.0.1:61076/signed.mp4?token=a%2fb&label=hello%20world&utm_source=capture",
+    "filePath": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-data-correctness-2026-10-15/output/Source correctness three independent streams 4 [869af7a0-2172-4689-9ddf-8736375df436].mp4",
+    "duration": "12.000000",
+    "streams": [
+      {
+        "codec_type": "video",
+        "codec_name": "h264",
+        "width": 640,
+        "height": 360
+      },
+      {
+        "codec_type": "audio",
+        "codec_name": "aac",
+        "width": null,
+        "height": null
+      }
+    ],
+    "fullDecode": "passed"
+  },
+  {
+    "id": "4c3e08e5-3938-494e-9913-b7a0d5adade6",
+    "url": "http://127.0.0.1:61076/stream/2/master.m3u8?token=a%2fb&label=hello%20world&utm_source=capture",
+    "filePath": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-data-correctness-2026-10-15/output/Source correctness three independent streams 2 [4c3e08e5-3938-494e-9913-b7a0d5adade6].mp4",
+    "duration": "12.032000",
+    "streams": [
+      {
+        "codec_type": "video",
+        "codec_name": "h264",
+        "width": 640,
+        "height": 360
+      },
+      {
+        "codec_type": "audio",
+        "codec_name": "aac",
+        "width": null,
+        "height": null
+      }
+    ],
+    "fullDecode": "passed"
+  },
+  {
+    "id": "b715f585-c541-4f5f-a897-fd7d831c9347",
+    "url": "http://127.0.0.1:61076/stream/1/master.m3u8?token=a%2fb&label=hello%20world&utm_source=capture",
+    "filePath": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-data-correctness-2026-10-15/output/Source correctness three independent streams 1 [b715f585-c541-4f5f-a897-fd7d831c9347].mp4",
+    "duration": "12.032000",
+    "streams": [
+      {
+        "codec_type": "video",
+        "codec_name": "h264",
+        "width": 640,
+        "height": 360
+      },
+      {
+        "codec_type": "audio",
+        "codec_name": "aac",
+        "width": null,
+        "height": null
+      }
+    ],
+    "fullDecode": "passed"
+  },
+  {
+    "id": "8a54028e-6a5c-46b3-a4ad-996d3ea4a870",
+    "url": "http://127.0.0.1:61076/stream/3/master.m3u8?token=a%2fb&label=hello%20world&utm_source=capture",
+    "filePath": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-data-correctness-2026-10-15/output/Source correctness three independent streams [8a54028e-6a5c-46b3-a4ad-996d3ea4a870].mp4",
+    "duration": "12.032000",
+    "streams": [
+      {
+        "codec_type": "video",
+        "codec_name": "h264",
+        "width": 640,
+        "height": 360
+      },
+      {
+        "codec_type": "audio",
+        "codec_name": "aac",
+        "width": null,
+        "height": null
+      }
+    ],
+    "fullDecode": "passed"
+  }
+]

@@ -1,0 +1,489 @@
+[
+  {
+    "name": "final-auto-hls-360",
+    "engine": "auto",
+    "route": "/media/hls/master.m3u8",
+    "quality": "360",
+    "id": "14ff6ee3-b6e9-45bf-a73d-fedfcf54cf3c",
+    "status": "complete",
+    "error": null,
+    "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/fixes/output/final-auto-hls-360 [14ff6ee3-b6e9-45bf-a73d-fedfcf54cf3c].mp4",
+    "streams": [
+      {
+        "codec_type": "video",
+        "codec_name": "h264",
+        "height": 360,
+        "tags": {
+          "language": "und",
+          "handler_name": "VideoHandler"
+        }
+      },
+      {
+        "codec_type": "audio",
+        "codec_name": "aac",
+        "height": null,
+        "tags": {
+          "language": "und",
+          "handler_name": "SoundHandler"
+        }
+      }
+    ],
+    "chapters": [],
+    "duration": "12.032000",
+    "full_decode": "PASS"
+  },
+  {
+    "name": "final-auto-dash-360",
+    "engine": "auto",
+    "route": "/media/dash/manifest.mpd",
+    "quality": "360",
+    "id": "6f098d11-e209-42f2-883c-87e1b8e207b3",
+    "status": "complete",
+    "error": null,
+    "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/fixes/output/final-auto-dash-360 [6f098d11-e209-42f2-883c-87e1b8e207b3].mp4",
+    "streams": [
+      {
+        "codec_type": "video",
+        "codec_name": "h264",
+        "height": 360,
+        "tags": {
+          "language": "und",
+          "handler_name": "VideoHandler"
+        }
+      },
+      {
+        "codec_type": "audio",
+        "codec_name": "aac",
+        "height": null,
+        "tags": {
+          "language": "und",
+          "handler_name": "SoundHandler"
+        }
+      }
+    ],
+    "chapters": [],
+    "duration": "12.000000",
+    "full_decode": "PASS"
+  },
+  {
+    "name": "final-ffmpeg-hls-360",
+    "engine": "ffmpeg",
+    "route": "/media/hls/master.m3u8",
+    "quality": "360",
+    "id": "2b1af7f1-6f2d-4c70-b00f-300e863b4f1a",
+    "status": "complete",
+    "error": null,
+    "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/fixes/output/final-ffmpeg-hls-360 [2b1af7f1-6f2d-4c70-b00f-300e863b4f1a].mp4",
+    "streams": [
+      {
+        "codec_type": "video",
+        "codec_name": "h264",
+        "height": 360,
+        "tags": {
+          "language": "und",
+          "handler_name": "VideoHandler"
+        }
+      },
+      {
+        "codec_type": "audio",
+        "codec_name": "aac",
+        "height": null,
+        "tags": {
+          "language": "und",
+          "handler_name": "SoundHandler"
+        }
+      }
+    ],
+    "chapters": [],
+    "duration": "12.032000",
+    "full_decode": "PASS"
+  },
+  {
+    "name": "final-ffmpeg-dash-360",
+    "engine": "ffmpeg",
+    "route": "/media/dash/manifest.mpd",
+    "quality": "360",
+    "id": "b969cf47-5310-49e8-b1ff-1ffc17af66b4",
+    "status": "complete",
+    "error": null,
+    "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/fixes/output/final-ffmpeg-dash-360 [b969cf47-5310-49e8-b1ff-1ffc17af66b4].mp4",
+    "streams": [
+      {
+        "codec_type": "video",
+        "codec_name": "h264",
+        "height": 360,
+        "tags": {
+          "language": "und",
+          "handler_name": "VideoHandler"
+        }
+      },
+      {
+        "codec_type": "audio",
+        "codec_name": "aac",
+        "height": null,
+        "tags": {
+          "language": "und",
+          "handler_name": "SoundHandler"
+        }
+      }
+    ],
+    "chapters": [],
+    "duration": "12.021029",
+    "full_decode": "PASS"
+  },
+  {
+    "name": "final-ytdlp-hls-360",
+    "engine": "ytdlp",
+    "route": "/media/hls/master.m3u8",
+    "quality": "360",
+    "id": "b3e56847-5e2a-476c-8ef2-03a654986613",
+    "status": "complete",
+    "error": null,
+    "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/fixes/output/final-ytdlp-hls-360 [b3e56847-5e2a-476c-8ef2-03a654986613].mp4",
+    "streams": [
+      {
+        "codec_type": "video",
+        "codec_name": "h264",
+        "height": 360,
+        "tags": {
+          "language": "und",
+          "handler_name": "VideoHandler"
+        }
+      },
+      {
+        "codec_type": "audio",
+        "codec_name": "aac",
+        "height": null,
+        "tags": {
+          "language": "und",
+          "handler_name": "SoundHandler"
+        }
+      }
+    ],
+    "chapters": [],
+    "duration": "12.032000",
+    "full_decode": "PASS"
+  },
+  {
+    "name": "final-ytdlp-dash-360",
+    "engine": "ytdlp",
+    "route": "/media/dash/manifest.mpd",
+    "quality": "360",
+    "id": "6c525676-d9b2-4087-81f8-443a1ea99678",
+    "status": "complete",
+    "error": null,
+    "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/fixes/output/final-ytdlp-dash-360 [6c525676-d9b2-4087-81f8-443a1ea99678].mp4",
+    "streams": [
+      {
+        "codec_type": "video",
+        "codec_name": "h264",
+        "height": 360,
+        "tags": {
+          "language": "und",
+          "handler_name": "VideoHandler"
+        }
+      },
+      {
+        "codec_type": "audio",
+        "codec_name": "aac",
+        "height": null,
+        "tags": {
+          "language": "und",
+          "handler_name": "SoundHandler"
+        }
+      }
+    ],
+    "chapters": [],
+    "duration": "12.000000",
+    "full_decode": "PASS"
+  },
+  {
+    "name": "final-annotated",
+    "engine": "ffmpeg",
+    "route": "/annotated.mp4",
+    "quality": "360",
+    "id": "ff0344ec-6fbf-496a-a441-cbaf20bb67a6",
+    "status": "complete",
+    "error": null,
+    "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/fixes/output/final-annotated [ff0344ec-6fbf-496a-a441-cbaf20bb67a6].mp4",
+    "streams": [
+      {
+        "codec_type": "video",
+        "codec_name": "h264",
+        "height": 720,
+        "tags": {
+          "language": "und",
+          "handler_name": "VideoHandler",
+          "encoder": "Lavc62.28.102 libx264"
+        }
+      },
+      {
+        "codec_type": "audio",
+        "codec_name": "aac",
+        "height": null,
+        "tags": {
+          "language": "und",
+          "handler_name": "SoundHandler"
+        }
+      },
+      {
+        "codec_type": "subtitle",
+        "codec_name": "mov_text",
+        "height": null,
+        "tags": {
+          "language": "eng",
+          "handler_name": "SubtitleHandler"
+        }
+      },
+      {
+        "codec_type": "data",
+        "codec_name": "bin_data",
+        "height": null,
+        "tags": {
+          "language": "eng",
+          "handler_name": "SubtitleHandler"
+        }
+      }
+    ],
+    "chapters": [
+      {
+        "id": 0,
+        "time_base": "1/1000",
+        "start": 0,
+        "start_time": "0.000000",
+        "end": 4000,
+        "end_time": "4.000000",
+        "tags": {
+          "title": "Opening"
+        }
+      },
+      {
+        "id": 1,
+        "time_base": "1/1000",
+        "start": 4000,
+        "start_time": "4.000000",
+        "end": 8000,
+        "end_time": "8.000000",
+        "tags": {
+          "title": "Middle"
+        }
+      },
+      {
+        "id": 2,
+        "time_base": "1/1000",
+        "start": 8000,
+        "start_time": "8.000000",
+        "end": 12000,
+        "end_time": "12.000000",
+        "tags": {
+          "title": "Closing"
+        }
+      }
+    ],
+    "duration": "12.000000",
+    "full_decode": "PASS"
+  },
+  {
+    "name": "final-two-subs",
+    "engine": "ffmpeg",
+    "route": "/media/sample-two-subs.mp4",
+    "quality": "360",
+    "id": "728e7a4d-4cf9-47f7-ba8d-0eec817a41c8",
+    "status": "complete",
+    "error": null,
+    "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/fixes/output/final-two-subs [728e7a4d-4cf9-47f7-ba8d-0eec817a41c8].mp4",
+    "streams": [
+      {
+        "codec_type": "video",
+        "codec_name": "h264",
+        "height": 720,
+        "tags": {
+          "language": "und",
+          "handler_name": "VideoHandler",
+          "encoder": "Lavc62.28.102 libx264"
+        }
+      },
+      {
+        "codec_type": "audio",
+        "codec_name": "aac",
+        "height": null,
+        "tags": {
+          "language": "und",
+          "handler_name": "SoundHandler"
+        }
+      },
+      {
+        "codec_type": "subtitle",
+        "codec_name": "mov_text",
+        "height": null,
+        "tags": {
+          "language": "eng",
+          "handler_name": "SubtitleHandler"
+        }
+      },
+      {
+        "codec_type": "subtitle",
+        "codec_name": "mov_text",
+        "height": null,
+        "tags": {
+          "language": "zho",
+          "handler_name": "SubtitleHandler"
+        }
+      },
+      {
+        "codec_type": "data",
+        "codec_name": "bin_data",
+        "height": null,
+        "tags": {
+          "language": "eng",
+          "handler_name": "SubtitleHandler"
+        }
+      }
+    ],
+    "chapters": [
+      {
+        "id": 0,
+        "time_base": "1/1000",
+        "start": 0,
+        "start_time": "0.000000",
+        "end": 4000,
+        "end_time": "4.000000",
+        "tags": {
+          "title": "Opening"
+        }
+      },
+      {
+        "id": 1,
+        "time_base": "1/1000",
+        "start": 4000,
+        "start_time": "4.000000",
+        "end": 8000,
+        "end_time": "8.000000",
+        "tags": {
+          "title": "Middle"
+        }
+      },
+      {
+        "id": 2,
+        "time_base": "1/1000",
+        "start": 8000,
+        "start_time": "8.000000",
+        "end": 12000,
+        "end_time": "12.000000",
+        "tags": {
+          "title": "Closing"
+        }
+      }
+    ],
+    "duration": "12.000000",
+    "full_decode": "PASS"
+  },
+  {
+    "name": "final-incompatible-forced",
+    "engine": "ffmpeg",
+    "route": "/media/sample-srt.mkv",
+    "quality": "360",
+    "id": "22070835-72e5-4020-a369-21d1370a9b8a",
+    "status": "error",
+    "error": "  Stream #0:0 -> #0:0 (copy)\n  Stream #0:1 -> #0:1 (copy)\n  Stream #0:2 -> #0:2 (copy)\n[mp4 @ 0x124306500] Could not find tag for codec subrip in stream #2, codec not currently supported in container\n[out#0/mp4 @ 0x124306260] Could not write header (incorrect codec parameters ?): Invalid argument\nConversion failed!",
+    "file": null
+  },
+  {
+    "name": "final-incompatible-auto",
+    "engine": "auto",
+    "route": "/media/sample-srt.mkv",
+    "quality": "360",
+    "id": "e4b211f8-34ac-41cb-9f6c-1d67030a0901",
+    "status": "complete",
+    "error": null,
+    "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/fixes/output/final-incompatible-auto [e4b211f8-34ac-41cb-9f6c-1d67030a0901].mkv",
+    "streams": [
+      {
+        "codec_type": "video",
+        "codec_name": "h264",
+        "height": 720,
+        "tags": {
+          "HANDLER_NAME": "VideoHandler",
+          "ENCODER": "Lavc62.28.102 libx264",
+          "DURATION": "00:00:12.021000000"
+        }
+      },
+      {
+        "codec_type": "audio",
+        "codec_name": "aac",
+        "height": null,
+        "tags": {
+          "HANDLER_NAME": "SoundHandler",
+          "DURATION": "00:00:12.021000000"
+        }
+      },
+      {
+        "codec_type": "subtitle",
+        "codec_name": "subrip",
+        "height": null,
+        "tags": {
+          "language": "eng",
+          "DURATION": "00:00:12.021000000"
+        }
+      }
+    ],
+    "chapters": [],
+    "duration": "12.021000",
+    "full_decode": "PASS"
+  },
+  {
+    "name": "final-plain-av",
+    "engine": "ffmpeg",
+    "route": "/direct.mp4",
+    "quality": "360",
+    "id": "26e94d34-248c-4a3c-be82-3738112a1c25",
+    "status": "complete",
+    "error": null,
+    "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/fixes/output/final-plain-av [26e94d34-248c-4a3c-be82-3738112a1c25].mp4",
+    "streams": [
+      {
+        "codec_type": "video",
+        "codec_name": "h264",
+        "height": 720,
+        "tags": {
+          "language": "und",
+          "handler_name": "VideoHandler",
+          "encoder": "Lavc62.28.102 libx264"
+        }
+      },
+      {
+        "codec_type": "audio",
+        "codec_name": "aac",
+        "height": null,
+        "tags": {
+          "language": "und",
+          "handler_name": "SoundHandler"
+        }
+      }
+    ],
+    "chapters": [],
+    "duration": "12.000000",
+    "full_decode": "PASS"
+  },
+  {
+    "name": "final-plain-mp3",
+    "engine": "ffmpeg",
+    "route": "/direct.mp4",
+    "quality": "128",
+    "id": "5c245247-0cae-4399-a70e-0cfffcd15534",
+    "status": "complete",
+    "error": null,
+    "file": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/fixes/output/final-plain-mp3 [5c245247-0cae-4399-a70e-0cfffcd15534].mp3",
+    "streams": [
+      {
+        "codec_type": "audio",
+        "codec_name": "mp3",
+        "height": null,
+        "tags": null
+      }
+    ],
+    "chapters": [],
+    "duration": "12.010667",
+    "full_decode": "PASS"
+  }
+]

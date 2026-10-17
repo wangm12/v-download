@@ -1,0 +1,2359 @@
+{
+  "date": "2026-10-16",
+  "reason": "Separate completed desktop history from active web planning; preserve evidence bytes and historical provenance.",
+  "reports_archived": 15,
+  "files": [
+    {
+      "original": "docs/research/capture-review-install-2026-10-15.md",
+      "archived": "docs/archive/2026-10-desktop/capture-review-install-2026-10-15.md",
+      "sha256_before": "06a5ab8055469fc573be1f849e9f02541c1e739c46e6fa6e5fc48b1f9f972c09",
+      "sha256_after": "472a8ef6a96a6086cc559230af2b946f5cd3cabb8184bd509567ffb754b1d92c",
+      "content_preserved": false
+    },
+    {
+      "original": "docs/research/extension-startup-auth-2026-10-15.md",
+      "archived": "docs/archive/2026-10-desktop/extension-startup-auth-2026-10-15.md",
+      "sha256_before": "6c044e569c5064c4c470a742b44c11028207593669c2e607b4411781c07b5ddc",
+      "sha256_after": "a1efbe1fabe6cb0897df5727c906430c77a5953789b0fc47be7bda258f9a26bd",
+      "content_preserved": false
+    },
+    {
+      "original": "docs/research/downie-runtime-evidence-2026-10-15.md",
+      "archived": "docs/archive/2026-10-desktop/downie-runtime-evidence-2026-10-15.md",
+      "sha256_before": "5e6504ab37afa30d86edc2754233bd69784a3029eb0ee1eca34e0a8df13a4e3e",
+      "sha256_after": "e2a2d87c9cfff59366680ac6a6cb553914958054febe63ce1dae29bfb710e37c",
+      "content_preserved": false
+    },
+    {
+      "original": "docs/research/research-archive-2026-10-16.md",
+      "archived": "docs/archive/2026-10-desktop/research-archive-2026-10-16.md",
+      "sha256_before": "b99bdd504b13e3aa2f272afb2875320c5feeb1e34a2e7bcc5b6de1b1ea163035",
+      "sha256_after": "8c6a6bc85509b9a9c75dd6c2c0d00d41660180f4d8273bc56feff27c2ba79bb2",
+      "content_preserved": false
+    },
+    {
+      "original": "docs/research/v-download-fixes-2026-10-15.md",
+      "archived": "docs/archive/2026-10-desktop/v-download-fixes-2026-10-15.md",
+      "sha256_before": "75b0e56012c3da25fd72de370e70c1840d143649997a2f7a0803e73c019377a5",
+      "sha256_after": "f57659970bb38270a3b282b78a5cf9bb03fada03ee69561ed624224b54dd69d4",
+      "content_preserved": false
+    },
+    {
+      "original": "docs/research/downie-product-evidence-2026-10-15.md",
+      "archived": "docs/archive/2026-10-desktop/downie-product-evidence-2026-10-15.md",
+      "sha256_before": "9798a6253a31597d4f789081ca9c9c14a0e00cafeb5f0be68e4bfb83aa8c5b66",
+      "sha256_after": "da05a080489dc31335d48ffe947e005253c12d3c808123e7779421f68a1cb178",
+      "content_preserved": false
+    },
+    {
+      "original": "docs/research/browser-capture-recovery-2026-10-15.md",
+      "archived": "docs/archive/2026-10-desktop/browser-capture-recovery-2026-10-15.md",
+      "sha256_before": "0082591f024b7b06eb132db33ecaac3eef601d4513cf7168362f7ca6e4113083",
+      "sha256_after": "08fa0b0f96e7c52392f636adc682dbef0f1d296327e0da707e82c13365fc90a9",
+      "content_preserved": false
+    },
+    {
+      "original": "docs/research/download-plans-2026-10-15.md",
+      "archived": "docs/archive/2026-10-desktop/download-plans-2026-10-15.md",
+      "sha256_before": "88029c43c02c24285cc55c39a2ae255a4c60560c2b34360d0b0eff235e1c3bee",
+      "sha256_after": "4afe9347c5eb9c30bab86a6fa671b01c0fd48112bf62e8a35be8fd7200302db4",
+      "content_preserved": false
+    },
+    {
+      "original": "docs/research/next-priorities-2026-10-16.md",
+      "archived": "docs/archive/2026-10-desktop/next-priorities-2026-10-16.md",
+      "sha256_before": "ae2f261ba9bbfa6a891874509bb0de96111c3062e9697766846e88426e4f85b8",
+      "sha256_after": "8e04ea6c86fade162e49e1ea326274fdd62bf7bd98ddce7d1276c98eee1a4b05",
+      "content_preserved": false
+    },
+    {
+      "original": "docs/research/downie-comparison-2026-10-15.md",
+      "archived": "docs/archive/2026-10-desktop/downie-comparison-2026-10-15.md",
+      "sha256_before": "4fcb8694682b72146f964d3a39c58c02c8f47fda779344fc963efe3b171b5e56",
+      "sha256_after": "5c78985f72374ec3b26bda5fbe048c22cef7dc6582948d30ed8fefacf6535db2",
+      "content_preserved": false
+    },
+    {
+      "original": "docs/research/v-download-code-evidence-2026-10-15.md",
+      "archived": "docs/archive/2026-10-desktop/v-download-code-evidence-2026-10-15.md",
+      "sha256_before": "8fb195afe53a1a29adf14f8241c13f691674ec53ed9033ff569f3c2eaf805cb4",
+      "sha256_after": "6422180de5c6cc18483a53373ecfe2297d6e5be7b1620b471fd632fdaccc50fd",
+      "content_preserved": false
+    },
+    {
+      "original": "docs/research/inspector-error-fixes-2026-10-15.md",
+      "archived": "docs/archive/2026-10-desktop/inspector-error-fixes-2026-10-15.md",
+      "sha256_before": "0a323a6fb39c77d13c1ce4a8c743a4d49a9e53fcec0f514bf88e687284a3bf23",
+      "sha256_after": "a336d74b0553df48dfbd64431a00654a7365967f1ecc5a965af42a743baeae0c",
+      "content_preserved": false
+    },
+    {
+      "original": "docs/research/installed-release-verification-2026-10-15.md",
+      "archived": "docs/archive/2026-10-desktop/installed-release-verification-2026-10-15.md",
+      "sha256_before": "fff9ef80ea2f5b94a0c35a7046969fb85c07b2d9545966c359c0105ce4a4c821",
+      "sha256_after": "6d05c8179582993f4562c04980ad28079b5ffb74a8ae04bb3a6bbbc5a8bf3c9d",
+      "content_preserved": false
+    },
+    {
+      "original": "docs/research/browser-data-correctness-2026-10-15.md",
+      "archived": "docs/archive/2026-10-desktop/browser-data-correctness-2026-10-15.md",
+      "sha256_before": "8fc66b5861fe559cf945b633a44bd8c163484ac7511be5d2b811108f75cddb3d",
+      "sha256_after": "52559a322fb34be658c5017a8b44036ef29ee4ca43cb14fcf01d2640f64e8931",
+      "content_preserved": false
+    },
+    {
+      "original": "docs/research/downie-native-evidence-2026-10-15.md",
+      "archived": "docs/archive/2026-10-desktop/downie-native-evidence-2026-10-15.md",
+      "sha256_before": "f75f7a3001cc634d6753db65d60ae5c9dd8d2dd7f06c5823e88dc039d7ad11da",
+      "sha256_after": "52d05d6429460fb338fb5827d0095b2f6fa6822b4fe0ebddd9325662a390648e",
+      "content_preserved": false
+    },
+    {
+      "original": "docs/research/assets/download-plans-2026-10-15/single-selection-final.png",
+      "archived": "docs/archive/2026-10-desktop/assets/download-plans-2026-10-15/single-selection-final.png",
+      "sha256_before": "f0ea4968125720cd6462ea1f62abcc5b1be4abf7cb364cf7ed14e445b9150d29",
+      "sha256_after": "f0ea4968125720cd6462ea1f62abcc5b1be4abf7cb364cf7ed14e445b9150d29",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/download-plans-2026-10-15/collection-shared-plan-final.png",
+      "archived": "docs/archive/2026-10-desktop/assets/download-plans-2026-10-15/collection-shared-plan-final.png",
+      "sha256_before": "fd2870a8719b01128d80676cf1c6c3e7ebda7f26c8ba2f5c5fcfde50dbbbd237",
+      "sha256_after": "fd2870a8719b01128d80676cf1c6c3e7ebda7f26c8ba2f5c5fcfde50dbbbd237",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/download-plans-2026-10-15/plan-saved-default.png",
+      "archived": "docs/archive/2026-10-desktop/assets/download-plans-2026-10-15/plan-saved-default.png",
+      "sha256_before": "936ec6519e8c0032a2eb6060c4b4bd9047ed4f0ff67a1b7a8c8be79ad472018c",
+      "sha256_after": "936ec6519e8c0032a2eb6060c4b4bd9047ed4f0ff67a1b7a8c8be79ad472018c",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/extension-startup-auth-2026-10-15/baseline-plan-auth.png",
+      "archived": "docs/archive/2026-10-desktop/assets/extension-startup-auth-2026-10-15/baseline-plan-auth.png",
+      "sha256_before": "e60e89e93e3d4a46eed4413a1bda4d7ab5a45bd11fe3186c0f2813ff8958c158",
+      "sha256_after": "e60e89e93e3d4a46eed4413a1bda4d7ab5a45bd11fe3186c0f2813ff8958c158",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/extension-startup-auth-2026-10-15/performance-fallback-all.png",
+      "archived": "docs/archive/2026-10-desktop/assets/extension-startup-auth-2026-10-15/performance-fallback-all.png",
+      "sha256_before": "49ab05814c85ca99258df67d72e28263b3f5d2235e671cfc3206aefac37be7ac",
+      "sha256_after": "49ab05814c85ca99258df67d72e28263b3f5d2235e671cfc3206aefac37be7ac",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/extension-startup-auth-2026-10-15/performance-fallback-review.png",
+      "archived": "docs/archive/2026-10-desktop/assets/extension-startup-auth-2026-10-15/performance-fallback-review.png",
+      "sha256_before": "e3e61dc47df86e493833f19fdd84b8184b7945bc7bf33897d0af48d9be7366e8",
+      "sha256_after": "e3e61dc47df86e493833f19fdd84b8184b7945bc7bf33897d0af48d9be7366e8",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/extension-startup-auth-2026-10-15/saved-plan-read-after-repair.png",
+      "archived": "docs/archive/2026-10-desktop/assets/extension-startup-auth-2026-10-15/saved-plan-read-after-repair.png",
+      "sha256_before": "e95c691d6001dd21ece41e8fbb8118dd2a8791ef900fc6b57e856407e7d4566e",
+      "sha256_after": "e95c691d6001dd21ece41e8fbb8118dd2a8791ef900fc6b57e856407e7d4566e",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/extension-startup-auth-2026-10-15/final-first-navigation.png",
+      "archived": "docs/archive/2026-10-desktop/assets/extension-startup-auth-2026-10-15/final-first-navigation.png",
+      "sha256_before": "6d17b8ca712214f814567d1db29d0485c7e39baa363006e0688a67eeeea5c907",
+      "sha256_after": "6d17b8ca712214f814567d1db29d0485c7e39baa363006e0688a67eeeea5c907",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/extension-startup-auth-2026-10-15/plan-query-fixed.png",
+      "archived": "docs/archive/2026-10-desktop/assets/extension-startup-auth-2026-10-15/plan-query-fixed.png",
+      "sha256_before": "6c1a4b049d7216e3b32edba60c3100a7fc7c6503b3ccdd2371b593d39af00142",
+      "sha256_after": "6c1a4b049d7216e3b32edba60c3100a7fc7c6503b3ccdd2371b593d39af00142",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/fixes-recovery-after.png",
+      "archived": "docs/archive/2026-10-desktop/assets/fixes-recovery-after.png",
+      "sha256_before": "339b16a765e69185d5262d041708176461257cec686e0506bd4238189bc92c78",
+      "sha256_after": "339b16a765e69185d5262d041708176461257cec686e0506bd4238189bc92c78",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/installed-release-2026-10-15/data-preservation.json",
+      "archived": "docs/archive/2026-10-desktop/assets/installed-release-2026-10-15/data-preservation.json",
+      "sha256_before": "165eef95c0e60361b35acb5d04444dc113ca31da78d188ce3477b963d0dec58e",
+      "sha256_after": "165eef95c0e60361b35acb5d04444dc113ca31da78d188ce3477b963d0dec58e",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/installed-release-2026-10-15/source-identity.json",
+      "archived": "docs/archive/2026-10-desktop/assets/installed-release-2026-10-15/source-identity.json",
+      "sha256_before": "93365b37b0f8cf33399bbe05dbd0fd0b36ff80eb2155a982bffa48699012a959",
+      "sha256_after": "93365b37b0f8cf33399bbe05dbd0fd0b36ff80eb2155a982bffa48699012a959",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/installed-release-2026-10-15/package-identity.json",
+      "archived": "docs/archive/2026-10-desktop/assets/installed-release-2026-10-15/package-identity.json",
+      "sha256_before": "7d8931cd002c28aae847c07f6bf7291c313f36799f6e6a1a149567259b557ffe",
+      "sha256_after": "7d8931cd002c28aae847c07f6bf7291c313f36799f6e6a1a149567259b557ffe",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/installed-release-2026-10-15/history-failure-before.json",
+      "archived": "docs/archive/2026-10-desktop/assets/installed-release-2026-10-15/history-failure-before.json",
+      "sha256_before": "3c435a503dd3093bea031e8346b4f7396bbe6ec438c4b1ba15122ae61ac8f247",
+      "sha256_after": "3c435a503dd3093bea031e8346b4f7396bbe6ec438c4b1ba15122ae61ac8f247",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/installed-release-2026-10-15/chrome-shared-plan.png",
+      "archived": "docs/archive/2026-10-desktop/assets/installed-release-2026-10-15/chrome-shared-plan.png",
+      "sha256_before": "71250bc7118a9779ec39e4d4e621032477b7a173772438dfa29a6ad30b8231c2",
+      "sha256_after": "71250bc7118a9779ec39e4d4e621032477b7a173772438dfa29a6ad30b8231c2",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/installed-release-2026-10-15/cleanup-inventory.json",
+      "archived": "docs/archive/2026-10-desktop/assets/installed-release-2026-10-15/cleanup-inventory.json",
+      "sha256_before": "f70e598d30bf8cad4b4c1cf0241a575e25a4c53061a1e832570117e82c7c7aff",
+      "sha256_after": "f70e598d30bf8cad4b4c1cf0241a575e25a4c53061a1e832570117e82c7c7aff",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/installed-release-2026-10-15/installed-results.png",
+      "archived": "docs/archive/2026-10-desktop/assets/installed-release-2026-10-15/installed-results.png",
+      "sha256_before": "c47283004dfd17c26a3b25074af91e35bc2d6d484bd5250bca5538cd99d777eb",
+      "sha256_after": "c47283004dfd17c26a3b25074af91e35bc2d6d484bd5250bca5538cd99d777eb",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/installed-release-2026-10-15/server-requests.jsonl",
+      "archived": "docs/archive/2026-10-desktop/assets/installed-release-2026-10-15/server-requests.jsonl",
+      "sha256_before": "98466d7bbf11d4085ebaaa11b3a2b9f3fffed2e06198f18fb732147169f3071d",
+      "sha256_after": "98466d7bbf11d4085ebaaa11b3a2b9f3fffed2e06198f18fb732147169f3071d",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/installed-release-2026-10-15/source-requests.jsonl",
+      "archived": "docs/archive/2026-10-desktop/assets/installed-release-2026-10-15/source-requests.jsonl",
+      "sha256_before": "8de7fb1772aba2726718c26fcf561d609ff81de8be71691902226440b5759887",
+      "sha256_after": "8de7fb1772aba2726718c26fcf561d609ff81de8be71691902226440b5759887",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/installed-release-2026-10-15/signature.txt",
+      "archived": "docs/archive/2026-10-desktop/assets/installed-release-2026-10-15/signature.txt",
+      "sha256_before": "ae33271b5e15d3812ed6bed10b7bc4bb1fd03a350273fac3bf731611690a0924",
+      "sha256_after": "ae33271b5e15d3812ed6bed10b7bc4bb1fd03a350273fac3bf731611690a0924",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/installed-release-2026-10-15/tests.log",
+      "archived": "docs/archive/2026-10-desktop/assets/installed-release-2026-10-15/tests.log",
+      "sha256_before": "b626e8a74ad8161d10669e036cbf330740a831dcd2c45ca37a08a6955135a369",
+      "sha256_after": "b626e8a74ad8161d10669e036cbf330740a831dcd2c45ca37a08a6955135a369",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/installed-release-2026-10-15/cleanup-receipt.json",
+      "archived": "docs/archive/2026-10-desktop/assets/installed-release-2026-10-15/cleanup-receipt.json",
+      "sha256_before": "7dd9751e665190dfeb692996a51ad1cf9a5e584b3faf15dc28c49c1d64642d4f",
+      "sha256_after": "7dd9751e665190dfeb692996a51ad1cf9a5e584b3faf15dc28c49c1d64642d4f",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/installed-release-2026-10-15/test-task-records.json",
+      "archived": "docs/archive/2026-10-desktop/assets/installed-release-2026-10-15/test-task-records.json",
+      "sha256_before": "8f18b3e6c512d2c7fd46057265d521382c67bb308e9d76d076bb0ebd7e2b25e4",
+      "sha256_after": "8f18b3e6c512d2c7fd46057265d521382c67bb308e9d76d076bb0ebd7e2b25e4",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/installed-release-2026-10-15/installed-output-verification.json",
+      "archived": "docs/archive/2026-10-desktop/assets/installed-release-2026-10-15/installed-output-verification.json",
+      "sha256_before": "950d2b2335982023447227a9e788bda36ca3979debaec5b6f113075bfb46d1b3",
+      "sha256_after": "950d2b2335982023447227a9e788bda36ca3979debaec5b6f113075bfb46d1b3",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/installed-release-2026-10-15/installed-auth.json",
+      "archived": "docs/archive/2026-10-desktop/assets/installed-release-2026-10-15/installed-auth.json",
+      "sha256_before": "f4be4d07f242a5d67e2ba0599c127ebc2d68598e1fbb5ae8a551d2f1bcdc0998",
+      "sha256_after": "f4be4d07f242a5d67e2ba0599c127ebc2d68598e1fbb5ae8a551d2f1bcdc0998",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/installed-release-2026-10-15/after-clean-smoke.json",
+      "archived": "docs/archive/2026-10-desktop/assets/installed-release-2026-10-15/after-clean-smoke.json",
+      "sha256_before": "c42bc2556df1bd4ef892c7fe337c6889119895611d6469851522cf0248fedb6c",
+      "sha256_after": "c42bc2556df1bd4ef892c7fe337c6889119895611d6469851522cf0248fedb6c",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/installed-release-2026-10-15/package.log",
+      "archived": "docs/archive/2026-10-desktop/assets/installed-release-2026-10-15/package.log",
+      "sha256_before": "f4f2ddee469a30ab79c79f0cd92d27d03826b21f596b3836022467ab262e7c0b",
+      "sha256_after": "f4f2ddee469a30ab79c79f0cd92d27d03826b21f596b3836022467ab262e7c0b",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/browser-data-correctness-2026-10-15/worker-restored-scores.png",
+      "archived": "docs/archive/2026-10-desktop/assets/browser-data-correctness-2026-10-15/worker-restored-scores.png",
+      "sha256_before": "463a2f58368d0c6e16e9def5338b61df0df0009d39fce620d8d60f674fd2489b",
+      "sha256_after": "463a2f58368d0c6e16e9def5338b61df0df0009d39fce620d8d60f674fd2489b",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/browser-data-correctness-2026-10-15/popup-independent-sources.png",
+      "archived": "docs/archive/2026-10-desktop/assets/browser-data-correctness-2026-10-15/popup-independent-sources.png",
+      "sha256_before": "60cb9ebb27f4174303fec09cf298df70880ae20681a4f03903420ead3534d14c",
+      "sha256_after": "60cb9ebb27f4174303fec09cf298df70880ae20681a4f03903420ead3534d14c",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/browser-data-correctness-2026-10-15/smart-independent-sources-final.png",
+      "archived": "docs/archive/2026-10-desktop/assets/browser-data-correctness-2026-10-15/smart-independent-sources-final.png",
+      "sha256_before": "c1ec61b74d2f0b64bca7b7ab2edc17ac8ecfb73de5a2693debe95d93bf96e62e",
+      "sha256_after": "c1ec61b74d2f0b64bca7b7ab2edc17ac8ecfb73de5a2693debe95d93bf96e62e",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/fixes-recovery-before.png",
+      "archived": "docs/archive/2026-10-desktop/assets/fixes-recovery-before.png",
+      "sha256_before": "3ca344d6d5b8041fa1392ea635584ac80a1ed7553fe612d583bb7be6202846ec",
+      "sha256_after": "3ca344d6d5b8041fa1392ea635584ac80a1ed7553fe612d583bb7be6202846ec",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/downie-2026-10-15/downie-bundled-help-unsupported.png",
+      "archived": "docs/archive/2026-10-desktop/assets/downie-2026-10-15/downie-bundled-help-unsupported.png",
+      "sha256_before": "979ec6be7b711d634f1735730735c8f002a00c3290ce7b5575ee1f1abb1292e8",
+      "sha256_after": "979ec6be7b711d634f1735730735c8f002a00c3290ce7b5575ee1f1abb1292e8",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/downie-2026-10-15/v-paused.png",
+      "archived": "docs/archive/2026-10-desktop/assets/downie-2026-10-15/v-paused.png",
+      "sha256_before": "c7f502eef264be859391f128b9f297af288094a672d4bd6e976f261e663267e5",
+      "sha256_after": "c7f502eef264be859391f128b9f297af288094a672d4bd6e976f261e663267e5",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/downie-2026-10-15/downie-uge-hls.png",
+      "archived": "docs/archive/2026-10-desktop/assets/downie-2026-10-15/downie-uge-hls.png",
+      "sha256_before": "f312237f762b8e42b3776ec00a32c037b0a8ffd96f9a8a8a236ec2e8ba66fd03",
+      "sha256_after": "f312237f762b8e42b3776ec00a32c037b0a8ffd96f9a8a8a236ec2e8ba66fd03",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/downie-2026-10-15/v-relaunch-interrupted.png",
+      "archived": "docs/archive/2026-10-desktop/assets/downie-2026-10-15/v-relaunch-interrupted.png",
+      "sha256_before": "1346f08af124673e2b4208ceb4086b778779d4b9bbc7e7ec41f0ae1283d62fce",
+      "sha256_after": "1346f08af124673e2b4208ceb4086b778779d4b9bbc7e7ec41f0ae1283d62fce",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/downie-2026-10-15/v-ask-disabled.png",
+      "archived": "docs/archive/2026-10-desktop/assets/downie-2026-10-15/v-ask-disabled.png",
+      "sha256_before": "438fdabe093d6ae804970c69a0bf2c1d36a76e4f81155ffd8b297d690d147c79",
+      "sha256_after": "438fdabe093d6ae804970c69a0bf2c1d36a76e4f81155ffd8b297d690d147c79",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/downie-2026-10-15/v-download-preferences.png",
+      "archived": "docs/archive/2026-10-desktop/assets/downie-2026-10-15/v-download-preferences.png",
+      "sha256_before": "88fa36422f00506d9149d678927b5b29781aff158ace5ac3fc10556139e0f02d",
+      "sha256_after": "88fa36422f00506d9149d678927b5b29781aff158ace5ac3fc10556139e0f02d",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/downie-2026-10-15/downie-bundled-help-preferences.png",
+      "archived": "docs/archive/2026-10-desktop/assets/downie-2026-10-15/downie-bundled-help-preferences.png",
+      "sha256_before": "664b3459f25c968d1213d963dc3c52d655b0fa05eb98c1f73756eb58b60d790f",
+      "sha256_after": "664b3459f25c968d1213d963dc3c52d655b0fa05eb98c1f73756eb58b60d790f",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/downie-2026-10-15/downie-bundled-help-error.png",
+      "archived": "docs/archive/2026-10-desktop/assets/downie-2026-10-15/downie-bundled-help-error.png",
+      "sha256_before": "73542f8daf11cf9ee6e7afc83e7a10ddf51a3e938dea1ccd372ba8bdc2410734",
+      "sha256_after": "73542f8daf11cf9ee6e7afc83e7a10ddf51a3e938dea1ccd372ba8bdc2410734",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/downie-2026-10-15/downie-paused.png",
+      "archived": "docs/archive/2026-10-desktop/assets/downie-2026-10-15/downie-paused.png",
+      "sha256_before": "90937dd8cf28d961e5fd83208e4973c840a8dd24463d601c7a1596f1b14884f1",
+      "sha256_after": "90937dd8cf28d961e5fd83208e4973c840a8dd24463d601c7a1596f1b14884f1",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/downie-2026-10-15/downie-permission-finished.png",
+      "archived": "docs/archive/2026-10-desktop/assets/downie-2026-10-15/downie-permission-finished.png",
+      "sha256_before": "d883e7d6aa6ba6c0be05baf471839658d164a5939c59b33e882ddcf4ed4db48b",
+      "sha256_after": "d883e7d6aa6ba6c0be05baf471839658d164a5939c59b33e882ddcf4ed4db48b",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/downie-2026-10-15/v-empty-queue.png",
+      "archived": "docs/archive/2026-10-desktop/assets/downie-2026-10-15/v-empty-queue.png",
+      "sha256_before": "11d14ddfcea86e2b40f6f06651c4f72bd65c3a6552826f45fd5dbc292aebe49a",
+      "sha256_after": "11d14ddfcea86e2b40f6f06651c4f72bd65c3a6552826f45fd5dbc292aebe49a",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/downie-2026-10-15/v-audio-label-mismatch.png",
+      "archived": "docs/archive/2026-10-desktop/assets/downie-2026-10-15/v-audio-label-mismatch.png",
+      "sha256_before": "ce16add9ab827c20a6496df10e1177e3cd5a8c53788a51e2edc2f33ef85d2058",
+      "sha256_after": "ce16add9ab827c20a6496df10e1177e3cd5a8c53788a51e2edc2f33ef85d2058",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/downie-2026-10-15/v-audio-format.png",
+      "archived": "docs/archive/2026-10-desktop/assets/downie-2026-10-15/v-audio-format.png",
+      "sha256_before": "d7fed05dc6d2c7b5ee42de0474f9c405330ddf158353dd0724c3b69362426ff5",
+      "sha256_after": "d7fed05dc6d2c7b5ee42de0474f9c405330ddf158353dd0724c3b69362426ff5",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/downie-2026-10-15/downie-runtime-completed.png",
+      "archived": "docs/archive/2026-10-desktop/assets/downie-2026-10-15/downie-runtime-completed.png",
+      "sha256_before": "a47f08693fe26be972f876a4340feda6439297eb79d89bd8c360470d3d6127d3",
+      "sha256_after": "a47f08693fe26be972f876a4340feda6439297eb79d89bd8c360470d3d6127d3",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/downie-2026-10-15/v-auth-error.png",
+      "archived": "docs/archive/2026-10-desktop/assets/downie-2026-10-15/v-auth-error.png",
+      "sha256_before": "9f823a5e9422187c17cd637e208d5547d329056941fad2e543182c326ac2cc96",
+      "sha256_after": "9f823a5e9422187c17cd637e208d5547d329056941fad2e543182c326ac2cc96",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/downie-2026-10-15/downie-bundled-help-uge_options.png",
+      "archived": "docs/archive/2026-10-desktop/assets/downie-2026-10-15/downie-bundled-help-uge_options.png",
+      "sha256_before": "80a6ea7cd1f942935dece39b99a942e0bcb9a588bc2803dac045cdd94a71612e",
+      "sha256_after": "80a6ea7cd1f942935dece39b99a942e0bcb9a588bc2803dac045cdd94a71612e",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/downie-2026-10-15/v-onboarding.png",
+      "archived": "docs/archive/2026-10-desktop/assets/downie-2026-10-15/v-onboarding.png",
+      "sha256_before": "b68f28023aa2e1b9c21c3f8a0a9426669acce435db62acdba1154e559fa6729c",
+      "sha256_after": "b68f28023aa2e1b9c21c3f8a0a9426669acce435db62acdba1154e559fa6729c",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/downie-2026-10-15/v-dialog-despite-ask-off.png",
+      "archived": "docs/archive/2026-10-desktop/assets/downie-2026-10-15/v-dialog-despite-ask-off.png",
+      "sha256_before": "9ee310ab8a6a9f42829e9a3e8bca1d0036937d17eca5766914c8696072c2590e",
+      "sha256_after": "9ee310ab8a6a9f42829e9a3e8bca1d0036937d17eca5766914c8696072c2590e",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/downie-2026-10-15/downie-bundled-help-main_window.png",
+      "archived": "docs/archive/2026-10-desktop/assets/downie-2026-10-15/downie-bundled-help-main_window.png",
+      "sha256_before": "4c12d9023088b935c97c9352661088d425429aeb91f2851aa7cddde6296a7e90",
+      "sha256_after": "4c12d9023088b935c97c9352661088d425429aeb91f2851aa7cddde6296a7e90",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/downie-2026-10-15/downie-quit-warning.png",
+      "archived": "docs/archive/2026-10-desktop/assets/downie-2026-10-15/downie-quit-warning.png",
+      "sha256_before": "3c3b9d5a6b62db5b84a228d1168ab9104984d699fac60be4304764f268d2169a",
+      "sha256_after": "3c3b9d5a6b62db5b84a228d1168ab9104984d699fac60be4304764f268d2169a",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/downie-2026-10-15/downie-multiple-candidates.png",
+      "archived": "docs/archive/2026-10-desktop/assets/downie-2026-10-15/downie-multiple-candidates.png",
+      "sha256_before": "f2e1d71a666bc470d6c3167fe6ec53643b0b3aab893b3283c746afedfc8cde74",
+      "sha256_after": "f2e1d71a666bc470d6c3167fe6ec53643b0b3aab893b3283c746afedfc8cde74",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/downie-2026-10-15/downie-duplicate-confirmation.png",
+      "archived": "docs/archive/2026-10-desktop/assets/downie-2026-10-15/downie-duplicate-confirmation.png",
+      "sha256_before": "31b724356ee9bebec7b00ec1b0f52c5faa192efe8b89ac1ddf7ae3871b2f529d",
+      "sha256_after": "31b724356ee9bebec7b00ec1b0f52c5faa192efe8b89ac1ddf7ae3871b2f529d",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/downie-2026-10-15/downie-failure-actions.png",
+      "archived": "docs/archive/2026-10-desktop/assets/downie-2026-10-15/downie-failure-actions.png",
+      "sha256_before": "0f764d8c7129dde9408a442cc98bf0fdacc8f47fe9e1c16b511fdb8a9e2bc51e",
+      "sha256_after": "0f764d8c7129dde9408a442cc98bf0fdacc8f47fe9e1c16b511fdb8a9e2bc51e",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/downie-2026-10-15/downie-bundled-help-processed.png",
+      "archived": "docs/archive/2026-10-desktop/assets/downie-2026-10-15/downie-bundled-help-processed.png",
+      "sha256_before": "b4cb61cdbb8594fe30de9486cddc14f4fa260a8e14414a94329d7e83ca3de653",
+      "sha256_after": "b4cb61cdbb8594fe30de9486cddc14f4fa260a8e14414a94329d7e83ca3de653",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/capture-review-install-2026-10-15/data-preservation.json",
+      "archived": "docs/archive/2026-10-desktop/assets/capture-review-install-2026-10-15/data-preservation.json",
+      "sha256_before": "8b127729b1bd66a6f6d7cc76c2aefc6afb2a6b3081e915b91d7fc548895fcf6e",
+      "sha256_after": "8b127729b1bd66a6f6d7cc76c2aefc6afb2a6b3081e915b91d7fc548895fcf6e",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/capture-review-install-2026-10-15/task-switch.ax.txt",
+      "archived": "docs/archive/2026-10-desktop/assets/capture-review-install-2026-10-15/task-switch.ax.txt",
+      "sha256_before": "adbabbfa05924b3d3aa9c7164ff0e39d56f56aebe437c4840165f664653a7791",
+      "sha256_after": "adbabbfa05924b3d3aa9c7164ff0e39d56f56aebe437c4840165f664653a7791",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/capture-review-install-2026-10-15/installed-final.png",
+      "archived": "docs/archive/2026-10-desktop/assets/capture-review-install-2026-10-15/installed-final.png",
+      "sha256_before": "80e020eb0983b51e4baa8f63de2307f572424ce45e47e286d2f525a0fca29d2e",
+      "sha256_after": "80e020eb0983b51e4baa8f63de2307f572424ce45e47e286d2f525a0fca29d2e",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/capture-review-install-2026-10-15/package-identity.json",
+      "archived": "docs/archive/2026-10-desktop/assets/capture-review-install-2026-10-15/package-identity.json",
+      "sha256_before": "982a45861baba60713fbf6705e923a723b73ae85e7ae7ab81a7672a844854cba",
+      "sha256_after": "982a45861baba60713fbf6705e923a723b73ae85e7ae7ab81a7672a844854cba",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/capture-review-install-2026-10-15/installed-iframe-recovery.json",
+      "archived": "docs/archive/2026-10-desktop/assets/capture-review-install-2026-10-15/installed-iframe-recovery.json",
+      "sha256_before": "5cece33326c866c2ec384eda5ef27d28913e6a1a7df26a84276cf1a097ca1437",
+      "sha256_after": "5cece33326c866c2ec384eda5ef27d28913e6a1a7df26a84276cf1a097ca1437",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/capture-review-install-2026-10-15/installed-api.json",
+      "archived": "docs/archive/2026-10-desktop/assets/capture-review-install-2026-10-15/installed-api.json",
+      "sha256_before": "79b13f09646201678a3722b158989d6627507ae0a20a5a3841284bfbeffce230",
+      "sha256_after": "79b13f09646201678a3722b158989d6627507ae0a20a5a3841284bfbeffce230",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/capture-review-install-2026-10-15/installed-final-tasks.json",
+      "archived": "docs/archive/2026-10-desktop/assets/capture-review-install-2026-10-15/installed-final-tasks.json",
+      "sha256_before": "d2d2ac0693e2aafffc211caabe3045e0c3b038f7d132649568891afe7436bcab",
+      "sha256_after": "d2d2ac0693e2aafffc211caabe3045e0c3b038f7d132649568891afe7436bcab",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/capture-review-install-2026-10-15/chrome-plans.png",
+      "archived": "docs/archive/2026-10-desktop/assets/capture-review-install-2026-10-15/chrome-plans.png",
+      "sha256_before": "f984a50cd4d1a9de081b7678a8e756427834c3f79d39a2cc81b6b10d2df51970",
+      "sha256_after": "f984a50cd4d1a9de081b7678a8e756427834c3f79d39a2cc81b6b10d2df51970",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/capture-review-install-2026-10-15/review-fix.patch",
+      "archived": "docs/archive/2026-10-desktop/assets/capture-review-install-2026-10-15/review-fix.patch",
+      "sha256_before": "a0ddc44a67fb7fa7e4cca7ed2db5656a929e6040cd8f30eb3fbfc9a55cc53c4d",
+      "sha256_after": "a0ddc44a67fb7fa7e4cca7ed2db5656a929e6040cd8f30eb3fbfc9a55cc53c4d",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/capture-review-install-2026-10-15/typecheck.log",
+      "archived": "docs/archive/2026-10-desktop/assets/capture-review-install-2026-10-15/typecheck.log",
+      "sha256_before": "c2458ddca050c5001d5ea19fcf6e7141c633e9efe9a4cd2b4277f7813ea0f4a9",
+      "sha256_after": "c2458ddca050c5001d5ea19fcf6e7141c633e9efe9a4cd2b4277f7813ea0f4a9",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/capture-review-install-2026-10-15/package-files.json",
+      "archived": "docs/archive/2026-10-desktop/assets/capture-review-install-2026-10-15/package-files.json",
+      "sha256_before": "ca8f42abe09a1bd453a657195621f23896c4c2ba79b39ca79544a70a36798807",
+      "sha256_after": "ca8f42abe09a1bd453a657195621f23896c4c2ba79b39ca79544a70a36798807",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/capture-review-install-2026-10-15/task-switch-verification.json",
+      "archived": "docs/archive/2026-10-desktop/assets/capture-review-install-2026-10-15/task-switch-verification.json",
+      "sha256_before": "189dc3fe06ee8f7a3986316b879ded5ad59b91e25b4bc50c91b4ddb5501f4c39",
+      "sha256_after": "189dc3fe06ee8f7a3986316b879ded5ad59b91e25b4bc50c91b4ddb5501f4c39",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/capture-review-install-2026-10-15/installed-chrome-recovery.json",
+      "archived": "docs/archive/2026-10-desktop/assets/capture-review-install-2026-10-15/installed-chrome-recovery.json",
+      "sha256_before": "48be615839b89fba9b41bd717b07b344fd3c3760361bb05182c681b2fc7937e8",
+      "sha256_after": "48be615839b89fba9b41bd717b07b344fd3c3760361bb05182c681b2fc7937e8",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/capture-review-install-2026-10-15/dash-engine-comparison.json",
+      "archived": "docs/archive/2026-10-desktop/assets/capture-review-install-2026-10-15/dash-engine-comparison.json",
+      "sha256_before": "ff82f3ecf4023e9bee7c3112f1da00bda943ebcfc791a0c771aeb9414666bc9d",
+      "sha256_after": "ff82f3ecf4023e9bee7c3112f1da00bda943ebcfc791a0c771aeb9414666bc9d",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/capture-review-install-2026-10-15/dmg-verification.log",
+      "archived": "docs/archive/2026-10-desktop/assets/capture-review-install-2026-10-15/dmg-verification.log",
+      "sha256_before": "31a3ec87c01662d687a8adcf5f17ade126e502574b3cc993141abf6721681876",
+      "sha256_after": "31a3ec87c01662d687a8adcf5f17ade126e502574b3cc993141abf6721681876",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/capture-review-install-2026-10-15/cleanup.json",
+      "archived": "docs/archive/2026-10-desktop/assets/capture-review-install-2026-10-15/cleanup.json",
+      "sha256_before": "153fd62ce6986438e346fe2909cf9612237dd855f9b9e7ef75dd9215e5c24cf0",
+      "sha256_after": "153fd62ce6986438e346fe2909cf9612237dd855f9b9e7ef75dd9215e5c24cf0",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/capture-review-install-2026-10-15/chrome-inspection.ax.txt",
+      "archived": "docs/archive/2026-10-desktop/assets/capture-review-install-2026-10-15/chrome-inspection.ax.txt",
+      "sha256_before": "d0666eee00f141cac749707b5c6522d17cb3d54b54d0e591d6be5d7c8700fecf",
+      "sha256_after": "d0666eee00f141cac749707b5c6522d17cb3d54b54d0e591d6be5d7c8700fecf",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/capture-review-install-2026-10-15/installed-final.ax.txt",
+      "archived": "docs/archive/2026-10-desktop/assets/capture-review-install-2026-10-15/installed-final.ax.txt",
+      "sha256_before": "e517779228458924f4634de90a59da0a4df7887a05a0eb781bf171553354e669",
+      "sha256_after": "e517779228458924f4634de90a59da0a4df7887a05a0eb781bf171553354e669",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/capture-review-install-2026-10-15/signature.txt",
+      "archived": "docs/archive/2026-10-desktop/assets/capture-review-install-2026-10-15/signature.txt",
+      "sha256_before": "a30698249cb9e013051b4abaf96f3debf5a10a3967810b419b695fa066938f4f",
+      "sha256_after": "a30698249cb9e013051b4abaf96f3debf5a10a3967810b419b695fa066938f4f",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/capture-review-install-2026-10-15/prepare.log",
+      "archived": "docs/archive/2026-10-desktop/assets/capture-review-install-2026-10-15/prepare.log",
+      "sha256_before": "4b5d49edc1f926754e41233f23703b71e0cc77af12b2d0df800aafba0b23b11e",
+      "sha256_after": "4b5d49edc1f926754e41233f23703b71e0cc77af12b2d0df800aafba0b23b11e",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/capture-review-install-2026-10-15/installed-cancel.json",
+      "archived": "docs/archive/2026-10-desktop/assets/capture-review-install-2026-10-15/installed-cancel.json",
+      "sha256_before": "7a2ac60a43199b7685d9e27ef995c41aa08313fb2fbae0d0fe594ee9cd795004",
+      "sha256_after": "7a2ac60a43199b7685d9e27ef995c41aa08313fb2fbae0d0fe594ee9cd795004",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/capture-review-install-2026-10-15/tests.log",
+      "archived": "docs/archive/2026-10-desktop/assets/capture-review-install-2026-10-15/tests.log",
+      "sha256_before": "cc4a410e7e1e92a555ba14e98f4232168d8ee4b4409ed7d80579adb0b84bd4aa",
+      "sha256_after": "cc4a410e7e1e92a555ba14e98f4232168d8ee4b4409ed7d80579adb0b84bd4aa",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/capture-review-install-2026-10-15/shared.log",
+      "archived": "docs/archive/2026-10-desktop/assets/capture-review-install-2026-10-15/shared.log",
+      "sha256_before": "8f7e998101e8c973ab3cfe1426750ec6a1df0b79008180b758aeadd96922ac9a",
+      "sha256_after": "8f7e998101e8c973ab3cfe1426750ec6a1df0b79008180b758aeadd96922ac9a",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/capture-review-install-2026-10-15/chrome-plans.ax.txt",
+      "archived": "docs/archive/2026-10-desktop/assets/capture-review-install-2026-10-15/chrome-plans.ax.txt",
+      "sha256_before": "d62f28a420c4fcd8afc66ee78db923518a90aa4662f87a1302b5d9309f254758",
+      "sha256_after": "d62f28a420c4fcd8afc66ee78db923518a90aa4662f87a1302b5d9309f254758",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/capture-review-install-2026-10-15/chrome-inspection.png",
+      "archived": "docs/archive/2026-10-desktop/assets/capture-review-install-2026-10-15/chrome-inspection.png",
+      "sha256_before": "5958c6c519d369ac5c8990719b9e504003b822be4affe76334cea76f3d6de5e4",
+      "sha256_after": "5958c6c519d369ac5c8990719b9e504003b822be4affe76334cea76f3d6de5e4",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/capture-review-install-2026-10-15/task-switch.png",
+      "archived": "docs/archive/2026-10-desktop/assets/capture-review-install-2026-10-15/task-switch.png",
+      "sha256_before": "baba841904f9ba576e3641b344ecd8371ad0dffc965c579b9197247fa7a7c5b5",
+      "sha256_after": "baba841904f9ba576e3641b344ecd8371ad0dffc965c579b9197247fa7a7c5b5",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/capture-review-install-2026-10-15/package.log",
+      "archived": "docs/archive/2026-10-desktop/assets/capture-review-install-2026-10-15/package.log",
+      "sha256_before": "8e6a8cacadd48c14e618f9a7e201e8a4c5a3ddb8b9e3cdf877fb26e9bb325f86",
+      "sha256_after": "8e6a8cacadd48c14e618f9a7e201e8a4c5a3ddb8b9e3cdf877fb26e9bb325f86",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/capture-review-install-2026-10-15/build.log",
+      "archived": "docs/archive/2026-10-desktop/assets/capture-review-install-2026-10-15/build.log",
+      "sha256_before": "3944f061d0412655c35b0edd812c9ea681e1c8e98730a71d84f9f529d359db25",
+      "sha256_after": "3944f061d0412655c35b0edd812c9ea681e1c8e98730a71d84f9f529d359db25",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/browser-capture-recovery-2026-10-15/data-preservation.json",
+      "archived": "docs/archive/2026-10-desktop/assets/browser-capture-recovery-2026-10-15/data-preservation.json",
+      "sha256_before": "877e54b6cb2f53fc888f6465fef1c2c7dd0d25dc4aed0520a386e9ddfad1cd14",
+      "sha256_after": "877e54b6cb2f53fc888f6465fef1c2c7dd0d25dc4aed0520a386e9ddfad1cd14",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/browser-capture-recovery-2026-10-15/manifest-format-proof.json",
+      "archived": "docs/archive/2026-10-desktop/assets/browser-capture-recovery-2026-10-15/manifest-format-proof.json",
+      "sha256_before": "630196fd6ee3905893814f051f2c5a89bfaccbb9ffc6d93b646cb6bf16c26db9",
+      "sha256_after": "630196fd6ee3905893814f051f2c5a89bfaccbb9ffc6d93b646cb6bf16c26db9",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/browser-capture-recovery-2026-10-15/final-code-identity.json",
+      "archived": "docs/archive/2026-10-desktop/assets/browser-capture-recovery-2026-10-15/final-code-identity.json",
+      "sha256_before": "65a6af92d9d08a5b3981de5b830f61fac1f4e6180b188bac01d0d981846d77cd",
+      "sha256_after": "65a6af92d9d08a5b3981de5b830f61fac1f4e6180b188bac01d0d981846d77cd",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/browser-capture-recovery-2026-10-15/restart-verification.json",
+      "archived": "docs/archive/2026-10-desktop/assets/browser-capture-recovery-2026-10-15/restart-verification.json",
+      "sha256_before": "3bc96c48ea26453e3b8b734d9c03e199df2a766cd6d6f2ec8aeb39345d691752",
+      "sha256_after": "3bc96c48ea26453e3b8b734d9c03e199df2a766cd6d6f2ec8aeb39345d691752",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/browser-capture-recovery-2026-10-15/typecheck-final.log",
+      "archived": "docs/archive/2026-10-desktop/assets/browser-capture-recovery-2026-10-15/typecheck-final.log",
+      "sha256_before": "c2458ddca050c5001d5ea19fcf6e7141c633e9efe9a4cd2b4277f7813ea0f4a9",
+      "sha256_after": "c2458ddca050c5001d5ea19fcf6e7141c633e9efe9a4cd2b4277f7813ea0f4a9",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/browser-capture-recovery-2026-10-15/final-build-task.json",
+      "archived": "docs/archive/2026-10-desktop/assets/browser-capture-recovery-2026-10-15/final-build-task.json",
+      "sha256_before": "9e54479fe2aa88b2fb217f7684ddf78ebef0fbcd33605adf9cee0a35c695afe5",
+      "sha256_after": "9e54479fe2aa88b2fb217f7684ddf78ebef0fbcd33605adf9cee0a35c695afe5",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/browser-capture-recovery-2026-10-15/inspection-cancellation.json",
+      "archived": "docs/archive/2026-10-desktop/assets/browser-capture-recovery-2026-10-15/inspection-cancellation.json",
+      "sha256_before": "a3e12aa5f370f286aaaae413f2fe5d9c51c42c6583cbe376870cc858b70f6a26",
+      "sha256_after": "a3e12aa5f370f286aaaae413f2fe5d9c51c42c6583cbe376870cc858b70f6a26",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/browser-capture-recovery-2026-10-15/dash-details.png",
+      "archived": "docs/archive/2026-10-desktop/assets/browser-capture-recovery-2026-10-15/dash-details.png",
+      "sha256_before": "583fc24885e88441df4f61d12d1fdd85d413890d10b08fcf2afa0c3ea2f6c7f0",
+      "sha256_after": "583fc24885e88441df4f61d12d1fdd85d413890d10b08fcf2afa0c3ea2f6c7f0",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/browser-capture-recovery-2026-10-15/final-packaged-complete.ax.txt",
+      "archived": "docs/archive/2026-10-desktop/assets/browser-capture-recovery-2026-10-15/final-packaged-complete.ax.txt",
+      "sha256_before": "e1547f8516e01411a236ef45a708f95e1c52139c257030c1f5b6d08520c47a5e",
+      "sha256_after": "e1547f8516e01411a236ef45a708f95e1c52139c257030c1f5b6d08520c47a5e",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/browser-capture-recovery-2026-10-15/test-package-sign.log",
+      "archived": "docs/archive/2026-10-desktop/assets/browser-capture-recovery-2026-10-15/test-package-sign.log",
+      "sha256_before": "0eeed30dca14171e2ccb54d99d41cf4c20122ec80ff5351d1e489da46fa40ba0",
+      "sha256_after": "0eeed30dca14171e2ccb54d99d41cf4c20122ec80ff5351d1e489da46fa40ba0",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/browser-capture-recovery-2026-10-15/final-build-verification.json",
+      "archived": "docs/archive/2026-10-desktop/assets/browser-capture-recovery-2026-10-15/final-build-verification.json",
+      "sha256_before": "25c5dee2639d268504c1fd4b2477ab1a754769379e9fce2a550ac149d8450bba",
+      "sha256_after": "25c5dee2639d268504c1fd4b2477ab1a754769379e9fce2a550ac149d8450bba",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/browser-capture-recovery-2026-10-15/output-verification.json",
+      "archived": "docs/archive/2026-10-desktop/assets/browser-capture-recovery-2026-10-15/output-verification.json",
+      "sha256_before": "ae86fd85d51a6d160d1270730324788ec656bdd70a79692d75cac4920df7f1eb",
+      "sha256_after": "ae86fd85d51a6d160d1270730324788ec656bdd70a79692d75cac4920df7f1eb",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/browser-capture-recovery-2026-10-15/build-final.log",
+      "archived": "docs/archive/2026-10-desktop/assets/browser-capture-recovery-2026-10-15/build-final.log",
+      "sha256_before": "ec94e4e7c890a559b2f1bba202b662335f0442797d005db7601cec47e9218813",
+      "sha256_after": "ec94e4e7c890a559b2f1bba202b662335f0442797d005db7601cec47e9218813",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/browser-capture-recovery-2026-10-15/http-abort-verification.json",
+      "archived": "docs/archive/2026-10-desktop/assets/browser-capture-recovery-2026-10-15/http-abort-verification.json",
+      "sha256_before": "29718fba5b7d5940cf11bf2255cfe22bafd3586d4427b93182f3da8a592e4bb8",
+      "sha256_after": "29718fba5b7d5940cf11bf2255cfe22bafd3586d4427b93182f3da8a592e4bb8",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/browser-capture-recovery-2026-10-15/cleanup.json",
+      "archived": "docs/archive/2026-10-desktop/assets/browser-capture-recovery-2026-10-15/cleanup.json",
+      "sha256_before": "609123077f1d3b50e8ba52a36576019e44d5d3dbf5822325c54396a73a4639d9",
+      "sha256_after": "609123077f1d3b50e8ba52a36576019e44d5d3dbf5822325c54396a73a4639d9",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/browser-capture-recovery-2026-10-15/extension-capture-final.log",
+      "archived": "docs/archive/2026-10-desktop/assets/browser-capture-recovery-2026-10-15/extension-capture-final.log",
+      "sha256_before": "a06ae0b568cec4dae711c6fe2b8f10239f6714f9e5893b0d8a0907feeeceb37d",
+      "sha256_after": "a06ae0b568cec4dae711c6fe2b8f10239f6714f9e5893b0d8a0907feeeceb37d",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/browser-capture-recovery-2026-10-15/hls-details.png",
+      "archived": "docs/archive/2026-10-desktop/assets/browser-capture-recovery-2026-10-15/hls-details.png",
+      "sha256_before": "f489be8f0f2c01d02baccb7c8b5165213336bea828ffc298fded114842062840",
+      "sha256_after": "f489be8f0f2c01d02baccb7c8b5165213336bea828ffc298fded114842062840",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/browser-capture-recovery-2026-10-15/packaged-access-denied.png",
+      "archived": "docs/archive/2026-10-desktop/assets/browser-capture-recovery-2026-10-15/packaged-access-denied.png",
+      "sha256_before": "a86fe859ded5ce3ec60a592145bb822263f885623b6a27c090a1b44e4a5ac92f",
+      "sha256_after": "a86fe859ded5ce3ec60a592145bb822263f885623b6a27c090a1b44e4a5ac92f",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/browser-capture-recovery-2026-10-15/extension-final.log",
+      "archived": "docs/archive/2026-10-desktop/assets/browser-capture-recovery-2026-10-15/extension-final.log",
+      "sha256_before": "ac649dbb65864e150afc07eb29993ad1cff22c850f497d764201e99adcbc4806",
+      "sha256_after": "ac649dbb65864e150afc07eb29993ad1cff22c850f497d764201e99adcbc4806",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/browser-capture-recovery-2026-10-15/persisted-final.log",
+      "archived": "docs/archive/2026-10-desktop/assets/browser-capture-recovery-2026-10-15/persisted-final.log",
+      "sha256_before": "4be2af663cb5be900aa2f204014a26c750616edb5273b148b49bfc98cfe8dd95",
+      "sha256_after": "4be2af663cb5be900aa2f204014a26c750616edb5273b148b49bfc98cfe8dd95",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/browser-capture-recovery-2026-10-15/tests-final.log",
+      "archived": "docs/archive/2026-10-desktop/assets/browser-capture-recovery-2026-10-15/tests-final.log",
+      "sha256_before": "f991f5ee9ac104aaef8ab8d78d674e591db380489cfc500b0215a1f855d36bfa",
+      "sha256_after": "f991f5ee9ac104aaef8ab8d78d674e591db380489cfc500b0215a1f855d36bfa",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/browser-capture-recovery-2026-10-15/extra-verification.json",
+      "archived": "docs/archive/2026-10-desktop/assets/browser-capture-recovery-2026-10-15/extra-verification.json",
+      "sha256_before": "b0ba749e30ac99d466a50cf9c4868ab49368f6a5611bda0f2dd7e42ebfefe82e",
+      "sha256_after": "b0ba749e30ac99d466a50cf9c4868ab49368f6a5611bda0f2dd7e42ebfefe82e",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/browser-capture-recovery-2026-10-15/inspection-final.log",
+      "archived": "docs/archive/2026-10-desktop/assets/browser-capture-recovery-2026-10-15/inspection-final.log",
+      "sha256_before": "eceb85eb7665efb09293ac4f630c854fb5345b912c623b29248a892e3871a268",
+      "sha256_after": "eceb85eb7665efb09293ac4f630c854fb5345b912c623b29248a892e3871a268",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/browser-capture-recovery-2026-10-15/final-packaged-complete.png",
+      "archived": "docs/archive/2026-10-desktop/assets/browser-capture-recovery-2026-10-15/final-packaged-complete.png",
+      "sha256_before": "642bde4da5667397f756e9d05c500cf1eac993275f151da907956c0e9dbd294b",
+      "sha256_after": "642bde4da5667397f756e9d05c500cf1eac993275f151da907956c0e9dbd294b",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/browser-capture-recovery-2026-10-15/api-verification.json",
+      "archived": "docs/archive/2026-10-desktop/assets/browser-capture-recovery-2026-10-15/api-verification.json",
+      "sha256_before": "4fada1d7bc0d257f6b75b4c4327814493ad2f3b732bc6bdef74e533e383e40dd",
+      "sha256_after": "4fada1d7bc0d257f6b75b4c4327814493ad2f3b732bc6bdef74e533e383e40dd",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/browser-capture-recovery-2026-10-15/api-model-final.log",
+      "archived": "docs/archive/2026-10-desktop/assets/browser-capture-recovery-2026-10-15/api-model-final.log",
+      "sha256_before": "2a6b69216ff8d6d8967e68c4e5ed95560717f716c6a7b6372188f2e3976e999d",
+      "sha256_after": "2a6b69216ff8d6d8967e68c4e5ed95560717f716c6a7b6372188f2e3976e999d",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/browser-capture-recovery-2026-10-15/packaged-iframe-capture.png",
+      "archived": "docs/archive/2026-10-desktop/assets/browser-capture-recovery-2026-10-15/packaged-iframe-capture.png",
+      "sha256_before": "d470280a5ab76e218e5679593afe8753895cb17fab2a42b38f3d3bf8bf84c3d7",
+      "sha256_after": "d470280a5ab76e218e5679593afe8753895cb17fab2a42b38f3d3bf8bf84c3d7",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/inspector-error-fixes-2026-10-15/data-preservation.json",
+      "archived": "docs/archive/2026-10-desktop/assets/inspector-error-fixes-2026-10-15/data-preservation.json",
+      "sha256_before": "7ddb0f80d6ae6ce70a7a6a0cf93c82200ef58159215b82742c5daa9159e96a7e",
+      "sha256_after": "7ddb0f80d6ae6ce70a7a6a0cf93c82200ef58159215b82742c5daa9159e96a7e",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/inspector-error-fixes-2026-10-15/http-404.png",
+      "archived": "docs/archive/2026-10-desktop/assets/inspector-error-fixes-2026-10-15/http-404.png",
+      "sha256_before": "0d5a630398f55b3560eb67bc9a982a3db6445dfec8d4abd64ca9509a1e4629a4",
+      "sha256_after": "0d5a630398f55b3560eb67bc9a982a3db6445dfec8d4abd64ca9509a1e4629a4",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/inspector-error-fixes-2026-10-15/fixture-requests.jsonl",
+      "archived": "docs/archive/2026-10-desktop/assets/inspector-error-fixes-2026-10-15/fixture-requests.jsonl",
+      "sha256_before": "17fcc08f0213482215cfe23a62671708caee0367942f57395d1a0db011df7162",
+      "sha256_after": "17fcc08f0213482215cfe23a62671708caee0367942f57395d1a0db011df7162",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/inspector-error-fixes-2026-10-15/complete.png",
+      "archived": "docs/archive/2026-10-desktop/assets/inspector-error-fixes-2026-10-15/complete.png",
+      "sha256_before": "3dc55bd3609b550087792b385f083e7ac0d42c2f2a63a83bcbeef3e5815e3ef8",
+      "sha256_after": "3dc55bd3609b550087792b385f083e7ac0d42c2f2a63a83bcbeef3e5815e3ef8",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/inspector-error-fixes-2026-10-15/source-identity.json",
+      "archived": "docs/archive/2026-10-desktop/assets/inspector-error-fixes-2026-10-15/source-identity.json",
+      "sha256_before": "57f7c27031ca7bfa8dbbcf54381ac7689fb97a98c06ba5e91a294f53ac0047f8",
+      "sha256_after": "57f7c27031ca7bfa8dbbcf54381ac7689fb97a98c06ba5e91a294f53ac0047f8",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/inspector-error-fixes-2026-10-15/package-identity.json",
+      "archived": "docs/archive/2026-10-desktop/assets/inspector-error-fixes-2026-10-15/package-identity.json",
+      "sha256_before": "7669ceac646bbc3171ddf063f9f5031b4d5f36d58e2f3ff4a618b8d64cb1ff36",
+      "sha256_after": "7669ceac646bbc3171ddf063f9f5031b4d5f36d58e2f3ff4a618b8d64cb1ff36",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/inspector-error-fixes-2026-10-15/queued.ax.txt",
+      "archived": "docs/archive/2026-10-desktop/assets/inspector-error-fixes-2026-10-15/queued.ax.txt",
+      "sha256_before": "ca5812998474c45f491620ef852803d6a6f170b8b6fcbedb060ceebc663bf29f",
+      "sha256_after": "ca5812998474c45f491620ef852803d6a6f170b8b6fcbedb060ceebc663bf29f",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/inspector-error-fixes-2026-10-15/downloading.png",
+      "archived": "docs/archive/2026-10-desktop/assets/inspector-error-fixes-2026-10-15/downloading.png",
+      "sha256_before": "57f7bf0cae63ceca95476ff638632e76132879d596a1115e9afbadebc5d4cfbc",
+      "sha256_after": "57f7bf0cae63ceca95476ff638632e76132879d596a1115e9afbadebc5d4cfbc",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/inspector-error-fixes-2026-10-15/http-404.ax.txt",
+      "archived": "docs/archive/2026-10-desktop/assets/inspector-error-fixes-2026-10-15/http-404.ax.txt",
+      "sha256_before": "61a8971befbe314c9b73130c30474bd5a3597540aace1eb8bb454cce9fc48dc5",
+      "sha256_after": "61a8971befbe314c9b73130c30474bd5a3597540aace1eb8bb454cce9fc48dc5",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/inspector-error-fixes-2026-10-15/missing-engine.png",
+      "archived": "docs/archive/2026-10-desktop/assets/inspector-error-fixes-2026-10-15/missing-engine.png",
+      "sha256_before": "0f98329d205914e94335910b82d80a7acdb26f3f8501b4ca58e515d19478c3fc",
+      "sha256_after": "0f98329d205914e94335910b82d80a7acdb26f3f8501b4ca58e515d19478c3fc",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/inspector-error-fixes-2026-10-15/missing-engine.ax.txt",
+      "archived": "docs/archive/2026-10-desktop/assets/inspector-error-fixes-2026-10-15/missing-engine.ax.txt",
+      "sha256_before": "cf81a9397b3d190af0ef403f77c1ad1386b5e538e826610c3ed1d41077e62a1e",
+      "sha256_after": "cf81a9397b3d190af0ef403f77c1ad1386b5e538e826610c3ed1d41077e62a1e",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/inspector-error-fixes-2026-10-15/reloaded-404.png",
+      "archived": "docs/archive/2026-10-desktop/assets/inspector-error-fixes-2026-10-15/reloaded-404.png",
+      "sha256_before": "ecfa15c1bc1196e3da38c8a40ebe6de3b8aa6227c595bc9220306b8cc57978bf",
+      "sha256_after": "ecfa15c1bc1196e3da38c8a40ebe6de3b8aa6227c595bc9220306b8cc57978bf",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/inspector-error-fixes-2026-10-15/output-verification.json",
+      "archived": "docs/archive/2026-10-desktop/assets/inspector-error-fixes-2026-10-15/output-verification.json",
+      "sha256_before": "efda6ab1ec102cd2088f79599b6712b3bfdad78a42ea1d16b7a49ed22b8b8a24",
+      "sha256_after": "efda6ab1ec102cd2088f79599b6712b3bfdad78a42ea1d16b7a49ed22b8b8a24",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/inspector-error-fixes-2026-10-15/cleanup.json",
+      "archived": "docs/archive/2026-10-desktop/assets/inspector-error-fixes-2026-10-15/cleanup.json",
+      "sha256_before": "1c14bf853d307fb4a4348f60cdf77037ef6a9f1ce41042299a91f9e74ca85e77",
+      "sha256_after": "1c14bf853d307fb4a4348f60cdf77037ef6a9f1ce41042299a91f9e74ca85e77",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/inspector-error-fixes-2026-10-15/queued.png",
+      "archived": "docs/archive/2026-10-desktop/assets/inspector-error-fixes-2026-10-15/queued.png",
+      "sha256_before": "a7a757d30cf7ea80a3e60f30e2fe5b342f931007b9d00776b68006cbe838df8e",
+      "sha256_after": "a7a757d30cf7ea80a3e60f30e2fe5b342f931007b9d00776b68006cbe838df8e",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/inspector-error-fixes-2026-10-15/validation.json",
+      "archived": "docs/archive/2026-10-desktop/assets/inspector-error-fixes-2026-10-15/validation.json",
+      "sha256_before": "3d3f9de00b85908f3726841ee34c959a44c03baded4b4c129059d5d8a91a9ed4",
+      "sha256_after": "3d3f9de00b85908f3726841ee34c959a44c03baded4b4c129059d5d8a91a9ed4",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/inspector-error-fixes-2026-10-15/signature.txt",
+      "archived": "docs/archive/2026-10-desktop/assets/inspector-error-fixes-2026-10-15/signature.txt",
+      "sha256_before": "6bdd6d72e2dbd480416115e538cdd499ced22913ad051c26a58ad0e08057b208",
+      "sha256_after": "6bdd6d72e2dbd480416115e538cdd499ced22913ad051c26a58ad0e08057b208",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/inspector-error-fixes-2026-10-15/first-pass-task-records.json",
+      "archived": "docs/archive/2026-10-desktop/assets/inspector-error-fixes-2026-10-15/first-pass-task-records.json",
+      "sha256_before": "f91b7892f3bbe7eafa665353be0e9ad0da229e47b2c76a9d275ee3c66700fba3",
+      "sha256_after": "f91b7892f3bbe7eafa665353be0e9ad0da229e47b2c76a9d275ee3c66700fba3",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/inspector-error-fixes-2026-10-15/downloading.ax.txt",
+      "archived": "docs/archive/2026-10-desktop/assets/inspector-error-fixes-2026-10-15/downloading.ax.txt",
+      "sha256_before": "c22950b4177f694e5c08d15201a0350721d7f26ee5ed3ef5cfb5f67ec841395f",
+      "sha256_after": "c22950b4177f694e5c08d15201a0350721d7f26ee5ed3ef5cfb5f67ec841395f",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/inspector-error-fixes-2026-10-15/tests.log",
+      "archived": "docs/archive/2026-10-desktop/assets/inspector-error-fixes-2026-10-15/tests.log",
+      "sha256_before": "8a2ae4989af5e6bde037f5b68980ba2449d56c990c8c6ca7af644810cb242615",
+      "sha256_after": "8a2ae4989af5e6bde037f5b68980ba2449d56c990c8c6ca7af644810cb242615",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/inspector-error-fixes-2026-10-15/resolver-404.ax.txt",
+      "archived": "docs/archive/2026-10-desktop/assets/inspector-error-fixes-2026-10-15/resolver-404.ax.txt",
+      "sha256_before": "39beced0df7f381da883d51d73d0e34d57f9f8f9483715fffb94c8057bbaa6e5",
+      "sha256_after": "39beced0df7f381da883d51d73d0e34d57f9f8f9483715fffb94c8057bbaa6e5",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/inspector-error-fixes-2026-10-15/reloaded-details.ax.txt",
+      "archived": "docs/archive/2026-10-desktop/assets/inspector-error-fixes-2026-10-15/reloaded-details.ax.txt",
+      "sha256_before": "40b4f69d66ea7be05a11fcdde799ac765d7051316d86707a1678a215c9a00254",
+      "sha256_after": "40b4f69d66ea7be05a11fcdde799ac765d7051316d86707a1678a215c9a00254",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/inspector-error-fixes-2026-10-15/complete.ax.txt",
+      "archived": "docs/archive/2026-10-desktop/assets/inspector-error-fixes-2026-10-15/complete.ax.txt",
+      "sha256_before": "d8bace6b8f4590cdf431d6c0c925caf2162a7c96a3cda166cbe1869734d815b4",
+      "sha256_after": "d8bace6b8f4590cdf431d6c0c925caf2162a7c96a3cda166cbe1869734d815b4",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/inspector-error-fixes-2026-10-15/package.log",
+      "archived": "docs/archive/2026-10-desktop/assets/inspector-error-fixes-2026-10-15/package.log",
+      "sha256_before": "3db41f9a7768267d7c2decf9e6668661fbd3e70046904586ff4bcf239d953a56",
+      "sha256_after": "3db41f9a7768267d7c2decf9e6668661fbd3e70046904586ff4bcf239d953a56",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/inspector-error-fixes-2026-10-15/build.log",
+      "archived": "docs/archive/2026-10-desktop/assets/inspector-error-fixes-2026-10-15/build.log",
+      "sha256_before": "339a445d462bceff48e350e9c007f9b75159d903831e88f3340d99407c73bf9c",
+      "sha256_after": "339a445d462bceff48e350e9c007f9b75159d903831e88f3340d99407c73bf9c",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/inspector-error-fixes-2026-10-15/e2e-task-records.json",
+      "archived": "docs/archive/2026-10-desktop/assets/inspector-error-fixes-2026-10-15/e2e-task-records.json",
+      "sha256_before": "ebde16103ab4564fd725f4f2469bfb472c662ffac0df8102559f674a94759ea1",
+      "sha256_after": "ebde16103ab4564fd725f4f2469bfb472c662ffac0df8102559f674a94759ea1",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/manifest.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/manifest.json",
+      "sha256_before": "94314b061832f32d5c97a23e4a807e69231c162365ab10cca6bd4c77379f80df",
+      "sha256_after": "94314b061832f32d5c97a23e4a807e69231c162365ab10cca6bd4c77379f80df",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/cleanup-receipt.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/cleanup-receipt.json",
+      "sha256_before": "a49ef6329156b3b7abd25e9b195ff7b03f79424264846b9ad62f0bfb6c2e1dca",
+      "sha256_after": "a49ef6329156b3b7abd25e9b195ff7b03f79424264846b9ad62f0bfb6c2e1dca",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/extension-startup-auth-2026-10-15/final-identity.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/extension-startup-auth-2026-10-15/final-identity.json",
+      "sha256_before": "7de3708cc9edea6b7605b14f3683bfc4c55d86eb784b64a6308eb3f8ee3bc52b",
+      "sha256_after": "7de3708cc9edea6b7605b14f3683bfc4c55d86eb784b64a6308eb3f8ee3bc52b",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/extension-startup-auth-2026-10-15/auth-verification.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/extension-startup-auth-2026-10-15/auth-verification.json",
+      "sha256_before": "0b3c4b6435e69536f53474017b808857473e4670f99325a7b742dc7856fcfa4d",
+      "sha256_after": "0b3c4b6435e69536f53474017b808857473e4670f99325a7b742dc7856fcfa4d",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/extension-startup-auth-2026-10-15/task-diff.patch",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/extension-startup-auth-2026-10-15/task-diff.patch",
+      "sha256_before": "974b94f5c0a31b8980de39ada5c54a1885cbf09d51492c3f7f97a0b83c9fa5ed",
+      "sha256_after": "974b94f5c0a31b8980de39ada5c54a1885cbf09d51492c3f7f97a0b83c9fa5ed",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/extension-startup-auth-2026-10-15/output-verification.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/extension-startup-auth-2026-10-15/output-verification.json",
+      "sha256_before": "aa33515b78daa43ea4c554cac6d32e7a1152146f8e388a469a4f11283729764f",
+      "sha256_after": "aa33515b78daa43ea4c554cac6d32e7a1152146f8e388a469a4f11283729764f",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/extension-startup-auth-2026-10-15/cleanup.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/extension-startup-auth-2026-10-15/cleanup.json",
+      "sha256_before": "0b53f7ba747901ffdf2b7bbbde4a8327340b42671d07d4de2bbf8b5b0350a8fb",
+      "sha256_after": "0b53f7ba747901ffdf2b7bbbde4a8327340b42671d07d4de2bbf8b5b0350a8fb",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/extension-startup-auth-2026-10-15/browser-auth-proof.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/extension-startup-auth-2026-10-15/browser-auth-proof.json",
+      "sha256_before": "88206a3271c81067004e090d50ffd84c93ad197966e2a3c21653e1316a357c91",
+      "sha256_after": "88206a3271c81067004e090d50ffd84c93ad197966e2a3c21653e1316a357c91",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/extension-startup-auth-2026-10-15/http-requests.jsonl",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/extension-startup-auth-2026-10-15/http-requests.jsonl",
+      "sha256_before": "075c1e75fab1fed5521823918ea89cda4a937d09641270ee9c5256baa94debfd",
+      "sha256_after": "075c1e75fab1fed5521823918ea89cda4a937d09641270ee9c5256baa94debfd",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/extension-startup-auth-2026-10-15/fixtures/source-requests.jsonl",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/extension-startup-auth-2026-10-15/fixtures/source-requests.jsonl",
+      "sha256_before": "052059b1f6ca8fa9be0f76f48ea0869b10263074e5a5bd7e2f6d8876921db77b",
+      "sha256_after": "052059b1f6ca8fa9be0f76f48ea0869b10263074e5a5bd7e2f6d8876921db77b",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/extension-startup-auth-2026-10-15/fixtures/capture-debug.jsonl",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/extension-startup-auth-2026-10-15/fixtures/capture-debug.jsonl",
+      "sha256_before": "d7c4dd706d00b515637420bc5106ec4fac9150677474de2c5f74dc1fea280129",
+      "sha256_after": "d7c4dd706d00b515637420bc5106ec4fac9150677474de2c5f74dc1fea280129",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/browser-data-correctness-2026-10-15/long-context-e2e.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/browser-data-correctness-2026-10-15/long-context-e2e.json",
+      "sha256_before": "9eee3405288978e41e588e51be1efa43c05bb32395673b83b3b09032a63d5d49",
+      "sha256_after": "9eee3405288978e41e588e51be1efa43c05bb32395673b83b3b09032a63d5d49",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/browser-data-correctness-2026-10-15/final-code-identity.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/browser-data-correctness-2026-10-15/final-code-identity.json",
+      "sha256_before": "7807126fa722666f8a8523356e3a10e535274b0d05674cd43136ce182d65067c",
+      "sha256_after": "7807126fa722666f8a8523356e3a10e535274b0d05674cd43136ce182d65067c",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/browser-data-correctness-2026-10-15/baseline-comparison.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/browser-data-correctness-2026-10-15/baseline-comparison.json",
+      "sha256_before": "3cb66d3597914a2c7fbcbed11390db5a742f5e69e2d1c9ee74461385f8d4f6ac",
+      "sha256_after": "3cb66d3597914a2c7fbcbed11390db5a742f5e69e2d1c9ee74461385f8d4f6ac",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/browser-data-correctness-2026-10-15/restart-verification.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/browser-data-correctness-2026-10-15/restart-verification.json",
+      "sha256_before": "70e9e7aa6566a40aa502c26c1149ddfad06e19735dd6e7fd0d5ef0ca20ead028",
+      "sha256_after": "70e9e7aa6566a40aa502c26c1149ddfad06e19735dd6e7fd0d5ef0ca20ead028",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/browser-data-correctness-2026-10-15/e2e-browser-tasks.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/browser-data-correctness-2026-10-15/e2e-browser-tasks.json",
+      "sha256_before": "a26af4cd8fa1c4ee4ee60c8a5dc6679ee978c21999ca01580c4c9f40c60d9283",
+      "sha256_after": "a26af4cd8fa1c4ee4ee60c8a5dc6679ee978c21999ca01580c4c9f40c60d9283",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/browser-data-correctness-2026-10-15/task-diff.patch",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/browser-data-correctness-2026-10-15/task-diff.patch",
+      "sha256_before": "5f289be9c0d2a3e9fc4fb5e20f4ac64decc99dc5d529e47ea05df7909d10fe13",
+      "sha256_after": "5f289be9c0d2a3e9fc4fb5e20f4ac64decc99dc5d529e47ea05df7909d10fe13",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/browser-data-correctness-2026-10-15/source-admission-e2e.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/browser-data-correctness-2026-10-15/source-admission-e2e.json",
+      "sha256_before": "a8eb0a60a2a84c52023c7bc01eb20b33b85066dcea40dffe7acd6719fbf37839",
+      "sha256_after": "a8eb0a60a2a84c52023c7bc01eb20b33b85066dcea40dffe7acd6719fbf37839",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/browser-data-correctness-2026-10-15/full-output-verification.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/browser-data-correctness-2026-10-15/full-output-verification.json",
+      "sha256_before": "6a3ee9225c1d1548b72c32ed943d4862282c9489f6b0567721fa4b83e0776ff9",
+      "sha256_after": "6a3ee9225c1d1548b72c32ed943d4862282c9489f6b0567721fa4b83e0776ff9",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/browser-data-correctness-2026-10-15/cleanup.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/browser-data-correctness-2026-10-15/cleanup.json",
+      "sha256_before": "45c6847b99d01d249e65d3688a9c57aa188ba0d8160b19d008f6ee106db0cdf8",
+      "sha256_after": "45c6847b99d01d249e65d3688a9c57aa188ba0d8160b19d008f6ee106db0cdf8",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/browser-data-correctness-2026-10-15/fixtures/server.py",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/browser-data-correctness-2026-10-15/fixtures/server.py",
+      "sha256_before": "37a8791e9087cd99a9e623faa9512baf107c8e6579b0c5a89bda6b0d8b5875c6",
+      "sha256_after": "37a8791e9087cd99a9e623faa9512baf107c8e6579b0c5a89bda6b0d8b5875c6",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/browser-data-correctness-2026-10-15/fixtures/debug-trace.jsonl",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/browser-data-correctness-2026-10-15/fixtures/debug-trace.jsonl",
+      "sha256_before": "2a188b757963f405fe216ba8d84ef6acfd0e58f2e0ffd7821623a4e60a0962b8",
+      "sha256_after": "2a188b757963f405fe216ba8d84ef6acfd0e58f2e0ffd7821623a4e60a0962b8",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/browser-data-correctness-2026-10-15/fixtures/server-requests.jsonl",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/browser-data-correctness-2026-10-15/fixtures/server-requests.jsonl",
+      "sha256_before": "12e8d921e0fa9f9b841931fdfdc35ea1476182885cfe062b727aa2eecb825293",
+      "sha256_after": "12e8d921e0fa9f9b841931fdfdc35ea1476182885cfe062b727aa2eecb825293",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/browser-data-correctness-2026-10-15/fixtures/source-requests.jsonl",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/browser-data-correctness-2026-10-15/fixtures/source-requests.jsonl",
+      "sha256_before": "ded6e9aa9f4dbefe53ee2befec10cf756a6c148cbaa6daaaf3b636bc94c7b26e",
+      "sha256_after": "ded6e9aa9f4dbefe53ee2befec10cf756a6c148cbaa6daaaf3b636bc94c7b26e",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/extension-auth-results.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/extension-auth-results.json",
+      "sha256_before": "b075a32def2cea0f6a9aaaf5562744624ad22f89c2d615e8b907c8cb7b5893ed",
+      "sha256_after": "b075a32def2cea0f6a9aaaf5562744624ad22f89c2d615e8b907c8cb7b5893ed",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/native-collection-results.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/native-collection-results.json",
+      "sha256_before": "611e51e2e26d61fbe6ead627d1e45e9cca95741763bc6302a5e46445b64358a6",
+      "sha256_after": "611e51e2e26d61fbe6ead627d1e45e9cca95741763bc6302a5e46445b64358a6",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/literal_exact.py",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/literal_exact.py",
+      "sha256_before": "3fb2462a86ead3749b6b47d7b94191f847abd9cd0cce3bfb41e733e3f68cf18d",
+      "sha256_after": "3fb2462a86ead3749b6b47d7b94191f847abd9cd0cce3bfb41e733e3f68cf18d",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/exact_smoke.py",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/exact_smoke.py",
+      "sha256_before": "edd68fe71e8f3dafe95683dcfb4a701d20ea04837b8cac85fc39b7f994b4f403",
+      "sha256_after": "edd68fe71e8f3dafe95683dcfb4a701d20ea04837b8cac85fc39b7f994b4f403",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/final-runtime-audit.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/final-runtime-audit.json",
+      "sha256_before": "f48c4d13263f9fb02a88369f9c25a5ddba51e6488ba97b18468f69aae4a1ce7a",
+      "sha256_after": "f48c4d13263f9fb02a88369f9c25a5ddba51e6488ba97b18468f69aae4a1ce7a",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/collection-snapshot-results.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/collection-snapshot-results.json",
+      "sha256_before": "fc1509f77b01c80e6f65a462da073550063236dcc51f52db55aee45df7404b90",
+      "sha256_after": "fc1509f77b01c80e6f65a462da073550063236dcc51f52db55aee45df7404b90",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/task-diff.patch",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/task-diff.patch",
+      "sha256_before": "cfc7d8ef890866249cc781ddb8dc016e023b0205bd275d816de7a8c24583dc11",
+      "sha256_after": "cfc7d8ef890866249cc781ddb8dc016e023b0205bd275d816de7a8c24583dc11",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/extension-dispatch-results.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/extension-dispatch-results.json",
+      "sha256_before": "c6222c5bb1bf678452971b82bf872610aedd6910cb0b1b46c4c71d0856a49f3e",
+      "sha256_after": "c6222c5bb1bf678452971b82bf872610aedd6910cb0b1b46c4c71d0856a49f3e",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/restart-case.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/restart-case.json",
+      "sha256_before": "fa5c5ac798c951488c85e43fb2e6934858c5f906b25d90630026e31f0344c0dd",
+      "sha256_after": "fa5c5ac798c951488c85e43fb2e6934858c5f906b25d90630026e31f0344c0dd",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/client.py",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/client.py",
+      "sha256_before": "26d5461682edccb1b805f6459125a85933c812d8be3095443a7cc73d59263b03",
+      "sha256_after": "26d5461682edccb1b805f6459125a85933c812d8be3095443a7cc73d59263b03",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/negative-results.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/negative-results.json",
+      "sha256_before": "6acbb42729a1215e4655ceb812832c948e78b509e425bf35f94c517cc0a376e4",
+      "sha256_after": "6acbb42729a1215e4655ceb812832c948e78b509e425bf35f94c517cc0a376e4",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/language_subtitles.py",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/language_subtitles.py",
+      "sha256_before": "6ecbffd71a504cb320d997f58a8087e25b25afe986debd744ea984d594be9fb8",
+      "sha256_after": "6ecbffd71a504cb320d997f58a8087e25b25afe986debd744ea984d594be9fb8",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/fixture-identities.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/fixture-identities.json",
+      "sha256_before": "25721b4fd8bc8cce9397d0e9d99349b0897699464fe04f0b526e0071ccb63ed4",
+      "sha256_after": "25721b4fd8bc8cce9397d0e9d99349b0897699464fe04f0b526e0071ccb63ed4",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/precision-info.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/precision-info.json",
+      "sha256_before": "b5a99e21e4e5c8d7d0651ce2880baeb7e9f21baefbb86865f2df3cf70b1dc7d2",
+      "sha256_after": "b5a99e21e4e5c8d7d0651ce2880baeb7e9f21baefbb86865f2df3cf70b1dc7d2",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/restart-results.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/restart-results.json",
+      "sha256_before": "e44aee7dfd6f8cb6e580edea6efe7a06d0b3e023f4ce7d9b367dc450b8055300",
+      "sha256_after": "e44aee7dfd6f8cb6e580edea6efe7a06d0b3e023f4ce7d9b367dc450b8055300",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/identity.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/identity.json",
+      "sha256_before": "a92dd1626cb5e2d78272d219b541f796b6530ab91fb17b916fdaf6ba3ed0a23f",
+      "sha256_after": "a92dd1626cb5e2d78272d219b541f796b6530ab91fb17b916fdaf6ba3ed0a23f",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/literal-exact-results.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/literal-exact-results.json",
+      "sha256_before": "f92fbbfdd72021d2906b8dc9b6869f8d51a978635d0c37db9a67b3e3137a975c",
+      "sha256_after": "f92fbbfdd72021d2906b8dc9b6869f8d51a978635d0c37db9a67b3e3137a975c",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/ui-collection-results.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/ui-collection-results.json",
+      "sha256_before": "7bfb8942a15a7b1e2c97625deeec585fa0a3adbc4a0501abb96ef895aab019b7",
+      "sha256_after": "7bfb8942a15a7b1e2c97625deeec585fa0a3adbc4a0501abb96ef895aab019b7",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/events.jsonl",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/events.jsonl",
+      "sha256_before": "bc08e7ebbdbf40563549ebebde70c247021ae8cc1e0ba4baedd4ddbc9de0e31e",
+      "sha256_after": "bc08e7ebbdbf40563549ebebde70c247021ae8cc1e0ba4baedd4ddbc9de0e31e",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/exact-results.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/exact-results.json",
+      "sha256_before": "a2771a37e1b24313984fffbc1f0a58954535c246e962c5f3fed804a4d40dc1fb",
+      "sha256_after": "a2771a37e1b24313984fffbc1f0a58954535c246e962c5f3fed804a4d40dc1fb",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/task-source-manifest.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/task-source-manifest.json",
+      "sha256_before": "ec991813a5f93542526c9936859774004e2591e177ba6cdd74e26d473c51884a",
+      "sha256_after": "ec991813a5f93542526c9936859774004e2591e177ba6cdd74e26d473c51884a",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/extension-output-results.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/extension-output-results.json",
+      "sha256_before": "a39eb3577cb2d6ce13caa4b448ab5f44620f612ddb0545b0d11dbc66793e8f00",
+      "sha256_after": "a39eb3577cb2d6ce13caa4b448ab5f44620f612ddb0545b0d11dbc66793e8f00",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/negative_scenarios.py",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/negative_scenarios.py",
+      "sha256_before": "98f3bddc34e144e06214f103483308d02a22959fdcd7d40916468ee7888fae95",
+      "sha256_after": "98f3bddc34e144e06214f103483308d02a22959fdcd7d40916468ee7888fae95",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/extension_real.cjs",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/extension_real.cjs",
+      "sha256_before": "e0105c3e3bc0718081b0a13e15b5154157d8e9ab394d36ba5426b5404bb81fce",
+      "sha256_after": "e0105c3e3bc0718081b0a13e15b5154157d8e9ab394d36ba5426b5404bb81fce",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/language-subtitles-results.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/language-subtitles-results.json",
+      "sha256_before": "13d5a47b268f770543d424e5c728f3db4dbb86426723280ea89c02a8e456f80a",
+      "sha256_after": "13d5a47b268f770543d424e5c728f3db4dbb86426723280ea89c02a8e456f80a",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/cleanup-receipt.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/cleanup-receipt.json",
+      "sha256_before": "dc3793fe48686bece344ace13ed0ac48c8e0f678694adf167583f38e037b7a56",
+      "sha256_after": "dc3793fe48686bece344ace13ed0ac48c8e0f678694adf167583f38e037b7a56",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/ui-single-results.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/ui-single-results.json",
+      "sha256_before": "e0716e488269cc28944447b0cade4ec73939bc8b411d0e870f22df235f5b556a",
+      "sha256_after": "e0716e488269cc28944447b0cade4ec73939bc8b411d0e870f22df235f5b556a",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/plans_smoke.py",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/plans_smoke.py",
+      "sha256_before": "c6283eab0f131ff7e0ba50d9959d5fcc797d077c361a996cfa1742e217118cfc",
+      "sha256_after": "c6283eab0f131ff7e0ba50d9959d5fcc797d077c361a996cfa1742e217118cfc",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/collection_snapshot.py",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/collection_snapshot.py",
+      "sha256_before": "69c8fe177fbe218c5d5b15d1c91b7114db557d14037d15648037333a1be060aa",
+      "sha256_after": "69c8fe177fbe218c5d5b15d1c91b7114db557d14037d15648037333a1be060aa",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/plans-smoke-results.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/plans-smoke-results.json",
+      "sha256_before": "06fb001f31ded677e8d9e67b408b2661a1e19a615f326b06dad597caa793855f",
+      "sha256_after": "06fb001f31ded677e8d9e67b408b2661a1e19a615f326b06dad597caa793855f",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/bootstrap.cjs",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/bootstrap.cjs",
+      "sha256_before": "69e06c53fbbaf04e5328069553a9ec5cd0ce47f1f320fe5b518cd3be52e49e6a",
+      "sha256_after": "69e06c53fbbaf04e5328069553a9ec5cd0ce47f1f320fe5b518cd3be52e49e6a",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/screenshots/single-selection-final.png",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/screenshots/single-selection-final.png",
+      "sha256_before": "f0ea4968125720cd6462ea1f62abcc5b1be4abf7cb364cf7ed14e445b9150d29",
+      "sha256_after": "f0ea4968125720cd6462ea1f62abcc5b1be4abf7cb364cf7ed14e445b9150d29",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/screenshots/single-exact-60fps.png",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/screenshots/single-exact-60fps.png",
+      "sha256_before": "3d1f494e52a4f353e5b03da37e1e26fa78c8bf1da791bdc516e0b48471222044",
+      "sha256_after": "3d1f494e52a4f353e5b03da37e1e26fa78c8bf1da791bdc516e0b48471222044",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/screenshots/collection-shared-plan-final.png",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/screenshots/collection-shared-plan-final.png",
+      "sha256_before": "fd2870a8719b01128d80676cf1c6c3e7ebda7f26c8ba2f5c5fcfde50dbbbd237",
+      "sha256_after": "fd2870a8719b01128d80676cf1c6c3e7ebda7f26c8ba2f5c5fcfde50dbbbd237",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/screenshots/plan-saved-default.png",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/screenshots/plan-saved-default.png",
+      "sha256_before": "936ec6519e8c0032a2eb6060c4b4bd9047ed4f0ff67a1b7a8c8be79ad472018c",
+      "sha256_after": "936ec6519e8c0032a2eb6060c4b4bd9047ed4f0ff67a1b7a8c8be79ad472018c",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/fixtures/server.py",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/fixtures/server.py",
+      "sha256_before": "dcaf82ccede10095cee056a55545f6f75ad037670de03b12e4101919c55cc29f",
+      "sha256_after": "dcaf82ccede10095cee056a55545f6f75ad037670de03b12e4101919c55cc29f",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/fixtures/server.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/fixtures/server.json",
+      "sha256_before": "232b3c7535cdc4cffd0fba3782b8bb914dbafa3ef24104100fd8fc51ddc5a1ca",
+      "sha256_after": "232b3c7535cdc4cffd0fba3782b8bb914dbafa3ef24104100fd8fc51ddc5a1ca",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/fixtures/server-requests.jsonl",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/fixtures/server-requests.jsonl",
+      "sha256_before": "eeb8cdbb946e0869156c79a0f8d8c9dbb1909c2ee725469ac3be2ec15cc5c5b9",
+      "sha256_after": "eeb8cdbb946e0869156c79a0f8d8c9dbb1909c2ee725469ac3be2ec15cc5c5b9",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/selection-plans-2026-10-15/fixtures/serve_fixtures.py",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/selection-plans-2026-10-15/fixtures/serve_fixtures.py",
+      "sha256_before": "c9c4bed79320af9f704cf95075ac9dd3f6b48cfd7458a3c37d7a570013fe5a5e",
+      "sha256_after": "c9c4bed79320af9f704cf95075ac9dd3f6b48cfd7458a3c37d7a570013fe5a5e",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/fixes/final-build-digests.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/fixes/final-build-digests.json",
+      "sha256_before": "3d62effb92cc4a26edffd7c6b4cbea8f3c32f72834835d3043db3bb0286e8b4b",
+      "sha256_after": "3d62effb92cc4a26edffd7c6b4cbea8f3c32f72834835d3043db3bb0286e8b4b",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/fixes/recovery-result.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/fixes/recovery-result.json",
+      "sha256_before": "a39c12b7c6b8fa6328e565346a58a841581ef5ae4b60f89a435401be6ee95ff5",
+      "sha256_after": "a39c12b7c6b8fa6328e565346a58a841581ef5ae4b60f89a435401be6ee95ff5",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/fixes/media-results.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/fixes/media-results.json",
+      "sha256_before": "02cb776d237e729ccbcc90f9ccddee45e1e2a29fe4a7aa99d831791e75f7e949",
+      "sha256_after": "02cb776d237e729ccbcc90f9ccddee45e1e2a29fe4a7aa99d831791e75f7e949",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/fixes/progress-contract-result.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/fixes/progress-contract-result.json",
+      "sha256_before": "d5adc8a884693b275cbf49353a0a329b15d19157cc875ab5600a1083220e21ce",
+      "sha256_after": "d5adc8a884693b275cbf49353a0a329b15d19157cc875ab5600a1083220e21ce",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/fixes/final-mp3-result.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/fixes/final-mp3-result.json",
+      "sha256_before": "d17bd53259750a0fccd7499ffe7ba1ed11629e8df577a48f41e35189ce811cb6",
+      "sha256_after": "d17bd53259750a0fccd7499ffe7ba1ed11629e8df577a48f41e35189ce811cb6",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/fixes/events.jsonl",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/fixes/events.jsonl",
+      "sha256_before": "0e9e20767b4a4835c0520eadf88df827bdc45bd2b31d9896e004fab960b5a062",
+      "sha256_after": "0e9e20767b4a4835c0520eadf88df827bdc45bd2b31d9896e004fab960b5a062",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/fixes/verify-probe-errors.py",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/fixes/verify-probe-errors.py",
+      "sha256_before": "ce0fa5abcc3d112a976beb63373f87a631a54e1d9f9a347e122fc02ed9535a7e",
+      "sha256_after": "ce0fa5abcc3d112a976beb63373f87a631a54e1d9f9a347e122fc02ed9535a7e",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/fixes/cleanup-receipt.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/fixes/cleanup-receipt.json",
+      "sha256_before": "0dd7d9736908e8058b0a64e7a9aea0badc4f75fa1462d415463c8ea028bad283",
+      "sha256_after": "0dd7d9736908e8058b0a64e7a9aea0badc4f75fa1462d415463c8ea028bad283",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/fixes/scope-boundary-result.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/fixes/scope-boundary-result.json",
+      "sha256_before": "0fbe4368b4c356e9fd0d4dcd85349fca639fceb872602d27ebdbe0740d7aeecf",
+      "sha256_after": "0fbe4368b4c356e9fd0d4dcd85349fca639fceb872602d27ebdbe0740d7aeecf",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/fixes/final-cancellation.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/fixes/final-cancellation.json",
+      "sha256_before": "aa81d0ae3e299b3e38efd2a633b61c23332409540b0f5926ca9cd9464eb27a10",
+      "sha256_after": "aa81d0ae3e299b3e38efd2a633b61c23332409540b0f5926ca9cd9464eb27a10",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/fixes/probe-error-results.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/fixes/probe-error-results.json",
+      "sha256_before": "9030f16c8af22009f8bb4a8b5865d69158d8d97d9c240ef87a3b7923311d6544",
+      "sha256_after": "9030f16c8af22009f8bb4a8b5865d69158d8d97d9c240ef87a3b7923311d6544",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/fixes/run_final.py",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/fixes/run_final.py",
+      "sha256_before": "41061d8a1ef184187ee79a0efa1688d0cc4ae0caa73ee875ea1070a058b6b6e7",
+      "sha256_after": "41061d8a1ef184187ee79a0efa1688d0cc4ae0caa73ee875ea1070a058b6b6e7",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/fixes/run_media.py",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/fixes/run_media.py",
+      "sha256_before": "8540cc82e18ac30eb8699c8463b5811a6fe0c9d8d8267f7965c47236f0575c90",
+      "sha256_after": "8540cc82e18ac30eb8699c8463b5811a6fe0c9d8d8267f7965c47236f0575c90",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/evidence/target-identities.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/evidence/target-identities.json",
+      "sha256_before": "0d530d09562916c4375bae3795e133249cd5dd231d5e20c55248c7432fa291cd",
+      "sha256_after": "0d530d09562916c4375bae3795e133249cd5dd231d5e20c55248c7432fa291cd",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/evidence/rea-native-bundle.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/evidence/rea-native-bundle.json",
+      "sha256_before": "8e4e11f53a33a4600c711fb8bd101d1b1e6377851512ef50b92ef5498cad352f",
+      "sha256_after": "8e4e11f53a33a4600c711fb8bd101d1b1e6377851512ef50b92ef5498cad352f",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/evidence/app-size-inventory.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/evidence/app-size-inventory.json",
+      "sha256_before": "0a55c526f277bbf91cd209d795f395827f3871b71757a52d830bbe8e34f6ca6b",
+      "sha256_after": "0a55c526f277bbf91cd209d795f395827f3871b71757a52d830bbe8e34f6ca6b",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/v-bootstrap.cjs",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/v-bootstrap.cjs",
+      "sha256_before": "b0617a7b2a1fd005244eb8508e77a47b4a7101caace2c7b0b0765a9afc1242b8",
+      "sha256_after": "b0617a7b2a1fd005244eb8508e77a47b4a7101caace2c7b0b0765a9afc1242b8",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/v-relaunch-observation.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/v-relaunch-observation.json",
+      "sha256_before": "55445ad845f9e2621f99f379b710a7d60fbd870f8e1c0bd38825e85de65bf1b0",
+      "sha256_after": "55445ad845f9e2621f99f379b710a7d60fbd870f8e1c0bd38825e85de65bf1b0",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/downie-general-restored.txt",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/downie-general-restored.txt",
+      "sha256_before": "96ab83e12844881b64152a75d76ed7305b9ccfb2f086bd3882422f74860d0f13",
+      "sha256_after": "96ab83e12844881b64152a75d76ed7305b9ccfb2f086bd3882422f74860d0f13",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/format-dialog-task-observation.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/format-dialog-task-observation.json",
+      "sha256_before": "9dbdfe1de5dc55fa4302e7a9620882164d2ec005c2efbee93baf1416eae25c06",
+      "sha256_after": "9dbdfe1de5dc55fa4302e7a9620882164d2ec005c2efbee93baf1416eae25c06",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/v-relaunch-ax.txt",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/v-relaunch-ax.txt",
+      "sha256_before": "8514d6b0e2ba4eaedb4c1778ab8301cf4da96fe44fe1e4ad6340849d2c7f23a9",
+      "sha256_after": "8514d6b0e2ba4eaedb4c1778ab8301cf4da96fe44fe1e4ad6340849d2c7f23a9",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/downie-output-permission.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/downie-output-permission.json",
+      "sha256_before": "100f2c411efa9191ff855b451cb61ea24868738fd50cef08c2ecb4f66e019869",
+      "sha256_after": "100f2c411efa9191ff855b451cb61ea24868738fd50cef08c2ecb4f66e019869",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/downie-general-before.txt",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/downie-general-before.txt",
+      "sha256_before": "96ab83e12844881b64152a75d76ed7305b9ccfb2f086bd3882422f74860d0f13",
+      "sha256_after": "96ab83e12844881b64152a75d76ed7305b9ccfb2f086bd3882422f74860d0f13",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/downie-process-sample.txt",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/downie-process-sample.txt",
+      "sha256_before": "6934124ab7037dea5b19f4e814816379c99b6066ce3267e56051fa5f9543ae00",
+      "sha256_after": "6934124ab7037dea5b19f4e814816379c99b6066ce3267e56051fa5f9543ae00",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/ui-audio-result.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/ui-audio-result.json",
+      "sha256_before": "fe36ae84e6053bde00de5bf528e78e9c347d9303d7e9f2278afeb005506ee7fc",
+      "sha256_after": "fe36ae84e6053bde00de5bf528e78e9c347d9303d7e9f2278afeb005506ee7fc",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/downie-uge-output.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/downie-uge-output.json",
+      "sha256_before": "badcbd426b244486fd0bf705a8fa8e197e61a6c472593b8d7b7efcaffcef6df4",
+      "sha256_after": "badcbd426b244486fd0bf705a8fa8e197e61a6c472593b8d7b7efcaffcef6df4",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/v-runtime-identity.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/v-runtime-identity.json",
+      "sha256_before": "85ca09a725024c1ec73d529c7438924e4bfec1f52b264c8f50a64dbd8ab4c252",
+      "sha256_after": "85ca09a725024c1ec73d529c7438924e4bfec1f52b264c8f50a64dbd8ab4c252",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/downie-runtime-audit.md",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/downie-runtime-audit.md",
+      "sha256_before": "c53b40a571531752f78abd9d6e13d9f56faad6b6dd63b2f901d050266b400627",
+      "sha256_after": "c53b40a571531752f78abd9d6e13d9f56faad6b6dd63b2f901d050266b400627",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/downie-owned-history.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/downie-owned-history.json",
+      "sha256_before": "b23c40c93176fd5f49dd9a771ed18caec2e18ebfaae09483471e8172f452b21f",
+      "sha256_after": "b23c40c93176fd5f49dd9a771ed18caec2e18ebfaae09483471e8172f452b21f",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-v.py",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-v.py",
+      "sha256_before": "9ac4514ae56f6a1cd4bc6e92cdb2e4f94d514559c17ca3a3ece5d16dda201c42",
+      "sha256_after": "9ac4514ae56f6a1cd4bc6e92cdb2e4f94d514559c17ca3a3ece5d16dda201c42",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/cleanup-receipt.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/cleanup-receipt.json",
+      "sha256_before": "8551a8f7f894e6153d6edd2524275eeb91614c095302de7343b74c0eb0780f84",
+      "sha256_after": "8551a8f7f894e6153d6edd2524275eeb91614c095302de7343b74c0eb0780f84",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/final-target-identities.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/final-target-identities.json",
+      "sha256_before": "3a63afebc15e8c3d18f2b757a3188463fb6a0271550917098be3d9c7a3f23ea6",
+      "sha256_after": "3a63afebc15e8c3d18f2b757a3188463fb6a0271550917098be3d9c7a3f23ea6",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/v-relaunch-final-audit.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/v-relaunch-final-audit.json",
+      "sha256_before": "e7aa8e0dfab434e48919b53a66f2f5b4e5b19440715163c3af4589b047c8f525",
+      "sha256_after": "e7aa8e0dfab434e48919b53a66f2f5b4e5b19440715163c3af4589b047c8f525",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/v-relaunch-outcome.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/v-relaunch-outcome.json",
+      "sha256_before": "c4e2ca358e27342ef7fe8c2c327ab96963b940616bdf996ab9fd5e1da596c87d",
+      "sha256_after": "c4e2ca358e27342ef7fe8c2c327ab96963b940616bdf996ab9fd5e1da596c87d",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/downie-runtime-audit.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/downie-runtime-audit.json",
+      "sha256_before": "b37d41889edc0df1fb8d8adb6581c89baae19118e4d982bc5af2e06d3e22b36f",
+      "sha256_after": "b37d41889edc0df1fb8d8adb6581c89baae19118e4d982bc5af2e06d3e22b36f",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/startup-process-4b-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/startup-process-4b-samples.json",
+      "sha256_before": "72796687e1616aafc8e68d63f4fbd01b8e8199cedc03c381c8c74382c3255ef8",
+      "sha256_after": "72796687e1616aafc8e68d63f4fbd01b8e8199cedc03c381c8c74382c3255ef8",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/dash-3-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/dash-3-samples.json",
+      "sha256_before": "1e09d3fb8c0a9f15af7c7a3f4a5fc450181c9a83b6290653ba440dbd5b8e9af6",
+      "sha256_after": "1e09d3fb8c0a9f15af7c7a3f4a5fc450181c9a83b6290653ba440dbd5b8e9af6",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-404-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-404-samples.json",
+      "sha256_before": "24faa9e4688f977a3c285e1bcd1392e9600ebbbd8a48412ef9a40ef555b806bc",
+      "sha256_after": "24faa9e4688f977a3c285e1bcd1392e9600ebbbd8a48412ef9a40ef555b806bc",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-403-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-403-samples.json",
+      "sha256_before": "a2e30d4212b9212953e413fdddbcf59740c9a4e96c5039019a2c447c07c595ec",
+      "sha256_after": "a2e30d4212b9212953e413fdddbcf59740c9a4e96c5039019a2c447c07c595ec",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-audio-ui-equivalent-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-audio-ui-equivalent-samples.json",
+      "sha256_before": "7ec305ec9feedcf4566f33ccf4dc29e04de11d71fd334ad735f376e811d97811",
+      "sha256_after": "7ec305ec9feedcf4566f33ccf4dc29e04de11d71fd334ad735f376e811d97811",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/startup-process-2-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/startup-process-2-samples.json",
+      "sha256_before": "28b1d7d3f0dc2a48f9b283adb99946613e98d2e6da3aea99b591f634a3220fd7",
+      "sha256_after": "28b1d7d3f0dc2a48f9b283adb99946613e98d2e6da3aea99b591f634a3220fd7",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/direct-3-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/direct-3-samples.json",
+      "sha256_before": "a05bd9eeb0b84739c7ab099c09c3277c03bf475c6ef88dd41ad65e0a237675c8",
+      "sha256_after": "a05bd9eeb0b84739c7ab099c09c3277c03bf475c6ef88dd41ad65e0a237675c8",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-dash-1.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-dash-1.json",
+      "sha256_before": "6ee70425db3ec3d8df324d203bc592f4bd94e86a0e2bedd177a3ff3728fab789",
+      "sha256_after": "6ee70425db3ec3d8df324d203bc592f4bd94e86a0e2bedd177a3ff3728fab789",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-audio-ui-equivalent.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-audio-ui-equivalent.json",
+      "sha256_before": "c6c50bdf642c1e0c361d802c08bf7d6f5928c08010003e1828ec113dab81a436",
+      "sha256_after": "c6c50bdf642c1e0c361d802c08bf7d6f5928c08010003e1828ec113dab81a436",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/dash-3.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/dash-3.json",
+      "sha256_before": "a9e0ac9bd571f2a380a7717e18b417c87b0b42f8490727d53bce510990e6d321",
+      "sha256_after": "a9e0ac9bd571f2a380a7717e18b417c87b0b42f8490727d53bce510990e6d321",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-hls-1.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-hls-1.json",
+      "sha256_before": "71399e5c7a554a81da616ee82caa5c9a4cdfee5e891099cbc5feae07c3d38b26",
+      "sha256_after": "71399e5c7a554a81da616ee82caa5c9a4cdfee5e891099cbc5feae07c3d38b26",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-direct-3-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-direct-3-samples.json",
+      "sha256_before": "a3c0d9ef3eb6f8b76ad1a14bc48304bb1c1999c5383f8a1d6ba05b13f9c4aeab",
+      "sha256_after": "a3c0d9ef3eb6f8b76ad1a14bc48304bb1c1999c5383f8a1d6ba05b13f9c4aeab",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/startup-process-2.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/startup-process-2.json",
+      "sha256_before": "9b167752ce380bc8f06832de3ed667301b92538f40d377f0214aa26d038ed822",
+      "sha256_after": "9b167752ce380bc8f06832de3ed667301b92538f40d377f0214aa26d038ed822",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/startup-process-3.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/startup-process-3.json",
+      "sha256_before": "c15f8d057cb48a8de49e7358d6120a43facf3670e4766ac705d0142c143fad86",
+      "sha256_after": "c15f8d057cb48a8de49e7358d6120a43facf3670e4766ac705d0142c143fad86",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/403-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/403-samples.json",
+      "sha256_before": "85243bc8283ccace488fd5d914b95263cb0bf19c875d5d9b8a586826c470d842",
+      "sha256_after": "85243bc8283ccace488fd5d914b95263cb0bf19c875d5d9b8a586826c470d842",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/disconnect.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/disconnect.json",
+      "sha256_before": "15cd388b3cc08daf368db3ea19e421f266fa210976b3f00a50cd2eb19110bf73",
+      "sha256_after": "15cd388b3cc08daf368db3ea19e421f266fa210976b3f00a50cd2eb19110bf73",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/404-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/404-samples.json",
+      "sha256_before": "b07550a77c39ce9cd22dca1f5bf046e805bbbe02e7fd90bc347c05e0acf9a454",
+      "sha256_after": "b07550a77c39ce9cd22dca1f5bf046e805bbbe02e7fd90bc347c05e0acf9a454",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/cancel-slow-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/cancel-slow-samples.json",
+      "sha256_before": "39ebeb2a194339a2c7d7a5695f4d7c1ca7d6c0c41724a8f80c8fe704411de423",
+      "sha256_after": "39ebeb2a194339a2c7d7a5695f4d7c1ca7d6c0c41724a8f80c8fe704411de423",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/dash-2-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/dash-2-samples.json",
+      "sha256_before": "e9ea8d07d75317713cf9bcf1c0f1054ee0df8fded15aa09280b1ad2db2d5bda0",
+      "sha256_after": "e9ea8d07d75317713cf9bcf1c0f1054ee0df8fded15aa09280b1ad2db2d5bda0",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/dash-2.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/dash-2.json",
+      "sha256_before": "2e7fe24d2f35a47d3aa73525f9b0911a6bdc826274bad18d7c2df1c3de52bc3b",
+      "sha256_after": "2e7fe24d2f35a47d3aa73525f9b0911a6bdc826274bad18d7c2df1c3de52bc3b",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-dash-1-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-dash-1-samples.json",
+      "sha256_before": "af8af9c7c59e750939be3d1462f5e5d4646ef753cfddb96196215ec279495960",
+      "sha256_after": "af8af9c7c59e750939be3d1462f5e5d4646ef753cfddb96196215ec279495960",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/direct-2-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/direct-2-samples.json",
+      "sha256_before": "7de43fbcdad4735229c34c419e40fa9aad2557300ff60c1ed1531fa94f09fbb3",
+      "sha256_after": "7de43fbcdad4735229c34c419e40fa9aad2557300ff60c1ed1531fa94f09fbb3",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/startup-process-3-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/startup-process-3-samples.json",
+      "sha256_before": "1821c2cd4bb2a21e7952abe7af83c4023ddb3b12471f2ee8f6336701e9d926ed",
+      "sha256_after": "1821c2cd4bb2a21e7952abe7af83c4023ddb3b12471f2ee8f6336701e9d926ed",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-slow-pause-relaunch.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-slow-pause-relaunch.json",
+      "sha256_before": "0db59f048f6fc612c767dcbd5b712641338df63da81e56894391ab25dc3d6cfd",
+      "sha256_after": "0db59f048f6fc612c767dcbd5b712641338df63da81e56894391ab25dc3d6cfd",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-direct-2-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-direct-2-samples.json",
+      "sha256_before": "58a51a173650d3bd9d15bcc89f877f6be15086da9bae5d1f590e5cfa5029e8da",
+      "sha256_after": "58a51a173650d3bd9d15bcc89f877f6be15086da9bae5d1f590e5cfa5029e8da",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/hls-request-360-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/hls-request-360-samples.json",
+      "sha256_before": "c1803801f090dfb405cab98ec41102051614beba1123d048ba52ceb4bd309f47",
+      "sha256_after": "c1803801f090dfb405cab98ec41102051614beba1123d048ba52ceb4bd309f47",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/playlist.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/playlist.json",
+      "sha256_before": "1996bdc3d0c3c65289fd854367d5a84892439594ec8335de1ef6686057fd63ba",
+      "sha256_after": "1996bdc3d0c3c65289fd854367d5a84892439594ec8335de1ef6686057fd63ba",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/hls-3.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/hls-3.json",
+      "sha256_before": "92f2b983158db8878329b6b57dc9bcadf8fe6f20f3dbced7e9d1f482508e3eeb",
+      "sha256_after": "92f2b983158db8878329b6b57dc9bcadf8fe6f20f3dbced7e9d1f482508e3eeb",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-disconnect-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-disconnect-samples.json",
+      "sha256_before": "6d33ff0d387a7485ab2c68c09a398949cedd5e1aca312f8e2fe98f25d7c3c826",
+      "sha256_after": "6d33ff0d387a7485ab2c68c09a398949cedd5e1aca312f8e2fe98f25d7c3c826",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/watch-hls.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/watch-hls.json",
+      "sha256_before": "f880c7c2dd399a6e2520ab5efebfb1186fffe8f3f9c0750f8d70ed0a660b0d71",
+      "sha256_after": "f880c7c2dd399a6e2520ab5efebfb1186fffe8f3f9c0750f8d70ed0a660b0d71",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-hls-3-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-hls-3-samples.json",
+      "sha256_before": "cba8569d238931246c6f7e4447381d4428a1aed24775aa4c457ccc809ad2818d",
+      "sha256_after": "cba8569d238931246c6f7e4447381d4428a1aed24775aa4c457ccc809ad2818d",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/hls-2-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/hls-2-samples.json",
+      "sha256_before": "aa382aff332a9d0c38e20081c845ca326b75d089579fe92fe57b53f8d81f39a9",
+      "sha256_after": "aa382aff332a9d0c38e20081c845ca326b75d089579fe92fe57b53f8d81f39a9",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-audio-direct-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-audio-direct-samples.json",
+      "sha256_before": "fde6c90b003befec1ddd251d5bdb1811145295a474ee4b734d28406d89151482",
+      "sha256_after": "fde6c90b003befec1ddd251d5bdb1811145295a474ee4b734d28406d89151482",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-annotated-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-annotated-samples.json",
+      "sha256_before": "3f6ed383ade9d36c1fcaa433d24c01dd7342c87aae52916ba6a0c96a0d11046f",
+      "sha256_after": "3f6ed383ade9d36c1fcaa433d24c01dd7342c87aae52916ba6a0c96a0d11046f",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/direct-1.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/direct-1.json",
+      "sha256_before": "d6a5d90c65b6724296b1b4f4b31cb513afd7892d76f6d1dcb2f2cf3482a28b66",
+      "sha256_after": "d6a5d90c65b6724296b1b4f4b31cb513afd7892d76f6d1dcb2f2cf3482a28b66",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-annotated.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-annotated.json",
+      "sha256_before": "a85c4a7d3dd4c799cf0f07aab3805913b1f8c5aefe881518ddeaf47cf0f37ba9",
+      "sha256_after": "a85c4a7d3dd4c799cf0f07aab3805913b1f8c5aefe881518ddeaf47cf0f37ba9",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-audio-direct.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-audio-direct.json",
+      "sha256_before": "88aad73a76c50ec16c95eadec3133d4d7f1ff49128fe3879ff4430942de8e679",
+      "sha256_after": "88aad73a76c50ec16c95eadec3133d4d7f1ff49128fe3879ff4430942de8e679",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/hls-2.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/hls-2.json",
+      "sha256_before": "012f545f5209de3838246d95d7c32f1077f5204ae79fd93da88a4ebcf4c23124",
+      "sha256_after": "012f545f5209de3838246d95d7c32f1077f5204ae79fd93da88a4ebcf4c23124",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/hls-3-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/hls-3-samples.json",
+      "sha256_before": "58157b39d9b567990c064ef7fcd054a783a929c51e3c95d13da22f3021ee951e",
+      "sha256_after": "58157b39d9b567990c064ef7fcd054a783a929c51e3c95d13da22f3021ee951e",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-hls-2-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-hls-2-samples.json",
+      "sha256_before": "b938bd7151461db772b10317796ef5ea120564fe248a8ab57308c8a845351cac",
+      "sha256_after": "b938bd7151461db772b10317796ef5ea120564fe248a8ab57308c8a845351cac",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-direct-1.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-direct-1.json",
+      "sha256_before": "b6f19e471e8deb0869fefe1eeec13888e1772e402f1df99087e7f922479c95c2",
+      "sha256_after": "b6f19e471e8deb0869fefe1eeec13888e1772e402f1df99087e7f922479c95c2",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/youtube-public.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/youtube-public.json",
+      "sha256_before": "b1f2638ac727c851b630f1d678dc4dc5f789906ca3fe564b1d00513d57157f07",
+      "sha256_after": "b1f2638ac727c851b630f1d678dc4dc5f789906ca3fe564b1d00513d57157f07",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/hls-1.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/hls-1.json",
+      "sha256_before": "2a75a7962c1a2dd50c1038174be63acd7c9dc24a7aa5be491194ddd05a8ae3bc",
+      "sha256_after": "2a75a7962c1a2dd50c1038174be63acd7c9dc24a7aa5be491194ddd05a8ae3bc",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-direct-2.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-direct-2.json",
+      "sha256_before": "a058e6f837f2c60bf5ab107eea05e1cfa0436c509796b6eec3b248461e2ed04f",
+      "sha256_after": "a058e6f837f2c60bf5ab107eea05e1cfa0436c509796b6eec3b248461e2ed04f",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-404.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-404.json",
+      "sha256_before": "f831ea1554f7d6eb2bd76918a47414af5a1675df7d808a085d5b26facf4feff6",
+      "sha256_after": "f831ea1554f7d6eb2bd76918a47414af5a1675df7d808a085d5b26facf4feff6",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/hls-1-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/hls-1-samples.json",
+      "sha256_before": "02a5cc7fb8bcaf99585aee6836d890a791ebaa5a817b23b457ae04f4f6125a23",
+      "sha256_after": "02a5cc7fb8bcaf99585aee6836d890a791ebaa5a817b23b457ae04f4f6125a23",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/direct-2.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/direct-2.json",
+      "sha256_before": "702bfae4db5899cb8abad28f6183e6d6fc5db195c4ae5cca4ece3a2195089e75",
+      "sha256_after": "702bfae4db5899cb8abad28f6183e6d6fc5db195c4ae5cca4ece3a2195089e75",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/404.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/404.json",
+      "sha256_before": "a6ac735dda091769c3a914bd94dde5cfed00bf1ba48745d96d61e1003920d8b9",
+      "sha256_after": "a6ac735dda091769c3a914bd94dde5cfed00bf1ba48745d96d61e1003920d8b9",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-slow-pause-relaunch-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-slow-pause-relaunch-samples.json",
+      "sha256_before": "c12da38c401f761fa39249dc4dd587951bfb5f0b5ca5b93a8a7300b9470791d8",
+      "sha256_after": "c12da38c401f761fa39249dc4dd587951bfb5f0b5ca5b93a8a7300b9470791d8",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/playlist-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/playlist-samples.json",
+      "sha256_before": "9c045cab50cbaf89f8495729980316c03e8c9e223c8b280417ec1224e45dc7ca",
+      "sha256_after": "9c045cab50cbaf89f8495729980316c03e8c9e223c8b280417ec1224e45dc7ca",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/output-permission-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/output-permission-samples.json",
+      "sha256_before": "e6d363a7c85086ebee57f912bfc642d557dc35152d9c3d29594ce38d7daa3a39",
+      "sha256_after": "e6d363a7c85086ebee57f912bfc642d557dc35152d9c3d29594ce38d7daa3a39",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/direct-3.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/direct-3.json",
+      "sha256_before": "c35f82b420cb880347bb7a71f9906f6a4bbe73317f04b2fa6696aea76ebe65bb",
+      "sha256_after": "c35f82b420cb880347bb7a71f9906f6a4bbe73317f04b2fa6696aea76ebe65bb",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-disconnect.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-disconnect.json",
+      "sha256_before": "678164a46271668fa1ed5ccff944830b2b1fb36c4e2aeed846615d035be28535",
+      "sha256_after": "678164a46271668fa1ed5ccff944830b2b1fb36c4e2aeed846615d035be28535",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-hls-request-360-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-hls-request-360-samples.json",
+      "sha256_before": "ec2026e88810d1010215da9af187ddb0720de6ae836956c321f7661820390dd9",
+      "sha256_after": "ec2026e88810d1010215da9af187ddb0720de6ae836956c321f7661820390dd9",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-hls-1-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-hls-1-samples.json",
+      "sha256_before": "28cdea4b8376cd6c6402f8033a0916daec8982350621b0f2027c96419669fb87",
+      "sha256_after": "28cdea4b8376cd6c6402f8033a0916daec8982350621b0f2027c96419669fb87",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-direct-3.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-direct-3.json",
+      "sha256_before": "d9b508d1ae11113e0d8f07cb8bf8cd98a363edc569e2347d4171a2a44e8abda8",
+      "sha256_after": "d9b508d1ae11113e0d8f07cb8bf8cd98a363edc569e2347d4171a2a44e8abda8",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/hls-request-360.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/hls-request-360.json",
+      "sha256_before": "24063da7ffa37ea57f631711a385762667ef4ef98f486c53d3677dcf2bbb2337",
+      "sha256_after": "24063da7ffa37ea57f631711a385762667ef4ef98f486c53d3677dcf2bbb2337",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/output-permission.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/output-permission.json",
+      "sha256_before": "4b1dbbe993e215f93a73ffbf72aac2573d07671f91b6a38d04480c643b090919",
+      "sha256_after": "4b1dbbe993e215f93a73ffbf72aac2573d07671f91b6a38d04480c643b090919",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/annotated-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/annotated-samples.json",
+      "sha256_before": "5a29abe7224da1a138c3b856685fa83438d5af932e9d36a8714e91d30fcc8f88",
+      "sha256_after": "5a29abe7224da1a138c3b856685fa83438d5af932e9d36a8714e91d30fcc8f88",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/disconnect-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/disconnect-samples.json",
+      "sha256_before": "2e1fc226b566a5b2459d47297804a10283ba29d2aabe3f0349355e07748f2433",
+      "sha256_after": "2e1fc226b566a5b2459d47297804a10283ba29d2aabe3f0349355e07748f2433",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/annotated.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/annotated.json",
+      "sha256_before": "5e94987110b7c81e922681b94c97eabd20cae8dec143cf6ca332bb6115317c6c",
+      "sha256_after": "5e94987110b7c81e922681b94c97eabd20cae8dec143cf6ca332bb6115317c6c",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-hls-request-360.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-hls-request-360.json",
+      "sha256_before": "3044a553a35c20ad374602e874fc5aeafc90002d72d87fc3ddb780d51e64b9a3",
+      "sha256_after": "3044a553a35c20ad374602e874fc5aeafc90002d72d87fc3ddb780d51e64b9a3",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/slow-pause-resume.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/slow-pause-resume.json",
+      "sha256_before": "7ec4fa27415baf2dbab6d38e9b4c9c6c81cba5efe8dd2c18bd888f4099b636fe",
+      "sha256_after": "7ec4fa27415baf2dbab6d38e9b4c9c6c81cba5efe8dd2c18bd888f4099b636fe",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/watch-hls-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/watch-hls-samples.json",
+      "sha256_before": "679a38861e0c7097ec311aa760f94e66219be66e6cad1fd3b6c052bc2b621522",
+      "sha256_after": "679a38861e0c7097ec311aa760f94e66219be66e6cad1fd3b6c052bc2b621522",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-dash-3-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-dash-3-samples.json",
+      "sha256_before": "563bb297df2959c687fcd827958f95db5bc77f828936b9209e53999665d56471",
+      "sha256_after": "563bb297df2959c687fcd827958f95db5bc77f828936b9209e53999665d56471",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-hls-3.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-hls-3.json",
+      "sha256_before": "c0907b5eaf5bef8317e00871228962d17c64669befdbf284defcc50df1e1b668",
+      "sha256_after": "c0907b5eaf5bef8317e00871228962d17c64669befdbf284defcc50df1e1b668",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/cancel-slow.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/cancel-slow.json",
+      "sha256_before": "aa6ce26a08d83b595263374851187def0f89c8ca4eb5faa4990cb609aa9b5093",
+      "sha256_after": "aa6ce26a08d83b595263374851187def0f89c8ca4eb5faa4990cb609aa9b5093",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/dash-1.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/dash-1.json",
+      "sha256_before": "9cf6b9be35c9e6fb4971ebbdfd3e450317a6274d7ff614b187b14f2a3acf5852",
+      "sha256_after": "9cf6b9be35c9e6fb4971ebbdfd3e450317a6274d7ff614b187b14f2a3acf5852",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/startup-process-1-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/startup-process-1-samples.json",
+      "sha256_before": "2a50b9e5f859fba0bc1e0b8da1c36a7a1d1fb2bde8099016d2df2ec16a796f76",
+      "sha256_after": "2a50b9e5f859fba0bc1e0b8da1c36a7a1d1fb2bde8099016d2df2ec16a796f76",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-dash-3.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-dash-3.json",
+      "sha256_before": "099b67d7f0718e2cde729154be27e06481ff04f92a2518c6573b3d073597388e",
+      "sha256_after": "099b67d7f0718e2cde729154be27e06481ff04f92a2518c6573b3d073597388e",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-dash-2.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-dash-2.json",
+      "sha256_before": "5bfb90f0819b2d6c7c0fca5be16933e650b7f10b94ab97bc5d55b7084bc3683c",
+      "sha256_after": "5bfb90f0819b2d6c7c0fca5be16933e650b7f10b94ab97bc5d55b7084bc3683c",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/dash-1-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/dash-1-samples.json",
+      "sha256_before": "0dae501bc600a5f168ca9084d22887b7644c3cbd093da6d72164434d78c3f512",
+      "sha256_after": "0dae501bc600a5f168ca9084d22887b7644c3cbd093da6d72164434d78c3f512",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-hls-2.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-hls-2.json",
+      "sha256_before": "78355f14a210a391e0c36dfce56e10effd0cb7b210e7d68660c4861a71a546c0",
+      "sha256_after": "78355f14a210a391e0c36dfce56e10effd0cb7b210e7d68660c4861a71a546c0",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/startup-process-4b.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/startup-process-4b.json",
+      "sha256_before": "c6680fa7e1e646d3fb123b42d0bd3628bd7726f6b66d8fcf3e030db274ecc089",
+      "sha256_after": "c6680fa7e1e646d3fb123b42d0bd3628bd7726f6b66d8fcf3e030db274ecc089",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/startup-process-1.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/startup-process-1.json",
+      "sha256_before": "58a3ea4b48d8e3f167098027c4a3ad16bc89033e31c7c02e7044b97c3b406a0e",
+      "sha256_after": "58a3ea4b48d8e3f167098027c4a3ad16bc89033e31c7c02e7044b97c3b406a0e",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/403.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/403.json",
+      "sha256_before": "23fa64a6b694d1651ea0cee63d86d202f7dda8e53de8a6c2968a82bd83f6a1f8",
+      "sha256_after": "23fa64a6b694d1651ea0cee63d86d202f7dda8e53de8a6c2968a82bd83f6a1f8",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-direct-1-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-direct-1-samples.json",
+      "sha256_before": "c85ca441e4b13682352d93bec8b508a989eb1b697825e573ad4b73f271b17dd6",
+      "sha256_after": "c85ca441e4b13682352d93bec8b508a989eb1b697825e573ad4b73f271b17dd6",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/youtube-public-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/youtube-public-samples.json",
+      "sha256_before": "47dd4aba661cca83975518692e08da1157ec1832375c1fd2403bba9db972a564",
+      "sha256_after": "47dd4aba661cca83975518692e08da1157ec1832375c1fd2403bba9db972a564",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/direct-1-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/direct-1-samples.json",
+      "sha256_before": "6fcbcab50c8438a96ce316b958eb991c37a252865cd852a6d2647c0b5fbec190",
+      "sha256_after": "6fcbcab50c8438a96ce316b958eb991c37a252865cd852a6d2647c0b5fbec190",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-dash-2-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-dash-2-samples.json",
+      "sha256_before": "173b8201b1e78818a8e6173e95b72cd007c39392d796acffd005ba1c915376b1",
+      "sha256_after": "173b8201b1e78818a8e6173e95b72cd007c39392d796acffd005ba1c915376b1",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/slow-pause-resume-samples.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/slow-pause-resume-samples.json",
+      "sha256_before": "e0df2fabdac291fc285662896bbcaf5376a562203fe0a8ff5a1619e3daa261d3",
+      "sha256_after": "e0df2fabdac291fc285662896bbcaf5376a562203fe0a8ff5a1619e3daa261d3",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-403.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/bench-results/downie-403.json",
+      "sha256_before": "2c0e298c3839af616b06d4d9f91a48545ad88af242f8a10917c3c3a864ea6fd5",
+      "sha256_after": "2c0e298c3839af616b06d4d9f91a48545ad88af242f8a10917c3c3a864ea6fd5",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/fixtures/server-requests.jsonl",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/fixtures/server-requests.jsonl",
+      "sha256_before": "4649e35b4d8eee7539c84efc972e3dd7719c16898a7aae06c748c48d0e0d9818",
+      "sha256_after": "4649e35b4d8eee7539c84efc972e3dd7719c16898a7aae06c748c48d0e0d9818",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/fixtures/sample-manifest.json",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/fixtures/sample-manifest.json",
+      "sha256_before": "5bb43904f97e985191b2cba1016f2a6a1c68a4dadb48a867e6b07cd6d655a6e8",
+      "sha256_after": "5bb43904f97e985191b2cba1016f2a6a1c68a4dadb48a867e6b07cd6d655a6e8",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/fixtures/build_samples.py",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/fixtures/build_samples.py",
+      "sha256_before": "ed7f796b20afae7c7f5b796efb595a410990ef77460f464925821b2bb34ee1dd",
+      "sha256_after": "ed7f796b20afae7c7f5b796efb595a410990ef77460f464925821b2bb34ee1dd",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/fixtures/serve_fixtures.py",
+      "archived": "docs/archive/2026-10-desktop/assets/research-archive-2026-10-16/downie-2026-10-15/runtime/fixtures/serve_fixtures.py",
+      "sha256_before": "c9c4bed79320af9f704cf95075ac9dd3f6b48cfd7458a3c37d7a570013fe5a5e",
+      "sha256_after": "c9c4bed79320af9f704cf95075ac9dd3f6b48cfd7458a3c37d7a570013fe5a5e",
+      "content_preserved": true
+    },
+    {
+      "original": "docs/research/assets/fixes-mp3-list-and-inspector.png",
+      "archived": "docs/archive/2026-10-desktop/assets/fixes-mp3-list-and-inspector.png",
+      "sha256_before": "6b2fea37e2e7edaef586a184a4125837773c3be463b858d0030bec2b8d5efd6a",
+      "sha256_after": "6b2fea37e2e7edaef586a184a4125837773c3be463b858d0030bec2b8d5efd6a",
+      "content_preserved": true
+    }
+  ]
+}

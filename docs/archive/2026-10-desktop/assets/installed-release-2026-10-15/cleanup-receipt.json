@@ -1,0 +1,1318 @@
+{
+  "scope": "V-Download, its local rollback snapshot caches, and task-owned research runtimes; unrelated app/system/Chrome profile caches untouched",
+  "removed": [
+    {
+      "path": "/Users/mingjie/Downloads/master [master].mp4",
+      "logicalBytes": 2910461,
+      "reason": "owned synthetic output, verified hash"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/DawnGraphiteCache",
+      "logicalBytes": 557424,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/GPUCache",
+      "logicalBytes": 1642864,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Cache",
+      "logicalBytes": 31400340,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/DawnWebGPUCache",
+      "logicalBytes": 557424,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Code Cache",
+      "logicalBytes": 8805288,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-hydrate/DawnGraphiteCache",
+      "logicalBytes": 557424,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-hydrate/GPUCache",
+      "logicalBytes": 1642864,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-hydrate/Cache",
+      "logicalBytes": 1231821401,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-hydrate/DawnWebGPUCache",
+      "logicalBytes": 557424,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-hydrate/Code Cache",
+      "logicalBytes": 31835534,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-hydrate/Service Worker/CacheStorage",
+      "logicalBytes": 135324,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-hydrate/Service Worker/ScriptCache",
+      "logicalBytes": 65212,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-recovery/DawnGraphiteCache",
+      "logicalBytes": 557424,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-recovery/GPUCache",
+      "logicalBytes": 1642864,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-recovery/Cache",
+      "logicalBytes": 12822961,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-recovery/DawnWebGPUCache",
+      "logicalBytes": 557424,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-recovery/Code Cache",
+      "logicalBytes": 112577,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-recovery/Service Worker/CacheStorage",
+      "logicalBytes": 135326,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-recovery/Service Worker/ScriptCache",
+      "logicalBytes": 65148,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/cloak-douyin-profile/GrShaderCache",
+      "logicalBytes": 557424,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/cloak-douyin-profile/ShaderCache",
+      "logicalBytes": 557424,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/cloak-douyin-profile/Default/DawnGraphiteCache",
+      "logicalBytes": 557424,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/cloak-douyin-profile/Default/GPUCache",
+      "logicalBytes": 557424,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/cloak-douyin-profile/Default/DawnWebGPUCache",
+      "logicalBytes": 557424,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/cloak-douyin-profile/Default/Service Worker/ScriptCache",
+      "logicalBytes": 6097,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/logs",
+      "logicalBytes": 15036,
+      "reason": "application diagnostic logs"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/DawnGraphiteCache",
+      "logicalBytes": 557424,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/GPUCache",
+      "logicalBytes": 1642864,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Cache",
+      "logicalBytes": 31400340,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/DawnWebGPUCache",
+      "logicalBytes": 557424,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Code Cache",
+      "logicalBytes": 8804872,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-hydrate/DawnGraphiteCache",
+      "logicalBytes": 557424,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-hydrate/GPUCache",
+      "logicalBytes": 1642864,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-hydrate/Cache",
+      "logicalBytes": 1231821401,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-hydrate/DawnWebGPUCache",
+      "logicalBytes": 557424,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-hydrate/Code Cache",
+      "logicalBytes": 31835534,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-hydrate/Service Worker/CacheStorage",
+      "logicalBytes": 135324,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-hydrate/Service Worker/ScriptCache",
+      "logicalBytes": 65212,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-recovery/DawnGraphiteCache",
+      "logicalBytes": 557424,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-recovery/GPUCache",
+      "logicalBytes": 1642864,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-recovery/Cache",
+      "logicalBytes": 12822961,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-recovery/DawnWebGPUCache",
+      "logicalBytes": 557424,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-recovery/Code Cache",
+      "logicalBytes": 112577,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-recovery/Service Worker/CacheStorage",
+      "logicalBytes": 135326,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-recovery/Service Worker/ScriptCache",
+      "logicalBytes": 65148,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/cloak-douyin-profile/GrShaderCache",
+      "logicalBytes": 557424,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/cloak-douyin-profile/ShaderCache",
+      "logicalBytes": 557424,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/cloak-douyin-profile/Default/DawnGraphiteCache",
+      "logicalBytes": 557424,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/cloak-douyin-profile/Default/GPUCache",
+      "logicalBytes": 557424,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/cloak-douyin-profile/Default/DawnWebGPUCache",
+      "logicalBytes": 557424,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/cloak-douyin-profile/Default/Service Worker/ScriptCache",
+      "logicalBytes": 6097,
+      "reason": "regenerable browser cache"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/logs",
+      "logicalBytes": 11480,
+      "reason": "application diagnostic logs"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download/dist",
+      "logicalBytes": 1139344537,
+      "reason": "regenerable packaging/build cache; final DMG retained in Downloads"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download/out",
+      "logicalBytes": 2442926,
+      "reason": "regenerable packaging/build cache; final DMG retained in Downloads"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download/.release-staging",
+      "logicalBytes": 305138876,
+      "reason": "regenerable packaging/build cache; final DMG retained in Downloads"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download/node_modules/.vite",
+      "logicalBytes": 7679971,
+      "reason": "regenerable packaging/build cache; final DMG retained in Downloads"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download/logs/ci-test-2026-10-07.log",
+      "logicalBytes": 10556,
+      "reason": "development debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download/logs/dev-latest.log",
+      "logicalBytes": 0,
+      "reason": "development debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download/logs/ci-watch-2026-10-07.log",
+      "logicalBytes": 3205,
+      "reason": "development debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download/tsconfig.web.tsbuildinfo",
+      "logicalBytes": 32941,
+      "reason": "TypeScript incremental cache"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/temp",
+      "logicalBytes": 0,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/profile",
+      "logicalBytes": 137477,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/session",
+      "logicalBytes": 1810340,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/chrome-profile",
+      "logicalBytes": 167143055,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/test-extension",
+      "logicalBytes": 407299,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/baseline",
+      "logicalBytes": 2165275,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/output",
+      "logicalBytes": 39682955,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/logs",
+      "logicalBytes": 0,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/fixtures/media",
+      "logicalBytes": 29045711,
+      "reason": "regenerable synthetic media fixtures"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/typecheck-final.log",
+      "logicalBytes": 225,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/app-final.log",
+      "logicalBytes": 2671,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/chrome.log",
+      "logicalBytes": 10516,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/sync-final.log",
+      "logicalBytes": 348,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/build-final.log",
+      "logicalBytes": 847,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/extension-final.log",
+      "logicalBytes": 85,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/full-tests.log",
+      "logicalBytes": 11159,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/full-tests-final.log",
+      "logicalBytes": 11302,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/language-final.log",
+      "logicalBytes": 77,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/extension-unit-final.log",
+      "logicalBytes": 450,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/extension-tests.log",
+      "logicalBytes": 311,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/selection-plans-2026-10-15/negative-final.log",
+      "logicalBytes": 2128,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-data-correctness-2026-10-15/temp",
+      "logicalBytes": 0,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-data-correctness-2026-10-15/profile",
+      "logicalBytes": 132772,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-data-correctness-2026-10-15/session",
+      "logicalBytes": 1809827,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-data-correctness-2026-10-15/chrome-profile",
+      "logicalBytes": 36685667,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-data-correctness-2026-10-15/test-extension",
+      "logicalBytes": 415720,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-data-correctness-2026-10-15/baseline",
+      "logicalBytes": 2259373,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-data-correctness-2026-10-15/output",
+      "logicalBytes": 10028937,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-data-correctness-2026-10-15/logs",
+      "logicalBytes": 0,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-data-correctness-2026-10-15/fixtures/media",
+      "logicalBytes": 29045711,
+      "reason": "regenerable synthetic media fixtures"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-data-correctness-2026-10-15/extension-tests-final.log",
+      "logicalBytes": 619,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-data-correctness-2026-10-15/typecheck-final.log",
+      "logicalBytes": 225,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-data-correctness-2026-10-15/chrome.log",
+      "logicalBytes": 750,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-data-correctness-2026-10-15/typecheck.log",
+      "logicalBytes": 225,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-data-correctness-2026-10-15/security-tests.log",
+      "logicalBytes": 182,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-data-correctness-2026-10-15/sync.log",
+      "logicalBytes": 348,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-data-correctness-2026-10-15/build-final.log",
+      "logicalBytes": 848,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-data-correctness-2026-10-15/electron-restart.log",
+      "logicalBytes": 330,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-data-correctness-2026-10-15/chrome-runtime-final.log",
+      "logicalBytes": 1359,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-data-correctness-2026-10-15/full-tests.log",
+      "logicalBytes": 11469,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-data-correctness-2026-10-15/chrome-runtime.log",
+      "logicalBytes": 1136,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-data-correctness-2026-10-15/full-tests-final.log",
+      "logicalBytes": 11470,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-data-correctness-2026-10-15/app.log",
+      "logicalBytes": 1171,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-data-correctness-2026-10-15/extension-tests.log",
+      "logicalBytes": 619,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-data-correctness-2026-10-15/electron-runtime.log",
+      "logicalBytes": 6075,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-data-correctness-2026-10-15/build.log",
+      "logicalBytes": 848,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/browser-data-correctness-2026-10-15/fixtures/fixture.log",
+      "logicalBytes": 7361,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/extension-startup-auth-2026-10-15/temp",
+      "logicalBytes": 0,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/extension-startup-auth-2026-10-15/profile",
+      "logicalBytes": 121031,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/extension-startup-auth-2026-10-15/session",
+      "logicalBytes": 1809636,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/extension-startup-auth-2026-10-15/chrome-profile",
+      "logicalBytes": 36496319,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/extension-startup-auth-2026-10-15/test-extension",
+      "logicalBytes": 425797,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/extension-startup-auth-2026-10-15/baseline",
+      "logicalBytes": 2284219,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/extension-startup-auth-2026-10-15/output",
+      "logicalBytes": 4995808,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/extension-startup-auth-2026-10-15/logs",
+      "logicalBytes": 0,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/extension-startup-auth-2026-10-15/fixtures/media",
+      "logicalBytes": 29045711,
+      "reason": "regenerable synthetic media fixtures"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/extension-startup-auth-2026-10-15/extension-tests-final.log",
+      "logicalBytes": 797,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/extension-startup-auth-2026-10-15/typecheck-final.log",
+      "logicalBytes": 225,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/extension-startup-auth-2026-10-15/typecheck.log",
+      "logicalBytes": 225,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/extension-startup-auth-2026-10-15/build-final.log",
+      "logicalBytes": 847,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/extension-startup-auth-2026-10-15/electron-restart.log",
+      "logicalBytes": 1009,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/extension-startup-auth-2026-10-15/full-tests.log",
+      "logicalBytes": 11648,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/extension-startup-auth-2026-10-15/chrome-runtime.log",
+      "logicalBytes": 900,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/extension-startup-auth-2026-10-15/extension-tests.log",
+      "logicalBytes": 797,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/extension-startup-auth-2026-10-15/electron-runtime.log",
+      "logicalBytes": 3725,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/extension-startup-auth-2026-10-15/build.log",
+      "logicalBytes": 847,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/extension-startup-auth-2026-10-15/fixtures/fixture.log",
+      "logicalBytes": 7337,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/installed-release-2026-10-15/output",
+      "logicalBytes": 13551124,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/installed-release-2026-10-15/fixtures/media",
+      "logicalBytes": 29045711,
+      "reason": "regenerable synthetic media fixtures"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/fixes/temp",
+      "logicalBytes": 0,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/fixes/profile",
+      "logicalBytes": 697847,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/fixes/session",
+      "logicalBytes": 1809853,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/fixes/output",
+      "logicalBytes": 88737538,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/fixes/logs",
+      "logicalBytes": 0,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/runtime/temp",
+      "logicalBytes": 0,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/runtime/profile",
+      "logicalBytes": 117042,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/runtime/session",
+      "logicalBytes": 1845228,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/runtime/output",
+      "logicalBytes": 49559777,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/runtime/downie-output",
+      "logicalBytes": 34735342,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/runtime/logs",
+      "logicalBytes": 0,
+      "reason": "retired isolated test runtime or synthetic output"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/runtime/fixtures/media",
+      "logicalBytes": 20998432,
+      "reason": "regenerable synthetic media fixtures"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/runtime/v-startup-process-1.log",
+      "logicalBytes": 1350,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/runtime/v-startup-process-3.log",
+      "logicalBytes": 2642,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/runtime/v-startup-process-2.log",
+      "logicalBytes": 2428,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/runtime/v-startup-process-4b.log",
+      "logicalBytes": 3805,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/runtime/v-startup-process-4.log",
+      "logicalBytes": 108,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/github/personal-projects/v-download-research/downie-2026-10-15/runtime/v-startup.log",
+      "logicalBytes": 13789,
+      "reason": "retired test process/debug log"
+    },
+    {
+      "path": "/Applications/V-Download-old-install.app",
+      "logicalBytes": 620883152,
+      "reason": "duplicate previous installation; rollback copy retained"
+    },
+    {
+      "path": "/tmp/v-download-local-package-20261015",
+      "logicalBytes": 1995,
+      "reason": "owned build/test scratch; evidence retained in report assets"
+    },
+    {
+      "path": "/tmp/v-download-installed-checks-20261015.py",
+      "logicalBytes": 2495,
+      "reason": "owned build/test scratch; evidence retained in report assets"
+    },
+    {
+      "path": "/tmp/v-download-installed-output-check-20261015.py",
+      "logicalBytes": 3544,
+      "reason": "owned build/test scratch; evidence retained in report assets"
+    },
+    {
+      "path": "/tmp/v-download-package-20261015.log",
+      "logicalBytes": 3157,
+      "reason": "owned build/test scratch; evidence retained in report assets"
+    },
+    {
+      "path": "/tmp/v-download-install-tests-20261015.log",
+      "logicalBytes": 11648,
+      "reason": "owned build/test scratch; evidence retained in report assets"
+    },
+    {
+      "path": "/tmp/v-download-local-signature-20261015.txt",
+      "logicalBytes": 697,
+      "reason": "owned build/test scratch; evidence retained in report assets"
+    },
+    {
+      "path": "/Users/mingjie/Downloads/.vdl-staging",
+      "logicalBytes": 0,
+      "reason": "empty owned download staging root"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/DawnGraphiteCache",
+      "logicalBytes": 557424,
+      "reason": "last smoke launch regenerated cache"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/GPUCache",
+      "logicalBytes": 557424,
+      "reason": "last smoke launch regenerated cache"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Cache",
+      "logicalBytes": 0,
+      "reason": "last smoke launch regenerated cache"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/DawnWebGPUCache",
+      "logicalBytes": 557424,
+      "reason": "last smoke launch regenerated cache"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Code Cache",
+      "logicalBytes": 11964,
+      "reason": "last smoke launch regenerated cache"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Session Storage/LOG",
+      "logicalBytes": 315,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Session Storage/LOG.old",
+      "logicalBytes": 312,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-hydrate/Session Storage/LOG",
+      "logicalBytes": 387,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-hydrate/Session Storage/LOG.old",
+      "logicalBytes": 381,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-hydrate/IndexedDB/https_www.douyin.com_0.indexeddb.leveldb/LOG",
+      "logicalBytes": 409,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-hydrate/IndexedDB/https_lf-zt.douyin.com_0.indexeddb.leveldb/LOG",
+      "logicalBytes": 413,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-hydrate/WebStorage/1/IndexedDB/indexeddb.leveldb/LOG",
+      "logicalBytes": 430,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-hydrate/WebStorage/1/IndexedDB/indexeddb.leveldb/LOG.old",
+      "logicalBytes": 430,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-hydrate/Service Worker/Database/LOG",
+      "logicalBytes": 402,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-hydrate/Service Worker/Database/LOG.old",
+      "logicalBytes": 396,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-hydrate/File System/000/t/Paths/LOG",
+      "logicalBytes": 355,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-hydrate/File System/Origins/LOG",
+      "logicalBytes": 394,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-hydrate/File System/Origins/LOG.old",
+      "logicalBytes": 388,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-hydrate/shared_proto_db/LOG",
+      "logicalBytes": 380,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-hydrate/shared_proto_db/LOG.old",
+      "logicalBytes": 339,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-hydrate/shared_proto_db/metadata/LOG",
+      "logicalBytes": 398,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-hydrate/shared_proto_db/metadata/LOG.old",
+      "logicalBytes": 357,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-hydrate/Local Storage/leveldb/LOG",
+      "logicalBytes": 399,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-hydrate/Local Storage/leveldb/LOG.old",
+      "logicalBytes": 393,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-recovery/Session Storage/LOG",
+      "logicalBytes": 341,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-recovery/Service Worker/Database/LOG",
+      "logicalBytes": 357,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-recovery/shared_proto_db/LOG",
+      "logicalBytes": 341,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-recovery/shared_proto_db/metadata/LOG",
+      "logicalBytes": 359,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-recovery/Local Storage/leveldb/LOG",
+      "logicalBytes": 394,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Partitions/v-download-douyin-recovery/Local Storage/leveldb/LOG.old",
+      "logicalBytes": 394,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Local Storage/leveldb/LOG",
+      "logicalBytes": 327,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/Local Storage/leveldb/LOG.old",
+      "logicalBytes": 324,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/cloak-douyin-profile/Default/Session Storage/LOG",
+      "logicalBytes": 373,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/cloak-douyin-profile/Default/Session Storage/LOG.old",
+      "logicalBytes": 373,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/cloak-douyin-profile/Default/Site Characteristics Database/LOG",
+      "logicalBytes": 401,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/cloak-douyin-profile/Default/Site Characteristics Database/LOG.old",
+      "logicalBytes": 401,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/cloak-douyin-profile/Default/Extension Scripts/LOG",
+      "logicalBytes": 333,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/cloak-douyin-profile/Default/Extension Rules/LOG",
+      "logicalBytes": 329,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/cloak-douyin-profile/Default/Service Worker/Database/LOG",
+      "logicalBytes": 389,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/cloak-douyin-profile/Default/Service Worker/Database/LOG.old",
+      "logicalBytes": 389,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/cloak-douyin-profile/Default/File System/000/t/Paths/LOG",
+      "logicalBytes": 345,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/cloak-douyin-profile/Default/File System/Origins/LOG",
+      "logicalBytes": 381,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/cloak-douyin-profile/Default/File System/Origins/LOG.old",
+      "logicalBytes": 381,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/cloak-douyin-profile/Default/Extension State/LOG",
+      "logicalBytes": 373,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/cloak-douyin-profile/Default/Extension State/LOG.old",
+      "logicalBytes": 373,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/cloak-douyin-profile/Default/shared_proto_db/LOG",
+      "logicalBytes": 373,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/cloak-douyin-profile/Default/shared_proto_db/LOG.old",
+      "logicalBytes": 373,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/cloak-douyin-profile/Default/shared_proto_db/metadata/LOG",
+      "logicalBytes": 391,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/cloak-douyin-profile/Default/shared_proto_db/metadata/LOG.old",
+      "logicalBytes": 391,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/cloak-douyin-profile/Default/Sync Data/LevelDB/LOG",
+      "logicalBytes": 377,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/cloak-douyin-profile/Default/Sync Data/LevelDB/LOG.old",
+      "logicalBytes": 377,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/cloak-douyin-profile/Default/Local Storage/leveldb/LOG",
+      "logicalBytes": 386,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/cloak-douyin-profile/Default/Local Storage/leveldb/LOG.old",
+      "logicalBytes": 386,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Library/Application Support/v-download/logs",
+      "logicalBytes": 488,
+      "reason": "last smoke launch diagnostic log"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Session Storage/LOG",
+      "logicalBytes": 315,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Session Storage/LOG.old",
+      "logicalBytes": 312,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-hydrate/Session Storage/LOG",
+      "logicalBytes": 387,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-hydrate/Session Storage/LOG.old",
+      "logicalBytes": 381,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-hydrate/IndexedDB/https_www.douyin.com_0.indexeddb.leveldb/LOG",
+      "logicalBytes": 409,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-hydrate/IndexedDB/https_lf-zt.douyin.com_0.indexeddb.leveldb/LOG",
+      "logicalBytes": 413,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-hydrate/WebStorage/1/IndexedDB/indexeddb.leveldb/LOG",
+      "logicalBytes": 430,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-hydrate/WebStorage/1/IndexedDB/indexeddb.leveldb/LOG.old",
+      "logicalBytes": 430,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-hydrate/Service Worker/Database/LOG",
+      "logicalBytes": 402,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-hydrate/Service Worker/Database/LOG.old",
+      "logicalBytes": 396,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-hydrate/File System/000/t/Paths/LOG",
+      "logicalBytes": 355,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-hydrate/File System/Origins/LOG",
+      "logicalBytes": 394,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-hydrate/File System/Origins/LOG.old",
+      "logicalBytes": 388,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-hydrate/shared_proto_db/LOG",
+      "logicalBytes": 380,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-hydrate/shared_proto_db/LOG.old",
+      "logicalBytes": 339,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-hydrate/shared_proto_db/metadata/LOG",
+      "logicalBytes": 398,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-hydrate/shared_proto_db/metadata/LOG.old",
+      "logicalBytes": 357,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-hydrate/Local Storage/leveldb/LOG",
+      "logicalBytes": 399,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-hydrate/Local Storage/leveldb/LOG.old",
+      "logicalBytes": 393,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-recovery/Session Storage/LOG",
+      "logicalBytes": 341,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-recovery/Service Worker/Database/LOG",
+      "logicalBytes": 357,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-recovery/shared_proto_db/LOG",
+      "logicalBytes": 341,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-recovery/shared_proto_db/metadata/LOG",
+      "logicalBytes": 359,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-recovery/Local Storage/leveldb/LOG",
+      "logicalBytes": 394,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Partitions/v-download-douyin-recovery/Local Storage/leveldb/LOG.old",
+      "logicalBytes": 394,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Local Storage/leveldb/LOG",
+      "logicalBytes": 327,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/Local Storage/leveldb/LOG.old",
+      "logicalBytes": 324,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/cloak-douyin-profile/Default/Session Storage/LOG",
+      "logicalBytes": 373,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/cloak-douyin-profile/Default/Session Storage/LOG.old",
+      "logicalBytes": 373,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/cloak-douyin-profile/Default/Site Characteristics Database/LOG",
+      "logicalBytes": 401,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/cloak-douyin-profile/Default/Site Characteristics Database/LOG.old",
+      "logicalBytes": 401,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/cloak-douyin-profile/Default/Extension Scripts/LOG",
+      "logicalBytes": 333,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/cloak-douyin-profile/Default/Extension Rules/LOG",
+      "logicalBytes": 329,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/cloak-douyin-profile/Default/Service Worker/Database/LOG",
+      "logicalBytes": 389,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/cloak-douyin-profile/Default/Service Worker/Database/LOG.old",
+      "logicalBytes": 389,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/cloak-douyin-profile/Default/File System/000/t/Paths/LOG",
+      "logicalBytes": 345,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/cloak-douyin-profile/Default/File System/Origins/LOG",
+      "logicalBytes": 381,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/cloak-douyin-profile/Default/File System/Origins/LOG.old",
+      "logicalBytes": 381,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/cloak-douyin-profile/Default/Extension State/LOG",
+      "logicalBytes": 373,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/cloak-douyin-profile/Default/Extension State/LOG.old",
+      "logicalBytes": 373,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/cloak-douyin-profile/Default/shared_proto_db/LOG",
+      "logicalBytes": 373,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/cloak-douyin-profile/Default/shared_proto_db/LOG.old",
+      "logicalBytes": 373,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/cloak-douyin-profile/Default/shared_proto_db/metadata/LOG",
+      "logicalBytes": 391,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/cloak-douyin-profile/Default/shared_proto_db/metadata/LOG.old",
+      "logicalBytes": 391,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/cloak-douyin-profile/Default/Sync Data/LevelDB/LOG",
+      "logicalBytes": 377,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/cloak-douyin-profile/Default/Sync Data/LevelDB/LOG.old",
+      "logicalBytes": 377,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/cloak-douyin-profile/Default/Local Storage/leveldb/LOG",
+      "logicalBytes": 386,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    },
+    {
+      "path": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update/userData-before/cloak-douyin-profile/Default/Local Storage/leveldb/LOG.old",
+      "logicalBytes": 386,
+      "reason": "LevelDB diagnostic text; database WAL retained"
+    }
+  ],
+  "logicalBytesRemoved": 5373932100,
+  "removedTestRows": 10,
+  "protectedBackup": "/Users/mingjie/Documents/V-Download Backups/2026-10-15-local-update",
+  "preserved": [
+    "original download rows and files",
+    "original settings and engine choices",
+    "cookies.txt and pairing secret",
+    "all login Cookies/Local Storage/IndexedDB",
+    "source, generated extension runtime files, shared package runtime, engine build inputs",
+    "reports, screenshots, provenance and verification JSON",
+    "one local DMG and rollback application"
+  ],
+  "finalState": {
+    "appExited": true,
+    "portsClosed": {
+      "18765": true,
+      "18766": true,
+      "50711": true
+    },
+    "knownApplicationCacheDirectoriesRemaining": [],
+    "reasonForExit": "finish cache cleanup without immediate regeneration",
+    "unrelatedAppCachesTouched": false
+  }
+}

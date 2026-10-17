@@ -1,0 +1,29 @@
+{
+  "appAsarSha256": "8f1233dd9c0e47402044c16829c59499ea709f746c27f27108a47525c3bb6d81",
+  "compiledFilesVerified": 7,
+  "extensionMatches": true,
+  "bundleId": "com.ytdownload.app",
+  "version": "1.1.7",
+  "build": "1.1.7.20261015",
+  "installedPath": "/Applications/V-Download.app",
+  "architecture": "arm64",
+  "artifact": "/Users/mingjie/Downloads/V-Download-1.1.7-local-20261015-arm64.dmg",
+  "artifactSha256": "1ed47d691d5e0547829886f729e11ac332dccd81e6208787d3052baf5c3bff86",
+  "developmentSignature": true,
+  "notarized": false,
+  "gatekeeperAssessment": "rejected",
+  "engineVersions": {
+    "yt-dlp": "2026.07.04",
+    "ffmpeg": "ffmpeg version 8.1.2-https://www.martin-riedl.de Copyright (c) 2000-2026 the FFmpeg developers",
+    "ffprobe": "ffprobe version 8.1.2-https://www.martin-riedl.de Copyright (c) 2007-2026 the FFmpeg developers"
+  },
+  "packagedEnginesSha256": {
+    "yt-dlp": "403d94aec9ffa04c98162ae899abb6e6551e2ed4b380044c7977ad49104e02e0",
+    "ffmpeg": "d19317d44ddffb5e35581e32fcd32e5f66613a258d6ab1a1a85930ae612d0c9e",
+    "ffprobe": "5581d8699ea84883828be092dfe5fca5a6ee980bfc9710305d840f712065299b"
+  },
+  "preservedEngineSettings": {
+    "ytdlpPath": "/Users/mingjie/Library/Application Support/v-download/engines/darwin-arm64/yt-dlp",
+    "ffmpegPath": "/opt/homebrew/bin/ffmpeg"
+  }
+}
