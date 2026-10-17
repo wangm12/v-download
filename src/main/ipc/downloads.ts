@@ -1,3 +1,4 @@
+import type { DownloadSelectionRequest, StartDownloadOptions } from '@v-download/shared'
 import { ipcMain } from 'electron'
 import * as downloadManager from '../downloadManager'
 import * as ytdlp from '../ytdlp'
@@ -8,14 +9,20 @@ import * as settings from '../settings'
 import { fetchRemoteThumbnailDataUrl } from '../thumbnailFetch'
 import { listPlaylistEntries } from '../playlistList'
 import { resolveMediaCandidates, mediaTypeForCandidate } from '../mediaResolver'
-import { LOCAL_SERVER_PORT } from '../localServer'
+import { LOCAL_SERVER_PORT, getLocalServerPort } from '../localServer'
 import { beginDouyinProfileExtensionRequest } from '../douyinProfileExtension'
 import { openUrlInConfiguredBrowser } from '../openUrlInBrowser'
 import { getTranscodePreset, type TranscodePresetId } from '../transcodeModel'
 import { localizeQueueNotice } from '../mediaIdentity'
 import { getUiLanguage } from '../uiLanguage'
+import { parseInterruptedDownloadIds } from '../sessionRecover'
+import { beginMediaCapture, cancelMediaCapture } from '../mediaCapture'
+import { inspectCapturedMedia } from '../mediaInspection'
+import { mediaSourceReferer } from '@v-download/shared'
+import type { MediaSourceContext } from '@v-download/shared'
 
 const profileListAbortControllers = new Map<string, AbortController>()
+const mediaInspectionControllers = new Map<string, AbortController>()
 
 function isHttpUrl(value: unknown): value is string {
   if (typeof value !== 'string' || value.trim().length === 0 || value.length > 8192) return false
@@ -38,7 +45,39 @@ function isDouyinUrl(value: unknown): value is string {
 }
 
 export function registerDownloadHandlers(): void {
-  ipcMain.handle('start-info-resolve', async (_event, options: {
+  ipcMain.handle('begin-media-capture', async (_event, id: string, pageUrl?: string) => {
+    try {
+      const command = beginMediaCapture(id, pageUrl)
+      const opened = await openUrlInConfiguredBrowser(`http://127.0.0.1:${getLocalServerPort()}/media-capture-landing?requestId=${command.requestId}`, { browser: 'chrome' })
+      if (!opened.ok) { cancelMediaCapture(id); return { error: opened.error || 'Could not open Chrome' } }
+      return { data: command }
+    } catch (error) { return { error: error instanceof Error ? error.message : 'Could not start browser capture' } }
+  })
+  ipcMain.handle('cancel-media-capture', (_event, id: string) => { cancelMediaCapture(id); return { ok: true } })
+  ipcMain.handle('cancel-media-inspection', (event, id: string) => { mediaInspectionControllers.get(`${event.sender.id}:${id}`)?.abort(); return { ok: true } })
+  ipcMain.handle('inspect-download-media', async (event, id: string) => {
+    const key = `${event.sender.id}:${id}`
+    mediaInspectionControllers.get(key)?.abort()
+    const ac = new AbortController()
+    mediaInspectionControllers.set(key, ac)
+    const abort = () => ac.abort()
+    event.sender.once('destroyed', abort)
+    try {
+      const task = downloadManager.getById(id)
+      if (!task) throw new Error('Download not found')
+      const m = task.metadata
+      const candidate = m.candidate as { url?: string } | undefined
+      const context = m.sourceContext as MediaSourceContext | undefined
+      const data = await inspectCapturedMedia({ url: candidate?.url || task.url,
+        type: typeof m.mediaType === 'string' ? m.mediaType : undefined, sourceContext: context,
+        proxyUrl: typeof m.proxyUrl === 'string' ? m.proxyUrl : undefined,
+        referer: context ? mediaSourceReferer(context) : typeof m.referer === 'string' ? m.referer : undefined,
+        headers: m.customHeaders as Record<string, string> | undefined }, ac.signal)
+      return { data }
+    } catch (error) { return { error: error instanceof Error ? error.message : 'Media inspection failed' } }
+    finally { if (mediaInspectionControllers.get(key) === ac) mediaInspectionControllers.delete(key); event.sender.removeListener('destroyed', abort) }
+  })
+  ipcMain.handle('start-info-resolve', async (_event, options: DownloadSelectionRequest & {
     url: string
     title?: string
     format?: string
@@ -100,7 +139,7 @@ export function registerDownloadHandlers(): void {
     return ok ? { ok: true } : { ok: false, error: 'Resolver task is no longer available' }
   })
 
-  ipcMain.handle('promote-info-resolve', async (_event, payload: {
+  ipcMain.handle('promote-info-resolve', async (_event, payload: DownloadSelectionRequest & {
     id: string
     url?: string
     title?: string
@@ -129,7 +168,7 @@ export function registerDownloadHandlers(): void {
     }
   })
 
-  ipcMain.handle('mark-info-resolve-ready', async (_event, payload: {
+  ipcMain.handle('mark-info-resolve-ready', async (_event, payload: DownloadSelectionRequest & {
     id: string
     title?: string
     thumbnail?: string | null
@@ -183,7 +222,7 @@ export function registerDownloadHandlers(): void {
     }
   )
 
-  ipcMain.handle('start-download', async (_event, options: {
+  ipcMain.handle('start-download', async (_event, options: DownloadSelectionRequest & {
     url: string
     title: string
     format: string
@@ -315,7 +354,7 @@ export function registerDownloadHandlers(): void {
     'start-downloads-bulk',
     async (
       _event,
-      tasks: Array<{
+      tasks: Array<StartDownloadOptions & {
         url: string
         title: string
         format?: string
@@ -342,6 +381,8 @@ export function registerDownloadHandlers(): void {
               title: (t.title && t.title.trim()) || 'Download',
               format: t.format ?? 'mp4',
               quality: t.quality ?? defaultQ,
+              selection: t.selection, entryIndex: t.entryIndex, planId: t.planId, planRevision: t.planRevision,
+              includeNote: t.includeNote, outputDir: t.outputDir, filenameTemplate: t.filenameTemplate,
               thumbnail: t.thumbnail,
               duration: t.duration,
               playlistId: t.playlistId,
@@ -425,6 +466,12 @@ export function registerDownloadHandlers(): void {
   ipcMain.handle('resume-all', async () => {
     downloadManager.resumeAll()
     return { ok: true }
+  })
+
+  ipcMain.handle('resume-session-interrupted', async (_event, value: unknown) => {
+    const ids = parseInterruptedDownloadIds(value)
+    if (!ids) return { ok: false, error: 'Invalid interrupted download ids' }
+    return { ok: true, resumedIds: downloadManager.resumeInterrupted(ids) }
   })
 
   ipcMain.handle('pause-all', async () => {

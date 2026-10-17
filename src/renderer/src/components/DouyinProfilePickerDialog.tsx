@@ -1,3 +1,5 @@
+import { DownloadOptionsEditor } from './DownloadOptionsEditor'
+import { initialDownloadDraft } from './downloadOptionsModel'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Check, CheckSquare, ChevronDown, Download, ExternalLink, Info, Loader2, Square, X } from 'lucide-react'
 import type { QueueNotice } from '@v-download/shared'
@@ -28,6 +30,7 @@ export interface DouyinProfilePickerDialogProps {
 
 export function DouyinProfilePickerDialog({ profileUrl, settings, onClose, onQueued }: DouyinProfilePickerDialogProps) {
   const { t } = useTranslation()
+  const [downloadOptions, setDownloadOptions] = useState(() => initialDownloadDraft(settings))
   const [items, setItems] = useState<DouyinProfilePostRow[]>([])
   const [nextCursor, setNextCursor] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(false)
@@ -313,8 +316,10 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose, onQue
       const tasks = rows.map((r, i) => ({
         url: r.pageUrl,
         title: r.title.slice(0, 200),
-        format: 'video' as const,
-        quality: settings.defaultVideoQuality,
+        format: downloadOptions.selection.target,
+        selection: downloadOptions.selection, planId: downloadOptions.planId, planRevision: downloadOptions.planRevision,
+        outputDir: downloadOptions.outputDir, filenameTemplate: downloadOptions.filenameTemplate, includeNote: downloadOptions.includeNote,
+        quality: String(downloadOptions.selection.maxHeight),
         thumbnail: r.cover || undefined,
         duration: r.mediaType === 'video' ? r.durationSec ?? 0 : 0,
         ...(archiveByAuthor
@@ -414,6 +419,7 @@ export function DouyinProfilePickerDialog({ profileUrl, settings, onClose, onQue
           )}
         </div>
 
+        <div className="max-h-[260px] shrink-0 overflow-y-auto border-t border-divider-subtle px-5"><DownloadOptionsEditor value={downloadOptions} onChange={setDownloadOptions} settings={settings} /></div>
         <footer className="shrink-0 border-t border-divider-subtle bg-surface px-5 py-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-xs text-muted-foreground">{selectedCount === 0 ? t('ui.selectPrompt') : t('ui.keyboardHint')}</p>

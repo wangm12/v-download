@@ -3,7 +3,7 @@ import { join } from 'path'
 import { optimizer, is } from '@electron-toolkit/utils'
 import * as database from './database'
 import * as downloadManager from './downloadManager'
-import { initializeInfoResolutionManager, stopInfoResolutionManager } from './infoResolutionManager'
+import { initializeInfoResolutionManager, enqueueInfoResolve, stopInfoResolutionManager } from './infoResolutionManager'
 import { stopManagedChildProcesses } from './managedChildProcesses'
 import * as dockProgress from './dockProgress'
 import { initializePoTokenServer, stopPoTokenServer } from './poTokenServer'
@@ -202,16 +202,22 @@ function createWindow(): void {
 }
 
 function handleDownloadRequest(request: DownloadRequest): DownloadDispatchResult {
-  const params = new URLSearchParams({ url: request.url })
-  if (request.type) params.set('type', request.type)
-  if (request.quality) params.set('quality', request.quality)
-  params.set('autoStart', '1')
-  if (request.referer) params.set('referer', request.referer)
-  if (request.title) params.set('title', request.title)
-  if (request.headers) params.set('headers', JSON.stringify(request.headers))
-  const ytdlUrl = `ytdl://download?${params.toString()}`
-  handleYtdlUrl(ytdlUrl)
-  return { ok: true, accepted: true }
+  try {
+    const shared = { url: request.url, title: request.title || 'download',
+      quality: request.quality, selection: request.selection, planId: request.planId, planRevision: request.planRevision,
+      referer: request.referer, customHeaders: request.headers,
+      metadata: request.sourceContext ? { sourceContext: request.sourceContext } : {} }
+    const admitted = request.type
+      ? downloadManager.addTaskAdmitted({ ...shared, format: 'video', mediaType: request.type })
+      : downloadManager.createInfoResolveTask({ ...shared, metadata: { ...shared.metadata, resolveAutoStart: request.autoStart !== false } })
+    if (!request.type && admitted.task.status === 'resolving') initializeInfoResolutionManager()
+    if (!request.type && admitted.outcome === 'created') enqueueInfoResolve(admitted.task.id)
+    downloadManager.emitQueueAdmission(admitted)
+    if (mainWindow && !mainWindow.isDestroyed()) { mainWindow.show(); mainWindow.focus() }
+    return { ok: true, accepted: true }
+  } catch (error) {
+    return { ok: false, accepted: false, status: 400, error: error instanceof Error ? error.message : 'Invalid download request' }
+  }
 }
 
 function isMainWindowFocused(): boolean {
@@ -442,24 +448,7 @@ app.whenReady().then(() => {
   initializeInfoResolutionManager()
   initializePoTokenServer()
   setDownloadHandler((request) => handleDownloadRequest(request))
-  setMediaDownloadHandler((request) => {
-    const quality = settings.get('defaultVideoQuality')
-    const admitted = downloadManager.addTaskAdmitted({
-      url: request.url,
-      title: request.title || 'download',
-      format: 'video',
-      quality,
-      mediaType: request.type,
-      referer: request.referer,
-      customHeaders: request.headers
-    })
-    downloadManager.emitQueueAdmission(admitted)
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.show()
-      mainWindow.focus()
-    }
-    return { ok: true, accepted: true }
-  })
+  setMediaDownloadHandler((request) => handleDownloadRequest(request))
   // Register handlers before opening the port. The extension uses /ping as a
   // readiness check during cold start, so a successful probe must mean that
   // /download can already enqueue work instead of briefly returning 503.

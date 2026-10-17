@@ -1,3 +1,5 @@
+import { reusableSelection } from '@v-download/shared'
+import type { TaskDownloadOverrides } from './components/taskOverridesPresentation'
 import { useEffect, useState, useCallback, useRef, useMemo, startTransition } from 'react'
 import { Loader2, CheckCircle2, Info, X } from 'lucide-react'
 import { TitleBar } from '@/components/TitleBar'
@@ -393,15 +395,24 @@ function MainApp() {
       format: string,
       quality: string,
       includeNote = true,
-      overrides?: { outputDir?: string; proxyUrl?: string; customHeaders?: Record<string, string> }
+      overrides?: TaskDownloadOverrides
     ) => {
       if (!window.api) return
       const taskFields = {
+        ...(overrides?.selection ? { selection: pendingEntries?.length ? reusableSelection(overrides.selection) : overrides.selection } : {}),
+        ...(overrides?.planId ? { planId: overrides.planId, planRevision: overrides.planRevision } : {}),
+        ...(overrides?.filenameTemplate ? { filenameTemplate: overrides.filenameTemplate } : {}),
+        ...(overrides?.includeNote !== undefined ? { includeNote: overrides.includeNote } : {}),
         ...(overrides?.outputDir ? { outputDir: overrides.outputDir } : {}),
         ...(overrides?.proxyUrl ? { proxyUrl: overrides.proxyUrl } : {}),
         ...(overrides?.customHeaders ? { customHeaders: overrides.customHeaders } : {})
       }
 
+      const startChecked = async (options: Parameters<typeof window.api.startDownload>[0]) => {
+        const result = await window.api.startDownload(options)
+        if (result?.error) throw new Error(result.error)
+        return result
+      }
       let consumeResolver = true
       try {
         if (pendingResolverId && pendingVideoInfo) {
@@ -431,7 +442,7 @@ function MainApp() {
               includeNote
             )
           })
-          if (promoted?.error) consumeResolver = false
+          if (promoted?.error) throw new Error(promoted.error)
         } else if (pendingEntries && pendingEntries.length > 0) {
           const playlistTitle = pendingPlaylistMeta?.title ?? 'Playlist'
           const listUrl = pendingPlaylistMeta?.url ?? ''
@@ -439,7 +450,7 @@ function MainApp() {
             settings.youtubePlaylistMode === 'native' && listUrl && isPlaylistUrl(listUrl)
 
           if (useNativePlaylist) {
-            await window.api.startDownload({
+            await startChecked({
               url: listUrl,
               title: playlistTitle,
               format,
@@ -457,7 +468,7 @@ function MainApp() {
             for (let i = 0; i < pendingEntries.length; i++) {
               const entry = pendingEntries[i]
               const videoUrl = entry.webpage_url || `https://www.youtube.com/watch?v=${entry.id}`
-              await window.api.startDownload({
+              await startChecked({
                 url: videoUrl,
                 title: entry.title,
                 format,
@@ -482,7 +493,7 @@ function MainApp() {
           const imageMetaKey = galleryType === 'xhs_gallery' ? 'xhsImageUrls' : 'douyinImageUrls'
           const noteMeta = pendingVideoInfo ? noteMetadataFromVideoInfo(pendingVideoInfo) : {}
 
-          await window.api.startDownload({
+          await startChecked({
             url: pageUrl,
             title,
             format,
@@ -506,8 +517,11 @@ function MainApp() {
             )
           })
         }
+      } catch (error) {
+        consumeResolver = false
+        throw error
       } finally {
-        clearPending({ consumeResolver })
+        if (consumeResolver) clearPending({ consumeResolver })
         loadSettings()
       }
     },
@@ -542,9 +556,12 @@ function MainApp() {
 
   const handleResumeSessionInterrupted = useCallback(async () => {
     const ids = sessionInterrupted?.ids ?? []
-    await handleResumeAll()
+    if (!window.api || ids.length === 0) return
+    const result = await window.api.resumeSessionInterrupted(ids)
+    if (!result.ok) return
+    await refreshDownloads()
     dismissSessionInterruptedBanner(ids)
-  }, [dismissSessionInterruptedBanner, handleResumeAll, sessionInterrupted])
+  }, [dismissSessionInterruptedBanner, refreshDownloads, sessionInterrupted])
 
   const handlePauseAll = useCallback(async () => {
     if (window.api) {

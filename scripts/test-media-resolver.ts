@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { classifyResolverError, filterPersistedHeaders, protocolFor, resolveMediaCandidates, sanitizeResolverError } from '../src/main/mediaResolver'
+import { classifyResolverError, filterPersistedHeaders, isAdaptiveMediaInput, protocolFor, resolveMediaCandidates, sanitizeResolverError } from '../src/main/mediaResolver'
 
 void (async () => {
 const fixtureDir = join(process.cwd(), 'tests/fixtures/media')
@@ -24,6 +24,12 @@ const candidates = resolveMediaCandidates([
 ])
 assert.equal(protocolFor('https://cdn.test/master.m3u8'), 'hls')
 assert.equal(protocolFor('https://cdn.test/manifest.mpd'), 'dash')
+for (const type of ['hls', 'dash', 'mpd', 'application/dash+xml', 'application/vnd.apple.mpegurl']) {
+  assert.equal(isAdaptiveMediaInput(type, 'https://cdn.test/manifest'), true)
+}
+assert.equal(isAdaptiveMediaInput(undefined, 'https://cdn.test/master.m3u8?q=1'), true)
+assert.equal(isAdaptiveMediaInput(undefined, 'https://cdn.test/manifest.mpd#x'), true)
+assert.equal(isAdaptiveMediaInput('mp4', 'https://cdn.test/clip.mp4'), false)
 assert.equal(candidates.length, 3)
 const progressive = candidates.find((candidate) => candidate.url.includes('video.mp4'))
 assert.equal(progressive?.url, 'https://cdn.test/video.mp4')

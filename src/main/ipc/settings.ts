@@ -1,3 +1,6 @@
+import { mutateDownloadPlanLibrary, allDownloadPlans, type DownloadPlanMutation } from '@v-download/shared'
+import { isAbsolute } from 'path'
+import { validateOutputTemplate } from '../outputTemplateModel'
 import { ipcMain, clipboard, shell, BrowserWindow } from 'electron'
 import { setCookieSyncRequested } from '../localServer'
 import * as settings from '../settings'
@@ -19,6 +22,20 @@ function settingWriteError(error: unknown): string {
 }
 
 export function registerSettingsHandlers(): void {
+  ipcMain.handle('get-download-plans', () => ({ data: settings.get('downloadPlanLibrary') }))
+  ipcMain.handle('mutate-download-plan', (_event, mutation: DownloadPlanMutation) => {
+    try {
+      const library = mutateDownloadPlanLibrary(settings.get('downloadPlanLibrary'), mutation)
+      for (const plan of allDownloadPlans(library)) {
+        if (plan.outputDir && !isAbsolute(plan.outputDir)) throw new Error('Download plan folder must be an absolute path')
+        if (plan.filenameTemplate && !validateOutputTemplate(plan.filenameTemplate, 'filename').ok) throw new Error('Invalid download plan filename template')
+      }
+      settings.set('downloadPlanLibrary', library)
+      broadcastSettingsChanged()
+      return { data: library }
+    } catch (error) { return { error: settingWriteError(error) } }
+  })
+
   ipcMain.handle('get-settings', async () => {
     const all = settings.getAll()
     return { data: all }
@@ -26,7 +43,7 @@ export function registerSettingsHandlers(): void {
 
   ipcMain.handle('update-settings', async (_event, key: string, value: unknown) => {
     const all = settings.getAll()
-    const allowed = new Set<keyof SettingsSchema>(Object.keys(all).filter((k) => k !== 'cookiesPath') as Array<keyof SettingsSchema>)
+    const allowed = new Set<keyof SettingsSchema>(Object.keys(all).filter((k) => k !== 'cookiesPath' && k !== 'downloadPlanLibrary') as Array<keyof SettingsSchema>)
     if (allowed.has(key as keyof SettingsSchema) && settings.validateSettingUpdate(key, value)) {
       try {
         settings.set(key as keyof SettingsSchema, value as never)

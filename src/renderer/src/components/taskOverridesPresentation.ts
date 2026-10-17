@@ -1,4 +1,5 @@
-export type TaskDownloadOverrides = {
+import type { DownloadSelectionRequest } from '@v-download/shared'
+export type TaskDownloadOverrides = DownloadSelectionRequest & {
   outputDir?: string
   proxyUrl?: string
   customHeaders?: Record<string, string>

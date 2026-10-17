@@ -30,7 +30,7 @@ export function fallbackQuality(kind: 'video' | 'audio', defaultQuality: string,
 }
 
 function candidateKey(format: NonNullable<VideoInfo['formats']>[number], kind: PresentationKind) {
-  return [kind, format.height || '', format.width || '', format.abr || format.bitrate || format.tbr || '', format.ext || format.container || '', format.vcodec || '', format.acodec || ''].join('|')
+  return [kind, format.height || '', format.width || '', format.abr || format.bitrate || format.tbr || '', format.ext || format.container || '', format.vcodec || '', format.acodec || '', format.fps || '', format.dynamic_range || '', format.language || ''].join('|')
 }
 
 export function getPresentationCandidates(
@@ -55,8 +55,8 @@ export function getPresentationCandidates(
     }
   }
   const result = [...merged.values()].sort((a, b) => b.quality - a.quality || a.key.localeCompare(b.key))
-  const preferred = siteRule && (siteRule.format === kind || siteRule.format === 'best') ? safeQuality(siteRule.quality, defaultQuality) : safeQuality(defaultQuality, defaultQuality)
-  let best = result.find((candidate) => candidate.quality === preferred)
+  const preferred = defaultQuality === 'best' ? Number.POSITIVE_INFINITY : siteRule && (siteRule.format === kind || siteRule.format === 'best') ? safeQuality(siteRule.quality, defaultQuality) : safeQuality(defaultQuality, defaultQuality)
+  let best = defaultQuality === 'best' ? result[0] : result.find((candidate) => candidate.quality === preferred)
   if (!best) best = result.reduce<PresentationCandidate | undefined>((closest, candidate) => !closest || Math.abs(candidate.quality - preferred) < Math.abs(closest.quality - preferred) ? candidate : closest, undefined)
   return result.map((candidate) => ({ ...candidate, recommended: candidate.key === best?.key }))
 }

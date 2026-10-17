@@ -1,3 +1,4 @@
+import { readMediaSourceContext, mediaSourceReferer, readDownloadSelection } from '@v-download/shared'
 import { COOKIE_SYNC_DOMAINS, type ChromeSyncedCookie } from '@v-download/shared'
 import { timingSafeEqual } from 'node:crypto'
 
@@ -77,18 +78,28 @@ export function filterValidCookieRecords(cookies: unknown[]): { valid: ChromeSyn
 export function validateDownloadPayload(payload: unknown): { ok: true; value: Record<string, unknown> } | { ok: false; error: string } {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return { ok: false, error: 'Invalid payload' }
   const p = payload as Record<string, unknown>
-  const keys = new Set(['url', 'type', 'quality', 'autoStart', 'referer', 'headers', 'title', 'filename'])
+  const keys = new Set(['url', 'type', 'quality', 'autoStart', 'referer', 'headers', 'title', 'filename', 'selection', 'planId', 'planRevision', 'sourceContext'])
   if (Object.keys(p).some((k) => !keys.has(k)) || typeof p.url !== 'string' || p.url.length < 1 || p.url.length > 8192) return { ok: false, error: 'Invalid download payload' }
   try { const u = new URL(p.url); if (u.protocol !== 'http:' && u.protocol !== 'https:') return { ok: false, error: 'Invalid download URL' } } catch { return { ok: false, error: 'Invalid download URL' } }
-  for (const key of ['referer', 'title', 'filename']) if (p[key] !== undefined && (typeof p[key] !== 'string' || p[key].length > 512)) return { ok: false, error: 'Invalid download field' }
+  for (const key of ['title', 'filename']) if (p[key] !== undefined && (typeof p[key] !== 'string' || p[key].length > 512)) return { ok: false, error: 'Invalid download field' }
+  if (p.selection !== undefined) { try { readDownloadSelection(p.selection) } catch { return { ok: false, error: 'Invalid download selection' } } }
+  if (p.planId !== undefined && (typeof p.planId !== 'string' || !/^[A-Za-z0-9:_-]+$/.test(p.planId))) return { ok: false, error: 'Invalid download plan' }
+  if (p.planRevision !== undefined && (!Number.isInteger(p.planRevision) || Number(p.planRevision) < 1)) return { ok: false, error: 'Invalid download plan revision' }
   if (p.quality !== undefined && (typeof p.quality !== 'string' || !/^(?:\d{1,4}|best)$/.test(p.quality))) return { ok: false, error: 'Invalid download quality' }
   if (p.autoStart !== undefined && typeof p.autoStart !== 'boolean') return { ok: false, error: 'Invalid download option' }
+  if (p.referer !== undefined && (typeof p.referer !== 'string' || p.referer.length > 8192 || /[\u0000-\u0020\u007f]/.test(p.referer))) return { ok: false, error: 'Invalid referer' }
   if (p.referer !== undefined) { try { const r = new URL(p.referer as string); if (r.protocol !== 'http:' && r.protocol !== 'https:') return { ok: false, error: 'Invalid referer' } } catch { return { ok: false, error: 'Invalid referer' } } }
   if (p.type !== undefined && (typeof p.type !== 'string' || !MEDIA_TYPES.has(p.type.toLowerCase()))) return { ok: false, error: 'Invalid media type' }
   if (p.headers !== undefined) {
     if (!p.headers || typeof p.headers !== 'object' || Array.isArray(p.headers)) return { ok: false, error: 'Invalid headers' }
     const h = p.headers as Record<string, unknown>
     if (Object.keys(h).length > 32 || Object.entries(h).some(([k, v]) => !HEADER_NAME.test(k) || typeof v !== 'string' || v.length > 4096 || /[\u0000-\u0008\u000a-\u001f\u007f]/.test(v))) return { ok: false, error: 'Invalid headers' }
+  }
+  if (p.sourceContext !== undefined) {
+    try {
+      const sourceContext = readMediaSourceContext(p.sourceContext)
+      return { ok: true, value: { ...p, sourceContext, referer: mediaSourceReferer(sourceContext) ?? p.referer } }
+    } catch { return { ok: false, error: 'Invalid media source context' } }
   }
   return { ok: true, value: p }
 }

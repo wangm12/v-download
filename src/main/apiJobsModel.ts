@@ -1,3 +1,4 @@
+import { classifyDownloadError } from './downloadError'
 import { existsSync, readdirSync, statSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { basename, extname, join, relative, resolve, sep } from 'node:path'
@@ -466,9 +467,9 @@ export function collectionTooLarge(itemCount: number, max: number): JobError {
 
 export function classifyFailureMessage(message: string): JobError {
   const text = message.slice(0, 500)
-  if (/fresh cookies|log ?in|sign in|authentication|cookies? are needed/i.test(text)) {
-    return { code: 'auth_required', message: text }
-  }
+  const classification = classifyDownloadError(message, false)
+  if (classification === 'ACCESS_DENIED') return { code: 'access_denied', message: text }
+  if (classification === 'AUTH_REQUIRED') return { code: 'auth_required', message: text }
   if (/\bis_live\b|live event|livestream|unsupported_live/i.test(text)) {
     return { code: 'unsupported_live', message: text }
   }
@@ -485,7 +486,7 @@ export function classifyFailureMessage(message: string): JobError {
 }
 
 export function shouldRetryError(code: string): boolean {
-  return !['auth_required', 'unsupported_live', 'file_too_large', 'collection_too_large', 'cancelled', 'no_media'].includes(code)
+  return !['access_denied', 'auth_required', 'unsupported_live', 'file_too_large', 'collection_too_large', 'cancelled', 'no_media'].includes(code)
 }
 
 export async function withRetries<T>(

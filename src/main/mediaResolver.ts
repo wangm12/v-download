@@ -1,4 +1,5 @@
 import type { MediaCandidate } from '@v-download/shared'
+import { classifyDownloadError } from './downloadError'
 
 export type ResolverSource = 'yt-dlp' | 'ffmpeg' | 'sniffer' | 'extension'
 export type MediaProtocol = 'http' | 'https' | 'hls' | 'dash' | 'file' | 'unknown'
@@ -19,7 +20,7 @@ export type ResolverCandidate = MediaCandidate & {
   formatId?: string
 }
 
-export type ResolverErrorKind = 'auth' | 'browser-required' | 'unsupported' | 'drm' | 'temporary-network' | 'unknown'
+export type ResolverErrorKind = 'auth' | 'access-denied' | 'browser-required' | 'unsupported' | 'drm' | 'temporary-network' | 'unknown'
 
 const NOISE = /(?:analytics|tracking|telemetry|doubleclick|google-analytics|pixel|beacon|segment|hotjar)/i
 const FRAGMENT = /(?:segment|fragment|init(?:ialization)?)[-_]?\d+\.(?:ts|m4s|aac|mp4)(?:[?#]|$)/i
@@ -34,6 +35,13 @@ export function protocolFor(url: string, mimeType?: string): MediaProtocol {
   if (/\.m3u8(?:[?#]|$)/i.test(url) || /mpegurl/i.test(mimeType || '')) return 'hls'
   if (/\.mpd(?:[?#]|$)/i.test(url) || /dash\+xml/i.test(mimeType || '')) return 'dash'
   try { return new URL(url).protocol.replace(':', '') as MediaProtocol } catch { return 'unknown' }
+}
+
+/** Shared routing rule for direct adaptive inputs, including extension MIME labels. */
+export function isAdaptiveMediaInput(mediaType: string | undefined, url: string): boolean {
+  const type = (mediaType ?? '').toLowerCase()
+  const protocol = protocolFor(url, type)
+  return type === 'hls' || type === 'dash' || type === 'mpd' || protocol === 'hls' || protocol === 'dash'
 }
 
 export function sanitizeResolverError(message: string): string {
@@ -100,11 +108,12 @@ export function canonicalMediaUrl(value: string): string {
 }
 
 export function classifyResolverError(message: string): { kind: ResolverErrorKind; action: string } {
-  const m = message.toLowerCase()
-  if (/drm|widevine|fairplay|encrypted|license/.test(m)) return { kind: 'drm', action: 'This media is DRM-protected and cannot be downloaded.' }
-  if (/captcha|browser|javascript/.test(m)) return { kind: 'browser-required', action: 'Open the page in a browser and complete the site check, then retry.' }
-  if (/sign in|login|authentication|unauthori[sz]ed|auth_required|\b401\b|\b403\b|forbidden|cookies/.test(m)) return { kind: 'auth', action: 'Sign in to the source site and retry; no credentials were retained.' }
-  if (/unsupported|no suitable|format not available/.test(m)) return { kind: 'unsupported', action: 'Try another format or a supported media URL.' }
-  if (/timeout|timed out|temporar|connection|reset|503|502|429/.test(m)) return { kind: 'temporary-network', action: 'Check the connection and retry once.' }
+  const code = classifyDownloadError(message, false)
+  if (code === 'DRM_PROTECTED') return { kind: 'drm', action: 'This media is DRM-protected and cannot be downloaded.' }
+  if (code === 'BROWSER_REQUIRED') return { kind: 'browser-required', action: 'Open the source page in Chrome and capture its media.' }
+  if (code === 'AUTH_REQUIRED') return { kind: 'auth', action: 'The source explicitly requires authentication. Sign in and retry.' }
+  if (code === 'ACCESS_DENIED') return { kind: 'access-denied', action: 'The source refused access; the cause is unknown. Open the source page and recapture its media.' }
+  if (code === 'NETWORK_RETRYABLE') return { kind: 'temporary-network', action: 'Check the connection and retry once.' }
+  if (code === 'UNSUPPORTED' && /unsupported|no suitable|format not available|HTTP.*(?:404|410)/i.test(message)) return { kind: 'unsupported', action: 'Try another format or capture media from the source page.' }
   return { kind: 'unknown', action: 'Check the URL and try again.' }
 }

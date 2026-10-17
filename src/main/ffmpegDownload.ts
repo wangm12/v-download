@@ -1,3 +1,4 @@
+import type { DownloadSelection } from '@v-download/shared'
 import type { ChildProcess } from 'child_process'
 import { randomBytes } from 'crypto'
 import { mkdirSync, existsSync } from 'fs'
@@ -8,6 +9,9 @@ import * as settings from './settings'
 import { terminateDownloadProcess, type DownloadProcess, type DownloadProgress } from './downloadTypes'
 import { DEFAULT_DIRECT_MEDIA_UA, parseMediaDurationSeconds } from './ytdlp'
 import { spawnManagedProcess } from './managedChildProcesses'
+import { isAdaptiveMediaInput } from './mediaResolver'
+import { selectAdaptiveVideoStreams, type DownloadQuality } from './downloadQuality'
+import { probeMediaMetadata } from './ffprobe'
 
 const EXTRA_PATH_DIRS = [
   '/opt/homebrew/bin',
@@ -31,7 +35,7 @@ function buildSpawnEnv(): Record<string, string> {
   return { ...process.env as Record<string, string>, PATH: [...dirs].join(':') }
 }
 
-function buildHeaderMap(
+export function directMediaHeaders(
   referer: string | undefined,
   customHeaders: Record<string, string> | undefined
 ): Record<string, string> {
@@ -144,6 +148,9 @@ export interface FfmpegDirectDownloadOptions {
   /** Full output file path (including extension). */
   outputPath: string
   mediaType?: string
+  /** Explicit input stream indices selected from an adaptive manifest. */
+  streamMaps?: number[]
+  selection?: DownloadSelection
   /** Task format: `audio` / `mp3` / `video` etc. */
   format: string
   referer?: string
@@ -171,8 +178,6 @@ export interface FfmpegDirectDownloadProcess extends DownloadProcess {
 
 const HTTP_READ_IDLE_TIMEOUT_US = 45_000_000
 const HTTP_RECONNECT_MAX_RETRIES = 2
-const FFPROBE_VALIDATION_TIMEOUT_MS = 15_000
-const FFPROBE_CAPTURE_MAX_BYTES = 64 * 1024
 
 function isHttpUrl(value: string): boolean {
   try {
@@ -182,28 +187,37 @@ function isHttpUrl(value: string): boolean {
   }
 }
 
-function isManifestInput(mediaType: string | undefined, url: string): boolean {
-  const type = (mediaType ?? '').toLowerCase()
-  return type === 'hls' || type === 'dash' || type === 'mpd' ||
-    /\.(?:m3u8|mpd)(?:\?|#|$)/i.test(url)
-}
-
 function isProgressiveHttpInput(mediaType: string | undefined, url: string): boolean {
-  return isHttpUrl(url) && !isManifestInput(mediaType, url)
+  return isHttpUrl(url) && !isAdaptiveMediaInput(mediaType, url)
 }
 
 function expectedStreamClass(format: string, mediaType: string | undefined): 'audio' | 'video' {
   const type = (mediaType ?? '').toLowerCase()
-  if (format === 'audio' || format === 'mp3' || /^audio(?:\/|$)/.test(type) || /^(?:mp3|m4a|aac|opus|ogg|oga|wav|flac)$/.test(type)) {
+  if (['audio','mp3','m4a','opus'].includes(format) || /^audio(?:\/|$)/.test(type) || /^(?:mp3|m4a|aac|opus|ogg|oga|wav|flac)$/.test(type)) {
     return 'audio'
   }
   return 'video'
 }
 
-function ffprobeExecutable(ffmpegPath: string): string {
+export function ffprobeExecutable(ffmpegPath: string): string {
   const executable = process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe'
   const sibling = join(dirname(ffmpegPath), executable)
   return existsSync(sibling) ? sibling : executable
+}
+
+/** Respect a height limit without overriding a caller's FFmpeg engine choice. */
+export async function probeAdaptiveVideoStreams(options: {
+  url: string; quality: DownloadQuality; referer?: string; customHeaders?: Record<string, string>
+  proxyUrl?: string; signal?: AbortSignal; selection?: DownloadSelection
+}): Promise<ReturnType<typeof selectAdaptiveVideoStreams>> {
+  const args = ['-v', 'error', '-rw_timeout', String(HTTP_READ_IDLE_TIMEOUT_US),
+    '-headers', headersToFfmpegArg(directMediaHeaders(options.referer, options.customHeaders))]
+  if (options.proxyUrl?.trim()) args.push('-http_proxy', options.proxyUrl.trim())
+  args.push('-show_entries', 'stream=index,codec_type,codec_name,height,bit_rate,avg_frame_rate,r_frame_rate,color_transfer:stream_tags=language:program=program_id:program_stream=index,codec_type,codec_name,height,bit_rate,avg_frame_rate,r_frame_rate,color_transfer', '-of', 'json', options.url)
+  const probe = await probeMediaMetadata(ffprobeExecutable(settings.get('ffmpegPath')), args, {
+    stdio: ['ignore', 'pipe', 'pipe'], env: buildSpawnEnv(), detached: process.platform !== 'win32'
+  }, options.signal)
+  return probe.ok ? selectAdaptiveVideoStreams(probe.metadata, options.quality, options.selection) : { ok: false, error: probe.error }
 }
 
 /**
@@ -227,14 +241,14 @@ export function downloadDirectMediaWithFfmpeg(options: FfmpegDirectDownloadOptio
   let onProgress: (progress: DownloadProgress) => void = progressCb ?? (() => {})
 
   const wantsMp3 =
-    format === 'audio' || format === 'mp3' || mediaType === 'mp3'
+    options.selection?.target === 'audio' || format === 'audio' || format === 'mp3' || mediaType === 'mp3'
   const muxerInputPath = outputPath.replace(/\.part$/i, '')
   const outExt = extname(muxerInputPath).slice(1).toLowerCase() || 'mp4'
-  const outputMuxer = outExt === 'mp3' ? 'mp3' : outExt === 'mp4' ? 'mp4' : ''
+  const outputMuxer = ({ mp3: 'mp3', mp4: 'mp4', m4a: 'ipod', opus: 'opus', mka: 'matroska' } as Record<string,string>)[outExt] ?? ''
 
   const isHls = mediaType === 'hls' || /\.m3u8(\?|#|$)/i.test(url)
 
-  const headerMap = buildHeaderMap(referer, customHeaders)
+  const headerMap = directMediaHeaders(referer, customHeaders)
   const headersArg = headersToFfmpegArg(headerMap)
 
   const args: string[] = ['-hide_banner', '-loglevel', 'info', '-y']
@@ -285,12 +299,26 @@ export function downloadDirectMediaWithFfmpeg(options: FfmpegDirectDownloadOptio
 
   args.push('-i', url)
 
-  if (wantsMp3 && outExt === 'mp3') {
+  if (options.selection?.target === 'audio') {
+    for (const index of options.streamMaps ?? []) args.push('-map', `0:${index}`)
+    const codec = { mp3: 'libmp3lame', m4a: 'aac', opus: 'libopus', original: 'copy', mp4: 'aac' }[options.selection.output]
+    args.push('-vn', '-c:a', codec)
+    if (options.selection.audioBitrate && codec !== 'copy') args.push('-b:a', `${options.selection.audioBitrate}k`)
+  } else if (wantsMp3 && outExt === 'mp3') {
     args.push('-vn', '-c:a', 'libmp3lame', '-q:a', '0', '-threads', '0')
   } else {
+    if (options.streamMaps) {
+      for (const index of options.streamMaps) args.push('-map', `0:${index}`)
+      args.push('-map_metadata', '0', '-map_chapters', '0')
+    } else if (!isAdaptiveMediaInput(mediaType, url)) {
+      // Automatic stream selection can omit embedded subtitles even with -c copy.
+      // Map existing A/V/subtitle tracks explicitly; incompatible codecs must fail
+      // rather than silently publish a file missing content. Data streams are not media tracks.
+      args.push('-map', '0:v?', '-map', '0:a?', '-map', '0:s?', '-map_metadata', '0', '-map_chapters', '0')
+    }
     if (outExt === 'mp4' && isHls) {
       // Copy mux only — omit +faststart: moving moov to the head is an extra pass that hurts tail latency on long HLS.
-      args.push('-c:v', 'copy', '-c:a', 'copy', '-bsf:a', 'aac_adtstoasc')
+      args.push('-c', 'copy', '-bsf:a', 'aac_adtstoasc')
     } else if (outExt === 'mp4') {
       args.push('-c', 'copy', '-movflags', '+faststart')
     } else {
@@ -308,10 +336,10 @@ export function downloadDirectMediaWithFfmpeg(options: FfmpegDirectDownloadOptio
     env: buildSpawnEnv(),
     detached: process.platform !== 'win32'
   })
-  let activeChild = proc
+  let stopActiveChild = () => terminateDownloadProcess(proc, true)
   let termination: Promise<boolean> | null = null
   const stopProcess = (): Promise<boolean> => {
-    if (!termination) termination = terminateDownloadProcess(activeChild, true)
+    if (!termination) termination = stopActiveChild()
     return termination
   }
 
@@ -365,119 +393,20 @@ export function downloadDirectMediaWithFfmpeg(options: FfmpegDirectDownloadOptio
   proc.stderr?.on('data', drain)
 
   const validateOutput: FfmpegDirectDownloadProcess['validateOutput'] = async (path, expectation, signal) => {
-    if (signal?.aborted) return { valid: false, cancelled: true }
-
-    let probe: ChildProcess
-    try {
-      const args = [
-        '-v', 'error',
-        '-show_entries', 'stream=codec_type',
-        '-of', 'json',
-        path
-      ]
-      probe = spawnManagedProcess(ffprobeExecutable(ffmpegPath), args, {
-        stdio: ['ignore', 'pipe', 'pipe'],
-        env: buildSpawnEnv(),
-        detached: process.platform !== 'win32'
-      })
-    } catch (error) {
-      return { valid: false, error: `Could not start ffprobe: ${String(error)}` }
-    }
-
-    activeChild = probe
-    termination = null
+    const probe = await probeMediaMetadata(ffprobeExecutable(ffmpegPath), [
+      '-v', 'error', '-show_entries', 'stream=codec_type', '-of', 'json', path
+    ], { stdio: ['ignore', 'pipe', 'pipe'], env: buildSpawnEnv(), detached: process.platform !== 'win32' }, signal,
+    (_child, stop) => { stopActiveChild = stop; termination = null })
+    if (!probe.ok) return { valid: false, cancelled: probe.cancelled, error: probe.error }
+    const result = probe.metadata as { streams?: Array<{ codec_type?: unknown }> } | null
+    const streamTypes = Array.isArray(result?.streams)
+      ? result.streams.flatMap((stream) => typeof stream?.codec_type === 'string' ? [stream.codec_type.toLowerCase()] : [])
+      : []
     const expected = expectedStreamClass(expectation.format, expectation.mediaType)
-    return await new Promise<FfmpegOutputValidationResult>((resolve) => {
-      let stdout = ''
-      let stderr = ''
-      let stdoutBytes = 0
-      let timedOut = false
-      let cancelled = false
-      let spawnError = ''
-      let settled = false
-
-      const finish = (result: FfmpegOutputValidationResult) => {
-        if (settled) return
-        settled = true
-        clearTimeout(timeout)
-        signal?.removeEventListener('abort', onAbort)
-        resolve(result)
-      }
-      const onAbort = () => {
-        cancelled = true
-        void stopProcess().then(
-          () => finish({ valid: false, cancelled: true }),
-          () => finish({ valid: false, cancelled: true })
-        )
-      }
-      const timeout = setTimeout(() => {
-        timedOut = true
-        const error = `ffprobe validation timed out after ${Math.round(FFPROBE_VALIDATION_TIMEOUT_MS / 1000)} seconds`
-        void stopProcess().then(
-          () => finish({ valid: false, error }),
-          () => finish({ valid: false, error })
-        )
-      }, FFPROBE_VALIDATION_TIMEOUT_MS)
-      timeout.unref?.()
-
-      probe.stdout?.on('data', (chunk: Buffer) => {
-        if (stdoutBytes + chunk.length > FFPROBE_CAPTURE_MAX_BYTES) {
-          spawnError = 'ffprobe output exceeded its safety limit'
-          void stopProcess().then(
-            () => finish({ valid: false, error: `ffprobe validation failed: ${spawnError}` }),
-            () => finish({ valid: false, error: `ffprobe validation failed: ${spawnError}` })
-          )
-          return
-        }
-        stdoutBytes += chunk.length
-        stdout += chunk.toString('utf8')
-      })
-      probe.stderr?.on('data', (chunk: Buffer) => {
-        stderr = `${stderr}${chunk.toString('utf8')}`.slice(-FFPROBE_CAPTURE_MAX_BYTES)
-      })
-      probe.once('error', (error) => {
-        spawnError = error.message
-      })
-      probe.once('close', (code) => {
-        if (cancelled || signal?.aborted) {
-          finish({ valid: false, cancelled: true })
-          return
-        }
-        if (timedOut) {
-          finish({ valid: false, error: `ffprobe validation timed out after ${Math.round(FFPROBE_VALIDATION_TIMEOUT_MS / 1000)} seconds` })
-          return
-        }
-        if (spawnError) {
-          finish({ valid: false, error: `ffprobe validation failed: ${spawnError}` })
-          return
-        }
-        if (code !== 0) {
-          const detail = stderr.trim().split('\n').filter(Boolean).slice(-3).join('\n')
-          finish({ valid: false, error: detail ? `ffprobe could not read the output: ${detail}` : `ffprobe exited with code ${code}` })
-          return
-        }
-        let streamTypes: string[]
-        try {
-          const result = JSON.parse(stdout) as { streams?: Array<{ codec_type?: unknown }> }
-          streamTypes = Array.isArray(result.streams)
-            ? result.streams.flatMap((stream) => typeof stream?.codec_type === 'string' ? [stream.codec_type.toLowerCase()] : [])
-            : []
-        } catch {
-          finish({ valid: false, error: 'ffprobe returned malformed output metadata' })
-          return
-        }
-        if (!streamTypes.includes(expected)) {
-          finish({
-            valid: false,
-            error: `FFmpeg output is missing the expected ${expected} stream${streamTypes.length ? ` (found ${[...new Set(streamTypes)].join(', ')})` : ''}`
-          })
-          return
-        }
-        finish({ valid: true })
-      })
-      if (signal?.aborted) onAbort()
-      else signal?.addEventListener('abort', onAbort, { once: true })
-    })
+    return streamTypes.includes(expected) ? { valid: true } : {
+      valid: false,
+      error: `FFmpeg output is missing the expected ${expected} stream${streamTypes.length ? ` (found ${[...new Set(streamTypes)].join(', ')})` : ''}`
+    }
   }
 
   const downloadProcess: FfmpegDirectDownloadProcess = {
@@ -535,7 +464,7 @@ export async function extractStreamThumbnailAsDataUrl(opts: {
   }
   const outPath = join(dir, `thumb-${randomBytes(8).toString('hex')}.jpg`)
 
-  const headerMap = buildHeaderMap(referer, customHeaders)
+  const headerMap = directMediaHeaders(referer, customHeaders)
   const headersArg = headersToFfmpegArg(headerMap)
 
   const args: string[] = ['-hide_banner', '-loglevel', 'error', '-y']

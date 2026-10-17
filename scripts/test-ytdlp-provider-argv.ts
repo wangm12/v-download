@@ -4,11 +4,34 @@ import {
   YOUTUBE_COOKIE_PLAYER_CLIENT_ARGS,
   appendYoutubeYtdlpArgs,
   isYoutubePageReloadError,
+  videoFormatSelector,
   resolveYtdlpOutputFilename
 } from '../src/main/ytdlp'
+import { normalizeDownloadQuality, selectAdaptiveVideoStreams } from '../src/main/downloadQuality'
 
 async function main(): Promise<void> {
 const source = await readFile(new URL('../src/main/ytdlp.ts', import.meta.url), 'utf8')
+assert.equal(videoFormatSelector(360, false), 'bv[height<=360]+ba/b[height<=360]')
+assert.equal(videoFormatSelector(360, true), 'bv[height<=360][ext=mp4]+ba[ext=m4a]/bv[height<=360]+ba/b[height<=360]')
+assert.equal(videoFormatSelector('best', false), 'bv+ba/b')
+assert.equal(normalizeDownloadQuality('best'), 'best')
+assert.equal(normalizeDownloadQuality('360'), 360)
+assert.equal(normalizeDownloadQuality(undefined), 1080)
+assert.equal(normalizeDownloadQuality(-1), 1080)
+// Real ffprobe HLS shape: paired audio belongs to its selected rendition.
+const high = { index: 0, codec_type: 'video', height: 720 }
+const highAudio = { index: 1, codec_type: 'audio' }
+const low = { index: 2, codec_type: 'video', height: 360 }
+const lowAudio = { index: 3, codec_type: 'audio' }
+const probe = { streams: [high, highAudio, low, lowAudio], programs: [
+  { streams: [high, highAudio] }, { streams: [low, lowAudio] }
+] }
+assert.deepEqual(selectAdaptiveVideoStreams(probe, 360), { ok: true, streamMaps: [2, 3] })
+assert.deepEqual(selectAdaptiveVideoStreams(probe, 'best'), { ok: true, streamMaps: [0, 1] })
+assert.equal(selectAdaptiveVideoStreams(probe, 240).ok, false)
+assert.equal(selectAdaptiveVideoStreams(null, 360).ok, false)
+assert.equal(selectAdaptiveVideoStreams({ streams: [null, {}, { index: -1, codec_type: 'video', height: 360 }] }, 360).ok, false)
+assert.deepEqual(selectAdaptiveVideoStreams({ streams: [high, low, highAudio] }, 360), { ok: true, streamMaps: [2, 1] })
 assert.match(source, /if \(extractorArgs && isValidYouTubeUrl\(url\)\) args\.push\('--extractor-args', extractorArgs\)/)
 assert.match(source, /if \(pluginDir && isValidYouTubeUrl\(url\)\) args\.push\('--plugin-dirs', pluginDir\)/)
 assert.match(source, /pluginDir\?: string/)

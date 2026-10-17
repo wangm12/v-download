@@ -20,7 +20,6 @@
   ]
   const AUDIO = new Set(['mp3', 'm4a', 'aac', 'ogg', 'wav', 'flac'])
   const MANIFESTS = new Set(['hls', 'dash'])
-  const PREVIEW_SIZE = 5 * 1024 * 1024
   const HEATMAP = /(^|[./_-])(heatmap|sprite|thumbnail|preview_v)([0-9a-z._-]|$)/i
   const TRAILER = /(^|[./_-])(teaser|trailer)([0-9a-z._-]|$)/i
   const MASTER_STEM = /^(master|index|playlist)$/i
@@ -144,7 +143,7 @@
   }
   function scoreCandidate(c) {
     const type = c.type || inferType(c.url, c.mime || c.contentType)
-    const raw = (c.confidence || 0) + (MANIFESTS.has(type) ? 35 : 20) + (c.size > 0 ? Math.min(25, Math.log10(c.size) * 2) : 0) + (c.source === 'element' ? 12 : 0) + (/^https:/.test(c.url) ? 4 : 0)
+    const raw = (MANIFESTS.has(type) ? 35 : 20) + (c.size > 0 ? Math.min(25, Math.log10(c.size) * 2) : 0) + (c.source === 'element' ? 12 : 0) + (/^https:/.test(c.url) ? 4 : 0)
     return Math.min(100, Math.max(0, raw - identityPenalty(c.url)))
   }
   function displayTitleFor(item, pageTitle) {
@@ -173,17 +172,11 @@
       const path = pathText(raw.url)
       let role = 'unknown'
       if (isAdLikeUrl(raw.url)) role = 'ad'
-      else if (pageUrl && raw.pageUrl && isRelatedDocument(raw.pageUrl, pageUrl)) role = 'related'
+      else if (pageUrl && (raw.sourceContext?.pageUrl || raw.pageUrl) && isRelatedDocument(raw.sourceContext?.pageUrl || raw.pageUrl, pageUrl)) role = 'related'
       else if (HEATMAP.test(path)) role = 'heatmap'
       else if (TRAILER.test(path)) role = 'preview'
       return { ...raw, type, role, playlistKind: playlistKindFromUrl(raw.url, type) }
     })
-    const hasManifest = prepared.some((item) => MANIFESTS.has(item.type) && item.role !== 'related' && item.role !== 'ad')
-    for (const item of prepared) {
-      if (item.role !== 'unknown') continue
-      const size = Number(item.size || 0)
-      if (hasManifest && !MANIFESTS.has(item.type) && !AUDIO.has(item.type) && size > 0 && size < PREVIEW_SIZE) item.role = 'preview'
-    }
     const contenders = prepared.filter((item) => item.role === 'unknown')
     const manifests = contenders.filter((item) => MANIFESTS.has(item.type))
     const pool = manifests.length ? manifests : contenders.filter((item) => !AUDIO.has(item.type))
@@ -191,7 +184,7 @@
     if (main) {
       for (const item of pool) {
         if (item === main) item.role = 'main'
-        else if (MANIFESTS.has(item.type)) item.role = 'variant'
+        // No manifest relationship has been established: other candidates remain independent.
       }
     }
     for (const item of prepared) item.displayTitle = displayTitleFor(item, pageTitle)
@@ -201,7 +194,7 @@
     return (Array.isArray(items) ? items : []).filter((item) => item.role === 'main')
   }
   function roleLabel(role) {
-    if (role === 'main') return 'Main video'
+    if (role === 'main') return 'Suggested'
     if (role === 'variant') return 'Other playlist'
     if (role === 'preview') return 'Preview'
     if (role === 'heatmap') return 'Heatmap'
@@ -219,27 +212,59 @@
     const main = visible.filter((item) => item.role === 'main')
     const variants = visible.filter((item) => item.role === 'variant')
     const rest = visible.filter((item) => item.role !== 'main' && item.role !== 'variant')
-    return main.concat(variants.slice(0, 1), rest)
+    return main.concat(variants, rest)
   }
   function pickRefreshedSniffedCandidate(clicked, media) {
     if (!clicked || !clicked.url) return null
     const key = stableMediaUrl(clicked.url)
-    const same = (Array.isArray(media) ? media : []).filter((item) => item && item.type === clicked.type && stableMediaUrl(item.url) === key)
+    const same = (Array.isArray(media) ? media : []).filter((item) => item && item.type === clicked.type && stableMediaUrl(item.url) === key && sourceScope(item) === sourceScope(clicked))
     if (!same.length) return clicked
     return same.slice().sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))[0] || clicked
+  }
+  // Context is part of discovery identity; the actual transport URL is never normalized.
+  function sourceScope(candidate) {
+    const context = candidate.sourceContext || {}
+    return JSON.stringify([context.pageUrl || candidate.pageUrl || '', context.documentUrl || '', context.tabId ?? null,
+      context.frameId ?? null, context.documentId || '', context.navigationEpoch ?? null])
+  }
+  function candidateKey(candidate) {
+    return JSON.stringify([canonicalizeUrl(candidate.url), candidate.type || inferType(candidate.url, candidate.mime || candidate.contentType), sourceScope(candidate)])
+  }
+  function documentCandidate(element, media, documentUrl) {
+    return (media || []).find((item) => item.url === element.url && item.type === element.type &&
+      (item.sourceContext?.documentUrl === documentUrl ||
+       (item.sourceContext?.frameId === 0 && item.sourceContext?.pageUrl === documentUrl)))
+  }
+  // Project the transport and its provenance together at every overlay submit path.
+  function mediaItemForDownload(candidate) {
+    return { url: candidate.url, type: candidate.type,
+      ...(candidate.initiator ? { initiator: candidate.initiator } : {}),
+      ...(candidate.pageUrl ? { pageUrl: candidate.pageUrl } : {}),
+      ...(candidate.sourceContext ? { sourceContext: candidate.sourceContext } : {}) }
+  }
+  function preferredObservation(previous, next) {
+    if (!previous) return next
+    // Resource Timing has no response headers. For the same transport and
+    // document, retain the complete network observation regardless of delivery order.
+    if (previous.url === next.url) {
+      if (previous.source === 'network' && next.source === 'performance') return previous
+      if (next.source === 'network' && previous.source === 'performance') return next
+    }
+    return (previous.timestamp || 0) > (next.timestamp || 0) ? previous : next
   }
   function mergeCandidates(items) {
     const merged = new Map()
     for (const raw of Array.isArray(items) ? items : []) {
       if (!isReliableCandidate(raw)) continue
-      const url = canonicalizeUrl(raw.url), type = raw.type || inferType(url, raw.mime || raw.contentType)
-      const next = { ...raw, url, type, mime: raw.mime || raw.contentType || '', confidence: Number(raw.confidence || 0) }
-      const key = `${url}|${type}`
+      const type = raw.type || inferType(raw.url, raw.mime || raw.contentType)
+      const next = { ...raw, type, mime: raw.mime || raw.contentType || '' }
+      const key = candidateKey(next)
       const prev = merged.get(key)
-      if (!prev) merged.set(key, next)
-      else merged.set(key, { ...prev, ...next, url: prev.url, size: Math.max(Number(prev.size || 0), Number(next.size || 0)) || null, timestamp: Math.max(prev.timestamp || 0, next.timestamp || 0), confidence: Math.max(scoreCandidate(prev), scoreCandidate(next)) })
+      // Keep URL and provenance from the same observation. Timestamps do not rank quality.
+      merged.set(key, preferredObservation(prev, next))
     }
-    return Array.from(merged.values()).map((c) => ({ ...c, confidence: Math.round(scoreCandidate(c)) })).sort((a, b) => b.confidence - a.confidence || (b.size || 0) - (a.size || 0) || a.url.localeCompare(b.url))
+    return Array.from(merged.values()).map((c) => ({ ...c, confidence: Math.round(scoreCandidate(c)) }))
+      .sort((a, b) => b.confidence - a.confidence || (b.size || 0) - (a.size || 0) || a.url.localeCompare(b.url))
   }
   function filterSniffedForOverlay(sniffed, videoLoadTime) {
     const list = Array.isArray(sniffed) ? sniffed : []
@@ -259,5 +284,5 @@
       return ts >= cutoff
     })
   }
-  g.VDownloadMediaPatterns = { MIN_VIDEO_SIZE, AUDIO, MANIFESTS, canonicalizeUrl, stableMediaUrl, safeUrl, contentType, inferType, inferTypeFromUrl: (u) => inferType(u, ''), isNoise, isReliableCandidate, isAdLikeUrl, scoreCandidate, mergeCandidates, filterSniffedForOverlay, classifyMediaRole, selectDefaultMedia, selectSmartOverlayMedia, pickRefreshedSniffedCandidate, displayTitleFor, roleLabel, playlistKindFromUrl, validateBatch: (items) => Array.isArray(items) && items.length > 0 }
+  g.VDownloadMediaPatterns = { MIN_VIDEO_SIZE, AUDIO, MANIFESTS, candidateKey, documentCandidate, mediaItemForDownload, preferredObservation, canonicalizeUrl, stableMediaUrl, safeUrl, contentType, inferType, inferTypeFromUrl: (u) => inferType(u, ''), isNoise, isReliableCandidate, isAdLikeUrl, scoreCandidate, mergeCandidates, filterSniffedForOverlay, classifyMediaRole, selectDefaultMedia, selectSmartOverlayMedia, pickRefreshedSniffedCandidate, displayTitleFor, roleLabel, playlistKindFromUrl, validateBatch: (items) => Array.isArray(items) && items.length > 0 }
 })(typeof globalThis !== 'undefined' ? globalThis : this)

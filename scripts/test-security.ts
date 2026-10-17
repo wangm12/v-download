@@ -68,3 +68,18 @@ const remoteApiServer = readFileSync(new URL('../src/main/remoteApiServer.ts', i
 assert.match(remoteApiServer, /REMOTE_API_DEFAULT_PORT = 18766/)
 assert.match(remoteApiServer, /current\.close\(/)
 console.log('security validators: origin, pairing boundary, cookie records, download payloads, and redaction fixtures passed')
+
+// Versioned selection objects and integer revisions have dedicated validators.
+assert.equal(validateDownloadPayload({ url: 'https://fixture.test/v.mp4', planId: 'builtin:audio', planRevision: 1 }).ok, true)
+assert.equal(validateDownloadPayload({ url: 'https://fixture.test/v.mp4', selection: { version: 1, target: 'video', maxHeight: 360, videoCodec: 'h264', maxFps: 30, dynamicRange: 'any', output: 'original', postprocess: 'none' } }).ok, true)
+assert.equal(validateDownloadPayload({ url: 'https://fixture.test/v.mp4', planRevision: '1' }).ok, false)
+
+const provenance = { version: 1, pageUrl: 'https://site.test/watch?title=a%20b#player', documentUrl: 'https://player.test/embed?q=c%2fd#video', frameId: 7, tabId: 1, navigationEpoch: 2, documentId: 'doc-7', observedAt: 100 }
+const capture = validateDownloadPayload({ url: 'https://cdn.test/a.m3u8?sig=a%2fb', referer: 'https://wrong.test', sourceContext: provenance })
+assert.equal(capture.ok, true)
+if (capture.ok) {
+  assert.equal(capture.value.url, 'https://cdn.test/a.m3u8?sig=a%2fb')
+  assert.equal(capture.value.referer, 'https://player.test/embed?q=c%2fd')
+  assert.deepEqual(capture.value.sourceContext, provenance)
+}
+for (const sourceContext of [{ ...provenance, version: 2 }, { ...provenance, cookie: 'not-a-source-field' }, { ...provenance, frameId: -1 }, { ...provenance, documentUrl: 'file:///tmp/page' }, { ...provenance, pageUrl: 'https://test/\r\nInjected: yes' }]) assert.equal(validateDownloadPayload({ url: 'https://cdn.test/a.mp4', sourceContext }).ok, false)

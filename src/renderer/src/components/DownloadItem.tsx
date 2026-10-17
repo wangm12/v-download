@@ -51,6 +51,7 @@ export const DownloadItem = memo(function DownloadItem({ download, selected = fa
         const phaseLabel =
           phase === 'audio' ? t('status.audio') :
           phase === 'merging' ? t('status.merging') :
+          phase === 'transcoding' ? t('status.transcoding') :
           phase === 'video' ? t('status.video') : ''
         const leftParts: string[] = []
         if (phaseLabel) leftParts.push(phaseLabel)
@@ -59,7 +60,7 @@ export const DownloadItem = memo(function DownloadItem({ download, selected = fa
         if (speed) leftParts.push(speed)
 
         const showEta = eta && eta !== '00:00' && eta !== '0:00'
-        const isMerging = phase === 'merging'
+        const isMerging = phase === 'merging' || phase === 'transcoding'
 
         return (
           <div className="flex flex-col gap-1 w-full min-w-0 self-stretch">

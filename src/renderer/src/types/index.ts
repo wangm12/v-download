@@ -1,3 +1,4 @@
+import type { DownloadPlanLibrary, DownloadSelection, MediaSourceContext } from '@v-download/shared'
 import type { DownloadErrorCode } from '@v-download/shared'
 
 export type DownloadStatus =
@@ -16,6 +17,12 @@ export interface Download {
   url: string
   title: string
   format: string
+  selection?: DownloadSelection | null
+  sourceContext?: MediaSourceContext | null
+  mediaUrl?: string | null
+  recaptureAt?: string | null
+  planId?: string | null
+  planName?: string | null
   quality: string
   status: DownloadStatus
   progress: number
@@ -24,6 +31,7 @@ export interface Download {
   totalSize: string | null
   phase: string | null
   file_path: string | null
+  outputDir?: string | null
   file_size: number | null
   thumbnail: string | null
   duration: number | null
@@ -64,10 +72,11 @@ export interface VideoInfo {
   image_urls?: string[]
   /** Parsed caption / description for note.md */
   description?: string
-  formats?: Array<{ format_id?: string; format?: string; ext?: string; container?: string; height?: number; width?: number; abr?: number; bitrate?: number; tbr?: number; filesize?: number; filesize_approx?: number; vcodec?: string; acodec?: string; source?: string }>
+  formats?: Array<{ format_id?: string; fps?: number; dynamic_range?: string; language?: string; format?: string; ext?: string; container?: string; height?: number; width?: number; abr?: number; bitrate?: number; tbr?: number; filesize?: number; filesize_approx?: number; vcodec?: string; acodec?: string; source?: string }>
 }
 
 export interface SettingsData {
+  downloadPlanLibrary?: DownloadPlanLibrary
   downloadDir: string
   concurrency: number
   showFormatDialog: boolean

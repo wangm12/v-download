@@ -35,10 +35,16 @@ test('database migrations upgrade legacy downloads and remain idempotent', () =>
   const columns = database.prepare('PRAGMA table_info(downloads)').all() as { name: string }[]
   assert.ok(columns.some(({ name }) => name === 'extras'))
   assert.ok(columns.some(({ name }) => name === 'error_code'))
+  assert.ok(columns.some(({ name }) => name === 'selection_key'))
+  assert.equal((database.prepare('SELECT selection_key FROM downloads WHERE id = ?').get('legacy-1') as { selection_key: string | null }).selection_key, null)
+  database.prepare('UPDATE downloads SET selection_key = ? WHERE id = ?').run('frozen-intent', 'legacy-1')
+  migrateDatabase(database)
+  assert.equal((database.prepare('SELECT selection_key FROM downloads WHERE id = ?').get('legacy-1') as { selection_key: string }).selection_key, 'frozen-intent')
   assert.deepEqual(database.prepare('SELECT version FROM schema_migrations ORDER BY version').all(), [
     { version: 1 },
     { version: 2 },
     { version: 3 },
+    { version: 4 },
   ])
   assert.equal(
     (database.prepare('SELECT title FROM downloads WHERE id = ?').get('legacy-1') as { title: string }).title,

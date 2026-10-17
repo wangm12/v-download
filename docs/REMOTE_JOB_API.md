@@ -436,7 +436,7 @@ Default `downloadDir` is `~/Downloads`. Only files under that job folder are exp
 
 ### Retries
 
-Transient download failures retry up to **3** attempts (`2s`, then `4s` delay). These codes are **not** retried: `auth_required`, `unsupported_live`, `file_too_large`, `collection_too_large`, `cancelled`, `no_media`.
+Transient download failures retry up to **3** attempts (`2s`, then `4s` delay). These codes are **not** retried: `auth_required`, `access_denied`, `unsupported_live`, `file_too_large`, `collection_too_large`, `cancelled`, `no_media`.
 
 If one item in a multi-item collection fails for good, the job becomes `error` with `collection_item_failed` and sibling tasks are cancelled.
 
@@ -482,6 +482,7 @@ Wire shape:
 |---|---|
 | `download_failed` | Generic yt-dlp / engine failure |
 | `auth_required` | Login / fresh cookies needed |
+| `access_denied` | Source refused access (for example a generic HTTP 403). The cause is unknown; this does not establish a login requirement. |
 | `unsupported_live` | Live stream |
 | `file_too_large` | Over an internal size cap |
 | `collection_too_large` | Playlist/channel longer than 50 items (fan-out). `details`: `{ itemCount, max }` |

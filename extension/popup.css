@@ -149,6 +149,16 @@ body {
 }
 
 .media-info { flex: 1; min-width: 0; cursor: pointer; }
+.media-meta { flex-wrap: wrap; }
+.capture-session { padding: 12px 16px; background: var(--vdl-selection); font-size: 12px; line-height: 1.5; }
+.capture-session[hidden], .plan-selector[hidden] { display: none; }
+.capture-session p { margin: 6px 0; }
+.capture-session label { display: block; }
+.capture-session button, .candidate-details button { margin: 8px 0; padding: 5px 8px; border: 1px solid var(--vdl-divider); border-radius: 6px; color: var(--vdl-text); background: var(--vdl-control); cursor: pointer; }
+.candidate-details { margin-top: 8px; color: var(--vdl-muted); font-size: 11px; line-height: 1.5; cursor: default; }
+.candidate-details summary { cursor: pointer; color: var(--vdl-accent); }
+.candidate-details p { margin: 6px 0; overflow-wrap: anywhere; user-select: text; }
+.candidate-details [role="status"] { max-height: 220px; overflow: auto; }
 
 .media-download-one {
   flex-shrink: 0;
@@ -167,6 +177,7 @@ body {
 .media-download-one:active { transform: scale(0.96); }
 
 .media-name {
+  display: block;
   overflow: hidden;
   color: var(--vdl-text);
   font-size: 13px;

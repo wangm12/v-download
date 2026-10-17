@@ -9,6 +9,7 @@ let db: Database.Database | null = null
 const DB_PATH = join(app.getPath('userData'), 'downloads.db')
 
 export interface DownloadRecord {
+  selection_key?: string | null
   id: string
   url: string
   title: string
@@ -32,6 +33,7 @@ export interface DownloadRecord {
 }
 
 export interface DownloadAdmissionRecord {
+  selection_key?: string | null
   id: string
   url: string
   status: string
@@ -109,8 +111,8 @@ function insertDownloadWithTimestamp(
 ): void {
   if (!db) throw new Error('Database not initialized')
   const stmt = db.prepare(`
-    INSERT INTO downloads (id, url, title, format, quality, status, progress, file_path, file_size, thumbnail, duration, channel, playlist_id, playlist_index, extras, error, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO downloads (id, url, title, format, quality, status, progress, file_path, file_size, thumbnail, duration, channel, playlist_id, playlist_index, extras, error, created_at, updated_at, selection_key)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
   stmt.run(
     record.id,
@@ -130,7 +132,8 @@ function insertDownloadWithTimestamp(
     record.extras ?? null,
     record.error ?? null,
     createdAt,
-    createdAt
+    createdAt,
+    record.selection_key ?? null
   )
 }
 
@@ -151,7 +154,7 @@ export function insertDownloadsBulk(records: Array<Omit<DownloadRecord, 'created
 export function updateDownload(
   id: string,
   updates: Partial<
-    Pick<DownloadRecord, 'url' | 'title' | 'format' | 'quality' | 'status' | 'progress' | 'file_path' | 'file_size' | 'error' | 'error_code' | 'thumbnail' | 'duration' | 'channel' | 'extras'>
+    Pick<DownloadRecord, 'url' | 'title' | 'format' | 'quality' | 'selection_key' | 'status' | 'progress' | 'file_path' | 'file_size' | 'error' | 'error_code' | 'thumbnail' | 'duration' | 'channel' | 'extras'>
   >
 ): void {
   if (!db) throw new Error('Database not initialized')
@@ -274,13 +277,14 @@ export function getDownloadsByStatus(...statuses: string[]): DownloadRecord[] {
 }
 
 /** Small projection used to preserve URL de-duplication without loading large extras blobs. */
-export function getDownloadAdmissionCandidates(): DownloadAdmissionRecord[] {
+export function getDownloadAdmissionCandidates(selectionKey?: string | null): DownloadAdmissionRecord[] {
   if (!db) throw new Error('Database not initialized')
   return db.prepare(`
-    SELECT id, url, status, file_path, created_at
+    SELECT id, url, status, file_path, created_at, selection_key
     FROM downloads
+    ${selectionKey === undefined ? '' : 'WHERE selection_key IS @selectionKey'}
     ORDER BY created_at DESC
-  `).all() as DownloadAdmissionRecord[]
+  `).all(...(selectionKey === undefined ? [] : [{ selectionKey }])) as DownloadAdmissionRecord[]
 }
 
 export interface DownloadProgressSummary {

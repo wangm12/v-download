@@ -2,6 +2,7 @@ import {
   DOWNLOAD_DETAILS_LABEL,
   DOWNLOAD_DETAILS_RAIL_CLASS,
   getInspectorStatCells,
+  inspectorDestination,
   revealFolderLabel,
   shouldOpenDownloadDetails,
   shouldRenderDownloadDetails
@@ -35,5 +36,14 @@ expect(
 )
 
 expect(getInspectorStatCells({ durationLabel: null, sizeLabel: null, formatLabel: null }).length === 0, 'no metadata must render no metrics')
+
+const pendingDestination = inspectorDestination(null, '/custom/plan/author', '/default/changed')
+expect(pendingDestination.destination === '/custom/plan/author' && pendingDestination.folderName === 'plan/author', 'effective task folder must win over global preferences before a file is published')
+expect(inspectorDestination('/published/final/movie.mp4', '/custom/plan', '/default').folderName === 'published/final', 'published file is authoritative after completion')
+expect(inspectorDestination(null, undefined, '/legacy/default').destination === '/legacy/default', 'legacy payload fallback must remain compatible')
+expect(inspectorDestination('C:\\Saved\\Author\\movie.mp4', 'D:\\old', 'D:\\default').folderName === 'Saved\\Author', 'Windows path display must retain its directory')
+expect(inspectorDestination('/media/name\\with-backslash/file.mp4', null, '').folderName === 'media/name\\with-backslash', 'POSIX backslashes are filename characters')
+expect(inspectorDestination('/movie.mp4', null, '').folderName === '/', 'filesystem root must remain visible')
+expect(inspectorDestination('C:\\movie.mp4', null, '').folderName === 'C:\\', 'Windows root must remain visible')
 
 console.log('Download details presentation state passed')

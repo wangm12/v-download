@@ -51,7 +51,7 @@ export const TRANSCODE_PRESETS: readonly TranscodePreset[] = [
     label: 'H.264 MP4',
     description: 'Broadly compatible H.264 video with AAC audio',
     extension: 'mp4',
-    args: ['-c:v', 'libx264', '-preset', 'medium', '-crf', '22', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart'],
+    args: ['-map', '0:v?', '-map', '0:a?', '-map', '0:s?', '-map_chapters', '0', '-c:s', 'mov_text', '-c:v', 'libx264', '-preset', 'medium', '-crf', '22', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart'],
   },
   {
     id: 'h265',

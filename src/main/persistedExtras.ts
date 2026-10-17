@@ -1,3 +1,5 @@
+import { readMediaSourceContext } from '@v-download/shared'
+import { readDownloadRequestSnapshot } from './downloadRequestSnapshot'
 import { filterPersistedHeaders } from './mediaResolver'
 
 function isSerializedIdentity(value: unknown): value is string {
@@ -26,6 +28,10 @@ function persistedIdentityEntry(value: unknown, key: 'ownedOutputFiles' | 'owned
 export function pickPersistedExtras(metadata?: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {}
   if (!metadata) return out
+  if (Number.isSafeInteger(metadata.recaptureRevision) && Number(metadata.recaptureRevision) > 0) out.recaptureRevision = metadata.recaptureRevision
+  if (typeof metadata.recaptureAt === 'string') out.recaptureAt = metadata.recaptureAt
+  if (metadata.sourceContext !== undefined) out.sourceContext = readMediaSourceContext(metadata.sourceContext)
+  if (metadata.downloadRequest !== undefined) out.downloadRequest = readDownloadRequestSnapshot(metadata.downloadRequest)
   if (metadata.infoResolve === true) out.infoResolve = true
   if (metadata.resolveAutoStart === true) out.resolveAutoStart = true
   if (typeof metadata.resolveTitle === 'string' && metadata.resolveTitle.trim()) out.resolveTitle = metadata.resolveTitle.trim()

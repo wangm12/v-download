@@ -11,7 +11,8 @@
     "tabs",
     "alarms",
     "scripting",
-    "webRequest"
+    "webRequest",
+    "webNavigation"
   ],
   "host_permissions": [
     "<all_urls>",
@@ -22,6 +23,12 @@
     "service_worker": "background.js"
   },
   "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["media-patterns.js", "content-media-capture.js"],
+      "run_at": "document_start",
+      "all_frames": true
+    },
     {
       "matches": [
         "*://*.youtube.com/*",
@@ -34,6 +41,11 @@
     {
       "matches": ["http://127.0.0.1:18765/cookie-sync-landing*"],
       "js": ["content-cookie-sync-landing.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["http://127.0.0.1:18765/media-capture-landing*"],
+      "js": ["content-media-capture-landing.js"],
       "run_at": "document_idle"
     },
     {
@@ -83,7 +95,7 @@
     },
     {
       "matches": ["<all_urls>"],
-      "js": ["wake-sync.js", "overlay-placement.js", "media-patterns.js", "content-video-overlay.js"],
+      "js": ["wake-sync.js", "overlay-placement.js", "content-video-overlay.js"],
       "css": ["theme.css", "content-video-overlay.css"],
       "run_at": "document_idle"
     }

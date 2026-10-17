@@ -359,11 +359,6 @@
     }
   }
 
-  function buildDedupKey(url, type, listMode) {
-    const base = listMode === 'all' ? url : normalizeUrlForDedup(url)
-    return `${base}|${type}`
-  }
-
   function inferTypeFromUrl(url) {
     const mp = typeof globalThis !== 'undefined' ? globalThis.VDownloadMediaPatterns : null
     if (mp && typeof mp.inferTypeFromUrl === 'function') return mp.inferTypeFromUrl(url)
@@ -395,7 +390,6 @@
       : sniffed
     const seen = new Map() // dedup key → original entry
     const options = []
-    const elementOptions = []
     const isBlobSrc = isBlobOrStream(video.currentSrc)
     const hasManifest = relevant.some((e) => e.type === 'hls' || e.type === 'dash')
     const skipElementSources = isBlobSrc && hasManifest
@@ -423,19 +417,19 @@
       const shared = globalThis.VDownloadMediaPatterns
       if (!shared || !shared.isReliableCandidate(sharedCandidate)) continue
       const type = shared.inferType(url, mimeType)
-      const key = buildDedupKey(url, type, listMode)
+      // A DOM source and a captured request describe one candidate only when
+      // both the transport URL and the requesting document actually match.
+      const captured = shared.documentCandidate({ url, type }, relevant, location.href)
+      const option = captured ? { ...captured, label: resLabel ? `${type} (${resLabel})` : type } : {
+        ...sharedCandidate, type,
+        sourceContext: { version: 1, documentUrl: location.href },
+        label: resLabel ? `${type} (${resLabel})` : type,
+        confidence: shared.scoreCandidate({ ...sharedCandidate, type })
+      }
+      const key = shared.candidateKey(option)
       if (seen.has(key)) continue
       seen.set(key, true)
-      const option = {
-        url,
-        type,
-        label: resLabel ? `${type} (${resLabel})` : type,
-        size: null,
-        source: 'element',
-        confidence: 100
-      }
       options.push(option)
-      elementOptions.push(option)
     }
 
     // 2. From background sniffed media. Manifests are kept even if they
@@ -449,7 +443,7 @@
         return (b.size || 0) - (a.size || 0)
       })
       for (const entry of sorted.slice(0, 120)) {
-        const key = buildDedupKey(entry.url, entry.type, listMode)
+        const key = globalThis.VDownloadMediaPatterns.candidateKey(entry)
         if (seen.has(key)) continue
         seen.set(key, true)
         options.push({
@@ -459,80 +453,24 @@
           size: entry.size,
           initiator: entry.initiator,
           pageUrl: entry.pageUrl,
-          source: 'sniffed',
+          sourceContext: entry.sourceContext,
+          source: entry.source || 'network',
           confidence: Math.min(100, Number(entry.confidence || 0))
         })
       }
       return applyIdentity(options, listMode)
     }
 
-    // Smart filtering: hide noisy MSE/HLS segments by heuristics.
-
-    const hasHls = relevant.some((e) => e.type === 'hls')
-    const SEGMENT_THRESHOLD = 5 * 1024 * 1024 // 5MB: below this + blob src = likely segment
-
-    const byType = new Map()
+    // Reliable candidates are independent until a relationship is proven. A manifest
+    // elsewhere on the page or another player's blob URL cannot hide this source.
     for (const entry of relevant) {
-      if (!byType.has(entry.type)) byType.set(entry.type, [])
-      byType.get(entry.type).push(entry)
-    }
-
-    for (const [type, entries] of byType) {
-      // Prefer newer sniffed entries to avoid stale ad URLs after stream switches.
-      entries.sort((a, b) => {
-        const tsDelta = (b.timestamp || 0) - (a.timestamp || 0)
-        if (tsDelta !== 0) return tsDelta
-        return (b.size || 0) - (a.size || 0)
-      })
-
-      let filtered = entries
-
-      if (type === 'hls' || type === 'dash') {
-        // Keep every manifest. Identity ranking — not recency — decides Main.
-        filtered = entries
-      } else if (hasHls) {
-        // HLS present: non-HLS entries below threshold are segments → drop them
-        filtered = entries.filter((e) => !e.size || e.size >= SEGMENT_THRESHOLD)
-        filtered = filtered.slice(0, 2)
-      } else if (isBlobSrc && entries.length > 2) {
-        // blob: src + many entries of same type = MSE player chunks
-        // Only keep the single largest (might be a full file) if it's meaningfully large
-        const newestLarge = entries.find((e) => e.size && e.size >= SEGMENT_THRESHOLD)
-        if (newestLarge) {
-          filtered = [newestLarge]
-        } else {
-          // All small → these are segments, not useful for download
-          filtered = []
-        }
-      } else {
-        // Normal case: few entries, likely real files
-        filtered = entries.slice(0, 3)
+      const key = globalThis.VDownloadMediaPatterns.candidateKey(entry)
+      if (seen.has(key)) continue
+      seen.set(key, true)
+      const option = {
+        ...entry, label: entry.type.toUpperCase(), source: entry.source || 'network'
       }
-
-      for (const entry of filtered) {
-        const key = buildDedupKey(entry.url, entry.type, listMode)
-        if (seen.has(key)) continue
-        seen.set(key, true)
-        const option = {
-          url: entry.url,
-          type: entry.type,
-          label: entry.type.toUpperCase(),
-          size: entry.size,
-          initiator: entry.initiator,
-          pageUrl: entry.pageUrl,
-          source: entry.source || 'network',
-          confidence: Math.min(100, Number(entry.confidence || 0))
-        }
-        options.push(option)
-        // Keep the best same-type network candidate available if the user
-        // deliberately picked an element URL first. The click path performs
-        // this fallback exactly once after the original request fails.
-        for (const element of elementOptions) {
-          if (element.type === option.type && option.source !== 'element' && !element.fallbackNetwork) {
-            element.fallbackNetwork = option
-          }
-        }
-      }
+      options.push(option)
     }
 
     // In Smart mode, a sniffed network URL is generally more actionable than
@@ -603,7 +541,7 @@
     }
     const source = document.createElement('span')
     source.className = 'vdl-format-size'
-    source.textContent = `${opt.source || 'network'} · ${Math.min(100, Number(opt.confidence || 0))}/100`
+    source.textContent = `${opt.source || 'network'} · match score ${Math.min(100, Number(opt.confidence || 0))}/100`
     meta.appendChild(source)
 
     info.appendChild(label)
@@ -777,7 +715,7 @@
         }
 
         const getLatestSniffedOption = async (clickedOpt) => {
-          if (clickedOpt.source !== 'sniffed') return clickedOpt
+          if (clickedOpt.source === 'element') return clickedOpt
           try {
             const resp = await fetchFrameMediaSnapshot({ force: true })
             const media = globalThis.VDownloadMediaPatterns?.filterSniffedForOverlay
@@ -791,7 +729,9 @@
               ...clickedOpt,
               url: picked.url,
               type: picked.type || clickedOpt.type,
-              initiator: picked.initiator || clickedOpt.initiator || ''
+              initiator: picked.initiator || clickedOpt.initiator || '',
+              pageUrl: picked.pageUrl || clickedOpt.pageUrl,
+              sourceContext: picked.sourceContext || clickedOpt.sourceContext
             }
           } catch {
             return clickedOpt
@@ -800,14 +740,11 @@
 
         for (const opt of options) {
           const row = buildPanelItem(opt, async (clickedOpt) => {
-            const key = buildDedupKey(clickedOpt.url, clickedOpt.type, listMode)
+            const key = globalThis.VDownloadMediaPatterns.candidateKey(clickedOpt)
             const previous = itemStates.get(key)
             if (previous === 'sending' || previous === 'queued') return
-            const clickedUrlKey = `${clickedOpt.type}|${clickedOpt.url}`
-            const fallbackUrlKey = clickedOpt.fallbackNetwork
-              ? `${clickedOpt.fallbackNetwork.type}|${clickedOpt.fallbackNetwork.url}`
-              : ''
-            if (submittedUrls.has(clickedUrlKey) || submittedUrls.has(fallbackUrlKey)) return
+            const clickedUrlKey = globalThis.VDownloadMediaPatterns.candidateKey(clickedOpt)
+            if (submittedUrls.has(clickedUrlKey)) return
             itemStates.set(key, 'sending')
             row._ytdlSetState('sending', 'Sending…')
             flashButton(btn, 'vdl-sending')
@@ -825,13 +762,9 @@
             // keep sending that candidate instead of waking the app and then
             // silently abandoning the click.
             const latestOpt = await getLatestSniffedOption(clickedOpt) || clickedOpt
-            const item = {
-              url: latestOpt.url,
-              type: latestOpt.type,
-              initiator: latestOpt.initiator || ''
-            }
+            const item = globalThis.VDownloadMediaPatterns.mediaItemForDownload(latestOpt)
             const send = (candidate) => new Promise((resolve) => {
-              const urlKey = `${candidate.type}|${candidate.url}`
+              const urlKey = globalThis.VDownloadMediaPatterns.candidateKey(candidate)
               if (submittedUrls.has(urlKey) || inFlightUrls.has(urlKey)) return resolve({ ok: false, duplicate: true })
               inFlightUrls.add(urlKey)
               // Compatibility shape: DOWNLOAD_MEDIA_FROM_CONTENT', item, surfacedWake }
@@ -844,12 +777,7 @@
                 resolve(result)
               })
             })
-            let resp = await send(item)
-            const fallback = clickedOpt.source === 'element' && clickedOpt.fallbackNetwork
-            if (!resp.ok && fallback && fallback.url !== item.url && !submittedUrls.has(`${fallback.type}|${fallback.url}`)) {
-              row._ytdlSetState('sending', 'Retrying network…')
-              resp = await send({ url: fallback.url, type: fallback.type, initiator: fallback.initiator || '' })
-            }
+            const resp = await send(item)
             if (resp.ok) {
               itemStates.set(key, 'queued')
               row._ytdlSetState('queued', 'Added to queue')

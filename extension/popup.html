@@ -15,6 +15,17 @@
       <span id="header-title" class="title">Detected Media</span>
       <span id="count" class="count"></span>
     </div>
+    <section id="capture-session" class="capture-session" hidden aria-live="polite">
+      <strong id="capture-title"></strong>
+      <p id="capture-description"></p>
+      <label><input id="capture-confirm" type="checkbox"> This is the same media. Replace its source and restart the original task.</label>
+      <button id="capture-stop" type="button">Leave capture mode</button>
+    </section>
+    <div class="plan-selector" style="padding: 0 12px 10px">
+      <label for="download-plan">Download plan</label>
+      <div style="display:flex;gap:6px;margin-top:6px"><select id="download-plan" style="min-width:0;flex:1" aria-label="Download plan"><option value="">Follow app default</option></select><button id="refresh-plans" type="button">Refresh</button></div>
+      <p id="plan-status" role="status" style="font-size:12px;line-height:1.4"></p>
+    </div>
     <div id="selection-bar" class="selection-bar" style="display:none">
       <button id="select-all-btn" class="selection-link" type="button">Select all</button>
       <span class="selection-sep">·</span>

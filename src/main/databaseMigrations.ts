@@ -1,6 +1,6 @@
 import type Database from 'better-sqlite3'
 
-export const CURRENT_SCHEMA_VERSION = 3
+export const CURRENT_SCHEMA_VERSION = 4
 
 /** Apply all database migrations exactly once, preserving existing rows. */
 export function migrateDatabase(database: Database.Database): void {
@@ -35,6 +35,13 @@ export function migrateDatabase(database: Database.Database): void {
       if (!columns.some(({ name }) => name === 'error_code')) database.exec('ALTER TABLE downloads ADD COLUMN error_code TEXT')
       database.prepare('INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)').run(3, new Date().toISOString())
     }
+    if (!applied.has(4)) {
+      const columns = database.prepare('PRAGMA table_info(downloads)').all() as { name: string }[]
+      if (!columns.some(({ name }) => name === 'selection_key')) database.exec('ALTER TABLE downloads ADD COLUMN selection_key TEXT')
+      database.exec('CREATE INDEX IF NOT EXISTS idx_downloads_selection_key ON downloads(selection_key)')
+      database.prepare('INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)').run(4, new Date().toISOString())
+    }
+
   })
   migrate()
 

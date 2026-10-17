@@ -1,3 +1,5 @@
+import { readDownloadSelection, selectionFormatSelector, type DownloadSelection } from '@v-download/shared'
+import { isAdaptiveMediaInput } from './mediaResolver'
 import { ChildProcess, execFileSync } from 'child_process'
 import { existsSync, mkdirSync } from 'fs'
 import { join } from 'path'
@@ -15,6 +17,7 @@ import { DEFAULT_FILENAME_TEMPLATE, renderYtdlpFilenameTemplate } from './output
 import { selectPreferredEnginePath } from './engineManagerModel'
 import { ensurePoTokenProvider } from './poTokenServer'
 import { isManagedChildShutdownRequested, spawnManagedProcess } from './managedChildProcesses'
+import { normalizeDownloadQuality, type DownloadQuality } from './downloadQuality'
 
 export type { DownloadProgress, DownloadProcess } from './downloadTypes'
 
@@ -101,6 +104,10 @@ export function isYtdlpNoFormatsError(message: string): boolean {
 
 export interface FormatInfo {
   format_id: string
+  fps?: number
+  dynamic_range?: string
+  language?: string
+  abr?: number
   ext: string
   height?: number
   filesize?: number
@@ -123,9 +130,11 @@ export interface FormatInfo {
 }
 
 export interface DownloadOptions {
+  selection?: DownloadSelection
+  entryIndex?: number
   url: string
   format: string
-  quality?: number
+  quality?: DownloadQuality
   outputDir: string
   cookiesPath?: string
   sleepInterval?: number
@@ -473,6 +482,9 @@ function parseVideoInfoFromJson(json: Record<string, unknown>): VideoInfo {
       format_id: String(f.format_id),
       ext: String(f.ext),
       height: positiveNumber(f.height),
+      fps: positiveNumber(f.fps), abr: positiveNumber(f.abr),
+      dynamic_range: typeof f.dynamic_range === 'string' ? f.dynamic_range : undefined,
+      language: typeof f.language === 'string' ? f.language : undefined,
       filesize: positiveNumber(f.filesize),
       filesize_approx: positiveNumber(f.filesize_approx),
       approximateSize: positiveNumber(f.filesize_approx),
@@ -906,6 +918,14 @@ export function parseYtdlpProgressLine(
   return { progress: null }
 }
 
+/** Every alternative must honor the requested height; never fall back to an unconstrained rendition. */
+export function videoFormatSelector(quality: DownloadQuality, preferMp4: boolean): string {
+  const selectedQuality = normalizeDownloadQuality(quality)
+  const height = selectedQuality === 'best' ? '' : `[height<=${selectedQuality}]`
+  const compatible = preferMp4 ? `bv${height}[ext=mp4]+ba[ext=m4a]/` : ''
+  return `${compatible}bv${height}+ba/b${height}`
+}
+
 export function download(
   options: DownloadOptions,
   ytdlpPath?: string
@@ -953,7 +973,8 @@ export function download(
   })
 
   /** Direct CDN / sniffed URLs from the browser extension — not multi-format player pages. */
-  const isDirectMedia = Boolean(mediaType)
+  const selection = options.selection ? readDownloadSelection(options.selection) : undefined
+  const isDirectMedia = Boolean(mediaType) || Boolean(selection && isMediaUrl(new URL(url).pathname))
 
   let formatStr: string
   let mergeOutputMp4 = false
@@ -963,10 +984,10 @@ export function download(
       mergeOutputMp4 = false
     } else if (mediaType === 'jpeg') {
       formatStr = 'best'
-    } else if (mediaType === 'dash' || mediaType === 'mpd') {
-      // DASH manifests often expose separate video-only and audio-only
-      // representations, so `best` alone can find no combined format.
-      formatStr = 'bestvideo+bestaudio/best'
+    } else if (isAdaptiveMediaInput(mediaType, url)) {
+      // Adaptive inputs expose renditions, unlike single progressive files.
+      // Handle combined HLS and separate DASH A/V with the same height policy.
+      formatStr = videoFormatSelector(quality, false)
       mergeOutputMp4 = true
     } else {
       // Single progressive / CDN URL from extension — avoid bv+ba picking a mismatched pair
@@ -977,12 +998,17 @@ export function download(
     formatStr = 'bestaudio/best'
     mergeOutputMp4 = true
   } else {
-    formatStr = `bv[height<=${quality}][ext=mp4]+ba[ext=m4a]/bv[height<=${quality}]+ba/best[height<=${quality}]/bestvideo+bestaudio/best`
+    formatStr = videoFormatSelector(quality, true)
     mergeOutputMp4 = true
   }
 
+  if (selection) {
+    formatStr = isDirectMedia && !isAdaptiveMediaInput(mediaType, url) && !selection.exact ? 'best' : selectionFormatSelector(selection)
+    mergeOutputMp4 = false
+  }
   const args: string[] = [
     '--newline',
+    ...(selection?.target === 'video' ? ['--merge-output-format', 'mkv'] : []),
     '--continue',
     ...(mergeOutputMp4 ? (['--merge-output-format', 'mp4'] as const) : []),
     '-f', formatStr,
@@ -1040,9 +1066,13 @@ export function download(
     }
   }
 
-  if (format === 'audio' || format === 'mp3' || mediaType === 'mp3') {
+  if (options.entryIndex !== undefined) args.push('--playlist-items', String(options.entryIndex))
+  if (selection?.target === 'audio') {
+    args.push('--extract-audio', '--audio-format', selection.output === 'original' ? 'best' : selection.output, '--audio-quality', selection.audioBitrate ? `${selection.audioBitrate}K` : '0')
+  } else if (!selection && (format === 'audio' || format === 'mp3' || mediaType === 'mp3')) {
     args.push('--extract-audio', '--audio-format', 'mp3', '--audio-quality', '0')
   }
+  if (selection?.output === 'mp4' && selection.postprocess === 'none') args.push('--remux-video', 'mp4')
 
   if (referer) {
     args.push('--referer', referer)

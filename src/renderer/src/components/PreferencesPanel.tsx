@@ -1,3 +1,4 @@
+import { DownloadPlansPreferences } from './DownloadOptionsEditor'
 import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react'
 import { Check, ChevronDown, Copy, Download, Folder, Globe, RefreshCw, Loader2, X, Puzzle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -838,6 +839,7 @@ export function PreferencesPanel({ section, themePreference, onThemePreference }
 
         <PrefSectionPane id="downloads" section={section} mounted={mountedSections.has('downloads')}>
           <div className={PREFERENCES_WORKSPACE_CLASS}>
+            <PrefCard title={t('plans.title')} subtitle={t('plans.snapshotHint')}><DownloadPlansPreferences settings={settings} /></PrefCard>
             <PrefCard
               title={t('prefs.saveFiles.downloadFolder')}
             >

@@ -1,10 +1,82 @@
-importScripts('cookie-sync-domains.js', 'media-patterns.js', 'download-transport.js', 'douyin-policy.js')
+importScripts('cookie-sync-domains.js', 'media-patterns.js', 'download-transport.js', 'douyin-policy.js', 'download-selection.js', 'media-source-context.js')
 const COOKIE_SYNC_DOMAINS = globalThis.COOKIE_SYNC_DOMAINS
 const MP = globalThis.VDownloadMediaPatterns
 const DT = globalThis.VDownloadDownloadTransport
 const DP = globalThis.VDownloadDouyinPolicy
 
 const APP_URL = 'http://127.0.0.1:18765'
+const CAPTURE_BINDINGS_KEY = 'mediaCaptureBindings'
+let captureBindingWrites = Promise.resolve()
+async function captureBindings() {
+  await captureBindingWrites
+  const stored = await chrome.storage.local.get([CAPTURE_BINDINGS_KEY])
+  return Object.fromEntries(Object.entries(stored[CAPTURE_BINDINGS_KEY] || {}).filter(([id, c]) => /^\d+$/.test(id) && c && /^[a-f0-9]{48}$/.test(c.requestId) && c.expiresAt > Date.now()).slice(-64))
+}
+function updateCaptureBinding(tabId, command) {
+  const update = captureBindingWrites.then(async () => {
+    const stored = await chrome.storage.local.get([CAPTURE_BINDINGS_KEY])
+    const bindings = Object.fromEntries(Object.entries(stored[CAPTURE_BINDINGS_KEY] || {}).filter(([, c]) => c?.expiresAt > Date.now()).slice(-63))
+    if (command) bindings[tabId] = command
+    else delete bindings[tabId]
+    await chrome.storage.local.set({ [CAPTURE_BINDINGS_KEY]: bindings })
+  })
+  captureBindingWrites = update.catch(() => {})
+  return update
+}
+const isCapturePopup = (sender) => sender?.url === chrome.runtime.getURL('popup.html')
+async function activeCapturedItem(item) {
+  const tabs = await chrome.tabs.query({ active: true, currentWindow: true })
+  const tab = tabs[0]
+  if (!Number.isInteger(tab?.id)) throw new Error('No active source tab')
+  await mediaCacheReadyPromise
+  const current = getAllTabMedia(tab.id).find((candidate) => MP.candidateKey(candidate) === MP.candidateKey(item))
+  if (!current || !MP.isReliableCandidate(current)) throw new Error('This candidate is no longer available. Reopen the popup after playing the media.')
+  return { tab, item: current }
+}
+async function inspectPopupMedia(item) {
+  const current = await activeCapturedItem(item)
+  const response = await postAppJson('/media-inspect', { url: current.item.url, type: current.item.type,
+    ...downloadSourceFields(current.item, { pageUrl: current.tab.url, tabId: current.tab.id }) }, { maxAttempts: 1, timeoutMs: 30000 })
+  const data = await response.json()
+  if (response.status === 404) throw new Error('Update V-Download to use media inspection, then reload the extension.')
+  if (!response.ok) throw new Error(data.error || 'Could not inspect this media')
+  return data
+}
+async function requestMediaCapture(message, sender) {
+  const landing = new URL(sender.tab?.url || '')
+  if (landing.origin !== APP_URL || landing.pathname !== '/media-capture-landing' || landing.searchParams.get('requestId') !== message.requestId) throw new Error('Capture requests must start from the desktop task')
+  const response = await postAppJson('/media-capture-command', { requestId: message.requestId }, { maxAttempts: 1 })
+  const result = await response.json()
+  if (!response.ok || !result.command) throw new Error(result.error || 'Capture session expired')
+  const command = result.command
+  const tab = await chrome.tabs.create({ url: command.pageUrl, active: true })
+  await updateCaptureBinding(tab.id, command)
+  return { ok: true }
+}
+async function recapturePopupMedia(message) {
+  if (message.confirmed !== true) throw new Error('Confirm that this is the same media before replacing the source')
+  const { tab, item } = await activeCapturedItem(message.item)
+  const binding = (await captureBindings())[tab.id]
+  if (!binding || binding.requestId !== message.requestId) throw new Error('Capture session expired. Start again from the original task.')
+  if (tab.url !== binding.pageUrl) throw new Error('Return to the original source page before replacing its media')
+  const response = await postAppJson('/media-capture-complete', { requestId: binding.requestId, confirmed: true,
+    url: item.url, type: item.type, ...downloadSourceFields(item, { pageUrl: tab.url, tabId: tab.id }) }, { maxAttempts: 1, timeoutMs: 15000 })
+  const result = await response.json()
+  if (!response.ok) throw new Error(result.error || 'Could not continue the original task')
+  await updateCaptureBinding(tab.id, null)
+  return { ok: true }
+}
+async function leavePopupCapture() {
+  const tabs = await chrome.tabs.query({ active: true, currentWindow: true })
+  const tabId = tabs[0]?.id
+  const binding = (await captureBindings())[tabId]
+  if (binding) {
+    const response = await postAppJson('/media-capture-cancel', { requestId: binding.requestId }, { maxAttempts: 1 })
+    if (!response.ok) throw new Error('Could not cancel capture. Return to the desktop task to cancel it.')
+    await updateCaptureBinding(tabId, null)
+  }
+  return { ok: true }
+}
 const APP_REQUEST_TIMEOUT_MS = 8_000
 const APP_DOWNLOAD_TIMEOUT_MS = 2_500
 const APP_PROBE_TIMEOUT_MS = 5_000
@@ -143,7 +215,53 @@ function persistAppCapability(value) {
   appCapabilityStorageWrites = write.catch(() => {})
   return write
 }
+function downloadSourceFields(item, fallback = {}) {
+  const read = globalThis.VDownloadSourceContext.readMediaSourceContext
+  const existing = item.sourceContext ? read(item.sourceContext) : undefined
+  const sameSenderDocument = existing?.documentUrl && existing.documentUrl === fallback.documentUrl &&
+    (existing.frameId === undefined || existing.frameId === fallback.frameId)
+  const context = read(existing ? { ...existing,
+    ...(!existing.pageUrl && isSafeHttpUrl(fallback.pageUrl) ? { pageUrl: fallback.pageUrl } : {}),
+    ...(existing.pageTitle === undefined && fallback.pageTitle ? { pageTitle: fallback.pageTitle } : {}),
+    ...(sameSenderDocument && existing.tabId === undefined && Number.isInteger(fallback.tabId) ? { tabId: fallback.tabId } : {}),
+    ...(sameSenderDocument && existing.frameId === undefined && Number.isInteger(fallback.frameId) ? { frameId: fallback.frameId } : {}),
+    ...(sameSenderDocument && existing.documentId === undefined && fallback.documentId ? { documentId: fallback.documentId } : {})
+  } : {
+    version: 1,
+    ...(isSafeHttpUrl(fallback.pageUrl || item.pageUrl) ? { pageUrl: fallback.pageUrl || item.pageUrl } : {}),
+    ...(isSafeHttpUrl(item.pageUrl || fallback.documentUrl) ? { documentUrl: item.pageUrl || fallback.documentUrl } : {}),
+    ...(isSafeHttpUrl(item.initiator) ? { initiator: item.initiator } : {}),
+    ...(fallback.pageTitle ? { pageTitle: fallback.pageTitle } : {}),
+    ...(Number.isInteger(fallback.tabId) ? { tabId: fallback.tabId } : {}),
+    ...(Number.isInteger(fallback.frameId) ? { frameId: fallback.frameId } : {}),
+    ...(fallback.documentId ? { documentId: fallback.documentId } : {}),
+    ...(Number.isFinite(item.timestamp) ? { observedAt: item.timestamp } : {})
+  })
+  return { sourceContext: context, referer: globalThis.VDownloadSourceContext.mediaSourceReferer(context) }
+}
+
+async function selectedDownloadPlanFields() {
+  const stored = await new Promise((resolve) => {
+    try { chrome.storage.local.get(['downloadPlanId', 'downloadPlanRevision'], (value) => resolve(value || {})) }
+    catch { resolve({}) }
+  })
+  return typeof stored.downloadPlanId === 'string' && stored.downloadPlanId
+    ? { planId: stored.downloadPlanId, ...(Number.isInteger(stored.downloadPlanRevision) ? { planRevision: stored.downloadPlanRevision } : {}) }
+    : {}
+}
+async function withDownloadPlan(request) {
+  return request.planId !== undefined || request.selection !== undefined ? request : { ...request, ...await selectedDownloadPlanFields() }
+}
+async function getDownloadPlans() {
+  // Chrome may omit Origin on extension GETs. A POST read uses the same
+  // origin + capability boundary as downloads, including stale-token refresh.
+  const response = await postAppJson('/download-plans', {}, { maxAttempts: 1 })
+  if (!response.ok) throw new Error('Open V-Download and refresh download plans.')
+  return response.json()
+}
+
 async function postAppJson(path, body, options = {}) {
+  if (path === '/download') body = await withDownloadPlan(body)
   const requestedMaxAttempts = Number.isInteger(options.maxAttempts) ? Math.max(1, options.maxAttempts) : 3
   let maxAttempts = requestedMaxAttempts
   const timeoutMs = Number.isFinite(options.timeoutMs) ? Math.max(250, options.timeoutMs) : APP_REQUEST_TIMEOUT_MS
@@ -1225,7 +1343,10 @@ function isSafeHttpUrl(value) {
 function isValidContentItem(item) {
   if (!item || typeof item !== 'object' || !isSafeHttpUrl(item.url)) return false
   if (item.type !== undefined && (typeof item.type !== 'string' || !CONTENT_MEDIA_TYPES.has(item.type.toLowerCase()))) return false
-  if (item.pageUrl !== undefined && (!isSafeHttpUrl(item.pageUrl) || !isDouyinUrl(item.pageUrl))) return false
+  if (item.pageUrl !== undefined && !isSafeHttpUrl(item.pageUrl)) return false
+  if (item.sourceContext !== undefined) { try { globalThis.VDownloadSourceContext.readMediaSourceContext(item.sourceContext) } catch { return false } }
+  if (item.selection !== undefined) { try { globalThis.VDownloadSelection.readDownloadSelection(item.selection) } catch { return false } }
+  if (item.planId !== undefined && (typeof item.planId !== 'string' || !/^[A-Za-z0-9:_-]+$/.test(item.planId))) return false
   if (item.quality !== undefined && (typeof item.quality !== 'string' || !/^(?:\d{1,4}|best)$/.test(item.quality))) return false
   if (item.autoStart !== undefined && typeof item.autoStart !== 'boolean') return false
   if (item.initiator !== undefined && (typeof item.initiator !== 'string' || item.initiator.length > 8192)) return false
@@ -1479,14 +1600,17 @@ function mediaRequestEpochSnapshot() {
     if (context.awaitingHydration) continue
     tabs[context.tabId] = {
       epoch: tabNavigationEpoch(context.tabId),
-      pageUrl: String(knownTabPageUrls.get(context.tabId) || '').slice(0, 2048)
+      pageUrl: String(knownTabPageUrls.get(context.tabId) || '')
     }
     requests.push({
       requestId: String(requestId).slice(0, 128),
       tabId: context.tabId,
       epoch: context.epoch,
       requestKind: String(context.requestKind || '').slice(0, 16),
-      startedAt: Number(context.startedAt) || 0
+      startedAt: Number(context.startedAt) || 0,
+      ...(Number.isInteger(context.frameId) ? { frameId: context.frameId } : {}),
+      ...(context.documentId ? { documentId: context.documentId } : {}),
+      ...(context.documentUrl ? { documentUrl: context.documentUrl } : {})
     })
   }
   return { tabs, requests }
@@ -1524,7 +1648,7 @@ function restoreMediaRequestEpochSnapshot(saved) {
       // that ran before the asynchronous session read completed.
       tabNavigationEpochs.set(tabId, baseEpoch + tabNavigationRevision(tabId))
       if (!knownTabPageUrls.has(tabId) && typeof state.pageUrl === 'string') {
-        knownTabPageUrls.set(tabId, state.pageUrl.slice(0, 2048))
+        knownTabPageUrls.set(tabId, state.pageUrl)
       }
     }
   }
@@ -1539,9 +1663,12 @@ function restoreMediaRequestEpochSnapshot(saved) {
     pendingMediaRequestEpochs.set(requestId, {
       tabId,
       epoch,
-      pageUrl: Number(tabState?.epoch) === epoch && typeof tabState?.pageUrl === 'string' ? tabState.pageUrl.slice(0, 2048) : '',
+      pageUrl: Number(tabState?.epoch) === epoch && typeof tabState?.pageUrl === 'string' ? tabState.pageUrl : '',
       requestKind: typeof raw.requestKind === 'string' ? raw.requestKind.slice(0, 16) : '',
       startedAt: Number.isFinite(Number(raw.startedAt)) ? Number(raw.startedAt) : 0,
+      ...(Number.isInteger(raw.frameId) ? { frameId: raw.frameId } : {}),
+      ...(typeof raw.documentId === 'string' ? { documentId: raw.documentId } : {}),
+      ...(isSafeHttpUrl(raw.documentUrl) ? { documentUrl: raw.documentUrl } : {}),
       awaitingHydration: false,
       navigationRevision: tabNavigationRevision(tabId)
     })
@@ -1569,7 +1696,7 @@ function reconcileHydrationPendingMediaRequests() {
       continue
     }
     context.epoch = tabNavigationEpoch(context.tabId)
-    context.pageUrl = pageUrl.slice(0, 2048)
+    context.pageUrl = pageUrl
     context.awaitingHydration = false
     changed = true
   }
@@ -1614,6 +1741,8 @@ function mediaCacheStorageBudgetBytes() {
 function persistedMediaEntry(raw) {
   if (!raw || typeof raw !== 'object' || !isSafeHttpUrl(raw.url)) return null
   const type = typeof raw.type === 'string' ? raw.type : MP.inferType(raw.url, raw.mime || raw.contentType)
+  let sourceContext
+  try { if (raw.sourceContext) sourceContext = globalThis.VDownloadSourceContext.readMediaSourceContext(raw.sourceContext) } catch { return null }
   const entry = {
     url: raw.url,
     type,
@@ -1626,7 +1755,8 @@ function persistedMediaEntry(raw) {
     pageUrlIsDocument: raw.pageUrlIsDocument === true,
     timestamp: Number.isFinite(Number(raw.timestamp)) ? Number(raw.timestamp) : 0,
     source: typeof raw.source === 'string' ? raw.source : 'network',
-    confidence: Number.isFinite(Number(raw.confidence)) ? Number(raw.confidence) : 0,
+    confidence: MP.scoreCandidate(raw),
+    ...(sourceContext ? { sourceContext } : {}),
   }
   return MP.isReliableCandidate(entry) ? entry : null
 }
@@ -1643,12 +1773,13 @@ function serializeMediaCache() {
           contentType: String(entry.contentType || '').slice(0, 128),
           size: entry.size || null,
           requestKind: String(entry.requestKind || '').slice(0, 32),
-          initiator: String(entry.initiator || '').slice(0, 2048),
-          pageUrl: String(entry.pageUrl || '').slice(0, 2048),
+          initiator: String(entry.initiator || ''),
+          pageUrl: String(entry.pageUrl || ''),
           pageUrlIsDocument: entry.pageUrlIsDocument === true,
           timestamp: entry.timestamp || 0,
           source: String(entry.source || 'network').slice(0, 32),
-          confidence: entry.confidence || 0,
+          confidence: MP.scoreCandidate(entry),
+          ...(entry.sourceContext ? { sourceContext: entry.sourceContext } : {}),
         }
         const serialized = JSON.stringify(value)
         candidates.push({ tabId, frameId, value, cost: (serialized.length + 64) * 2, timestamp: value.timestamp })
@@ -1663,6 +1794,7 @@ function serializeMediaCache() {
     if (usedBytes + candidate.cost > maxBytes) continue
     const tab = cache[candidate.tabId] || (cache[candidate.tabId] = {})
     if (knownTabPageUrls.has(candidate.tabId)) tab.__pageUrl = knownTabPageUrls.get(candidate.tabId)
+    tab.__navigationEpoch = tabNavigationEpoch(candidate.tabId)
     const frame = tab[candidate.frameId] || (tab[candidate.frameId] = [])
     frame.push(candidate.value)
     usedBytes += candidate.cost
@@ -1750,15 +1882,20 @@ async function loadMediaCache() {
       // attributed after a worker restart when the tab's page URL is unknown.
       if (currentPageUrl && !savedPageUrl) continue
       if (savedPageUrl && currentPageUrl && normalizedPageUrl(savedPageUrl) !== normalizedPageUrl(currentPageUrl)) continue
+      if (Number.isSafeInteger(savedFrames.__navigationEpoch) && savedFrames.__navigationEpoch >= 0) {
+        tabNavigationEpochs.set(tabId, Math.max(tabNavigationEpoch(tabId), savedFrames.__navigationEpoch))
+      }
       const frames = new Map()
       for (const [frameKey, savedEntries] of Object.entries(savedFrames)) {
         const frameId = Number(frameKey)
         if (frameKey === '__pageUrl' || !Number.isInteger(frameId) || !Array.isArray(savedEntries)) continue
+        // A frame navigation delivered during hydration owns the current state.
+        if (frameId > 0 && frameRevisions.has(`${tabId}:${frameId}`)) continue
         const bucket = new Map()
         for (const raw of savedEntries) {
           const entry = persistedMediaEntry(raw)
           if (frameId === 0 && entry?.pageUrl && !topFramePageMatches(tabId, entry.pageUrl, entry.pageUrlIsDocument)) continue
-          if (entry) bucket.set(MP.canonicalizeUrl(entry.url), entry)
+          if (entry) bucket.set(MP.candidateKey(entry), entry)
         }
         if (bucket.size) frames.set(frameId, bucket)
       }
@@ -1799,9 +1936,9 @@ function getFrameBucket(tabId, frameId) {
 function addMediaEntry(tabId, frameId, url, entry) {
   if (!isSafeHttpUrl(url)) return
   const bucket = getFrameBucket(tabId, frameId)
-  const key = MP.canonicalizeUrl(url)
+  const key = MP.candidateKey(entry)
   const previous = bucket.get(key)
-  bucket.set(key, previous ? { ...previous, ...entry, size: Math.max(previous.size || 0, entry.size || 0) || null, timestamp: Math.max(previous.timestamp || 0, entry.timestamp || 0) } : entry)
+  bucket.set(key, MP.preferredObservation(previous, entry))
   // Evict oldest entries if over cap
   if (bucket.size > FRAME_BUCKET_MAX) {
     const sorted = Array.from(bucket.entries()).sort((a, b) => a[1].timestamp - b[1].timestamp)
@@ -1829,18 +1966,7 @@ function getFrameMedia(tabId, frameId) {
 function getAllTabMedia(tabId) {
   pruneMedia()
   const tab = tabMedia.get(tabId)
-  if (!tab) return []
-  const seen = new Set()
-  const result = []
-  for (const bucket of tab.values()) {
-    for (const [url, entry] of bucket) {
-      if (!seen.has(url)) {
-        seen.add(url)
-        result.push(entry)
-      }
-    }
-  }
-  return result
+  return tab ? MP.mergeCandidates([...tab.values()].flatMap((bucket) => [...bucket.values()])) : []
 }
 
 function pruneMedia() {
@@ -1979,13 +2105,14 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 })
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (typeof tab.url === 'string') knownTabPageUrls.set(tabId, tab.url)
-  if (changeInfo.url || changeInfo.status === 'complete') {
-    updateTabUI(tab)
-  }
-  if (changeInfo.url) {
+  // webNavigation can establish the new document before tabs.onUpdated. Do not
+  // invalidate its already-captured requests a second time when the tab catches up.
+  if (changeInfo.url && normalizedPageUrl(knownTabPageUrls.get(tabId)) !== normalizedPageUrl(changeInfo.url)) {
     invalidateTabMediaForNavigation(tabId, changeInfo.url)
     updateBadge(tabId, 0)
+  } else if (typeof tab.url === 'string') knownTabPageUrls.set(tabId, tab.url)
+  if (changeInfo.url || changeInfo.status === 'complete') {
+    updateTabUI(tab)
   }
 })
 
@@ -2069,6 +2196,121 @@ function updateBadge(tabId, count) {
   }
 }
 
+// A frame's document URL is captured at request start, not inferred from its origin.
+const frameRevisions = new Map()
+let nextFrameRevision = 0
+const pendingFrameLookups = new Map()
+const resourceObservationFrames = new Set()
+const frameObservationCutoffs = new Map()
+function frameRevision(tabId, frameId, advance = false) {
+  const key = `${tabId}:${frameId}`
+  if (advance || !frameRevisions.has(key)) {
+    frameRevisions.delete(key)
+    frameRevisions.set(key, ++nextFrameRevision)
+    if (frameRevisions.size > MAX_PENDING_MEDIA_REQUEST_EPOCHS) frameRevisions.delete(frameRevisions.keys().next().value)
+  }
+  return frameRevisions.get(key)
+}
+function onFrameNavigation(details, historyChange = false) {
+  const key = `${details.tabId}:${details.frameId}`
+  if (!historyChange) {
+    // A full commit is identified by documentId/getFrame. Browser navigation
+    // timestamps and renderer Resource Timing can differ by a millisecond;
+    // comparing them would reject the new document's first inline fetches.
+    for (const savedKey of frameObservationCutoffs.keys()) {
+      if (savedKey === key || (details.frameId === 0 && savedKey.startsWith(`${details.tabId}:`))) frameObservationCutoffs.delete(savedKey)
+    }
+  } else if (Number.isFinite(details.timeStamp)) {
+    frameObservationCutoffs.delete(key)
+    frameObservationCutoffs.set(key, Math.floor(details.timeStamp))
+    if (frameObservationCutoffs.size > MAX_PENDING_MEDIA_REQUEST_EPOCHS) frameObservationCutoffs.delete(frameObservationCutoffs.keys().next().value)
+  }
+  if (details.frameId === 0) {
+    if (isSafeHttpUrl(details.url) && (!historyChange || normalizedPageUrl(knownTabPageUrls.get(details.tabId)) !== normalizedPageUrl(details.url))) {
+      invalidateTabMediaForNavigation(details.tabId, details.url)
+      updateBadge(details.tabId, 0)
+    }
+    return
+  }
+  if (details.frameId < 0) return
+  frameRevision(details.tabId, details.frameId, true)
+  tabMedia.get(details.tabId)?.delete(details.frameId)
+  scheduleMediaCachePersist()
+}
+chrome.webNavigation?.onCommitted?.addListener(onFrameNavigation)
+chrome.webNavigation?.onHistoryStateUpdated?.addListener((details) => onFrameNavigation(details, true))
+chrome.tabs.onRemoved.addListener((tabId) => {
+  for (const key of frameRevisions.keys()) if (key.startsWith(`${tabId}:`)) frameRevisions.delete(key)
+  for (const key of frameObservationCutoffs.keys()) if (key.startsWith(`${tabId}:`)) frameObservationCutoffs.delete(key)
+})
+function captureFrameDocument(details, context) {
+  if (details.frameId <= 0 || context.documentUrl || !chrome.webNavigation?.getFrame) return
+  const revision = context.frameRevision
+  const key = `${details.tabId}:${details.frameId}:${details.documentId || ''}:${revision}`
+  let lookup = pendingFrameLookups.get(key)
+  if (!lookup) {
+    if (pendingFrameLookups.size >= MAX_PENDING_MEDIA_REQUEST_EPOCHS) return
+    lookup = chrome.webNavigation.getFrame({ tabId: details.tabId, frameId: details.frameId,
+      ...(details.documentId ? { documentId: details.documentId } : {}) }).catch(() => null)
+    pendingFrameLookups.set(key, lookup)
+    void lookup.finally(() => { if (pendingFrameLookups.get(key) === lookup) pendingFrameLookups.delete(key) })
+  }
+  context.frameLookup = lookup.then((frame) => {
+    if (frameRevisions.get(`${details.tabId}:${details.frameId}`) !== revision) return
+    if (!frame || (details.documentId && frame.documentId !== details.documentId) || !isSafeHttpUrl(frame.url)) return
+    context.documentUrl = frame.url
+    context.documentId = frame.documentId || details.documentId
+    scheduleMediaRequestEpochPersist()
+  })
+}
+
+async function acceptResourceObservations(message, sender) {
+  const tabId = sender.tab?.id
+  const frameId = sender.frameId
+  if (!Number.isInteger(tabId) || tabId < 0 || !Number.isInteger(frameId) || frameId < 0 ||
+    !isSafeHttpUrl(sender.url) || message.documentUrl !== sender.url ||
+    !Array.isArray(message.entries) || message.entries.length < 1 || message.entries.length > 32) throw new Error('Invalid resource observation')
+  if (isYouTubeUrl(sender.url) || isDouyinUrl(sender.url) || isXUrl(sender.url)) return 0
+  await mediaCacheReadyPromise
+  const frameKey = `${tabId}:${frameId}`
+  if (resourceObservationFrames.has(frameKey) || resourceObservationFrames.size >= 64) throw new Error('Resource observation busy')
+  resourceObservationFrames.add(frameKey)
+  try {
+    const epoch = tabNavigationEpoch(tabId)
+    const revision = frameId > 0 ? frameRevision(tabId, frameId) : 0
+    const pageUrl = knownTabPageUrls.get(tabId)
+    // Look up the current frame, then compare document identity. Looking up by
+    // documentId could resolve an old document retained in the BFCache instead.
+    const frame = await chrome.webNavigation.getFrame({ tabId, frameId })
+    if (!frame || frame.url !== sender.url || (sender.documentId && frame.documentId !== sender.documentId) ||
+      (frame.documentLifecycle !== undefined && frame.documentLifecycle !== 'active') ||
+      epoch !== tabNavigationEpoch(tabId) || (frameId > 0 && revision !== frameRevision(tabId, frameId)) ||
+      !isSafeHttpUrl(pageUrl) || normalizedPageUrl(pageUrl) !== normalizedPageUrl(sender.tab.url)) return 0
+    const now = Date.now()
+    const cutoff = Math.max(frameObservationCutoffs.get(`${tabId}:0`) || 0, frameObservationCutoffs.get(frameKey) || 0, now - MEDIA_TTL_MS)
+    let accepted = 0
+    for (const entry of message.entries) {
+      if (!entry || !isSafeHttpUrl(entry.url) || !Number.isSafeInteger(entry.startedAt) || !Number.isSafeInteger(entry.finishedAt) ||
+        entry.startedAt < cutoff || entry.finishedAt < entry.startedAt || entry.finishedAt > now + 2000 ||
+        (entry.size !== undefined && (!Number.isSafeInteger(entry.size) || entry.size <= 0)) ||
+        (entry.status !== undefined && (!Number.isInteger(entry.status) || entry.status < 200 || entry.status >= 400))) continue
+      if (isYouTubeUrl(entry.url) || isDouyinUrl(entry.url) || /video\.twimg\.com/.test(entry.url)) continue
+      const type = MP.inferTypeFromUrl(entry.url)
+      const sourceContext = globalThis.VDownloadSourceContext.readMediaSourceContext({ version: 1, pageUrl,
+        documentUrl: sender.url, ...(sender.tab.title ? { pageTitle: sender.tab.title } : {}), tabId, frameId,
+        ...(sender.documentId ? { documentId: sender.documentId } : {}), navigationEpoch: epoch, observedAt: entry.finishedAt })
+      const candidate = { url: entry.url, type, sourceContext, source: 'performance', requestKind: 'resource-timing',
+        size: entry.size ?? null, timestamp: entry.finishedAt, pageUrl: sender.url, pageUrlIsDocument: true }
+      if (!MP.isReliableCandidate(candidate)) continue
+      candidate.confidence = MP.scoreCandidate(candidate)
+      addMediaEntry(tabId, frameId, entry.url, candidate)
+      accepted++
+    }
+    updateBadge(tabId, getAllTabMedia(tabId).length)
+    return accepted
+  } finally { resourceObservationFrames.delete(frameKey) }
+}
+
 // --- webRequest sniffer (frame-aware) ---
 
 chrome.webRequest.onCompleted.addListener(
@@ -2079,12 +2321,23 @@ chrome.webRequest.onCompleted.addListener(
       pendingMediaRequestEpochs.delete(requestId)
       scheduleMediaRequestEpochPersist()
     }
-    void mediaCacheReadyPromise.then(() => {
+    void mediaCacheReadyPromise.then(async () => {
       if (details.tabId < 0) return
       // If completion woke a cold worker before session storage finished
       // loading, retrieve the persisted in-flight request context now.
       const requestContext = requestContextAtEvent || pendingMediaRequestEpochs.get(requestId)
       if (requestContext) {
+        if (requestContext.frameLookup) await requestContext.frameLookup
+        if (requestContext.frameRevision !== undefined && frameRevisions.get(`${details.tabId}:${details.frameId}`) !== requestContext.frameRevision) return
+        if (details.frameId > 0 && requestContext.frameRevision === undefined) {
+          // A restored request has no live revision proof. Verify its captured
+          // frame URL before accepting a completion after a worker restart.
+          const frame = await chrome.webNavigation?.getFrame({ tabId: details.tabId, frameId: details.frameId,
+            ...(requestContext.documentId ? { documentId: requestContext.documentId } : {}) }).catch(() => null)
+          if (!frame || !requestContext.documentUrl || frame.url !== requestContext.documentUrl ||
+            (requestContext.documentId && frame.documentId !== requestContext.documentId)) return
+        }
+        if (requestContext.documentId && details.documentId !== requestContext.documentId) return
         pendingMediaRequestEpochs.delete(requestId)
         scheduleMediaRequestEpochPersist()
         if (requestContext.tabId !== details.tabId || requestContext.epoch !== tabNavigationEpoch(details.tabId)) return
@@ -2105,7 +2358,7 @@ chrome.webRequest.onCompleted.addListener(
       const parsedSize = contentLength == null || contentLength === '' ? null : Number(contentLength)
       if (parsedSize !== null && (!Number.isFinite(parsedSize) || parsedSize < 0)) return
       const mediaType = MP.inferType(details.url, mime)
-      const documentUrl = typeof details.documentUrl === 'string' ? details.documentUrl.slice(0, 2048) : ''
+      const documentUrl = typeof details.documentUrl === 'string' ? details.documentUrl : requestContext?.documentUrl || ''
       const trustedPageUrl = documentUrl || requestContext?.pageUrl || ''
       // With no in-flight ownership record, only accept a top-frame request
       // when Chrome supplied a full document URL that still matches the tab.
@@ -2115,15 +2368,24 @@ chrome.webRequest.onCompleted.addListener(
         const currentPageUrl = knownTabPageUrls.get(details.tabId)
         if (!currentPageUrl || normalizedPageUrl(documentUrl) !== normalizedPageUrl(currentPageUrl)) return
       }
+      const sourceContext = globalThis.VDownloadSourceContext.readMediaSourceContext({
+        version: 1,
+        ...(isSafeHttpUrl(knownTabPageUrls.get(details.tabId)) ? { pageUrl: knownTabPageUrls.get(details.tabId) } : {}),
+        ...(isSafeHttpUrl(documentUrl) ? { documentUrl } : {}),
+        ...(isSafeHttpUrl(details.initiator) ? { initiator: details.initiator } : {}),
+        tabId: details.tabId, frameId: details.frameId ?? 0, navigationEpoch: tabNavigationEpoch(details.tabId),
+        ...(details.documentId ? { documentId: details.documentId } : {}), observedAt: Date.now()
+      })
       const candidate = {
+        sourceContext,
         url: details.url,
         type: mediaType,
         mime: mime.slice(0, 128),
         contentType: mime.slice(0, 128),
         size: parsedSize,
         requestKind: details.type,
-        initiator: typeof details.initiator === 'string' ? details.initiator.slice(0, 8192) : '',
-        pageUrl: trustedPageUrl || (typeof details.initiator === 'string' ? details.initiator.slice(0, 2048) : ''),
+        initiator: typeof details.initiator === 'string' ? details.initiator : '',
+        pageUrl: trustedPageUrl || (typeof details.initiator === 'string' ? details.initiator : ''),
         pageUrlIsDocument: Boolean(documentUrl || requestContext?.pageUrl),
         timestamp: Date.now(),
         source: 'network'
@@ -2135,7 +2397,7 @@ chrome.webRequest.onCompleted.addListener(
       addMediaEntry(details.tabId, frameId, details.url, candidate)
 
       updateBadge(details.tabId, getAllTabMedia(details.tabId).length)
-    })
+    }).catch(() => logBg('media-capture-invalid-context', { tabId: details.tabId, frameId: details.frameId }))
   },
   { urls: ['<all_urls>'], types: ['media', 'xmlhttprequest', 'other'] },
   ['responseHeaders']
@@ -2152,16 +2414,18 @@ chrome.webRequest.onBeforeRequest.addListener(
     pendingMediaRequestEpochs.set(String(details.requestId), {
       tabId: details.tabId,
       epoch: tabNavigationEpoch(details.tabId),
-      pageUrl: String(knownTabPageUrls.get(details.tabId) || '').slice(0, 2048),
+      pageUrl: String(knownTabPageUrls.get(details.tabId) || ''),
       requestKind: String(details.type || '').slice(0, 16),
       startedAt: Date.now(),
       awaitingHydration: mediaCacheHydrating,
       navigationRevision: tabNavigationRevision(details.tabId),
       frameId: Number.isInteger(details.frameId) ? details.frameId : -1,
-      documentUrl: Number.isInteger(details.frameId) && details.frameId === 0 && typeof details.documentUrl === 'string'
-        ? details.documentUrl.slice(0, 2048)
-        : ''
+      documentUrl: typeof details.documentUrl === 'string' ? details.documentUrl
+        : details.frameId === 0 && isSafeHttpUrl(knownTabPageUrls.get(details.tabId)) ? knownTabPageUrls.get(details.tabId) : '',
+      ...(details.documentId ? { documentId: details.documentId } : {}),
+      ...(details.frameId > 0 ? { frameRevision: frameRevision(details.tabId, details.frameId) } : {})
     })
+    captureFrameDocument(details, pendingMediaRequestEpochs.get(String(details.requestId)))
     scheduleMediaRequestEpochPersist()
   },
   { urls: ['<all_urls>'], types: ['media', 'xmlhttprequest', 'other'] }
@@ -2189,6 +2453,15 @@ function getHeader(headers, name) {
 // --- Message handlers ---
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'OBSERVED_MEDIA_RESOURCES') {
+    acceptResourceObservations(message, sender).then((accepted) => sendResponse({ ok: true, accepted }))
+      .catch(() => sendResponse({ ok: false, error: 'Invalid resource observation' }))
+    return true
+  }
+  if (message.type === 'GET_DOWNLOAD_PLANS') {
+    getDownloadPlans().then((data) => sendResponse({ ok: true, ...data })).catch((error) => sendResponse({ ok: false, error: error.message }))
+    return true
+  }
   if (message.type === 'CLEAR_LAST_DOWNLOAD_ERROR') {
     clearLastDownloadError()
     sendResponse({ ok: true })
@@ -2321,9 +2594,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
       void mediaCacheReadyPromise.then(() => {
         const media = MP.mergeCandidates(getAllTabMedia(tabId))
-        sendResponse({ media, tabUrl: activeTab?.url || '', tabTitle: activeTab?.title || '' })
+        void captureBindings().then((bindings) => sendResponse({ media, tabUrl: activeTab?.url || '', tabTitle: activeTab?.title || '', capture: bindings[tabId] || null }))
       })
     })
+    return true
+  }
+
+  if (message.type === 'REQUEST_MEDIA_CAPTURE') {
+    requestMediaCapture(message, sender).then(sendResponse).catch((error) => sendResponse({ ok: false, error: error.message }))
+    return true
+  }
+  if (['INSPECT_MEDIA', 'RECAPTURE_MEDIA', 'CANCEL_MEDIA_CAPTURE'].includes(message.type)) {
+    if (!isCapturePopup(sender)) { sendResponse({ ok: false, error: 'Open the extension popup to use this action' }); return false }
+    const action = message.type === 'INSPECT_MEDIA' ? inspectPopupMedia(message.item)
+      : message.type === 'RECAPTURE_MEDIA' ? recapturePopupMedia(message)
+      : leavePopupCapture()
+    action.then((result) => sendResponse({ ok: true, ...result })).catch((error) => sendResponse({ ok: false, error: error.message }))
     return true
   }
 
@@ -2344,12 +2630,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
       const activeTab = Array.isArray(tabs) ? tabs[0] : null
       const tabId = Number.isInteger(activeTab?.id) ? activeTab.id : null
-      const requests = items.map((item, i) => MP.isReliableCandidate(item) ? ({
-        url: item.url,
-        type: item.type,
-        referer: isSafeHttpUrl(item.initiator) ? item.initiator : (isSafeHttpUrl(tabUrl) ? tabUrl : ''),
-        title: items.length > 1 ? `${baseTitle} (${i + 1})` : baseTitle
-      }) : null)
+      const planFields = await selectedDownloadPlanFields()
+      const requests = items.map((item, i) => {
+        if (!MP.isReliableCandidate(item)) return null
+        try {
+          return { url: item.url, type: item.type, ...planFields,
+            ...downloadSourceFields(item, { pageUrl: tabUrl, pageTitle: tabTitle, tabId }),
+            title: items.length > 1 ? `${baseTitle} (${i + 1})` : baseTitle }
+        } catch { return null }
+      })
       const directResults = requests.map((request) => request ? ({ ok: false, status: null, error: 'Not sent' }) : ({ ok: false, status: 422, category: 'invalid-media-candidate', error: 'Invalid media candidate' }))
       const pendingIndexes = []
       try {
@@ -2444,11 +2733,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
       const mergedByKey = new Map()
       for (const m of frameMedia) {
-        const key = `${MP.canonicalizeUrl(m.url)}|${m.type}`
+        const key = MP.candidateKey(m)
         mergedByKey.set(key, m)
       }
       for (const m of tabMedia) {
-        const key = `${MP.canonicalizeUrl(m.url)}|${m.type}`
+        const key = MP.candidateKey(m)
         const prev = mergedByKey.get(key)
         if (!prev || (m.timestamp || 0) > (prev.timestamp || 0)) {
           mergedByKey.set(key, m)
@@ -2486,21 +2775,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return false
     }
 
-    const referer = isSafeHttpUrl(item.initiator) ? item.initiator : (isSafeHttpUrl(tabUrl) ? tabUrl : '')
+    let sourceFields
+    try {
+      sourceFields = downloadSourceFields(item, { pageUrl: tabUrl, documentUrl: sender.url, pageTitle: tabTitle, tabId, frameId: sender.frameId ?? 0, documentId: sender.documentId })
+    } catch {
+      sendResponse({ ok: false, error: 'Invalid media source context' })
+      return false
+    }
     const title = (item.title && String(item.title).trim()) || tabTitle
     const pageUrl = isSafeHttpUrl(item.pageUrl) && isDouyinUrl(item.pageUrl) ? item.pageUrl : ''
+    const choice = { ...(item.selection ? { selection: item.selection } : {}), ...(item.planId ? { planId: item.planId, planRevision: item.planRevision } : {}) }
     const request = pageUrl
       ? {
           url: pageUrl,
           quality: item.quality || undefined,
+          ...choice,
           autoStart: item.autoStart === true,
-          referer,
+          ...sourceFields,
           title
         }
       : {
           url: item.url,
           type: item.type,
-          referer,
+          ...choice,
+          ...sourceFields,
           title
         }
 
@@ -2523,45 +2821,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
     }
 
-    ;(async () => {
-      try {
-        const res = await postAppJson('/download', request, { maxAttempts: 2, timeoutMs: APP_DOWNLOAD_TIMEOUT_MS })
-        logBg('download-from-content-fetch', { status: res.status, ok: res.ok })
-        if (res.ok) {
-          clearLastDownloadError()
-          safeSend({ ok: true })
-          return
-        }
-      } catch (e) {
-        logBg('download-from-content-fetch-catch', { err: safeError(e) })
-      }
-      try {
-        logBg('download-from-content-cold-wake', { tabId, surfacedWake, wakeOwnedByCaller: surfacedWake === true })
-        if (!surfacedWake) {
-          launchWakeToFocusApp(tabId)
-        }
-        // The user-gesture wake can launch Electron asynchronously. Wait for
-        // the same full startup window instead of returning a silent failure
-        // after six seconds.
-        const queued = await postDownloadsQueueWhenReady([request])
-        const ok = queued.ok
-        const failure = queued.results?.find((result) => !result.ok)
-        logBg('download-from-content-after-wake', { ok, status: failure?.status ?? null, category: failure?.category || '' })
-        if (ok) clearLastDownloadError()
-        else {
-          setLastDownloadError(
-            'Could not send this stream to V-Download. Confirm the app is running and try again.'
-          )
-        }
-        const error = failure?.category === 'authorization-required'
-          ? 'V-Download rejected this Chrome extension. Reload the extension or install the matching extension folder, then retry.'
-          : failure?.error || 'App is not running or did not accept the media.'
-        safeSend({ ok, error: ok ? undefined : error })
-      } catch (err) {
-        logBg('download-from-content-wake-catch', { err: safeError(err) })
-        safeSend({ ok: false, error: 'Unable to send this stream. Please retry.' })
-      }
-    })()
+    sendDownloadRequest(request, tabId, { surfacedWake }).then(safeSend).catch((error) => {
+      safeSend({ ok: false, error: error.message || 'Unable to send this stream. Please retry.' })
+    })
     return true
   }
 
@@ -2613,13 +2875,20 @@ function getXStatusUrl(rawUrl) {
 }
 
 async function sendDownloadRequest(request, tabId, opts = {}) {
+  if (Number.isInteger(tabId) && (await captureBindings())[tabId]) return { ok: false, error: 'This tab is linked to an existing task. Open the V-Download extension popup to confirm its replacement source, or leave capture mode first.' }
   const { surfacedWake = false } = opts
-  const payload = typeof request === 'object' && request !== null ? request : { url: String(request) }
+  const payload = await withDownloadPlan(typeof request === 'object' && request !== null ? request : { url: String(request) })
   try {
     const res = await postAppJson('/download', payload, { maxAttempts: 2, timeoutMs: APP_DOWNLOAD_TIMEOUT_MS })
     if (res.ok) {
       clearLastDownloadError()
       return { ok: true }
+    }
+    if (!DT.shouldFallback({ status: res.status })) {
+      let failure = {}; try { failure = await res.json() } catch { /* no detail */ }
+      const error = failure.error || 'V-Download rejected this download plan or source selection.'
+      setLastDownloadError(error)
+      return { ok: false, error }
     }
   } catch {
     /* app not running */

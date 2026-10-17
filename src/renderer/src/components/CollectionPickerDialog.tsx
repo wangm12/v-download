@@ -1,3 +1,5 @@
+import { DownloadOptionsEditor } from './DownloadOptionsEditor'
+import { initialDownloadDraft } from './downloadOptionsModel'
 import { useCallback, useEffect, useMemo, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { X, Loader2, Download, CheckSquare, Square, ExternalLink } from 'lucide-react'
 import type { QueueNotice } from '@v-download/shared'
@@ -20,6 +22,7 @@ export interface CollectionPickerDialogProps {
 
 export function CollectionPickerDialog({ sourceUrl, settings, onClose, onQueued }: CollectionPickerDialogProps) {
   const { t } = useTranslation()
+  const [downloadOptions, setDownloadOptions] = useState(() => initialDownloadDraft(settings))
   const [list, setList] = useState<PlaylistListResult | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
@@ -70,7 +73,7 @@ export function CollectionPickerDialog({ sourceUrl, settings, onClose, onQueued 
     }
   }, [sourceUrl, loadList])
 
-  const rowKey = (row: PlaylistEntryRow) => row.pageUrl || row.id
+  const rowKey = (row: PlaylistEntryRow) => [row.pageUrl, row.id, row.playlistIndex ?? ''].join('|')
 
   const orderedKeys = items.map(rowKey)
 
@@ -102,24 +105,28 @@ export function CollectionPickerDialog({ sourceUrl, settings, onClose, onQueued 
   }
 
   const handleDownload = async () => {
-    const rows = items.filter((i) => selected.has(rowKey(i)))
+    const rows = items.map((row, index) => ({ row, position: row.playlistIndex ?? index + 1 })).filter(({ row }) => selected.has(rowKey(row)))
     if (rows.length === 0 || !window.api?.startDownloadsBulk || !list) return
     setBusy(true)
     setError('')
     try {
       const folderName = list.playlistTitle.trim() || list.playlistChannel.trim() || 'Playlist'
-      const tasks = rows.map((r, i) => ({
+      const tasks = rows.map(({ row: r, position }) => ({
         url: r.pageUrl,
         title: r.title.slice(0, 200),
-        format: 'video' as const,
-        quality: settings.defaultVideoQuality,
+        format: downloadOptions.selection.target,
+        selection: downloadOptions.selection,
+        ...(r.pageUrl === list.sourceUrl ? { entryIndex: position } : {}), planId: downloadOptions.planId, planRevision: downloadOptions.planRevision,
+        outputDir: downloadOptions.outputDir, filenameTemplate: downloadOptions.filenameTemplate, includeNote: downloadOptions.includeNote,
+        quality: String(downloadOptions.selection.maxHeight),
         thumbnail: r.thumbnail || undefined,
         duration: r.duration ?? 0,
         playlistId: folderName,
-        playlistIndex: r.playlistIndex ?? i + 1,
+        playlistIndex: position,
         playlistTitle: folderName,
         metadata: {
-          channel: r.channel || list.playlistChannel || undefined
+          channel: r.channel || list.playlistChannel || undefined,
+          ytdlpId: r.id
         }
       }))
       const res = await window.api.startDownloadsBulk(tasks)
@@ -152,6 +159,7 @@ export function CollectionPickerDialog({ sourceUrl, settings, onClose, onQueued 
           <div className="min-w-0"><p className="mb-1 text-xs text-muted-foreground">{platformLabel}</p><h2 id="collection-picker-title" className="line-clamp-2 text-base font-semibold">{headerTitle}</h2></div>
           <button type="button" onClick={onClose} aria-label={t('collection.close')} className="v-button-ghost h-9 w-9 !p-0"><X className="h-4 w-4" aria-hidden /></button>
         </header>
+        <div className="max-h-[260px] shrink-0 overflow-y-auto border-b border-divider-subtle px-5"><DownloadOptionsEditor value={downloadOptions} onChange={setDownloadOptions} settings={settings} /></div>
         <div className="flex min-h-0 flex-1 flex-col px-5 py-3">
           {loading ? <div role="status" className="flex min-h-0 flex-1 items-center justify-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" aria-hidden />{t('collection.loading')}</div> : <>
             {error && <div role="alert" className="mb-3 shrink-0 text-xs text-error">{error}</div>}

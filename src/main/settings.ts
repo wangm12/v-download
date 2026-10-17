@@ -1,3 +1,4 @@
+import { EMPTY_DOWNLOAD_PLAN_LIBRARY, readDownloadPlanLibrary, type DownloadPlanLibrary } from '@v-download/shared'
 import { app } from 'electron'
 import { join } from 'path'
 import { randomBytes } from 'crypto'
@@ -84,6 +85,7 @@ export interface SettingsSchema {
    * Must be a short safe token; validated in normalizeLoadedSettings.
    */
   ytdlpExternalDownloader: string
+  downloadPlanLibrary: DownloadPlanLibrary
   siteRules: SiteRule[]
   /** Optional proxy applied to yt-dlp requests. */
   proxyUrl: string
@@ -192,6 +194,7 @@ const defaults: SettingsSchema = {
   downloadSpeedMode: 'balanced',
   turboRiskAcknowledged: false,
   ytdlpExternalDownloader: '',
+  downloadPlanLibrary: structuredClone(EMPTY_DOWNLOAD_PLAN_LIBRARY),
   siteRules: [],
   proxyUrl: '',
   ...INTEGRATION_BOOLEAN_DEFAULTS,
@@ -209,7 +212,7 @@ let settingsPath = ''
 let cache: SettingsSchema | null = null
 
 function cloneSettings(value: SettingsSchema): SettingsSchema {
-  return { ...value, siteRules: value.siteRules.map((rule) => ({ ...rule })) }
+  return { ...value, downloadPlanLibrary: structuredClone(value.downloadPlanLibrary), siteRules: value.siteRules.map((rule) => ({ ...rule })) }
 }
 
 function getSettingsPath(): string {
@@ -283,6 +286,8 @@ function normalizeLoadedSettings(s: SettingsSchema): void {
   s.remoteApiMcpAllowWrite = Boolean(s.remoteApiMcpAllowWrite)
   s.remoteApiMcpRequireConfirm = s.remoteApiMcpRequireConfirm !== false
   s.uiLanguage = normalizeUiLanguagePreference(s.uiLanguage)
+  try { s.downloadPlanLibrary = readDownloadPlanLibrary(s.downloadPlanLibrary) }
+  catch { s.downloadPlanLibrary = structuredClone(EMPTY_DOWNLOAD_PLAN_LIBRARY) }
   s.siteRules = Array.isArray(s.siteRules) ? s.siteRules.filter((rule): rule is SiteRule => {
     return Boolean(rule && typeof rule.id === 'string' && typeof rule.domain === 'string' && rule.domain.trim() &&
       ['best', 'video', 'audio'].includes(rule.format) && typeof rule.quality === 'string' &&
@@ -430,6 +435,7 @@ export function validateSettingUpdate(key: string, value: unknown): value is Set
   if (key === 'directMediaEngine') return value === 'auto' || value === 'ffmpeg' || value === 'ytdlp'
   if (key === 'uiLanguage') return value === 'system' || value === 'en' || value === 'zh-CN' || value === 'zh-TW'
   if (key === 'youtubePlaylistMode') return value === 'native' || value === 'fanout'
+  if (key === 'downloadPlanLibrary') { try { readDownloadPlanLibrary(value); return true } catch { return false } }
   if (key === 'siteRules') return Array.isArray(value) && value.length <= 100 && value.every((rule) => {
     if (!rule || typeof rule !== 'object' || Array.isArray(rule)) return false
     const r = rule as Record<string, unknown>; const allowed = new Set(['id', 'domain', 'format', 'quality', 'enabled'])

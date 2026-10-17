@@ -1,3 +1,5 @@
+import type { MediaSourceContext } from './media-source-context.js'
+import type { DownloadSelectionRequest } from './download-selection.js'
 export {
   type ChromeSyncedCookie,
   type BuildNetscapeCookieFileOptions,
@@ -27,6 +29,7 @@ export type MediaCandidate = {
   formatId?: string
   url: string
   pageUrl?: string
+  sourceContext?: MediaSourceContext
   source?: 'yt-dlp' | 'ffmpeg' | 'sniffer' | 'extension'
   format?: string
   quality?: string
@@ -49,7 +52,7 @@ export type MediaCandidate = {
   playlistKind?: 'master' | 'media' | 'unknown'
 }
 
-export interface StartDownloadOptions {
+export interface StartDownloadOptions extends DownloadSelectionRequest {
   url: string
   title: string
   format: string
@@ -80,3 +83,8 @@ export interface QueueNotice {
   actions: QueueNoticeAction[]
   vars?: Record<string, string | number>
 }
+
+export * from './download-selection.js'
+export * from './media-inspection.js'
+
+export * from './media-source-context.js'

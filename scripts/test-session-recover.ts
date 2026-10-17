@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { planSessionRecover } from '../src/main/sessionRecover.ts'
+import { parseInterruptedDownloadIds, planSessionRecover } from '../src/main/sessionRecover.ts'
 import { parseSessionInterrupted } from '../src/preload/sessionInterrupted.ts'
 
 assert.deepEqual(
@@ -42,5 +42,11 @@ assert.equal(parseSessionInterrupted({ count: 1.5, ids: ['a'] }), null)
 assert.equal(parseSessionInterrupted({ count: Infinity, ids: [] }), null)
 assert.equal(parseSessionInterrupted({ count: 1, ids: [1] }), null)
 assert.equal(parseSessionInterrupted({ count: 1, ids: 'a' }), null)
+
+assert.deepEqual(parseInterruptedDownloadIds(['live-1', 'live-1', 'live-2']), ['live-1', 'live-2'])
+assert.deepEqual(parseInterruptedDownloadIds([]), [])
+for (const invalid of [undefined, null, 'all', [1], [''], ['   '], ['valid', null]]) {
+  assert.equal(parseInterruptedDownloadIds(invalid), null)
+}
 
 console.log('session-recover tests passed')

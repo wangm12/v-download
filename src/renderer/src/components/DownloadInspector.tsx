@@ -23,10 +23,12 @@ import { ActionMenu } from './ui/ActionMenu'
 import {
   DOWNLOAD_DETAILS_RAIL_CLASS,
   getInspectorStatCells,
+  inspectorDestination,
   revealFolderLabel
 } from './downloadInspectorPresentation'
 import { useTranslation } from 'react-i18next'
 import { getStatusTone } from './statusPresentation'
+import { CapturedMediaDetails } from './CapturedMediaDetails'
 
 type TranscodePresetId = 'mp3' | 'aac' | 'opus' | 'flac' | 'wav' | 'mp4' | 'h265' | 'vp9'
 
@@ -49,6 +51,7 @@ const DOWNLOAD_ERROR_ACTIONS: Record<DownloadErrorCode, 'retry' | 'sync-cookies'
   ENGINE_MISSING: 'open-settings',
   PO_TOKEN_REQUIRED: 'retry',
   AUTH_REQUIRED: 'sync-cookies',
+  ACCESS_DENIED: 'open-source',
   BROWSER_REQUIRED: 'sync-cookies',
   NETWORK_RETRYABLE: 'retry',
   STORAGE_UNAVAILABLE: 'open-settings',
@@ -176,26 +179,27 @@ function InspectorDetailBody({
   const recover = () => {
     if (recoveryAction === 'sync-cookies' && onSyncBrowserCookies) onSyncBrowserCookies()
     else if (recoveryAction === 'open-settings') void window.api?.openSettings()
-    else if (recoveryAction === 'open-source') void window.api?.openExternalUrl(url)
+    else if (recoveryAction === 'open-source') void window.api?.openExternalUrl(sourceUrl)
     else actions.retry(id)
   }
+  const sourceUrl = download.sourceContext?.pageUrl ?? download.sourceContext?.documentUrl ?? url
   let sourceHost = t('inspector.sourcePage')
-  try { sourceHost = new URL(url).hostname.replace(/^www\./, '') } catch { /* legacy URLs */ }
-  const destination = file_path || downloadDir
-  const fileName = file_path?.split('/').pop()
-  const folderName = (file_path ? file_path.slice(0, file_path.lastIndexOf('/')) : downloadDir).split('/').filter(Boolean).slice(-2).join('/')
+  try { sourceHost = new URL(sourceUrl).hostname.replace(/^www\./, '') } catch { /* legacy URLs */ }
+  const { destination, fileName, folderName } = inspectorDestination(file_path, download.outputDir, downloadDir)
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">
       <div className="aspect-video w-full shrink-0 overflow-hidden rounded-card bg-control"><ThumbnailImage src={thumbnail} referer={url || undefined} /></div>
       <div className="min-w-0"><h2 className="break-words text-sm font-semibold leading-snug">{title}</h2>{channel && <p className="mt-1 text-xs text-muted-foreground">{channel}</p>}<div className="mt-2"><InspectorStatusPill status={status} /></div></div>
+      {download.planName && <p className="text-xs text-muted-foreground">{t('plans.title')} · {download.planId?.startsWith('builtin:') ? t(`plans.${download.planId.slice(8)}`) : download.planName}</p>}
+      {download.selection && <p className="text-xs text-muted-foreground">{[download.selection.exact ? t('plans.exact') : t('plans.automatic'), download.selection.videoCodec !== 'any' ? download.selection.videoCodec.toUpperCase() : '', download.selection.maxFps ? `≤ ${download.selection.maxFps} fps` : ''].filter(Boolean).join(' · ')}</p>}
       {statCells.length > 0 && <dl className="flex flex-wrap gap-x-5 gap-y-2">
         {statCells.map((cell) => <div key={cell.label}><dt className="text-xs text-muted-foreground">{t(cell.label === 'Duration' ? 'inspector.duration' : cell.label === 'Size' ? 'inspector.size' : 'inspector.format')}</dt><dd className="mt-1 text-xs font-medium tabular-nums">{cell.value}</dd></div>)}
       </dl>}
       {status === 'downloading' && <div><div className="mb-2 h-1.5 overflow-hidden rounded-full bg-control"><div className="h-full rounded-full bg-progress transition-all duration-300" style={{ width: `${progress}%` }} /></div>
         <p className="text-xs tabular-nums text-muted-foreground">{phase ? `${t(`status.${phase}`)} · ` : ''}{Math.round(progress)}%{speed ? ` · ${speed}` : ''}{eta && eta !== '00:00' && eta !== '0:00' ? ` · ${t('queue.eta', { eta })}` : ''}</p>
       </div>}
-      {status === 'error' && error_code && <p className="text-xs leading-relaxed text-muted-foreground" role="status">{t(error_code === 'STORAGE_UNAVAILABLE' ? 'ui.recoveryStorage' : recoveryAction === 'open-settings' ? 'inspector.recoverySettings' : recoveryAction === 'sync-cookies' ? 'inspector.recoveryCookies' : recoveryAction === 'open-source' ? 'inspector.recoverySource' : 'inspector.recoveryRetry')}</p>}
+      {status === 'error' && error_code && <p className="text-xs leading-relaxed text-muted-foreground" role="status">{t(error_code === 'ACCESS_DENIED' ? 'capture.accessDenied' : error_code === 'STORAGE_UNAVAILABLE' ? 'ui.recoveryStorage' : recoveryAction === 'open-settings' ? 'inspector.recoverySettings' : recoveryAction === 'sync-cookies' ? 'inspector.recoveryCookies' : recoveryAction === 'open-source' ? 'inspector.recoverySource' : 'inspector.recoveryRetry')}</p>}
       <div className="space-y-2">
         {status === 'complete' && file_path && <><button type="button" className={btnPrimary} onClick={() => actions.openFile(file_path)}><File className="h-4 w-4" aria-hidden />{t('inspector.openFile')}</button><button type="button" className={btnSecondary} onClick={() => actions.openFolder(file_path)}><FolderOpen className="h-4 w-4" aria-hidden />{t(folderLabel === 'Reveal in Finder' ? 'inspector.revealFinder' : 'inspector.revealFolder')}</button></>}
         {status === 'complete' && !file_path && <button type="button" className={btnPrimary} onClick={() => actions.downloadAgain(download)}><DownloadAgainIcon className="h-4 w-4" aria-hidden />{t('inspector.downloadAgain')}</button>}
@@ -208,8 +212,9 @@ function InspectorDetailBody({
         </>}
       </div>
       {error && (status === 'error' || status === 'interrupted' || status === 'cancelled') && <details className="v-disclosure"><summary><ChevronDown className="v-chevron h-3.5 w-3.5" aria-hidden />{t('ui.rawError')}</summary><p className="max-h-40 overflow-y-auto break-words py-2 text-xs leading-relaxed text-muted-foreground">{error}</p></details>}
+      <CapturedMediaDetails key={id} download={download} />
       {destination && <div className="min-w-0"><p className="mb-1 text-xs text-muted-foreground">{t('inspector.destination')}</p>{fileName && <p className="truncate text-xs" title={file_path || undefined}>{fileName}</p>}<p className="mt-1 truncate text-xs text-muted-foreground" title={destination}>{folderName}</p></div>}
-      <div><p className="mb-1 text-xs text-muted-foreground">{t('inspector.source')}</p><button type="button" onClick={() => window.api?.openExternalUrl(url)} className="inline-flex items-center gap-2 rounded text-xs hover:underline"><ExternalLink className="h-3.5 w-3.5" aria-hidden />{sourceHost}</button>
+      <div><p className="mb-1 text-xs text-muted-foreground">{t('inspector.source')}</p><button type="button" onClick={() => window.api?.openExternalUrl(sourceUrl)} className="inline-flex items-center gap-2 rounded text-xs hover:underline"><ExternalLink className="h-3.5 w-3.5" aria-hidden />{sourceHost}</button>
         <details className="v-disclosure mt-1"><summary><ChevronDown className="v-chevron h-3.5 w-3.5" aria-hidden />{t('inspector.showLink')}</summary><p className="select-text break-all py-2 text-xs text-muted-foreground">{url}</p><button type="button" onClick={() => void navigator.clipboard.writeText(url)} className="v-button-secondary">{t('inspector.copySource')}</button></details>
       </div>
       {status === 'complete' && file_path && <details className="v-disclosure border-t border-divider-subtle pt-2"><summary><ChevronDown className="v-chevron h-3.5 w-3.5" aria-hidden />{t('inspector.createConvertedCopy')}</summary>

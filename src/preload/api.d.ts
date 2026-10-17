@@ -1,3 +1,4 @@
+import type { DownloadSelectionRequest, DownloadPlanLibrary, DownloadPlanMutation } from '@v-download/shared'
 import type { AppResult, MediaCandidate, QueueAdmissionOutcome, QueueNotice, StartDownloadOptions } from '@v-download/shared'
 export type { AppResult, MediaCandidate, QueueAdmissionOutcome, QueueNotice, StartDownloadOptions } from '@v-download/shared'
 
@@ -60,7 +61,13 @@ export interface DouyinBulkJobStatus {
 }
 
 export interface WindowApi {
-  startInfoResolve: (options: {
+  beginMediaCapture: (id: string, pageUrl?: string) => Promise<{ data?: import('@v-download/shared').MediaCaptureCommand; error?: string }>
+  cancelMediaCapture: (id: string) => Promise<{ ok: boolean }>
+  inspectDownloadMedia: (id: string) => Promise<{ data?: import('@v-download/shared').MediaInspection; error?: string }>
+  cancelMediaInspection: (id: string) => Promise<{ ok: boolean }>
+  getDownloadPlans: () => Promise<{ data: DownloadPlanLibrary }>
+  mutateDownloadPlan: (mutation: DownloadPlanMutation) => Promise<{ data?: DownloadPlanLibrary; error?: string }>
+  startInfoResolve: (options: DownloadSelectionRequest & {
     url: string
     title?: string
     format?: string
@@ -73,7 +80,7 @@ export interface WindowApi {
   getInfoResolveResults: () => Promise<{ data?: InfoResolveEvent[]; error?: string }>
   downloadAgain: (id: string) => Promise<{ data?: unknown; error?: string; outcome?: QueueAdmissionOutcome; notice?: QueueNotice }>
   ensureInfoResolveReady: (id: string) => Promise<{ ok: boolean; error?: string }>
-  promoteInfoResolve: (options: {
+  promoteInfoResolve: (options: DownloadSelectionRequest & {
     id: string
     url?: string
     title?: string
@@ -104,6 +111,7 @@ export interface WindowApi {
   transcodeDownload: (id: string, preset: TranscodePresetId) => Promise<{ data?: unknown; error?: string }>
   getDownloads: () => Promise<{ data: unknown[] }>
   resumeAll: () => Promise<{ ok: boolean }>
+  resumeSessionInterrupted: (ids: string[]) => Promise<{ ok: boolean; resumedIds?: string[]; error?: string }>
   pauseAll: () => Promise<{ ok: boolean }>
   showMainWindow: () => Promise<{ ok: boolean }>
   clearDownloads: (mode: string) => Promise<{ ok: boolean }>
@@ -184,7 +192,7 @@ export interface WindowApi {
   ) => Promise<{ data?: unknown; error?: string }>
   douyinProfileListPostsAbort?: (abortKey: string) => Promise<{ ok: boolean }>
   startDownloadsBulk?: (
-    tasks: Array<{
+    tasks: Array<StartDownloadOptions & {
       url: string
       title: string
       format?: string

@@ -1,3 +1,4 @@
+import type { DownloadSelectionRequest, DownloadPlanLibrary, DownloadPlanMutation } from '@v-download/shared'
 import { contextBridge, ipcRenderer } from 'electron'
 import type { StartDownloadOptions } from '@v-download/shared'
 import { parseSessionInterrupted } from './sessionInterrupted'
@@ -9,7 +10,13 @@ ipcRenderer.on('session-interrupted', (_event, payload: unknown) => {
 })
 
 const api = {
-  startInfoResolve: (options: {
+  beginMediaCapture: (id: string, pageUrl?: string) => ipcRenderer.invoke('begin-media-capture', id, pageUrl),
+  cancelMediaCapture: (id: string) => ipcRenderer.invoke('cancel-media-capture', id),
+  inspectDownloadMedia: (id: string) => ipcRenderer.invoke('inspect-download-media', id),
+  cancelMediaInspection: (id: string) => ipcRenderer.invoke('cancel-media-inspection', id),
+  getDownloadPlans: () => ipcRenderer.invoke('get-download-plans'),
+  mutateDownloadPlan: (mutation: DownloadPlanMutation) => ipcRenderer.invoke('mutate-download-plan', mutation),
+  startInfoResolve: (options: DownloadSelectionRequest & {
     url: string
     title?: string
     format?: string
@@ -22,7 +29,7 @@ const api = {
   getInfoResolveResults: () => ipcRenderer.invoke('get-info-resolve-results'),
   downloadAgain: (id: string) => ipcRenderer.invoke('download-again', id),
   ensureInfoResolveReady: (id: string) => ipcRenderer.invoke('ensure-info-resolve-ready', id),
-  promoteInfoResolve: (options: {
+  promoteInfoResolve: (options: DownloadSelectionRequest & {
     id: string
     url?: string
     title?: string
@@ -55,6 +62,7 @@ const api = {
   transcodeDownload: (id: string, preset: string) => ipcRenderer.invoke('transcode-download', { id, preset }),
   getDownloads: () => ipcRenderer.invoke('get-downloads'),
   resumeAll: () => ipcRenderer.invoke('resume-all'),
+  resumeSessionInterrupted: (ids: string[]) => ipcRenderer.invoke('resume-session-interrupted', ids),
   pauseAll: () => ipcRenderer.invoke('pause-all'),
   showMainWindow: () => ipcRenderer.invoke('show-main-window'),
   clearDownloads: (mode: string) => ipcRenderer.invoke('clear-downloads', mode),

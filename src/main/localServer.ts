@@ -1,3 +1,4 @@
+import { allDownloadPlans, type DownloadSelectionRequest, type MediaSourceContext } from '@v-download/shared'
 import { createServer, IncomingMessage, ServerResponse } from 'http'
 import { app, BrowserWindow, dialog } from 'electron'
 import { writeFileSync, mkdirSync, existsSync, chmodSync, readFileSync, realpathSync, renameSync, unlinkSync } from 'fs'
@@ -10,6 +11,8 @@ import { getUnpackedChromeExtensionId } from './extensionIdentity'
 import { CHROME_EXTENSION_ID_PATTERN, filterValidCookieRecords, isAllowedOrigin, isAuthorizedExtensionRequest, validateDownloadPayload } from './securityValidation'
 import { worklog, worklogError } from './worklog'
 import { getUiLanguage } from './uiLanguage'
+import { inspectCapturedMedia, type CapturedMediaInput } from './mediaInspection'
+import { cancelCapturedMediaSession, completeMediaCapture, mediaCaptureCommand } from './mediaCapture'
 import { translate } from '../i18n/catalog'
 import {
   completeDouyinProfileExtensionRequest,
@@ -23,6 +26,10 @@ import {
 
 export const LOCAL_SERVER_PORT = 18765
 let server: ReturnType<typeof createServer> | null = null
+export function getLocalServerPort(): number {
+  const address = server?.address()
+  return address && typeof address === 'object' ? address.port : LOCAL_SERVER_PORT
+}
 
 /** When true, Chrome extension should run syncCookies() (poll or cookie-sync-landing page). */
 let cookieSyncRequested = false
@@ -125,7 +132,8 @@ function broadcastCookiesSynced(cookieCount: number): void {
   }
 }
 
-export interface DownloadRequest {
+export interface DownloadRequest extends DownloadSelectionRequest {
+  sourceContext?: MediaSourceContext
   url: string
   type?: string
   quality?: string
@@ -138,6 +146,7 @@ export interface DownloadRequest {
 export interface DownloadDispatchResult {
   ok: boolean
   accepted?: boolean
+  status?: number
   error?: string
 }
 
@@ -421,6 +430,66 @@ export function startLocalServer(): void {
       return
     }
 
+    // POST is a read-only query for Chrome, which omits Origin on some GETs.
+    // Keep GET compatibility and require the same origin/capability for both.
+    if ((req.method === 'GET' || req.method === 'POST') && pathname === '/download-plans') {
+      if (!authorized(req)) { json(res, 403, { error: 'Pairing required' }); return }
+      if (req.method === 'POST') {
+        try {
+          const query = JSON.parse(await readBody(req)) as unknown
+          if (!query || typeof query !== 'object' || Array.isArray(query) || Object.keys(query).length) {
+            json(res, 400, { error: 'Expected an empty download plan query' }); return
+          }
+        } catch (error) { respondRequestError(res, error, 'Invalid download plan query'); return }
+      }
+      const library = settings.get('downloadPlanLibrary')
+      json(res, 200, { version: 1, defaultId: library.defaultId,
+        plans: allDownloadPlans(library).map(({ id, name, revision, selection }) => ({ id, name, revision, selection })) })
+      return
+    }
+
+    if (req.method === 'GET' && pathname === '/media-capture-landing') {
+      res.setHeader('Content-Type', 'text/html; charset=utf-8')
+      res.setHeader('Cache-Control', 'no-store')
+      res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'")
+      res.end('<!doctype html><html lang="en"><meta charset="utf-8"><title>V-Download browser capture</title><body><h1>V-Download</h1><p id="status">Connecting to the Chrome extension… If this page stays open, enable the V-Download extension in Chrome, then return to the task and try again.</p></body></html>')
+      return
+    }
+    if (req.method === 'POST' && ['/media-inspect', '/media-capture-command', '/media-capture-complete', '/media-capture-cancel'].includes(pathname)) {
+      if (!authorized(req)) { json(res, 403, { error: 'Pairing required' }); return }
+      const ac = new AbortController()
+      const abort = () => { if (!res.writableEnded) ac.abort() }
+      res.once('close', abort)
+      try {
+        const body = JSON.parse(await readBody(req)) as Record<string, unknown>
+        if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error('Expected a media request')
+        if (pathname === '/media-capture-command' || pathname === '/media-capture-cancel') {
+          if (Object.keys(body).length !== 1 || typeof body.requestId !== 'string') throw new Error('Invalid capture request')
+          if (pathname === '/media-capture-cancel') {
+            cancelCapturedMediaSession(body.requestId, req.headers.origin!)
+            json(res, 200, { ok: true }); return
+          }
+          const command = mediaCaptureCommand(body.requestId, req.headers.origin!)
+          json(res, command ? 200 : 410, command ? { command } : { error: 'Capture session expired. Start again from the task.' })
+        } else {
+          const { requestId, confirmed, ...media } = body
+          if (pathname === '/media-inspect' && (requestId !== undefined || confirmed !== undefined)) throw new Error('Invalid inspection request')
+          const checked = validateDownloadPayload(media)
+          if (!checked.ok || Object.keys(media).some((key) => !['url', 'type', 'referer', 'headers', 'sourceContext'].includes(key))) throw new Error(checked.ok ? 'Invalid media fields' : checked.error)
+          const input = checked.value as unknown as CapturedMediaInput
+          if (new URL(input.url).username || new URL(input.url).password) throw new Error('Embedded credentials are not supported')
+          if (pathname === '/media-inspect') json(res, 200, { data: await inspectCapturedMedia(input, ac.signal) })
+          else {
+            if (typeof requestId !== 'string' || confirmed !== true || !input.type) throw new Error('Confirm one replacement media source first')
+            await completeMediaCapture(requestId, input, req.headers.origin!)
+            json(res, 200, { ok: true })
+          }
+        }
+      } catch (error) {
+        json(res, pathname === '/media-inspect' ? 422 : 409, { error: error instanceof Error ? error.message : 'Media request failed' })
+      } finally { res.removeListener('close', abort) }
+      return
+    }
     if (req.method === 'POST' && pathname === '/download') {
       try {
         if (!authorized(req)) { json(res, 403, { error: 'Pairing required' }); return }
@@ -439,7 +508,7 @@ export function startLocalServer(): void {
           accepted
         })
         if (!accepted) {
-          json(res, 503, { error: result?.error || 'Download request was not accepted' })
+          json(res, result?.status ?? 503, { error: result?.error || 'Download request was not accepted' })
           return
         }
         json(res, 200, { ok: true, accepted: true })

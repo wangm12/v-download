@@ -6,7 +6,7 @@ const read = (path: string) => readFileSync(resolve(root, path), 'utf8')
 
 const mainWindowIpc = read('src/main/ipc/window.ts')
 const preload = read('src/preload/index.ts')
-const preloadTypes = read('src/preload/index.d.ts')
+const preloadTypes = read('src/preload/api.d.ts')
 const renderer = read('src/renderer/src/components/PreferencesPanel.tsx')
 
 if (!mainWindowIpc.includes("ipcMain.handle('get-app-version', () => app.getVersion())")) {

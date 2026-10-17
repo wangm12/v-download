@@ -1,8 +1,18 @@
+import { readDownloadSelection, readMediaSourceContext } from '@v-download/shared'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import type { Download, DownloadStatus } from '@/types'
+import { progressPatchFromIpc } from './downloadProgress'
 
 function normalizeTask(t: Record<string, unknown>): Download {
+  const request = (t.metadata as Record<string, unknown> | undefined)?.downloadRequest as { selection?: unknown; plan?: { name?: string; id?: string } } | undefined
+  let selection: Download['selection']
+  try { if (request?.selection) selection = readDownloadSelection(request.selection) } catch { /* Legacy malformed metadata has no selection claim. */ }
+  let sourceContext: Download['sourceContext']
+  try { const raw = (t.metadata as Record<string, unknown> | undefined)?.sourceContext; if (raw) sourceContext = readMediaSourceContext(raw) } catch { /* No source claim from malformed legacy metadata. */ }
   return {
+    mediaUrl: ((t.metadata as Record<string, unknown> | undefined)?.candidate as { url?: string } | undefined)?.url,
+    recaptureAt: (t.metadata as Record<string, unknown> | undefined)?.recaptureAt as string | undefined,
+    sourceContext, selection, planName: request?.plan?.name, planId: request?.plan?.id,
     id: String(t.id ?? ''),
     url: String(t.url ?? ''),
     title: String(t.title ?? ''),
@@ -15,6 +25,7 @@ function normalizeTask(t: Record<string, unknown>): Download {
     totalSize: (t.totalSize as string) || null,
     phase: (t.phase as string) || null,
     file_path: (t.file_path ?? t.filePath) as string | null,
+    outputDir: typeof t.outputDir === 'string' ? t.outputDir : null,
     file_size: (t.file_size ?? t.fileSize) as number | null,
     thumbnail: (t.thumbnail ?? null) as string | null,
     duration: (t.duration ?? null) as number | null,
@@ -35,26 +46,6 @@ function normalizeTasks(data: unknown[]): Download[] {
 // The main-process reporter already throttles progress to roughly this cadence.
 // Matching it avoids rendering intermediate IPC events that cannot be displayed.
 const PROGRESS_FLUSH_MS = 400
-
-/** Only merge IPC fields that are actually present — never wipe title/thumbnail with undefined. */
-function progressPatchFromIpc(data: Record<string, unknown>): Partial<Download> {
-  const patch: Partial<Download> = {}
-  if (typeof data.progress === 'number') patch.progress = data.progress
-  if (typeof data.status === 'string') patch.status = data.status as DownloadStatus
-  if ('speed' in data) patch.speed = (data.speed as string) || null
-  if ('eta' in data) patch.eta = (data.eta as string) || null
-  if ('totalSize' in data) patch.totalSize = (data.totalSize as string) || null
-  if ('phase' in data) patch.phase = (data.phase as string) || null
-  const filePath = data.filePath ?? data.file_path
-  if (typeof filePath === 'string') patch.file_path = filePath
-  if (typeof data.title === 'string' && data.title.trim()) patch.title = data.title
-  if (typeof data.thumbnail === 'string') patch.thumbnail = data.thumbnail
-  if (typeof data.duration === 'number') patch.duration = data.duration
-  if (typeof data.channel === 'string') patch.channel = data.channel
-  if (typeof data.error === 'string') patch.error = data.error
-  if ('errorCode' in data || 'error_code' in data) patch.error_code = (data.errorCode ?? data.error_code ?? null) as Download['error_code']
-  return patch
-}
 
 export function useDownloads() {
   const [downloads, setDownloads] = useState<Download[]>([])
@@ -241,7 +232,8 @@ export function useDownloads() {
           status === 'cancelled' ||
           status === 'paused' ||
           status === 'interrupted'
-        queueProgressUpdate(id, progressPatchFromIpc(data as Record<string, unknown>), terminal)
+        const selectionChanged = typeof data.format === 'string' || typeof data.quality === 'string'
+        queueProgressUpdate(id, progressPatchFromIpc(data as Record<string, unknown>), terminal || selectionChanged)
       }
     })
 

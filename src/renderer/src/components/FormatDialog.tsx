@@ -1,5 +1,8 @@
+import { reusableSelection } from '@v-download/shared'
+import { DownloadOptionsEditor } from './DownloadOptionsEditor'
+import { initialDownloadDraft, exactFormatSelection } from './downloadOptionsModel'
 import { useState } from 'react'
-import { X, Download, Music, Video, File, Folder, ChevronDown } from 'lucide-react'
+import { X, Download, Music, Video, Folder, ChevronDown } from 'lucide-react'
 import type { VideoInfo, SettingsData } from '@/types'
 import { formatDuration } from '@/utils/format'
 import { isDouyinProfileHomeUrl } from '@/utils/douyinBulk'
@@ -7,13 +10,10 @@ import { DialogShell } from './ui'
 import { useDialogFocus } from '@/hooks/useDialogFocus'
 import { ThumbnailImage } from './ThumbnailImage'
 import {
-  DEFAULT_INCLUDE_NOTE,
   TASK_HEADERS_PLACEHOLDER,
   TASK_PROXY_PLACEHOLDER,
   fallbackQuality,
-  getDefaultSelectedKey,
   getPresentationCandidates,
-  hasOtherFormats
 } from './formatDialogPresentation'
 import {
   applyFolderChange,
@@ -33,7 +33,7 @@ interface FormatDialogProps {
     quality: string,
     includeNote: boolean,
     overrides?: TaskDownloadOverrides
-  ) => void
+  ) => void | Promise<void>
   queueCount?: number
   onSkipAll?: () => void
   /** Opens Preferences → Downloads and prefills the bulk URL field (Douyin profile flows). */
@@ -41,7 +41,7 @@ interface FormatDialogProps {
   siteRule?: { format: 'best' | 'video' | 'audio'; quality: string }
 }
 
-type TabType = 'audio' | 'video' | 'other'
+type TabType = 'audio' | 'video'
 
 export function FormatDialog({
   videoInfo,
@@ -54,17 +54,28 @@ export function FormatDialog({
   siteRule
 }: FormatDialogProps) {
   const { t } = useTranslation()
-  const [activeTab, setActiveTab] = useState<TabType>(siteRule?.format === 'audio' ? 'audio' : 'video')
-  const [downloadDir, setDownloadDir] = useState(settings.downloadDir)
+  const [draft, setDraft] = useState(() => {
+    const value = initialDownloadDraft(settings)
+    if (siteRule && !settings.downloadPlanLibrary?.defaultId) {
+      value.selection = { ...value.selection, target: siteRule.format === 'audio' ? 'audio' : 'video', output: siteRule.format === 'audio' ? 'mp3' : 'original', maxHeight: siteRule.format === 'audio' ? 'best' : Number(siteRule.quality) || 1080, ...(siteRule.format === 'audio' ? { audioBitrate: Number(siteRule.quality) || undefined } : {}) }
+    }
+    return value
+  })
+  const activeTab: TabType = draft.selection.target
+  const setActiveTab = (tab: TabType) => { setSelectedKey(null); setDraft((v) => ({ ...v, selection: { ...reusableSelection(v.selection), target: tab, output: tab === 'audio' ? 'mp3' : 'original', audioBitrate: tab === 'audio' ? Number(settings.defaultAudioQuality) || undefined : undefined, postprocess: 'none' } })) }
+  const downloadDir = draft.outputDir
   const [bulkNote, setBulkNote] = useState('')
+  const [downloadError, setDownloadError] = useState('')
+  const [downloadBusy, setDownloadBusy] = useState(false)
   const [bulkBusy, setBulkBusy] = useState(false)
   const [queuedKeys, setQueuedKeys] = useState<Set<string>>(new Set())
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
-  const [includeNote, setIncludeNote] = useState(DEFAULT_INCLUDE_NOTE)
+  const includeNote = draft.includeNote
+  const setIncludeNote = (includeNote: boolean) => setDraft((v) => ({ ...v, includeNote }))
   const [taskProxyUrl, setTaskProxyUrl] = useState('')
   const [extraHeadersText, setExtraHeadersText] = useState('')
   const dialogRef = useDialogFocus<HTMLDivElement>(onClose)
-  const videoFormatsRaw = getPresentationCandidates(videoInfo.formats, 'video', settings.defaultVideoQuality, siteRule)
+  const videoFormatsRaw = getPresentationCandidates(videoInfo.formats, 'video', String(draft.selection.maxHeight))
   const audioFormatsRaw = getPresentationCandidates(videoInfo.formats, 'audio', settings.defaultAudioQuality, siteRule)
   const videoFormats = videoFormatsRaw.length
     ? videoFormatsRaw
@@ -73,9 +84,9 @@ export function FormatDialog({
     ? audioFormatsRaw
     : [{ format_id: 'best-audio', quality: fallbackQuality('audio', settings.defaultAudioQuality || '320', siteRule), kind: 'audio' as const, ext: 'auto', key: 'best-audio', recommended: true }]
   const activeFormats = activeTab === 'audio' ? audioFormats : videoFormats
-  const resolvedSelectedKey = selectedKey && activeFormats.some((item) => item.key === selectedKey)
-    ? selectedKey
-    : getDefaultSelectedKey(activeFormats)
+  const resolvedSelectedKey = draft.selection.exact
+    ? selectedKey ?? activeFormats.find((item) => item.format_id === draft.selection.exact?.formatId)?.key ?? null
+    : null
   const selectedFormat = activeFormats.find((item) => item.key === resolvedSelectedKey) ?? activeFormats[0]
   const formatSize = (bytes?: number, approximate = false) => {
     if (!bytes || bytes <= 0) return t('format.sizeUnknown')
@@ -100,7 +111,7 @@ export function FormatDialog({
     const folder = await window.api.selectDownloadFolder()
     if (!folder) return
     const next = applyFolderChange(downloadDir, folder)
-    setDownloadDir(next.downloadDir)
+    setDraft((v) => ({ ...v, outputDir: next.downloadDir }))
   }
 
   const taskOverrides = (): TaskDownloadOverrides =>
@@ -111,11 +122,15 @@ export function FormatDialog({
       extraHeadersText
     })
 
-  const handleDownload = (format: string, quality: number, key: string) => {
-    if (queuedKeys.has(key)) return
+  const handleDownload = async (format: string, quality: number, key: string) => {
+    if (queuedKeys.has(key) || downloadBusy) return
+    setDownloadBusy(true); setDownloadError('')
+    try {
     const url = videoInfo.webpage_url || `https://www.youtube.com/watch?v=${videoInfo.id}`
-    onDownload(url, format, String(quality), includeNote, taskOverrides())
+    await onDownload(url, format, String(quality), includeNote, { ...taskOverrides(), ...(simpleSave ? {} : { selection: draft.selection, planId: draft.planId, planRevision: draft.planRevision, filenameTemplate: draft.filenameTemplate, includeNote: draft.includeNote }) })
     setQueuedKeys((previous) => new Set(previous).add(key))
+    } catch (error) { setDownloadError(error instanceof Error ? error.message : String(error)) }
+    finally { setDownloadBusy(false) }
   }
 
   const handleStartDouyinBulkFromDialog = async () => {
@@ -147,14 +162,14 @@ export function FormatDialog({
   const tabs: { id: TabType; label: string; icon: typeof Music }[] = [
     { id: 'video', label: t('format.video'), icon: Video },
     { id: 'audio', label: t('format.audio'), icon: Music },
-    ...(hasOtherFormats(videoInfo.formats) ? [{ id: 'other' as const, label: t('format.other'), icon: File }] : [])
+
   ]
 
   const saveKey = isTextNote ? 'text-note' : isImageGallery ? 'gallery' : selectedFormat?.key
-  const alreadyQueued = Boolean(saveKey && queuedKeys.has(saveKey))
+  const alreadyQueued = downloadBusy || Boolean(saveKey && queuedKeys.has(saveKey))
   const downloadSelected = () => {
     if (simpleSave) handleDownload('video', Number(settings.defaultVideoQuality || '1080'), saveKey!)
-    else if (selectedFormat && activeTab !== 'other') handleDownload(activeTab === 'audio' ? 'mp3' : 'mp4', selectedFormat.quality, selectedFormat.key)
+    else if (selectedFormat) handleDownload(activeTab === 'audio' ? 'mp3' : 'mp4', selectedFormat.quality, selectedFormat.key)
   }
 
   return (
@@ -183,27 +198,32 @@ export function FormatDialog({
               </button>
             })}
           </div>}
+          {downloadError && <p role="alert" className="mb-2 text-xs text-error">{downloadError}</p>}
+          {!simpleSave && <DownloadOptionsEditor value={draft} onChange={(value) => { setDraft(value); setSelectedKey(null) }} settings={settings} showFolder={false} showNote={false} />}
           <div id={simpleSave ? 'format-gallery-panel' : `format-panel-${activeTab}`} {...(simpleSave ? { role: 'region' as const, 'aria-labelledby': 'format-dialog-title' } : { role: 'tabpanel' as const, 'aria-labelledby': `format-tab-${activeTab}` })}>
             {simpleSave ? <div className="py-2">
               <p className="text-sm font-medium">{isTextNote ? t('format.textNote') : t('format.gallery', { site: galleryLabel })}</p>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{isTextNote ? t('format.textNoteHint') : t(galleryCount === 1 ? 'format.galleryCountOne' : 'format.galleryCount', { count: galleryCount })}</p>
               {isImageGallery && <div className="mt-3 grid grid-cols-4 gap-2">{videoInfo.image_urls!.slice(0, 8).map((src, index) => <div key={index} className="aspect-square overflow-hidden rounded-md bg-control"><ThumbnailImage src={src} referer={pageUrl} /></div>)}</div>}
-            </div> : activeTab === 'other' ? <p className="py-6 text-center text-sm text-muted-foreground">{t('format.other')}</p> : <div role="radiogroup" aria-label={t('format.outputFormat')}>
+            </div> : <div role="radiogroup" aria-label={t('format.outputFormat')}>
+              <button type="button" role="radio" aria-checked={!draft.selection.exact} onClick={() => { setSelectedKey(null); setDraft((v) => ({ ...v, selection: reusableSelection(v.selection) })) }} className={`mb-1 min-h-10 w-full rounded-button px-3 py-2 text-left text-[13px] ${!draft.selection.exact ? 'bg-selection font-medium' : 'hover:bg-control'}`}>{t('plans.automatic')}</button>
               {activeFormats.map((fmt, index) => {
                 const selected = fmt.key === resolvedSelectedKey
                 const exact = Boolean(fmt.filesize && fmt.filesize > 0)
                 const size = formatSize(exact ? fmt.filesize : fmt.filesize_approx, !exact && Boolean(fmt.filesize_approx))
                 return <button key={fmt.key} type="button" role="radio" aria-checked={selected} tabIndex={selected ? 0 : -1}
-                  aria-label={t('format.downloadAria', { quality: activeTab === 'audio' ? `${fmt.quality} kbps` : `${fmt.quality}p`, container: activeTab === 'audio' ? 'MP3' : 'MP4' })}
-                  onClick={() => setSelectedKey(fmt.key)} onKeyDown={(event) => {
+                  aria-label={t('plans.selectSource', { quality: [activeTab === 'audio' ? `${fmt.quality} kbps` : `${fmt.quality}p`, fmt.fps ? `${fmt.fps} fps` : '', fmt.vcodec && fmt.vcodec !== 'none' ? fmt.vcodec : fmt.acodec || ''].filter(Boolean).join(' · '), container: (fmt.container || fmt.ext || '').toUpperCase() })}
+                  onClick={() => { setSelectedKey(fmt.key); setDraft((v) => ({ ...v, selection: exactFormatSelection(v.selection, fmt, videoInfo.webpage_url) })) }} onKeyDown={(event) => {
                     if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) return
                     event.preventDefault()
                     const next = (index + (event.key === 'ArrowDown' || event.key === 'ArrowRight' ? 1 : -1) + activeFormats.length) % activeFormats.length
                     setSelectedKey(activeFormats[next].key)
+                    setDraft((v) => ({ ...v, selection: exactFormatSelection(v.selection, activeFormats[next], videoInfo.webpage_url) }))
                     ;(event.currentTarget.parentElement?.children[next] as HTMLElement | undefined)?.focus()
                   }} className={`mb-1 flex min-h-14 w-full items-center gap-3 rounded-button px-3 py-2 text-left ${selected ? 'bg-selection' : 'hover:bg-control'}`}>
                   <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${selected ? 'border-foreground' : 'border-border-strong'}`} aria-hidden>{selected && <span className="h-2 w-2 rounded-full bg-foreground" />}</span>
-                  <span className="min-w-0 flex-1"><span className="block text-[13px] font-medium">{t(activeTab === 'audio' ? 'format.qualityAudio' : 'format.qualityVideo', { quality: fmt.quality })}</span>
+                  <span className="min-w-0 flex-1"><span className="block text-[13px] font-medium">{t(activeTab === 'audio' ? 'plans.sourceAudio' : 'plans.sourceVideo', { quality: fmt.quality })}</span>
+                    <span className="block text-xs text-muted-foreground">{[fmt.container || fmt.ext, fmt.vcodec && fmt.vcodec !== 'none' ? fmt.vcodec : fmt.acodec, fmt.fps ? `${fmt.fps} fps` : '', fmt.dynamic_range, fmt.language].filter(Boolean).join(' · ')}</span>
                     {fmt.recommended && <span className="text-xs text-muted-foreground">{t('ui.recommended')}</span>}
                   </span>
                   <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{size}</span>
@@ -211,7 +231,13 @@ export function FormatDialog({
               })}
             </div>}
           </div>
-          {!simpleSave && activeTab !== 'other' && selectedFormat && <details className="v-disclosure mt-1"><summary><ChevronDown className="v-chevron h-3.5 w-3.5" aria-hidden />{t('ui.codecs')}</summary>
+          {!simpleSave && draft.selection.exact?.kind === 'video' && audioFormatsRaw.length > 0 && <label className="mt-3 block text-xs">{t('plans.companionAudio')}
+            <select aria-label={t('plans.companionAudio')} className="v-input mt-1 w-full" value={draft.selection.exact.audioFormatId ?? ''} onChange={(event) => setDraft((value) => ({ ...value, selection: { ...value.selection, ...(audioFormatsRaw.find((audio) => audio.format_id === event.target.value)?.language ? { audioLanguage: audioFormatsRaw.find((audio) => audio.format_id === event.target.value)!.language } : {}), exact: value.selection.exact ? { ...value.selection.exact, audioFormatId: event.target.value || undefined } : undefined } }))}>
+              <option value="">{t('plans.automatic')}</option>
+              {audioFormatsRaw.map((audio) => <option key={audio.format_id} value={audio.format_id}>{[audio.language, audio.acodec, `${audio.quality} kbps`, audio.format_id].filter(Boolean).join(' · ')}</option>)}
+            </select>
+          </label>}
+          {!simpleSave && draft.selection.exact && selectedFormat && <details className="v-disclosure mt-1"><summary><ChevronDown className="v-chevron h-3.5 w-3.5" aria-hidden />{t('ui.codecs')}</summary>
             <p className="pb-2 text-xs leading-relaxed text-muted-foreground">{[t('format.source', { container: (selectedFormat.container || selectedFormat.ext || 'stream').toUpperCase() }), selectedFormat.vcodec && selectedFormat.vcodec !== 'none' ? selectedFormat.vcodec : '', selectedFormat.acodec && selectedFormat.acodec !== 'none' ? selectedFormat.acodec : '', selectedFormat.width && selectedFormat.height ? `${selectedFormat.width}×${selectedFormat.height}` : ''].filter(Boolean).join(' · ')}</p>
           </details>}
           <label className="flex items-center gap-2 py-3"><input type="checkbox" checked={includeNote} onChange={(event) => setIncludeNote(event.target.checked)} className="h-4 w-4 accent-action" /><span className="text-xs">{t('format.includeNote')}</span></label>
@@ -233,7 +259,7 @@ export function FormatDialog({
         <footer className="shrink-0 border-t border-divider-subtle bg-surface px-5 py-4">
           <div className="mb-3 flex min-w-0 items-center gap-2 text-xs text-muted-foreground"><Folder className="h-4 w-4 shrink-0" aria-hidden /><span className="shrink-0">{t('ui.saveTo')}</span><span className="min-w-0 flex-1 truncate" title={downloadDir}>{downloadDir.split('/').filter(Boolean).slice(-2).join('/') || downloadDir}</span><button type="button" onClick={handleChangeFolder} className="v-button-ghost !min-h-7 !px-2 !py-1">{t('format.change')}</button></div>
           <div className="flex items-center justify-end gap-2"><button type="button" onClick={onClose} className="v-button-ghost">{t('common.cancel')}</button>
-            <button type="button" disabled={alreadyQueued || (isTextNote && !includeNote) || (!simpleSave && (activeTab === 'other' || !selectedFormat))} onClick={downloadSelected} className="v-button-primary"><Download className="h-4 w-4" aria-hidden /><span aria-live="polite">{t(alreadyQueued ? 'format.added' : isTextNote ? 'format.saveNote' : isImageGallery ? 'format.downloadImages' : 'format.downloadSelected')}</span></button>
+            <button type="button" disabled={alreadyQueued || (isTextNote && !includeNote) || (!simpleSave && (!selectedFormat))} onClick={downloadSelected} className="v-button-primary"><Download className="h-4 w-4" aria-hidden /><span aria-live="polite">{t(alreadyQueued ? 'format.added' : isTextNote ? 'format.saveNote' : isImageGallery ? 'format.downloadImages' : 'format.downloadSelected')}</span></button>
           </div>
           {queueCount > 0 && <div className="mt-3 flex items-center justify-between gap-2 text-xs text-muted-foreground"><span>{t(queueCount === 1 ? 'format.moreQueued' : 'format.moreQueuedPlural', { count: queueCount })}</span>{onSkipAll && <button type="button" onClick={onSkipAll} className="v-button-ghost !min-h-7 !py-1">{t('format.skipAll')}</button>}</div>}
         </footer>

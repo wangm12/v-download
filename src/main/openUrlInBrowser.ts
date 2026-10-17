@@ -36,6 +36,8 @@ function openMacApplication(appName: string, url: string): Promise<void> {
 }
 
 export interface OpenConfiguredBrowserOptions {
+  /** Browser capture uses Chrome independently of cookie import preferences. */
+  browser?: 'chrome'
   /**
    * Chromium-family browsers understand this flag and keep the transient
    * resolver page out of the user's active tab. Other browsers may ignore it.
@@ -52,7 +54,7 @@ export async function openUrlInConfiguredBrowser(
   openedIn: string
   error?: string
 }> {
-  const browser = resolvedCookiesBrowser()
+  const browser = options.browser ?? resolvedCookiesBrowser()
   const appName = mapBrowserToOpenApp(browser)
 
   try {
@@ -91,6 +93,7 @@ export async function openUrlInConfiguredBrowser(
       }
     }
 
+    if (options.browser === 'chrome') throw new Error('Google Chrome is required for browser capture. Open Chrome with the V-Download extension and try again.')
     await shell.openExternal(url)
     return { ok: true, openedIn: 'default' }
   } catch (err) {
