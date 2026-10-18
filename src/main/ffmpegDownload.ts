@@ -209,7 +209,10 @@ export function ffprobeExecutable(ffmpegPath: string): string {
 export async function probeAdaptiveVideoStreams(options: {
   url: string; quality: DownloadQuality; referer?: string; customHeaders?: Record<string, string>
   proxyUrl?: string; signal?: AbortSignal; selection?: DownloadSelection
-}): Promise<ReturnType<typeof selectAdaptiveVideoStreams>> {
+}): Promise<
+  | Extract<ReturnType<typeof selectAdaptiveVideoStreams>, { ok: true }>
+  | { ok: false; stage: 'probe' | 'selection'; error: string }
+> {
   const args = ['-v', 'error', '-rw_timeout', String(HTTP_READ_IDLE_TIMEOUT_US),
     '-headers', headersToFfmpegArg(directMediaHeaders(options.referer, options.customHeaders))]
   if (options.proxyUrl?.trim()) args.push('-http_proxy', options.proxyUrl.trim())
@@ -217,7 +220,9 @@ export async function probeAdaptiveVideoStreams(options: {
   const probe = await probeMediaMetadata(ffprobeExecutable(settings.get('ffmpegPath')), args, {
     stdio: ['ignore', 'pipe', 'pipe'], env: buildSpawnEnv(), detached: process.platform !== 'win32'
   }, options.signal)
-  return probe.ok ? selectAdaptiveVideoStreams(probe.metadata, options.quality, options.selection) : { ok: false, error: probe.error }
+  if (!probe.ok) return { ok: false, stage: 'probe', error: probe.error }
+  const selected = selectAdaptiveVideoStreams(probe.metadata, options.quality, options.selection)
+  return selected.ok ? selected : { ...selected, stage: 'selection' }
 }
 
 /**

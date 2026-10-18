@@ -422,6 +422,7 @@ const en = {
     starting: 'Starting…',
     merging: 'Merging',
     transcoding: 'Converting to H.264 MP4',
+    retrying: 'Reconnecting…',
     audio: 'Audio',
     video: 'Video'
   },
@@ -1229,6 +1230,7 @@ const zhCN: DeepString<typeof en> = {
     starting: '正在开始…',
     merging: '合并中',
     transcoding: '正在转换为 H.264 MP4',
+    retrying: '正在重连…',
     audio: '音频',
     video: '视频'
   },
@@ -2036,6 +2038,7 @@ const zhTW: DeepString<typeof en> = {
     starting: '正在開始…',
     merging: '合併中',
     transcoding: '正在轉換為 H.264 MP4',
+    retrying: '正在重新連線…',
     audio: '音訊',
     video: '影片'
   },

@@ -1,0 +1,67 @@
+{
+  "cases": [
+    {
+      "status": "complete",
+      "retries": 1,
+      "elapsedMs": 2904,
+      "output": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 1280,
+            "height": 720
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio"
+          }
+        ],
+        "format": {
+          "duration": "108.433333",
+          "size": "11251761"
+        }
+      },
+      "fullDecode": true,
+      "originalTLSHostnameVerified": true
+    },
+    {
+      "status": "complete",
+      "retries": 1,
+      "elapsedMs": 2071,
+      "output": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 1280,
+            "height": 720
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio"
+          }
+        ],
+        "format": {
+          "duration": "13.600000",
+          "size": "1842777"
+        }
+      },
+      "fullDecode": true,
+      "originalTLSHostnameVerified": true
+    }
+  ],
+  "initialFailureInjected": true,
+  "explanation": "Initial child emits a controlled disconnect; subsequent DNS, authenticated route, TLS verification, engine transfer and output validation are real.",
+  "personalTasksModified": false,
+  "personalSettingsModified": false,
+  "runtimeSHA256": "943d77bf9b3a7789743c86998793231a64e8946f1d487941cfc07c75fd4966b9",
+  "cleanup": {
+    "isolatedProfileRemoved": true,
+    "temporaryDownloadsRemoved": true
+  }
+}

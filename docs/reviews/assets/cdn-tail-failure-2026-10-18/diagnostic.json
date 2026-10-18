@@ -1,0 +1,195 @@
+{
+  "date": "2026-10-18",
+  "kind": "live same-URL DNS-edge diagnostic",
+  "appBuild": "1.1.11",
+  "caseCountAtInitialAudit": 10,
+  "initialComplete": 8,
+  "initialFailed": 2,
+  "cases": [
+    {
+      "host": "sns-video-zl.xhscdn.com",
+      "observedFailure": "RemoteDisconnected after 10 yt-dlp retries",
+      "appProgressAtFailure": 97.97104122475328,
+      "edgeAttempts": [
+        {
+          "edgeId": "173b5970",
+          "curlExit": 0,
+          "httpStatusBytesVersion": "200 11251761 2",
+          "seconds": 2.361
+        }
+      ],
+      "fullReferenceAndOriginUsed": true,
+      "probeExit": 0,
+      "output": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 1280,
+            "height": 720
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio"
+          }
+        ],
+        "format": {
+          "duration": "108.433333",
+          "size": "11251761"
+        }
+      },
+      "fullDecodeExit": 0,
+      "decodeErrorBytes": 0,
+      "fullTransferAndDecodeVerified": true
+    },
+    {
+      "host": "sns-video-zl.xhscdn.com",
+      "observedFailure": "RemoteDisconnected after 10 yt-dlp retries",
+      "appProgressAtFailure": 85,
+      "edgeAttempts": [
+        {
+          "edgeId": "b0d65fe2",
+          "curlExit": 0,
+          "httpStatusBytesVersion": "200 1842777 2",
+          "seconds": 3.525
+        }
+      ],
+      "fullReferenceAndOriginUsed": true,
+      "probeExit": 0,
+      "output": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 1280,
+            "height": 720
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio"
+          }
+        ],
+        "format": {
+          "duration": "13.600000",
+          "size": "1842777"
+        }
+      },
+      "fullDecodeExit": 0,
+      "decodeErrorBytes": 0,
+      "fullTransferAndDecodeVerified": true
+    }
+  ],
+  "personalTasksModified": false,
+  "settingsModified": false,
+  "proxyEnvironmentConfigured": false,
+  "systemHTTPProxyEnabled": false,
+  "defaultInterface": "en0",
+  "ownedTemporaryDownloadsRemoved": true,
+  "observedEarlierInSameSession": {
+    "independentYtdlpReproduction": [
+      {
+        "exitCode": 1,
+        "seconds": 8.635,
+        "partBytes": 11000832,
+        "httpRetriesExhausted": 10
+      },
+      {
+        "exitCode": 1,
+        "seconds": 6.269,
+        "partBytes": 1564672,
+        "httpRetriesExhausted": 10
+      }
+    ],
+    "ordinaryRangeReads": [
+      {
+        "status": 206,
+        "range": "0-65535",
+        "bytesRead": 65536
+      },
+      {
+        "status": 206,
+        "range": "1048576-1114111",
+        "bytesRead": 65536
+      }
+    ],
+    "defaultHTTP2Curl": [
+      {
+        "exitCode": 92,
+        "advertisedBytes": 11251761,
+        "receivedBytes": 11010048
+      },
+      {
+        "exitCode": 92,
+        "advertisedBytes": 1842777,
+        "receivedBytes": 1572864
+      }
+    ],
+    "explicitEdgeComparison": [
+      {
+        "edgeId": "0d79c728",
+        "exitCode": 0,
+        "receivedBytes": 11251761
+      },
+      {
+        "edgeId": "868eed5c",
+        "exitCode": 0,
+        "receivedBytes": 11251761
+      },
+      {
+        "edgeId": "c47c7efc",
+        "exitCode": 0,
+        "receivedBytes": 11251761
+      },
+      {
+        "edgeId": "35b8cf12",
+        "exitCode": 92,
+        "receivedBytes": 1572864
+      },
+      {
+        "edgeId": "ce63da96",
+        "exitCode": 0,
+        "receivedBytes": 1842777
+      },
+      {
+        "edgeId": "62a2977d",
+        "exitCode": 0,
+        "receivedBytes": 1842777
+      }
+    ]
+  },
+  "existingCompletedOutputsFullDecode": {
+    "count": 8,
+    "ffmpegArguments": [
+      "-v",
+      "error",
+      "-xerror",
+      "-i",
+      "<existing file>",
+      "-map",
+      "0:v?",
+      "-map",
+      "0:a?",
+      "-f",
+      "null",
+      "-"
+    ],
+    "allExitCodesZero": true,
+    "allDecodeStderrEmpty": true,
+    "sourceDurationComparisonPerformed": false
+  },
+  "interpretation": {
+    "observed": "Transfer completeness varies by selected same-host DNS address; independent HTTP/1.1 and HTTP/2 clients reproduce premature termination on failing attempts. Complete same-URL files from alternative DNS addresses decode successfully.",
+    "inferred": "Some CDN nodes or network paths to them are unreliable for these objects; a deterministic DNS-edge recovery policy may improve resilience.",
+    "unknown": [
+      "Exact server-side or intermediary cause",
+      "Which remote IP each installed-app retry used",
+      "Long-term failure rate",
+      "Behavior across all sites"
+    ]
+  },
+  "implementationChangedThisInvestigation": false
+}

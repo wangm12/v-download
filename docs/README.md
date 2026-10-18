@@ -1,12 +1,14 @@
 # V-Download docs
 
-Start here. Current behavior, future implementation, and historical evidence are kept separate. Updated 2026-10-16.
+Start here. Current behavior, future implementation, and historical evidence are kept separate. Updated 2026-10-18.
 
 ## Current status and planned work
 
 | Read | Purpose |
 | --- | --- |
 | [DESKTOP_STATUS.md](DESKTOP_STATUS.md) | Delivered desktop / Chrome changes, installation evidence, and known limits |
+| [HLS selection review](reviews/hls-unknown-resolution-2026-10-18.md) | Unknown-resolution HLS fix, strict 360p regression coverage, installed full-download verification |
+| [Direct-file recovery](download-reliability.md#2026-10-18-xiaohongshu-cdn-tail-disconnect-investigation) | CDN tail-disconnect evidence, bounded DNS recovery, proxy/partial-file policy, E2E and build 1.1.12 installation |
 | [plans/web-download.md](plans/web-download.md) | Active website implementation plan; **not implemented**; milestones, compatibility, and E2E acceptance |
 | [research/web-hosting-auth-2026-10-16.md](research/web-hosting-auth-2026-10-16.md) | Website feasibility and operation without the user's local Chrome session |
 | [PRODUCT_DIRECTION.md](PRODUCT_DIRECTION.md) | Product scope and guardrails |

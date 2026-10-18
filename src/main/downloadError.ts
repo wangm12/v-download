@@ -1,5 +1,9 @@
 import type { DownloadErrorCode } from '@v-download/shared'
 
+function httpFailureStatus(message: string): string | undefined {
+  return /\b(?:HTTP(?:\s+Error|\s+status(?:\s+code)?)?|Server returned)\s*[:=]?\s*([45]\d{2})\b/i.exec(message)?.[1]
+}
+
 /** Classify the failure before formatting it for display or persistence. */
 export function classifyDownloadError(error: unknown, isYoutube: boolean): DownloadErrorCode {
   const message = error instanceof Error ? error.message : String(error)
@@ -9,7 +13,7 @@ export function classifyDownloadError(error: unknown, isYoutube: boolean): Downl
   if (/^spawn .+ ENOENT(?:\s|$)/i.test(message)) return 'ENGINE_MISSING'
   // POSIX supervision starts bash successfully even when the engine cannot exec.
   if (/\bbad interpreter: No such file or directory\b/i.test(message) || /\bv-download-managed-child: line \d+: .+: (?:No such file or directory|command not found)\b/i.test(message)) return 'ENGINE_MISSING'
-  const httpStatus = /\b(?:HTTP(?:\s+Error|\s+status(?:\s+code)?)?|Server returned)\s*[:=]?\s*([45]\d{2})\b/i.exec(message)?.[1]
+  const httpStatus = httpFailureStatus(message)
   if (httpStatus === '404' || httpStatus === '410') return 'UNSUPPORTED'
   if (httpStatus && (Number(httpStatus) >= 500 || ['408', '429'].includes(httpStatus))) return 'NETWORK_RETRYABLE'
   if (/po.?token|provider|missing[_ -]?pot|youtubepot|youtube.*bot|bot.*youtube|confirm you.?re not a bot/i.test(message) && isYoutube) return 'PO_TOKEN_REQUIRED'
@@ -19,7 +23,7 @@ export function classifyDownloadError(error: unknown, isYoutube: boolean): Downl
   if (httpStatus === '403' || /\bforbidden\b|access denied/i.test(message)) return 'ACCESS_DENIED'
   if (/browser|javascript runtime|client.*required|chrome extension|chrome:\/\/extensions|extension.*reload/i.test(message)) return 'BROWSER_REQUIRED'
   if (/unsupported|no video formats|not available/i.test(message)) return 'UNSUPPORTED'
-  if (/network|timed out|timeout|connection|503|429|temporarily unavailable/i.test(message)) return 'NETWORK_RETRYABLE'
+  if (isRecoverableTransportFailure(message) || /network|timed out|timeout|connection|503|429|temporarily unavailable/i.test(message)) return 'NETWORK_RETRYABLE'
   if (/\b(?:yt-dlp|ffmpeg|ffprobe)(?:\.exe)?(?: (?:and|or) (?:ffmpeg|ffprobe)(?:\.exe)?)? (?:was |is |are )?(?:not found|not installed|not configured)\b/i.test(message)) return 'ENGINE_MISSING'
   return isYoutube ? 'NETWORK_RETRYABLE' : 'UNSUPPORTED'
 }
@@ -30,4 +34,11 @@ export function downloadProcessFailure(stderr: string, code: number | null): str
   return lines.filter((line) => line.includes('ERROR:')).pop()?.slice(-4096)
     || lines.slice(-6).join('\n').slice(-4096)
     || `yt-dlp exited with code ${code}`
+}
+
+/** Retry transport failures only. Rate limits and authorization need their own recovery. */
+export function isRecoverableTransportFailure(message: string): boolean {
+  const status = httpFailureStatus(message)
+  if ((status && ['401', '403', '404', '410', '429'].includes(status)) || /forbidden|unauthori[sz]ed|certificate (?:verify|verification)|SSL verification|CERTIFICATE_VERIFY_FAILED|selection not satisfied|requested format is not available/i.test(message)) return false
+  return Boolean(status && Number(status) >= 500) || /RemoteDisconnected|connection (?:aborted|reset|closed|refused)|ECONNRESET|ETIMEDOUT|timed out|timeout|incomplete read|ContentTooShort|\b\d+ bytes read, \d+ more expected\b|stream ends prematurely|partial file|NameResolutionError|unable to resolve|name or service not known|nodename nor servname/i.test(message)
 }

@@ -46,6 +46,7 @@ export function isAdaptiveMediaInput(mediaType: string | undefined, url: string)
 
 export function sanitizeResolverError(message: string): string {
   return message
+    .replace(/(https?:\/\/)[^\s/@]+:[^\s/@]+@/gi, '$1[redacted]@')
     .replace(/([?&](?:token|sig|signature|key|auth|expires|credential|access_token)=)[^&\s]+/gi, '$1[redacted]')
     .replace(/(^|\n)\s*(cookie|authorization|proxy-authorization)\s*:\s*[^\n]*/gim, '$1$2: [redacted]')
     .replace(/(cookie|authorization|proxy-authorization)\s*[=:]\s*(?:bearer\s+)?[^\s,;]+(?:\s+[^\s,;]+)?/gi, '$1=[redacted]')

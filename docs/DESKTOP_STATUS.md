@@ -1,6 +1,6 @@
 # 桌面版当前交付状态
 
-截至 2026-10-16（America/Los_Angeles）。当前 Mac 版已经满足本轮用户需求；后续桌面功能建议暂停，当前新增工作仅是 [网页版实施计划](plans/web-download.md)。计划不代表网页版已经实现或部署。
+截至 2026-10-18（America/Los_Angeles）。当前 Mac 版已经满足本轮用户需求；继续处理已复现的下载正确性问题，后续桌面功能建议暂停。[网页版实施计划](plans/web-download.md) 仍未实现或部署。
 
 ## 已交付
 
@@ -11,7 +11,9 @@
 | 资源数据 | 原始 URL、完整 Referer／来源上下文、稳定评分、独立候选；开发重载后的早期捕获与方案鉴权 | [数据正确性](archive/2026-10-desktop/browser-data-correctness-2026-10-15.md)、[首轮捕获／鉴权](archive/2026-10-desktop/extension-startup-auth-2026-10-15.md) |
 | 候选与失败恢复 | 候选详情、按需识别、HLS 关系；浏览器重新捕获后继续同一任务、原方案与目录；403 访问拒绝分类 | [实现与验收](archive/2026-10-desktop/browser-capture-recovery-2026-10-15.md) |
 | 详情与错误 | 完成前显示实际目标目录；404 与引擎缺失分开；切任务时详情局部状态隔离 | [目录／404](archive/2026-10-desktop/inspector-error-fixes-2026-10-15.md)、[最终审查](archive/2026-10-desktop/capture-review-install-2026-10-15.md) |
-| 本机交付 | 1.1.7 / build 1.1.10 arm64 安装到 Applications；Chrome 扩展重载实测；数据／设置保留 | [最终审查与安装](archive/2026-10-desktop/capture-review-install-2026-10-15.md) |
+| HLS 选流 | 旧自适应视频任务使用统一选择策略；未知分辨率先探测、发布前严格校验，360p 不回退为无限制 best；17 个完整下载场景通过 | [修复与自审](reviews/hls-unknown-resolution-2026-10-18.md) |
+| 直链可靠性 | MP4 等直链断流后有限退避、同域名 DNS 节点恢复；尊重代理；跨节点临时文件隔离；重连阶段与进度正确；403/404 和 360p 策略保留 | [诊断、实现与自审](download-reliability.md#implemented-recovery-and-review) |
+| 本机交付 | 最新 1.1.7 / build 1.1.12 arm64 安装到 Applications，两条原失败任务重试及完整解码通过，现有 10 条均完成；设置和其他 8 条记录保留；扩展无需变更 | [最新安装证据](reviews/assets/cdn-tail-failure-2026-10-18/installed-validation.json)；[此前 HLS 验收](reviews/hls-unknown-resolution-2026-10-18.md)；[此前扩展验收](archive/2026-10-desktop/capture-review-install-2026-10-15.md) |
 
 此前已经存在的 yt-dlp／FFmpeg、中文站点 adapter、原生登录、引擎维护、HTTP／MCP、托盘／Dock 等能力继续保留，不将它们计作本轮从零新增。
 

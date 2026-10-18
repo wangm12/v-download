@@ -49,13 +49,14 @@ export const DownloadItem = memo(function DownloadItem({ download, selected = fa
     switch (status) {
       case 'downloading': {
         const phaseLabel =
+          phase === 'retrying' ? t('status.retrying') :
           phase === 'audio' ? t('status.audio') :
           phase === 'merging' ? t('status.merging') :
           phase === 'transcoding' ? t('status.transcoding') :
           phase === 'video' ? t('status.video') : ''
         const leftParts: string[] = []
         if (phaseLabel) leftParts.push(phaseLabel)
-        leftParts.push(progress < 1 ? t('queue.starting') : `${Math.round(progress)}%`)
+        if (phase !== 'retrying') leftParts.push(progress < 1 ? t('queue.starting') : `${Math.round(progress)}%`)
         if (download.totalSize) leftParts.push(download.totalSize)
         if (speed) leftParts.push(speed)
 

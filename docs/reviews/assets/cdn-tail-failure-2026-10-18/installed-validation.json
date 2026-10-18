@@ -1,0 +1,132 @@
+{
+  "app": "/Applications/V-Download.app",
+  "version": "1.1.7",
+  "build": "1.1.12",
+  "architecture": "arm64",
+  "mainSHA256": "943d77bf9b3a7789743c86998793231a64e8946f1d487941cfc07c75fd4966b9",
+  "asarSHA256": "dc5b5680ecad26c698a172cdfb82cab9ecfa2dd9976b822992e55a7702fd4351",
+  "dmg": "V-Download-1.1.7-local-20261018-r2-arm64.dmg",
+  "dmgSHA256": "62fe060b43057b0b5c423bbefddb9b98870b5d18d4ea82350113bb7089458443",
+  "deepStrictSignatureVerified": true,
+  "dmgReadonlyMountVerified": true,
+  "signatureKind": "Apple Development",
+  "notarized": false,
+  "backup": "private offline rollback backup (local path omitted)",
+  "dataBeforeFirstLaunch": {
+    "allBaselineFilesIdentical": true,
+    "baselineFiles": 290,
+    "taskCount": 10,
+    "allTaskRowsIdentical": true,
+    "settingsIdentical": true
+  },
+  "installedUIObserved": "10 Downloads · 10 Complete",
+  "originalFailedTasks": [
+    {
+      "status": "complete",
+      "preservedFields": {
+        "id": true,
+        "url": true,
+        "title": true,
+        "format": true,
+        "quality": true,
+        "created_at": true,
+        "selection_key": true,
+        "playlist_id": true,
+        "playlist_index": true
+      },
+      "preservedSourceContextAndPlan": {
+        "sourceContext": true,
+        "mediaType": true,
+        "referer": true,
+        "ownedOutputRoot": true,
+        "downloadRequest": true
+      },
+      "output": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 1280,
+            "height": 720
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio"
+          }
+        ],
+        "format": {
+          "duration": "108.433333",
+          "size": "11251757"
+        }
+      },
+      "outputParent": "$DOWNLOADS",
+      "fullDecodeExit": 0,
+      "decodeStderrBytes": 0,
+      "automaticRecoveryEvents": []
+    },
+    {
+      "status": "complete",
+      "preservedFields": {
+        "id": true,
+        "url": true,
+        "title": true,
+        "format": true,
+        "quality": true,
+        "created_at": true,
+        "selection_key": true,
+        "playlist_id": true,
+        "playlist_index": true
+      },
+      "preservedSourceContextAndPlan": {
+        "sourceContext": true,
+        "mediaType": true,
+        "referer": true,
+        "ownedOutputRoot": true,
+        "downloadRequest": true
+      },
+      "output": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 1280,
+            "height": 720
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio"
+          }
+        ],
+        "format": {
+          "duration": "13.600000",
+          "size": "1842777"
+        }
+      },
+      "outputParent": "$DOWNLOADS",
+      "fullDecodeExit": 0,
+      "decodeStderrBytes": 0,
+      "automaticRecoveryEvents": []
+    }
+  ],
+  "finalDataPreservation": {
+    "integrity": "ok",
+    "taskCount": 10,
+    "sameTaskIds": true,
+    "otherEightTaskRowsUnchanged": true,
+    "settingsBytesUnchanged": true,
+    "selectedYtdlpSHA256": "0f192b7ec147ab6288885d6351d9ab67367640029b4377576ef46dd79cf7b202",
+    "selectedFfmpegSHA256": "e88d7b5f23040dc44b8194bbd670010ef815a19938662ed2a91d66daa4e3d1c7",
+    "launchDidNotAutoRetryHistoricalFailures": true
+  },
+  "cleanup": {
+    "ownedPackagingDirectoryRemoved": true,
+    "duplicateBuiltAndPreviousAppsRemoved": true,
+    "failedFixtureResidueRemoved": true,
+    "rollbackBackupRetained": true,
+    "signedDMGRetained": true
+  }
+}

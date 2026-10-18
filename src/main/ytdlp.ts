@@ -1,5 +1,6 @@
 import { readDownloadSelection, selectionFormatSelector, type DownloadSelection } from '@v-download/shared'
 import { isAdaptiveMediaInput } from './mediaResolver'
+import type { RecoveryRoute } from './progressiveRecovery'
 import { ChildProcess, execFileSync } from 'child_process'
 import { existsSync, mkdirSync } from 'fs'
 import { join } from 'path'
@@ -157,6 +158,11 @@ export interface DownloadOptions {
   externalDownloader?: string
   /** Each string is passed as `--retry-sleep` (e.g. `fragment:linear=2::5`). */
   retrySleeps?: string[]
+  /** Bounded HTTP recovery attempts; absent keeps the engine's normal defaults. */
+  httpRetries?: number
+  socketTimeout?: number
+  /** Internal task-owned route; distinct from a user proxy setting or IPC value. */
+  recoveryRoute?: RecoveryRoute
   /** Optional local PO-token provider args; absent means normal yt-dlp flow. */
   extractorArgs?: string
   pluginDir?: string
@@ -1021,11 +1027,16 @@ export function download(
     '--no-quiet',
     '--progress',
     '--no-warnings',
-    '--no-check-certificate'
+    // Pinned recovery must not inherit ambient config disabling TLS or
+    // overriding its task-scoped proxy. All selected task options are explicit.
+    ...(options.recoveryRoute?.verifyCertificate ? ['--ignore-config'] : ['--no-check-certificate'])
   ]
 
+  if (options.httpRetries !== undefined) args.push('--retries', String(options.httpRetries))
+  if (options.socketTimeout !== undefined) args.push('--socket-timeout', String(options.socketTimeout))
+
   addYtdlpCookieArgs(url, args, cookiesPath)
-  const resolvedProxy = normalizeProxyUrl(proxyUrl)
+  const resolvedProxy = options.recoveryRoute?.proxyUrl ?? normalizeProxyUrl(proxyUrl)
   if (resolvedProxy) args.push('--proxy', resolvedProxy)
 
   appendYoutubeYtdlpArgs(url, args, { extractorArgs, pluginDir })

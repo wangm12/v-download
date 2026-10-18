@@ -1,6 +1,7 @@
 import { prepareSelectedOutput } from './selectedOutput'
+import { ProgressiveRecovery, isProgressiveRecoveryInput } from './progressiveRecovery'
 import type { CapturedMediaInput } from './mediaInspection'
-import type { DownloadSelectionRequest, DownloadErrorCode } from '@v-download/shared'
+import { defaultDownloadSelection, type DownloadSelectionRequest, type DownloadErrorCode } from '@v-download/shared'
 import { classifyDownloadError, downloadProcessFailure } from './downloadError'
 import { assertGallerySelection, supportsDirectSiteVideoSelection, prepareDownloadRequest, readDownloadRequestSnapshot, admissionIdentity, type DownloadRequestSnapshot } from './downloadPlans'
 import { v4 as uuidv4 } from 'uuid'
@@ -637,8 +638,8 @@ async function tryAdoptExistingDouyinOutput(task: DownloadTask, outDir: string):
 
 function ytdlpRetrySleepsForSpeedMode(mode: string | undefined): string[] | undefined {
   if (mode === 'turbo') return ['fragment:linear=2::5', 'http:linear=2::5']
-  if (mode === 'gentle') return ['fragment:linear=4::12']
-  if (mode === 'balanced') return ['fragment:linear=1::4']
+  if (mode === 'gentle') return ['fragment:linear=4::12', 'http:linear=2::5']
+  if (mode === 'balanced') return ['fragment:linear=1::4', 'http:linear=1::3']
   return undefined
 }
 
@@ -2188,7 +2189,7 @@ async function runTask(task: DownloadTask): Promise<void> {
     getStderr: () => '',
     getDestinations: () => []
   })
-  ensureTaskAbortController(task.id)
+  const taskSignal = ensureTaskAbortController(task.id)
   updateDockProgress()
 
   const releaseSlot = (): void => {
@@ -2220,8 +2221,7 @@ async function runTask(task: DownloadTask): Promise<void> {
   const sleepInterval = settings.get('sleepInterval')
   const ytdlpPath = settings.get('ytdlpPath')
   const taskMeta = task.metadata as Record<string, unknown> | undefined
-  const selection = taskMeta?.downloadRequest ? readDownloadRequestSnapshot(taskMeta.downloadRequest).selection : undefined
-  const prepareOutput = (path: string) => prepareSelectedOutput(path, selection, getTaskAbortSignal(task.id), () => emitProgress(task, { phase: 'transcoding' }, { force: true }))
+  const savedSelection = taskMeta?.downloadRequest ? readDownloadRequestSnapshot(taskMeta.downloadRequest).selection : undefined
 
   const quality = normalizeDownloadQuality(task.quality)
   const remoteOutputDir = typeof taskMeta?.remoteOutputDir === 'string' ? taskMeta.remoteOutputDir.trim() : ''
@@ -2241,6 +2241,15 @@ async function runTask(task: DownloadTask): Promise<void> {
   const candidate = (taskMeta?.candidate && typeof taskMeta.candidate === 'object' ? taskMeta.candidate : null) as { url?: string; type?: string; protocol?: 'http' | 'https' | 'hls' | 'dash' | 'file' | 'unknown'; container?: string; mimeType?: string } | null
   const effectiveUrl = candidate?.url || task.url
   const mediaType = cached?.mediaType || (candidate ? mediaTypeForCandidate(candidate) : '') || (taskMeta?.mediaType as string) || undefined
+  // Legacy extension tasks have a frozen quality but no saved selection. Give
+  // adaptive inputs the same unknown-metadata filtering AND final stream checks
+  // as saved plans. Preserve the legacy MP4 output intent, including on retry.
+  const selection = savedSelection ?? (
+    isAdaptiveMediaInput(mediaType, effectiveUrl) && task.format !== 'audio' && task.format !== 'mp3'
+      ? { ...defaultDownloadSelection(quality), output: 'mp4' as const }
+      : undefined
+  )
+  const prepareOutput = (path: string) => prepareSelectedOutput(path, selection, getTaskAbortSignal(task.id), () => emitProgress(task, { phase: 'transcoding' }, { force: true }))
   const referer = cached?.referer || (taskMeta?.referer as string) || undefined
   const resolvedNetwork = resolveTaskDownloadOverrides({
     remoteJobId: typeof taskMeta?.remoteJobId === 'string' ? taskMeta.remoteJobId : '',
@@ -2437,13 +2446,35 @@ async function runTask(task: DownloadTask): Promise<void> {
     Math.max(1, Math.floor(Number(settings.get('concurrentFragments')) || 5))
   )
 
+  // A bare media playlist may omit RESOLUTION altogether. Probe legacy numeric
+  // requests before downloading, but a failed network/demux probe is not proof
+  // of a quality mismatch. Such attempts must still pass the final file probe.
+  // Explicit FFmpeg already performs this probe below.
+  if (!savedSelection && selection && quality !== 'best' && directEngine !== 'ffmpeg') {
+    const checked = await ffmpegDownload.probeAdaptiveVideoStreams({
+      url: effectiveUrl, referer, customHeaders, proxyUrl: taskProxyUrl, quality, selection,
+      signal: getTaskAbortSignal(task.id)
+    })
+    if (stopIfAborted()) return
+    if (!checked.ok && checked.stage === 'selection') {
+      setTaskError(task, checked.error)
+      emitProgress(task)
+      releaseSlot()
+      processQueue()
+      return
+    }
+    if (!checked.ok) console.warn('[runTask] adaptive preflight unavailable; final output validation remains required')
+  }
+
   const tryFfmpegFirst =
     Boolean(mediaType) &&
     (directEngine === 'auto' || directEngine === 'ffmpeg') &&
     ffmpegDownload.isFfmpegDirectMediaEligible(mediaType, effectiveUrl) &&
     !(directEngine === 'auto' && (selection || isAdaptiveMediaInput(mediaType, effectiveUrl)))
 
+  let attemptedFfmpeg = false
   if (tryFfmpegFirst) {
+    attemptedFfmpeg = true
     await mkdir(taskStagingDir, { recursive: true })
     const stagedRelativePath = relative(outDir, finalPath)
     const stagedPartPath = join(taskStagingDir, `${stagedRelativePath}.part`)
@@ -2704,10 +2735,19 @@ async function runTask(task: DownloadTask): Promise<void> {
     if (!shouldPreserveYtdlpStaging(task.id)) await rm(ytdlpStagingDir, { recursive: true, force: true }).catch(() => {})
     return
   }
-  let dp: ReturnType<typeof ytdlp.download>
-  try {
-    dp = ytdlp.download(
-    {
+  const recovery = new ProgressiveRecovery({
+    url: effectiveUrl, mediaType,
+    enabled: !useMultiOutputPlaylist && !externalDl && isProgressiveRecoveryInput(effectiveUrl, mediaType),
+    proxyUrl: taskProxyUrl, signal: taskSignal,
+    onRetry: (attempt, mode) => {
+      task.progress = 0
+      db.updateDownload(task.id, { progress: 0 })
+      emitProgress(task, { phase: 'retrying', speed: '', eta: '', totalSize: null }, { force: true })
+      worklog('transport_recovery', { id: task.id, host: new URL(effectiveUrl).hostname, attempt, mode })
+    }
+  })
+  const recoveryTempRoot = join(ytdlpTempDir, `network-${uuidv4()}`)
+  const downloadOptions: ytdlp.DownloadOptions = {
       url: effectiveUrl,
       format: task.format,
       quality,
@@ -2734,35 +2774,48 @@ async function runTask(task: DownloadTask): Promise<void> {
       pluginDir: poToken.provider?.pluginDir,
       proxyUrl: taskProxyUrl,
       filenameTemplate: task.metadata?.downloadRequest ? readDownloadRequestSnapshot(task.metadata.downloadRequest).filenameTemplate : settings.get('filenameTemplate'),
-      limitRate: ytdlpLimitRateArgs(speedMode)[1]
-    },
-      ytdlpPath
-    )
+      limitRate: ytdlpLimitRateArgs(speedMode)[1],
+      ...(recovery.enabled ? { httpRetries: 2, socketTimeout: 15 } : {})
+  }
+  // FFmpeg and yt-dlp write different partials. A new engine attempt must not
+  // inherit the previous engine's percentage; normal same-attempt resume stays monotonic.
+  if (attemptedFfmpeg) {
+    task.progress = 0
+    db.updateDownload(task.id, { progress: 0 })
+    emitProgress(task, { speed: '', eta: '', totalSize: null }, { force: true })
+  }
+  let dp: ReturnType<typeof ytdlp.download>
+  try {
+    dp = ytdlp.download(downloadOptions, ytdlpPath)
   } catch (error) {
+    await recovery.close()
     if (!shouldPreserveYtdlpStaging(task.id)) await rm(ytdlpStagingDir, { recursive: true, force: true }).catch(() => {})
     throw error
   }
 
-  workerCancel = dp.cancel
-  activeDownloads.set(task.id, { cancel: dp.cancel, getStderr: dp.getStderr, getDestinations: dp.getDestinations })
-  dp.onProgress((progress) => {
-    if (isTaskAborted(task.id)) return
-    const pct = mergeMonotonicProgress(task, progress.percent)
-    task.progress = pct
-    task.status = 'downloading'
-    task.updatedAt = new Date().toISOString()
-    db.updateDownload(task.id, { status: 'downloading', progress: pct })
+  const bindProgress = (): void => {
+    workerCancel = dp.cancel
+    activeDownloads.set(task.id, { cancel: dp.cancel, getStderr: dp.getStderr, getDestinations: dp.getDestinations })
+    dp.onProgress((progress) => {
+      if (isTaskAborted(task.id)) return
+      const pct = mergeMonotonicProgress(task, progress.percent)
+      task.progress = pct
+      task.status = 'downloading'
+      task.updatedAt = new Date().toISOString()
+      db.updateDownload(task.id, { status: 'downloading', progress: pct })
 
-    taskSpeedBytes.set(task.id, parseSpeedToBytes(progress.speed))
-    updateDockProgress()
+      taskSpeedBytes.set(task.id, parseSpeedToBytes(progress.speed))
+      updateDockProgress()
 
-    emitProgress(task, {
-      speed: progress.speed,
-      eta: progress.eta,
-      totalSize: progress.total,
-      phase: progress.phase,
+      emitProgress(task, {
+        speed: progress.speed,
+        eta: progress.eta,
+        totalSize: progress.total,
+        phase: progress.phase,
+      })
     })
-  })
+  }
+  bindProgress()
 
   console.log(`[runTask] started id=${task.id.slice(0,8)} title=${task.title.slice(0,20)}`)
 
@@ -2778,10 +2831,30 @@ async function runTask(task: DownloadTask): Promise<void> {
 
   return new Promise<void>((resolvePromise) => {
     const resolve = (): void => {
-      void cleanupStaging().finally(resolvePromise)
+      void recovery.close().then(cleanupStaging).finally(resolvePromise)
     }
     let processError: Error | null = null
     const handleClose = async (code: number | null, signal: NodeJS.Signals | null): Promise<void> => {
+      // The closed child has no more work. Keep this queue slot and its abort
+      // controller while a bounded, task-scoped replacement child is prepared.
+      if (code !== 0 && !signal && !processError && !isTaskAborted(task.id) && recovery.enabled &&
+        activeDownloads.get(task.id)?.cancel === dp.cancel) {
+        try {
+          const route = await recovery.next(downloadProcessFailure(dp.getStderr(), code))
+          if (route && !isTaskAborted(task.id)) {
+            // yt-dlp doesn't bind old .part bytes to an ETag. Preserve the old
+            // partial, but never splice bytes from different DNS edges/versions.
+            dp = ytdlp.download({ ...downloadOptions, recoveryRoute: route,
+              tempDir: join(recoveryTempRoot, String(route.attempt)), httpRetries: 0 }, ytdlpPath)
+            bindProgress()
+            bindClose()
+            return
+          }
+        } catch {
+          // Cancellation is handled below. DNS/proxy setup failure retains the
+          // original engine error; no route credentials or signed URLs are logged.
+        }
+      }
       try {
       if (dp.waitForCleanup && !(await dp.waitForCleanup())) {
         console.warn(`[runTask] yt-dlp process group still visible after cancellation id=${task.id.slice(0, 8)}`)
@@ -3434,14 +3507,14 @@ async function runTask(task: DownloadTask): Promise<void> {
       }
     }
 
-    dp.process.on('close', (code, signal) => {
-      void handleClose(code, signal)
-    })
-
-    dp.process.on('error', (err) => {
-      console.error(`[runTask] id=${task.id.slice(0,8)} process error: ${sanitizeResolverError(err.message)}`)
-      processError = err
-    })
+    const bindClose = (): void => {
+      dp.process.once('close', (code, signal) => { void handleClose(code, signal) })
+      dp.process.once('error', (err) => {
+        console.error(`[runTask] id=${task.id.slice(0,8)} process error: ${sanitizeResolverError(err.message)}`)
+        processError = err
+      })
+    }
+    bindClose()
   })
 }
 

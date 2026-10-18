@@ -1,0 +1,115 @@
+{
+  "appVersion": "1.1.7",
+  "build": "1.1.11",
+  "architecture": "arm64",
+  "asarSHA256": "c46946d1445f36c3caecb292d129daec72ad36b774403e4f547cfcf78114b302",
+  "dmg": "V-Download-1.1.7-local-20261018-r1-arm64.dmg",
+  "dmgSHA256": "08db4f69ae73966e9eeb4b24fa2cc7be51face4574c1bba787e768be666c84b5",
+  "settingsUnchanged": true,
+  "engines": [
+    {
+      "name": "yt-dlp",
+      "path": "<user-data>/engines/darwin-arm64/yt-dlp",
+      "sha256": "0f192b7ec147ab6288885d6351d9ab67367640029b4377576ef46dd79cf7b202",
+      "version": "2026.08.19"
+    },
+    {
+      "name": "ffmpeg",
+      "path": "/opt/homebrew/bin/ffmpeg",
+      "sha256": "e88d7b5f23040dc44b8194bbd670010ef815a19938662ed2a91d66daa4e3d1c7",
+      "version": "ffmpeg version 8.1 Copyright (c) 2000-2026 the FFmpeg developers"
+    }
+  ],
+  "originalTask": {
+    "status": "complete",
+    "qualityCap": "1080",
+    "outputParent": "$DOWNLOADS",
+    "output": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "codec_name": "aac",
+          "codec_type": "audio",
+          "sample_rate": "44100",
+          "channels": 2
+        }
+      ],
+      "format": {
+        "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+        "duration": "1185.706054",
+        "size": "150585559"
+      }
+    },
+    "probeSeconds": 0.134,
+    "sameTaskIdentity": true,
+    "preservedFields": {
+      "url": true,
+      "title": true,
+      "format": true,
+      "quality": true,
+      "created_at": true,
+      "thumbnail": true,
+      "channel": true,
+      "playlist_id": true,
+      "playlist_index": true,
+      "selection_key": true
+    },
+    "fullDecode": {
+      "exitCode": 0,
+      "seconds": 3.949,
+      "stderrBytes": 0
+    },
+    "installedUIObservedComplete": true
+  },
+  "dataPreservation": {
+    "backup": "private offline rollback backup (local path omitted)",
+    "databaseIntegrity": "ok",
+    "taskCountAtDownloadVerification": 1,
+    "taskCountAtLaterAudit": 0,
+    "laterHistoryChangeAttribution": "user confirmed manual cleanup after successful download verification; preserve cleared state",
+    "baselineFiles": 290,
+    "unchangedFiles": 276,
+    "missingFiles": [],
+    "changedFiles": [
+      "downloads.db",
+      "DawnGraphiteCache/data_1",
+      "DawnGraphiteCache/index",
+      "Session Storage/000003.log",
+      "Session Storage/LOG",
+      "Session Storage/LOG.old",
+      "GPUCache/data_1",
+      "GPUCache/index",
+      "logs/worklog.txt",
+      "DawnWebGPUCache/data_1",
+      "DawnWebGPUCache/index",
+      "Local Storage/leveldb/000003.log",
+      "Local Storage/leveldb/LOG",
+      "Local Storage/leveldb/LOG.old"
+    ],
+    "settingsBytesUnchanged": true,
+    "noProfileReplacementPerformed": true,
+    "userConfirmedCleanup": true,
+    "restoreRequested": false
+  },
+  "signature": {
+    "deepStrictVerified": true,
+    "kind": "Apple Development",
+    "hardenedRuntime": true,
+    "notarized": false,
+    "dmgReadonlyMountVerified": true,
+    "packagedMainMatchesTestedBuild": true
+  },
+  "cleanup": {
+    "ownedUnsignedPackagesRemoved": true,
+    "temporaryPackagingDirectoryRemoved": true,
+    "oldAppDuplicateRemoved": true,
+    "rollbackBackupRetained": true
+  }
+}

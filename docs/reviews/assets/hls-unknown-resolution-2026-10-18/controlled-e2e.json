@@ -1,0 +1,1683 @@
+{
+  "cases": [
+    {
+      "name": "auto-unknown-720-under-1080",
+      "engine": "auto",
+      "settingsVerified": true,
+      "quality": "1080",
+      "status": "complete",
+      "error": null,
+      "elapsedMs": 930,
+      "requests": 16,
+      "output": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "height": 720
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio"
+          }
+        ],
+        "format": {
+          "duration": "6.037333"
+        },
+        "sha256": "e5a95aae1304fbf85648e8ac91ee850240d25776a8fbb35b5315ef2300c9a3e7",
+        "fullDecode": true
+      }
+    },
+    {
+      "name": "auto-unknown-360-under-360",
+      "engine": "auto",
+      "settingsVerified": true,
+      "quality": "360",
+      "status": "complete",
+      "error": null,
+      "elapsedMs": 740,
+      "requests": 16,
+      "output": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "height": 360
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio"
+          }
+        ],
+        "format": {
+          "duration": "6.037333"
+        },
+        "sha256": "ff35709b2f1d07313292780ba00a21784707051d0716591f5cee0e5d4ea81b95",
+        "fullDecode": true
+      }
+    },
+    {
+      "name": "auto-unknown-720-rejected-at-360",
+      "engine": "auto",
+      "settingsVerified": true,
+      "quality": "360",
+      "status": "error",
+      "error": "No video rendition satisfies the selected quality (360p maximum).",
+      "elapsedMs": 85,
+      "requests": 8
+    },
+    {
+      "name": "auto-master-selects-360",
+      "engine": "auto",
+      "settingsVerified": true,
+      "quality": "360",
+      "status": "complete",
+      "error": null,
+      "elapsedMs": 746,
+      "requests": 24,
+      "output": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "height": 360
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio"
+          }
+        ],
+        "format": {
+          "duration": "6.037333"
+        },
+        "sha256": "ff35709b2f1d07313292780ba00a21784707051d0716591f5cee0e5d4ea81b95",
+        "fullDecode": true
+      }
+    },
+    {
+      "name": "ytdlp-unknown-720-under-1080",
+      "engine": "ytdlp",
+      "settingsVerified": true,
+      "quality": "1080",
+      "status": "complete",
+      "error": null,
+      "elapsedMs": 824,
+      "requests": 16,
+      "output": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "height": 720
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio"
+          }
+        ],
+        "format": {
+          "duration": "6.037333"
+        },
+        "sha256": "e5a95aae1304fbf85648e8ac91ee850240d25776a8fbb35b5315ef2300c9a3e7",
+        "fullDecode": true
+      }
+    },
+    {
+      "name": "ytdlp-unknown-360-under-360",
+      "engine": "ytdlp",
+      "settingsVerified": true,
+      "quality": "360",
+      "status": "complete",
+      "error": null,
+      "elapsedMs": 743,
+      "requests": 16,
+      "output": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "height": 360
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio"
+          }
+        ],
+        "format": {
+          "duration": "6.037333"
+        },
+        "sha256": "ff35709b2f1d07313292780ba00a21784707051d0716591f5cee0e5d4ea81b95",
+        "fullDecode": true
+      }
+    },
+    {
+      "name": "ytdlp-unknown-720-rejected-at-360",
+      "engine": "ytdlp",
+      "settingsVerified": true,
+      "quality": "360",
+      "status": "error",
+      "error": "No video rendition satisfies the selected quality (360p maximum).",
+      "elapsedMs": 86,
+      "requests": 8
+    },
+    {
+      "name": "ytdlp-master-selects-360",
+      "engine": "ytdlp",
+      "settingsVerified": true,
+      "quality": "360",
+      "status": "complete",
+      "error": null,
+      "elapsedMs": 750,
+      "requests": 24,
+      "output": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "height": 360
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio"
+          }
+        ],
+        "format": {
+          "duration": "6.037333"
+        },
+        "sha256": "ff35709b2f1d07313292780ba00a21784707051d0716591f5cee0e5d4ea81b95",
+        "fullDecode": true
+      }
+    },
+    {
+      "name": "ffmpeg-unknown-720-under-1080",
+      "engine": "ffmpeg",
+      "settingsVerified": true,
+      "quality": "1080",
+      "status": "complete",
+      "error": null,
+      "elapsedMs": 252,
+      "requests": 13,
+      "output": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "height": 720
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio"
+          }
+        ],
+        "format": {
+          "duration": "6.037333"
+        },
+        "sha256": "66e2c23e61d3264330b6f78528e278120dc46d5bc45d9743bfce95e59a219449",
+        "fullDecode": true
+      }
+    },
+    {
+      "name": "ffmpeg-unknown-360-under-360",
+      "engine": "ffmpeg",
+      "settingsVerified": true,
+      "quality": "360",
+      "status": "complete",
+      "error": null,
+      "elapsedMs": 167,
+      "requests": 13,
+      "output": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "height": 360
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio"
+          }
+        ],
+        "format": {
+          "duration": "6.037333"
+        },
+        "sha256": "6f578c630dc3c13c95cfbc3b61d5c92c783bafc1da81b08f1f8c371dbb18a5de",
+        "fullDecode": true
+      }
+    },
+    {
+      "name": "ffmpeg-unknown-720-rejected-at-360",
+      "engine": "ffmpeg",
+      "settingsVerified": true,
+      "quality": "360",
+      "status": "error",
+      "error": "No video rendition satisfies the selected quality (360p maximum).",
+      "elapsedMs": 86,
+      "requests": 8
+    },
+    {
+      "name": "ffmpeg-master-selects-360",
+      "engine": "ffmpeg",
+      "settingsVerified": true,
+      "quality": "360",
+      "status": "complete",
+      "error": null,
+      "elapsedMs": 181,
+      "requests": 25,
+      "output": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "height": 360
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio"
+          }
+        ],
+        "format": {
+          "duration": "6.037333"
+        },
+        "sha256": "6f578c630dc3c13c95cfbc3b61d5c92c783bafc1da81b08f1f8c371dbb18a5de",
+        "fullDecode": true
+      }
+    },
+    {
+      "name": "auto-deferred-probe-720-under-1080",
+      "engine": "auto",
+      "settingsVerified": true,
+      "quality": "1080",
+      "status": "complete",
+      "error": null,
+      "elapsedMs": 750,
+      "requests": 13,
+      "output": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "height": 720
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio"
+          }
+        ],
+        "format": {
+          "duration": "6.037333"
+        },
+        "sha256": "e5a95aae1304fbf85648e8ac91ee850240d25776a8fbb35b5315ef2300c9a3e7",
+        "fullDecode": true
+      }
+    },
+    {
+      "name": "auto-deferred-probe-720-rejected-at-360",
+      "engine": "auto",
+      "settingsVerified": true,
+      "quality": "360",
+      "status": "error",
+      "error": "Source selection not satisfied. Requested: height ≤ 360p. Observed: 720p / h264 / 24 FPS / unknown HDR.",
+      "elapsedMs": 755,
+      "requests": 13
+    },
+    {
+      "name": "auto-best-keeps-720",
+      "engine": "auto",
+      "settingsVerified": true,
+      "quality": "best",
+      "status": "complete",
+      "error": null,
+      "elapsedMs": 749,
+      "requests": 13,
+      "output": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "height": 720
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio"
+          }
+        ],
+        "format": {
+          "duration": "6.037333"
+        },
+        "sha256": "e5a95aae1304fbf85648e8ac91ee850240d25776a8fbb35b5315ef2300c9a3e7",
+        "fullDecode": true
+      }
+    },
+    {
+      "name": "auto-explicit-unknown-360",
+      "engine": "auto",
+      "settingsVerified": true,
+      "quality": "360",
+      "status": "complete",
+      "error": null,
+      "elapsedMs": 752,
+      "requests": 13,
+      "output": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "height": 360
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio"
+          }
+        ],
+        "format": {
+          "duration": "6.037333"
+        },
+        "sha256": "ff35709b2f1d07313292780ba00a21784707051d0716591f5cee0e5d4ea81b95",
+        "fullDecode": true
+      }
+    },
+    {
+      "name": "auto-explicit-unknown-720-rejected-at-360",
+      "engine": "auto",
+      "settingsVerified": true,
+      "quality": "360",
+      "status": "error",
+      "error": "Source selection not satisfied. Requested: height ≤ 360p. Observed: 720p / h264 / 24 FPS / unknown HDR.",
+      "elapsedMs": 749,
+      "requests": 13
+    }
+  ],
+  "engineRoot": "resources/engines/darwin-arm64",
+  "runtime": "out/main/index.js",
+  "requests": [
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index1.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index1.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index2.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index1.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index1.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index2.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index1.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/master.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/master.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index1.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/master.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/master.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index2.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index1.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index1.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index1.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index2.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index1.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index1.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index2.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index1.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/master.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/master.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index1.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/master.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/master.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index1.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index2.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index1.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index1.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index2.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index1.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index1.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index2.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index1.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/master.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/master.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index1.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/master.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index1.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index2.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index1.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index1.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index2.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index1.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index1.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index2.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index1.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index1.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index2.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index1.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index1.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/index2.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/360/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/encryption.key",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index1.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index.m3u8",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index0.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index2.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/index1.ts",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/720/encryption.key",
+      "method": "GET",
+      "status": 200
+    }
+  ],
+  "cleanup": {
+    "isolatedProfileRemoved": true,
+    "fixtureClosed": true,
+    "personalProfileUsed": false
+  }
+}

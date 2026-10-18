@@ -1,0 +1,579 @@
+{
+  "cases": [
+    {
+      "name": "cut",
+      "engine": "ytdlp",
+      "status": "complete",
+      "error": null,
+      "errorCode": null,
+      "milliseconds": 3623,
+      "retriesObserved": 2,
+      "output": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "height": 720
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio"
+          }
+        ],
+        "format": {
+          "duration": "6.000000"
+        }
+      },
+      "fullDecode": true
+    },
+    {
+      "name": "auto",
+      "engine": "auto",
+      "status": "complete",
+      "error": null,
+      "errorCode": null,
+      "milliseconds": 3665,
+      "retriesObserved": 2,
+      "output": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "height": 720
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio"
+          }
+        ],
+        "format": {
+          "duration": "6.000000"
+        }
+      },
+      "fullDecode": true
+    },
+    {
+      "name": "etag",
+      "engine": "ytdlp",
+      "status": "complete",
+      "error": null,
+      "errorCode": null,
+      "milliseconds": 3616,
+      "retriesObserved": 2,
+      "output": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "height": 720
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio"
+          }
+        ],
+        "format": {
+          "duration": "6.000000"
+        }
+      },
+      "fullDecode": true
+    },
+    {
+      "name": "ignore",
+      "engine": "ytdlp",
+      "status": "complete",
+      "error": null,
+      "errorCode": null,
+      "milliseconds": 6656,
+      "retriesObserved": 1,
+      "output": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "height": 720
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio"
+          }
+        ],
+        "format": {
+          "duration": "6.000000"
+        }
+      },
+      "fullDecode": true
+    },
+    {
+      "name": "permanent",
+      "engine": "ytdlp",
+      "status": "error",
+      "error": "ERROR: \r[download] Got error: 2672725 bytes read, 1439161 more expected — Check the connection and retry once.",
+      "errorCode": "NETWORK_RETRYABLE",
+      "milliseconds": 3647,
+      "retriesObserved": 2
+    },
+    {
+      "name": "deny403",
+      "engine": "ytdlp",
+      "status": "error",
+      "error": "ERROR: [generic] deny403: Unable to download webpage: HTTP Error 403: Forbidden (caused by <HTTPError 403: Forbidden>) — The source refused access; the cause is unknown. Open the source page and recapture its media.",
+      "errorCode": "ACCESS_DENIED",
+      "milliseconds": 530,
+      "retriesObserved": 0
+    },
+    {
+      "name": "deny404",
+      "engine": "ytdlp",
+      "status": "error",
+      "error": "ERROR: [generic] deny404: Unable to download webpage: HTTP Error 404: Not Found (caused by <HTTPError 404: Not Found>) — Try another format or capture media from the source page.",
+      "errorCode": "UNSUPPORTED",
+      "milliseconds": 570,
+      "retriesObserved": 0
+    },
+    {
+      "name": "cancel",
+      "engine": "ytdlp",
+      "status": "cancelled",
+      "error": "Cancelled by user",
+      "errorCode": null,
+      "milliseconds": 587,
+      "retriesObserved": 1
+    },
+    {
+      "name": "cap",
+      "engine": "ytdlp",
+      "status": "error",
+      "error": "Source selection not satisfied. Requested: height ≤ 360p. Observed: 720p / h264 / 24 FPS / unknown HDR.",
+      "errorCode": "UNSUPPORTED",
+      "milliseconds": 3669,
+      "retriesObserved": 2
+    },
+    {
+      "name": "audio",
+      "engine": "ytdlp",
+      "status": "complete",
+      "error": null,
+      "errorCode": null,
+      "milliseconds": 3785,
+      "retriesObserved": 2,
+      "output": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "mp3",
+            "codec_type": "audio"
+          }
+        ],
+        "format": {
+          "duration": "6.016000"
+        }
+      },
+      "fullDecode": true
+    },
+    {
+      "name": "parallel-b",
+      "status": "complete",
+      "fullDecode": true,
+      "maxConcurrentTaskRoutes": 2
+    },
+    {
+      "name": "parallel-a",
+      "status": "complete",
+      "fullDecode": true,
+      "maxConcurrentTaskRoutes": 2
+    }
+  ],
+  "requests": [
+    {
+      "host": "cut.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": true,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"old-version\""
+    },
+    {
+      "host": "cut.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": true,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"old-version\""
+    },
+    {
+      "host": "cut.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": false,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"current-version\""
+    },
+    {
+      "host": "cut.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": false,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"current-version\""
+    },
+    {
+      "host": "auto.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": true,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"old-version\""
+    },
+    {
+      "host": "auto.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": true,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"old-version\""
+    },
+    {
+      "host": "auto.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": false,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"current-version\""
+    },
+    {
+      "host": "auto.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": false,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"current-version\""
+    },
+    {
+      "host": "etag.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": true,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"old-version\""
+    },
+    {
+      "host": "etag.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": true,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"old-version\""
+    },
+    {
+      "host": "etag.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": false,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"current-version\""
+    },
+    {
+      "host": "etag.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": false,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"current-version\""
+    },
+    {
+      "host": "ignore.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": true,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"old-version\""
+    },
+    {
+      "host": "ignore.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": true,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"old-version\""
+    },
+    {
+      "host": "ignore.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": true,
+      "range": "bytes=2096128-",
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"old-version\""
+    },
+    {
+      "host": "ignore.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": true,
+      "range": "bytes=2096128-",
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"old-version\""
+    },
+    {
+      "host": "ignore.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": true,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"current-version\""
+    },
+    {
+      "host": "ignore.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": true,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"current-version\""
+    },
+    {
+      "host": "permanent.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": true,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"old-version\""
+    },
+    {
+      "host": "permanent.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": true,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"old-version\""
+    },
+    {
+      "host": "permanent.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": false,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"old-version\""
+    },
+    {
+      "host": "permanent.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": false,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"old-version\""
+    },
+    {
+      "host": "localhost",
+      "path": "/deny403.mp4",
+      "badEdge": true,
+      "range": "bytes=0-",
+      "refererPreserved": true,
+      "status": 403
+    },
+    {
+      "host": "localhost",
+      "path": "/deny403.mp4",
+      "badEdge": true,
+      "range": null,
+      "refererPreserved": true,
+      "status": 403
+    },
+    {
+      "host": "localhost",
+      "path": "/deny404.mp4",
+      "badEdge": true,
+      "range": "bytes=0-",
+      "refererPreserved": true,
+      "status": 404
+    },
+    {
+      "host": "localhost",
+      "path": "/deny404.mp4",
+      "badEdge": true,
+      "range": null,
+      "refererPreserved": true,
+      "status": 404
+    },
+    {
+      "host": "cap.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": true,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"old-version\""
+    },
+    {
+      "host": "cap.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": true,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"old-version\""
+    },
+    {
+      "host": "cap.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": false,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"current-version\""
+    },
+    {
+      "host": "cap.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": false,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"current-version\""
+    },
+    {
+      "host": "audio.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": true,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"old-version\""
+    },
+    {
+      "host": "audio.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": true,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"old-version\""
+    },
+    {
+      "host": "audio.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": false,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"current-version\""
+    },
+    {
+      "host": "audio.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": false,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"current-version\""
+    },
+    {
+      "host": "parallel-a.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": true,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"old-version\""
+    },
+    {
+      "host": "parallel-b.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": true,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"old-version\""
+    },
+    {
+      "host": "parallel-a.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": true,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"old-version\""
+    },
+    {
+      "host": "parallel-b.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": true,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"old-version\""
+    },
+    {
+      "host": "parallel-a.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": false,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"current-version\""
+    },
+    {
+      "host": "parallel-b.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": false,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"current-version\""
+    },
+    {
+      "host": "parallel-a.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": false,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"current-version\""
+    },
+    {
+      "host": "parallel-b.recovery.test",
+      "path": "/input.mp4",
+      "badEdge": false,
+      "range": null,
+      "refererPreserved": true,
+      "status": 200,
+      "etag": "\"current-version\""
+    }
+  ],
+  "controlledDNS": true,
+  "personalProfileUsed": false,
+  "cleanup": {
+    "profileRemoved": true,
+    "fixtureClosed": true
+  },
+  "runtimeSHA256AtPostRunVerification": "943d77bf9b3a7789743c86998793231a64e8946f1d487941cfc07c75fd4966b9"
+}
