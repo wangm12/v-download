@@ -1,4 +1,4 @@
-import { allDownloadPlans, readDownloadSelection, readDownloadPlanLibrary, type DownloadSelection, type DownloadSelectionRequest } from '@v-download/shared'
+import { allDownloadPlans, defaultDownloadSelection, readDownloadSelection, readDownloadPlanLibrary, type DownloadSelection, type DownloadSelectionRequest } from '@v-download/shared'
 import { isAbsolute, resolve } from 'path'
 import * as settings from './settings'
 import { validateOutputTemplate } from './outputTemplateModel'
@@ -6,7 +6,7 @@ import { selectionKey, type DownloadRequestSnapshot } from './downloadRequestSna
 export { readDownloadRequestSnapshot, selectionKey, admissionIdentity, type DownloadRequestSnapshot } from './downloadRequestSnapshot'
 
 type Request = DownloadSelectionRequest & {
-  url: string; format?: string; quality?: string; outputDir?: string; metadata?: Record<string, unknown>
+  url: string; format?: string; quality?: string; mediaType?: string; outputDir?: string; metadata?: Record<string, unknown>
 }
 
 /** Sole policy boundary: explicit request > selected plan > default plan > legacy request. */
@@ -17,7 +17,12 @@ export function prepareDownloadRequest<T extends Request>(options: T, inherited?
   const plan = planId ? allDownloadPlans(library).find((p) => p.id === planId) : undefined
   if (planId && !plan) throw new Error('The selected download plan no longer exists. Choose another plan.')
   if (options.planRevision !== undefined && (!plan || options.planRevision !== plan.revision)) throw new Error('The download plan changed. Refresh and select it again.')
-  const raw = options.selection ?? plan?.selection ?? inherited?.selection
+  // Freeze implicit captured-HLS intent so defaults and legacy task reuse cannot impose a height cap.
+  const raw = options.selection ?? plan?.selection ?? inherited?.selection ?? (
+    options.mediaType === 'hls' && options.format === 'video' && options.quality === undefined
+      ? { ...defaultDownloadSelection('best'), output: 'mp4' as const }
+      : undefined
+  )
   const metadata = { ...(options.metadata ?? {}) }
   delete metadata.downloadRequest
   if (!raw) return { ...options, metadata, selectionKey: selectionKey(undefined, metadata.sourceContext) }

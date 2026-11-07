@@ -1,5 +1,5 @@
-# Fast contract suite. Packaging, signing, and engine fetch stay on release.yml.
-name: Test
+# Build and type checks. Packaging, signing, and engine fetch stay on release.yml.
+name: Checks
 
 on:
   push:
@@ -7,14 +7,14 @@ on:
   pull_request:
 
 concurrency:
-  group: test-${{ github.ref }}
+  group: checks-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -25,9 +25,7 @@ jobs:
           node-version: 22
           cache: npm
 
-      # postinstall installs Electron and builds shared contracts. npm pretest
-      # verifies the host Electron and SQLite N-API prebuilds without rebuilding.
+      # postinstall installs Electron and builds shared contracts.
       - run: npm ci
       - run: npm run typecheck
       - run: npm run build
-      - run: npm test

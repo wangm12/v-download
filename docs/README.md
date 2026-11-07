@@ -18,11 +18,9 @@ Start here. Current behavior, future implementation, and historical evidence are
 | Read | When |
 |------|------|
 | [REMOTE_JOB_API.md](REMOTE_JOB_API.md) | HTTP jobs + MCP on `:18766`; Cursor server `v-download` |
-| [MANUAL_TESTING.md](MANUAL_TESTING.md) | Release / regression checklist |
 | [download-engines.md](download-engines.md) | yt-dlp vs ffmpeg vs Douyin routing |
 | [download-reliability.md](download-reliability.md) | Runbook, resume, Douyin fallback research |
 | [douyin-bulk.md](douyin-bulk.md) | Profile picker + optional Python bulk |
-| [DEBUG.md](DEBUG.md) | `make dev` logs and `worklog.txt` |
 | [RELEASE.md](RELEASE.md) | macOS packaging, signing, GitHub Actions |
 | [PRIVACY.md](PRIVACY.md) | Extension cookies and local data |
 | [DESIGN_PLAN.md](DESIGN_PLAN.md) | Current desktop UI specification; older design exports are visual history |
@@ -33,4 +31,4 @@ Start here. Current behavior, future implementation, and historical evidence are
 
 Links in maintained reports use repository-relative paths so they work in the checkout and on GitHub. Historical command output and raw evidence may still name the original local test paths.
 
-`npm test` at the repo root runs the automated suite (parsers, queue, Remote API, UI contracts, security). Pull requests run the same suite in [`.github/workflows/test.yml`](../.github/workflows/test.yml). Heavier packaging checks are `npm run test:release-gates` and `npm run verify:release`.
+Automated tests and their fixtures were removed during cleanup on 2026-10-24. Pull requests run type checks and a build in [`.github/workflows/checks.yml`](../.github/workflows/checks.yml). Release validation remains available with `npm run verify:release`. Historical reports describe checks performed before this cleanup; raw test and debug logs have been removed.

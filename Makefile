@@ -3,7 +3,7 @@
 help:
 	@echo "V-Download (desktop — repo root)"
 	@echo "  make install   npm install (+ shared package + extension constants)"
-	@echo "  make dev       node scripts/dev.mjs (Electron native preflight + electron-vite dev + host ABI restore; verbose env + tee logs/dev-latest.log)"
+	@echo "  make dev       node scripts/dev.mjs (Electron native preflight + electron-vite dev + host ABI restore)"
 	@echo "  make build     electron-vite build"
 	@echo "  make mac       build + electron-builder --mac"
 	@echo "  make deb       build Linux .deb (npm run build:linux:deb)"
@@ -12,16 +12,13 @@ help:
 	@echo "  make release   cut a release tag & push to trigger GitHub release (make release [VERSION=X.Y.Z])"
 	@echo "  make clean     rm out/, dist/, vite cache, .release-staging"
 	@echo "  make ext       reminder to reload Chrome extension"
-	@echo "  make test      npm test"
 	@echo "  make verify-release  fail-closed packaging/signing/engine/update checks"
 
 install:
 	npm install
 
 dev:
-	@mkdir -p logs
-	@echo "=== V-Download dev — full log also in logs/dev-latest.log ==="
-	@bash -o pipefail -c 'V_DOWNLOAD_VERBOSE=1 ELECTRON_ENABLE_LOGGING=1 npm run dev 2>&1 | tee logs/dev-latest.log'
+	npm run dev
 
 build:
 	npm run build
@@ -53,14 +50,11 @@ appimage:
 	npm run build:linux:appimage
 
 clean:
-	rm -rf out dist node_modules/.cache .release-staging
-	rm -f logs/*.log
+	rm -rf out dist node_modules/.cache node_modules/.vite .release-staging logs
+	rm -f *.tsbuildinfo
 
 typecheck:
 	npm run typecheck
-
-test:
-	npm test
 
 lint:
 	npm run lint

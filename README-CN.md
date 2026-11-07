@@ -130,7 +130,6 @@ make release VERSION=1.2.0 # 显式发布指定版本
 ```sh
 make dev       # 启动带有热重载的桌面开发环境
 make build     # 编译 SSR 主进程与 Vite 前端资源
-make test      # 运行完整自动化测试套件（40+ 项端到端及契约测试）
 make typecheck # 执行所有模块的 TypeScript 类型检查
 make mac       # 构建 macOS DMG 和 zip 安装包
 make deb       # 构建 Ubuntu / Debian .deb 安装包

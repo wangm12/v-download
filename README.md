@@ -125,7 +125,6 @@ make release VERSION=1.2.0 # Release explicit version
 ```sh
 make dev       # Start development server with hot reload
 make build     # Compile SSR main process and Vite frontend
-make test      # Run full test suite (40+ integration & contract tests)
 make typecheck # TypeScript type checks across all workspaces
 make mac       # Package macOS DMG and zip
 make deb       # Package Ubuntu / Debian .deb

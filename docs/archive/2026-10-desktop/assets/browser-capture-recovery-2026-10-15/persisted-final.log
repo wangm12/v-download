@@ -1,5 +1,0 @@
-
-> v-download@1.1.7 test:persisted-extras
-> npx tsx scripts/test-persisted-extras.ts
-
-persisted extras tests passed

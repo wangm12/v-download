@@ -1,7 +1,6 @@
 /**
  * Phase A: extract creator post rows from Douyin user-page HTML / embedded JSON.
  * Heuristic deep-walk (similar spirit to jiji262/douyin-downloader profile parsing, MIT).
- * Fixture tests: `npm run test:douyin-profile`.
  */
 import { extractBalancedJsonAfterMarker } from './douyinParseUtils'
 import type { DouyinProfileMediaType, DouyinProfilePostRow } from './douyinProfileTypes'
